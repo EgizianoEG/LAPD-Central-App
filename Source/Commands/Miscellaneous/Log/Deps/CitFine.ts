@@ -36,8 +36,8 @@ const CommandObject = {
       Option.setName("fine-amount")
         .setDescription("The amount of the fine in US dollars ($).")
         .setRequired(true)
-        .setMinValue(1)
-        .setMaxValue(200)
+        .setMinValue(20)
+        .setMaxValue(1000)
     ),
 };
 

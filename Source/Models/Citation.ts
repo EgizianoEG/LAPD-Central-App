@@ -132,8 +132,8 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
   fine_amount: {
     type: Number,
     required: false,
-    max: [200, "A maximum of 200$ fine amount can be used."],
-    min: 0,
+    max: [1000, "A maximum of $1000 fine amount can be used."],
+    min: [20, "A minimum of $20 fine amount can be used."],
     default(this: CitationPlainDoc) {
       return this.cit_type === CitationTypes.Fine ? 0 : null;
     },
