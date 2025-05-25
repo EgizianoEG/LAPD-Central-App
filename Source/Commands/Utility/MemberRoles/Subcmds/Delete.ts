@@ -2,7 +2,8 @@
 // -------------
 
 import { Types } from "mongoose";
-import { ErrorEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { SuccessContainer } from "@Utilities/Classes/ExtraContainers.js";
 import { SlashCommandSubcommandBuilder, channelLink, time } from "discord.js";
 import MSRolesModel from "@Models/MemberRoles.js";
 import Dedent from "dedent";
@@ -42,15 +43,14 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   }
 
   const RespEmbedDesc = Dedent(`
-    The save was successfully deleted. Here is a summary of it:
+    The save with ID \`${SaveId}\` was successfully deleted. Here is a summary of the deleted save:
     - **Save For:** <@${Save.member}>
     - **Saved By:** <@${Save.saved_by}>
     - **Saved On:** ${time(Save.saved_on, "f")}
     - **Role Count:** [${Save.roles?.length}](${channelLink(CmdInteraction.channelId)})
   `);
 
-  return new SuccessEmbed()
-    .setThumbnail(null)
+  return new SuccessContainer()
     .setTitle("Roles Backup Deleted")
     .setDescription(RespEmbedDesc)
     .replyToInteract(CmdInteraction, false);

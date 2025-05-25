@@ -55,11 +55,14 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
 // Command structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
+  callback: Callback,
+  autocomplete: Autocomplete,
+
   options: {
     app_perms: { load: [PermissionFlagsBits.ManageRoles] },
     cooldown: {
-      backup: 5,
-      load: { $user: { max_executions: 5, timeframe: 5 * 60, cooldown: 5 } },
+      $all_other: 8,
+      load: { $user: { max_executions: 5, timeframe: 5 * 60, cooldown: 10 } },
     },
     user_perms: {
       $all_other: { management: true },
@@ -72,9 +75,6 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
     .setDescription("Utility commands for managing member roles.")
     .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild),
-
-  callback: Callback,
-  autocomplete: Autocomplete,
 };
 
 for (const Subcmd of Subcommands) {
