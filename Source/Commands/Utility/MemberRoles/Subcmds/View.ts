@@ -6,12 +6,13 @@ import {
   Colors,
   roleMention,
   channelLink,
-  EmbedBuilder,
+  MessageFlags,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import { Types } from "mongoose";
+import { BaseExtraContainer } from "@Utilities/Classes/ExtraContainers.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { Types } from "mongoose";
 import MSRolesModel from "@Models/MemberRoles.js";
 import Dedent from "dedent";
 
@@ -19,6 +20,7 @@ import Dedent from "dedent";
 // Functions:
 // ----------
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
+  const PrivateResponse = CmdInteraction.options.getBoolean("private", false) ?? false;
   const SelectedMember = CmdInteraction.options.getMember("member");
   const SaveId = CmdInteraction.options.getString("save", true);
   const IsValidSaveId = Types.ObjectId.isValid(SaveId);
@@ -62,9 +64,12 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   `);
 
   return CmdInteraction.reply({
-    embeds: [
-      new EmbedBuilder()
-        .setTitle(`Member Roles Save     @${SelectedMember.user.username}`)
+    flags: PrivateResponse
+      ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+      : MessageFlags.IsComponentsV2,
+    components: [
+      new BaseExtraContainer()
+        .setTitle(`Member Roles Save     <@${SelectedMember.user.id}>`)
         .setDescription(RespEmbedDesc)
         .setColor(Colors.Greyple),
     ],
@@ -72,7 +77,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,
@@ -93,6 +98,11 @@ const CommandObject = {
         .setDescription(
           "The save to view. Type a date, nickname, username, or save ID to see autocomplete options."
         )
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("private")
+        .setRequired(false)
+        .setDescription("Whether to show the response only to you. Defaults to false.")
     ),
 };
 

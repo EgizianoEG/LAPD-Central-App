@@ -75,6 +75,8 @@ function GetSavePages(
 
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const SelectedMember = CmdInteraction.options.getMember("member");
+  const PrivateResponse = CmdInteraction.options.getBoolean("private", false) ?? false;
+
   if (!SelectedMember) {
     return new ErrorEmbed()
       .useErrTemplate("MemberNotFound")
@@ -96,6 +98,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     return HandlePagePagination({
       pages: GetSavePages(Saves, CmdInteraction, SelectedMember),
       interact: CmdInteraction,
+      ephemeral: PrivateResponse,
     });
   }
 }
@@ -112,6 +115,11 @@ const CommandObject = {
       Option.setName("member")
         .setDescription("The member to list their role saves.")
         .setRequired(true)
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("private")
+        .setDescription("Whether to show the response only to you. Defaults to false.")
+        .setRequired(false)
     ),
 };
 
