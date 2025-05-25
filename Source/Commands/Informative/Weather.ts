@@ -8,12 +8,15 @@ import {
   InteractionContextType,
   SlashCommandBuilder,
   EmbedBuilder,
+  MessageFlags,
   Colors,
 } from "discord.js";
 
 // ---------------------------------------------------------------------------------------
 async function Callback(Interaction: SlashCommandInteraction<"raw">) {
   const Units: any = Interaction.options.getString("units") ?? "imperial";
+  const IsPrivate: boolean = Interaction.options.getBoolean("private") ?? false;
+
   const WeatherData = await GetCurrentWeather({ Formatted: true, Units });
   const LocalDateTime = new Date().toLocaleString(["en-US"], {
     timeZone: "America/Los_Angeles",
@@ -66,11 +69,14 @@ async function Callback(Interaction: SlashCommandInteraction<"raw">) {
       }
     );
 
-  return Interaction.reply({ embeds: [WeatherEmbed] });
+  return Interaction.reply({
+    embeds: [WeatherEmbed],
+    flags: IsPrivate ? MessageFlags.Ephemeral : undefined,
+  });
 }
 
-// ---------------------------------------------------------------------------------------
-// Command structure:
+// ----------------s-----------------------------------------------------------------------
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<any> = {
   callback: Callback,
@@ -97,6 +103,11 @@ const CommandObject: SlashCommandObject<any> = {
           name: "imperial",
           value: "imperial",
         }
+      )
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("private").setDescription(
+        "Whether to send the response as ephemeral only to you. Defaults to false."
       )
     ),
 };
