@@ -4,11 +4,10 @@
 
 ## Getting Started
 
-* [Quickstart](getting-started/quickstart/README.md)
-  * [Application Commands](getting-started/quickstart/application-commands.md)
-  * [App Configuration](getting-started/quickstart/app-configuration.md)
 * [Change Log](getting-started/change-log.md)
 * [App Permissions](getting-started/app-permissions.md)
+* [App Commands](getting-started/app-commands.md)
+* [App Configuration](getting-started/app-configuration.md)
 
 ## Application Modules
 
