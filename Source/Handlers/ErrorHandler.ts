@@ -4,7 +4,7 @@ import AppError from "@Utilities/Classes/AppError.js";
 import Mongoose from "mongoose";
 
 const FatalDiscordAPIErrorCodes: DiscordAPIError["code"][] = [50_014, 50_017];
-const NonFatalErrorsFromConstructors: string[] = ["ValidationError", "VersionError"];
+const NonFatalErrorsFromConstructors: string[] = ["ValidationError", "VersionError", "CastError"];
 const FatalDiscordJSErrors: DiscordjsErrorCodes[] = [
   DiscordjsErrorCodes.TokenInvalid,
   DiscordjsErrorCodes.TokenMissing,
