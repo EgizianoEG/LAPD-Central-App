@@ -571,7 +571,7 @@ async function HandlePromptInteractions(
 async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
   const InputRegex = CmdInteract.options.getString("regex", true);
   const InputRFlag = CmdInteract.options.getString("flags", false);
-  const RoleFilter = CmdInteract.options.getRole("role_filter", false);
+  const RoleFilter = CmdInteract.options.getRole("role-filter", false);
   const InputReplacement = CmdInteract.options.getString("replacement", true);
   const AppMember = await CmdInteract.guild.members.fetchMe();
 
@@ -710,7 +710,7 @@ const CommandObject = {
         )
     )
     .addRoleOption((Opt) =>
-      Opt.setName("role_filter")
+      Opt.setName("role-filter")
         .setDescription("Only replace nicknames of members in this role (optional).")
         .setRequired(false)
     ),

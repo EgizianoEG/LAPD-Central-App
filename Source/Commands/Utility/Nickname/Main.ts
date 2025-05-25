@@ -31,6 +31,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 // Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
+  callback: Callback,
   options: {
     app_perms: { replace: [PermissionFlagsBits.ManageNicknames] },
     user_perms: { replace: [PermissionFlagsBits.Administrator], $all_other: { staff: true } },
@@ -60,8 +61,6 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
     .setContexts(InteractionContextType.Guild)
     .addSubcommand(Subcommands[0].data)
     .addSubcommand(Subcommands[1].data),
-
-  callback: Callback,
 };
 
 // ---------------------------------------------------------------------------------------
