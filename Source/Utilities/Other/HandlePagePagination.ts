@@ -28,8 +28,10 @@ import HandleCollectorFiltering from "./HandleCollectorFilter.js";
 import GetPredefinedNavButtons, { type NavButtonsActionRow } from "./GetNavButtons.js";
 import ShowModalAndAwaitSubmission from "./ShowModalAwaitSubmit.js";
 import HandleActionCollectorExceptions from "./HandleCompCollectorExceptions.js";
+import DisableMessageComponents from "./DisableMsgComps.js";
 
 // ---------------------------------------------------------------------------------------
+const FileLabel = "Utilities:Other:HandlePagePagination.ts";
 const Clamp = (Value: number, Min: number, Max: number) => Math.min(Math.max(Value, Min), Max);
 interface PagePaginationOptions {
   /**
@@ -109,7 +111,7 @@ export default async function HandlePagePagination({
     AttachComponentsV2NavButtons(Pages as ContainerBuilder[], NavigationButtons);
   }
 
-  const PaginationReply = await HandleInitialInteractReply(Interact, Pages, MsgFlags);
+  let PaginationReply: Message | null = await HandleInitialInteractReply(Interact, Pages, MsgFlags);
   if (Pages.length === 1) return;
 
   const ComponentCollector = PaginationReply.createMessageComponentCollector({
@@ -124,8 +126,9 @@ export default async function HandlePagePagination({
       IsComponentsV2Pagination &&
       CV2CompListener &&
       !NavigationButtonIds.includes(RecInteraction.customId)
-    )
+    ) {
       return CV2CompListener(RecInteraction, CurrPageIndex, Pages);
+    }
 
     if (!RecInteraction.isButton()) {
       return;
@@ -187,12 +190,17 @@ export default async function HandlePagePagination({
         : { embeds: [Pages[NewPageIndex] as EmbedBuilder], components: [NavigationButtons] };
 
       if (RecInteraction.deferred || RecInteraction.replied) {
-        await RecInteraction.editReply(EditReplyOpts).then(() => {
+        PaginationReply = await RecInteraction.editReply(EditReplyOpts).then((Msg) => {
           CurrPageIndex = NewPageIndex;
+          return Msg;
         });
       } else {
-        await RecInteraction.update(EditReplyOpts).then(() => {
+        PaginationReply = await RecInteraction.update({
+          ...EditReplyOpts,
+          withResponse: true,
+        }).then((Msg) => {
           CurrPageIndex = NewPageIndex;
+          return Msg.resource?.message ?? null;
         });
       }
     } catch (Err: any) {
@@ -202,7 +210,7 @@ export default async function HandlePagePagination({
 
       AppLogger.error({
         message: "An error occurred while handling embed pagination;",
-        label: "Utilities:Other:HandleEmbedPagination",
+        label: FileLabel,
         stack: Err.stack,
         context,
       });
@@ -212,25 +220,26 @@ export default async function HandlePagePagination({
   ComponentCollector.on("end", async (Collected, EndReason: string) => {
     if (EndReason.match(/^\w+Delete/)) return;
     try {
-      NavigationButtons.components.forEach((Btn) => Btn.setDisabled(true));
-      const LastInteract = Collected.last() || Interact;
-      const EditOpts = IsComponentsV2Pagination
-        ? {
-            components: [
-              (Pages[CurrPageIndex] as ContainerBuilder).spliceComponents(-1, 1, NavigationButtons),
-            ],
-          }
-        : { components: [NavigationButtons] };
+      const LastInteract = Collected.last() ?? Interact;
+      if (PaginationReply === null || Date.now() - Interact.createdTimestamp >= 14.9 * 60 * 1000) {
+        return;
+      }
 
-      await LastInteract.editReply(EditOpts).catch(async function CatchError() {
-        const UpdatedResponseMsg = await PaginationReply.fetch(true).catch(() => null);
-        if (!UpdatedResponseMsg?.editable) return;
-        return UpdatedResponseMsg.edit(EditOpts);
+      const EditOpts = {
+        message: PaginationReply,
+        components: DisableMessageComponents(
+          PaginationReply.components.map((Comp) => Comp.toJSON())
+        ),
+      };
+
+      await LastInteract.editReply(EditOpts).catch(async function HandleEditReplyError() {
+        if (!PaginationReply?.editable) return;
+        return PaginationReply.edit(EditOpts);
       });
     } catch (Err: any) {
       AppLogger.error({
-        message: "An error occurred while ending the component collector for pagination;",
-        label: "Utilities:Other:HandleEmbedPagination",
+        message: "An error occurred while terminating pagination;",
+        label: FileLabel,
         stack: Err.stack,
         context,
       });
