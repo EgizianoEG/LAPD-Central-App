@@ -45,10 +45,10 @@ const CommandObject = {
   callback: Callback,
   data: new SlashCommandSubcommandBuilder()
     .setName("citation")
-    .setDescription("See a copy of an issued traffic citation.")
+    .setDescription("See a copy of an issued notice to appear or citation record.")
     .addIntegerOption((Option) =>
       Option.setName("citation-num")
-        .setDescription("The citation number.")
+        .setDescription("The nta or citation number.")
         .setMaxValue(999999)
         .setMinValue(1000)
         .setRequired(true)
