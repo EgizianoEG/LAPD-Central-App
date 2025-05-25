@@ -1,6 +1,7 @@
 import { RandomString } from "@Utilities/Strings/Random.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
+  MessageComponentInteraction,
   InteractionReplyOptions,
   StringSelectMenuBuilder,
   RepliableInteraction,
@@ -56,10 +57,30 @@ interface PagePaginationOptions {
   context?: string;
 
   /**
+   * The duration in milliseconds for which the pagination buttons should be active.
+   * If not provided, all components including pagination buttons will be active for a maximum of 14.5 minutes.
+   */
+  pagination_timeout?: number;
+
+  /**
    * The custom footer text to use for the components v2 paginator using components.
    * Leave empty to only add a separator component at the bottom in the case of components v2 pagination.
    */
   cv2_footer?: string;
+
+  /**
+   * A listener function for the components v2 interactive components other than pagination buttons.
+   * Could be used to handle accessory or other components in provided containers.
+   * @param Interaction - The interaction that triggered the listener.
+   * @param Page - The current page index.
+   * @param Pages - The array of pages (containers) being paginated between.
+   * @returns {any} The return value of the listener function.
+   */
+  cv2_comp_listener?: (
+    Interaction: MessageComponentInteraction,
+    Page: number,
+    Pages: (EmbedBuilder | ContainerBuilder)[]
+  ) => any;
 }
 
 /**
@@ -72,11 +93,14 @@ export default async function HandlePagePagination({
   interact: Interact,
   ephemeral: Ephemeral = false,
   cv2_footer: CV2Footer,
+  pagination_timeout: Timeout = 14.5 * 60 * 1000,
+  cv2_comp_listener: CV2CompListener = undefined,
   context,
 }: PagePaginationOptions): Promise<void> {
   let CurrPageIndex = 0;
   const IsComponentsV2Pagination = Pages[0] instanceof ContainerBuilder;
   const NavigationButtons = GetPredefinedNavButtons(Interact, Pages.length, true, true);
+  const NavigationButtonIds = NavigationButtons.components.map((Btn) => Btn.data.custom_id);
   let MsgFlags: MessageFlagsResolvable | undefined = Ephemeral ? MessageFlags.Ephemeral : undefined;
 
   if (IsComponentsV2Pagination) {
@@ -91,18 +115,29 @@ export default async function HandlePagePagination({
   const ComponentCollector = PaginationReply.createMessageComponentCollector({
     filter: (Btn) => HandleCollectorFiltering(Interact, Btn),
     componentType: ComponentType.Button,
-    time: 14.5 * 60 * 1000,
     idle: 8 * 60 * 1000,
+    time: Timeout,
   });
 
-  ComponentCollector.on("collect", async (NavInteraction: ButtonInteraction<"cached">) => {
+  ComponentCollector.on("collect", async (RecInteraction: MessageComponentInteraction) => {
+    if (
+      IsComponentsV2Pagination &&
+      CV2CompListener &&
+      !NavigationButtonIds.includes(RecInteraction.customId)
+    )
+      return CV2CompListener(RecInteraction, CurrPageIndex, Pages);
+
+    if (!RecInteraction.isButton()) {
+      return;
+    }
+
     let NewPageIndex: number = -1;
-    if (NavInteraction.customId.includes("current")) {
+    if (RecInteraction.customId.includes("current")) {
       let SPIndex: number | null = null;
       if (Pages.length > 25) {
-        SPIndex = await HandleModalPageSelection(Pages, CurrPageIndex, NavInteraction);
+        SPIndex = await HandleModalPageSelection(Pages, CurrPageIndex, RecInteraction);
       } else {
-        SPIndex = await HandleSelectMenuPageSelection(Pages, CurrPageIndex, NavInteraction);
+        SPIndex = await HandleSelectMenuPageSelection(Pages, CurrPageIndex, RecInteraction);
       }
 
       if (SPIndex !== null) NewPageIndex = SPIndex;
@@ -110,7 +145,7 @@ export default async function HandlePagePagination({
     }
 
     if (NewPageIndex === -1) {
-      switch (NavInteraction.customId.split(":")[0]) {
+      switch (RecInteraction.customId.split(":")[0]) {
         case "nav-next":
           NewPageIndex = Clamp(CurrPageIndex + 1, 0, Pages.length);
           break;
@@ -151,12 +186,12 @@ export default async function HandlePagePagination({
           }
         : { embeds: [Pages[NewPageIndex] as EmbedBuilder], components: [NavigationButtons] };
 
-      if (NavInteraction.deferred || NavInteraction.replied) {
-        await NavInteraction.editReply(EditReplyOpts).then(() => {
+      if (RecInteraction.deferred || RecInteraction.replied) {
+        await RecInteraction.editReply(EditReplyOpts).then(() => {
           CurrPageIndex = NewPageIndex;
         });
       } else {
-        await NavInteraction.update(EditReplyOpts).then(() => {
+        await RecInteraction.update(EditReplyOpts).then(() => {
           CurrPageIndex = NewPageIndex;
         });
       }
