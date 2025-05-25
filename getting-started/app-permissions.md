@@ -22,7 +22,7 @@ When you invite LAPD Central to your server, you'll be prompted to accept permis
 
 Below, you'll find a detailed explanation of each required permission and its context. Lack of certain permissions may result in errors or unexpected behavior with specific commands or functionalities.
 
-## **Necessary Permissions:**
+## **Necessary Server Permissions**
 
 <details>
 
@@ -139,4 +139,23 @@ Enables the app to send files as message attachments, such as exporting logs, re
 
 </details>
 
+## Necessary Privileged Intents
+
+LAPD Central only requires the [**Server Members Intent**](#user-content-fn-2)[^2] for its operation. This intent allows the application to access up-to-date information about server members, including their usernames, nicknames, roles, and permission changes, as permitted by Discord.
+
+**Why is this intent necessary?**\
+This single privileged intent is essential for the vast majority of LAPD Central’s features, including:
+
+* **Staff Activity Reports:** Identifying and generating reports for members with staff roles.
+* **Cross-Server Channel Configuration:** Managing and verifying member permissions for posting logs across servers.
+* **Nickname Management:** Searching for and updating member nicknames as part of nickname utility commands.
+* **Shift Management:** Assigning and tracking on-duty/off-duty roles, scheduled or member based actions, and logging related events.
+* **UAN Modules:** Handling leave of absence and reduced activity notices, which require accurate member and role data.
+
+{% hint style="success" %}
+LAPD Central does **not** request or use the "Presence" or "Message Content" privileged intents. The Server Members intent is used strictly for the features listed above and to ensure the application functions reliably and securely for your community.
+{% endhint %}
+
 [^1]: This consist of Leave of Absence and Reduced Activity modules.
+
+[^2]: also known as the "Guild Members" privileged intent.
