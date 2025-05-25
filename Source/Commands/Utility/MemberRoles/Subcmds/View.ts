@@ -7,6 +7,7 @@ import {
   roleMention,
   channelLink,
   MessageFlags,
+  MessageComponentInteraction,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
@@ -19,6 +20,35 @@ import Dedent from "dedent";
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
+export function GetSaveDetailsContainer(
+  Save: InstanceType<typeof MSRolesModel>,
+  CachedInteract: MessageComponentInteraction<"cached"> | SlashCommandInteraction<"cached">
+) {
+  const RolesValidated = Save.roles.map((Role) => {
+    if (CachedInteract.guild.roles.cache.has(Role.role_id)) {
+      return roleMention(Role.role_id);
+    } else {
+      return `${roleMention(Role.role_id)} (\`${Role.name}\`)`;
+    }
+  });
+
+  const RespDescription = Dedent(`
+    - **Save ID:** \`${Save.id}\`
+      - **Nickname:** \`${Save.nickname}\`
+      - **Username:** \`${Save.username}\`
+      - **Saved By:** <@${Save.saved_by}>
+      - **Saved On:** ${time(Save.saved_on, "f")}
+      - **Save Reason:** \`${Save.reason ?? "N/A"}\`
+      - **Backed Up Roles ([${Save.roles.length}](${channelLink(CachedInteract.channelId)})):** 
+        ${RolesValidated.join(", ")}
+  `);
+
+  return new BaseExtraContainer()
+    .setTitle(`Member Roles Save     <@${Save.member}>`)
+    .setDescription(RespDescription)
+    .setColor(Colors.Greyple);
+}
+
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const PrivateResponse = CmdInteraction.options.getBoolean("private", false) ?? false;
   const SelectedMember = CmdInteraction.options.getMember("member");
@@ -44,35 +74,11 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
       .replyToInteract(CmdInteraction, true, false);
   }
 
-  const RolesValidated = Save.roles.map((Role) => {
-    if (CmdInteraction.guild.roles.cache.has(Role.role_id)) {
-      return roleMention(Role.role_id);
-    } else {
-      return `${roleMention(Role.role_id)} (\`${Role.name}\`)`;
-    }
-  });
-
-  const RespEmbedDesc = Dedent(`
-    - **Save ID:** \`${Save.id}\`
-      - **Nickname:** \`${Save.nickname}\`
-      - **Username:** \`${Save.username}\`
-      - **Saved By:** <@${Save.saved_by}>
-      - **Saved On:** ${time(Save.saved_on, "f")}
-      - **Save Reason:** \`${Save.reason ?? "N/A"}\`
-      - **Backed Up Roles ([${Save.roles.length}](${channelLink(CmdInteraction.channelId)})):** 
-        ${RolesValidated.join(", ")}
-  `);
-
   return CmdInteraction.reply({
+    components: [GetSaveDetailsContainer(Save, CmdInteraction)],
     flags: PrivateResponse
       ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
       : MessageFlags.IsComponentsV2,
-    components: [
-      new BaseExtraContainer()
-        .setTitle(`Member Roles Save     <@${SelectedMember.user.id}>`)
-        .setDescription(RespEmbedDesc)
-        .setColor(Colors.Greyple),
-    ],
   });
 }
 
