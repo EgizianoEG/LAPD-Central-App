@@ -17,9 +17,9 @@ icon: square-terminal
 Commands are marked with a colored or uncolored asterisk (\*) to indicate the required permission(s) for execution. Here's a quick overview:
 
 * Uncolored asterisk (\*): Command is executable by anybody who has access to it.
-* <mark style="color:blue;">Blue asterisk (\*):</mark> Command is executable by server [**staff**](app-commands.md#permissions-explained) members.
-* <mark style="color:green;">Green asterisk (\*):</mark> Command is executable by server [**management**](app-commands.md#permissions-explained) members.
-* <mark style="color:red;">Red asterisk (\*):</mark> Command is executable by server [**administrative**](app-commands.md#permissions-explained) members.
+* <mark style="color:blue;">Blue asterisk (\*):</mark> Command is executable by server [**staff**](application-commands.md#permissions-explained) members.
+* <mark style="color:green;">Green asterisk (\*):</mark> Command is executable by server [**management**](application-commands.md#permissions-explained) members.
+* <mark style="color:red;">Red asterisk (\*):</mark> Command is executable by server [**administrative**](application-commands.md#permissions-explained) members.
 * <mark style="color:yellow;">Yellow asterisk (\*):</mark> Command is executable by members with specific roles or permissions. Further details will be provided in the command description later on the page.
 
 ### Permissions Explained
