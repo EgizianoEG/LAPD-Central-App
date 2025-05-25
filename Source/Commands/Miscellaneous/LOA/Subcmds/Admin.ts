@@ -31,7 +31,6 @@ import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js"
 import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
 import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
-import GetDiscordAPITime from "@Utilities/Other/GetDiscordAPITime.js";
 import ParseDuration from "parse-duration";
 import GetLOAsData from "@Utilities/Database/GetUANData.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -814,11 +813,10 @@ async function Callback(Interaction: CmdOrButtonInteraction) {
       .replyToInteract(Interaction, true, true);
   }
 
-  const TimeNow = await GetDiscordAPITime();
   const LOAData = await GetLOAsData({
     guild_id: Interaction.guildId,
     user_id: TargetMember.id,
-    now: TimeNow,
+    now: Date.now(),
     type: "LeaveOfAbsence",
   });
 
