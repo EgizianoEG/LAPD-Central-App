@@ -189,11 +189,9 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   const NTATemplate = CitData.cit_type === "Fine" ? FineTemplate : WarnTemplate;
   const TWidth = NTATemplate.width; // Template width
   const THeight = NTATemplate.height; // Template height
-  console.log(TWidth, THeight);
   const CitCanvas = createCanvas(TWidth, THeight);
   const CTX = CitCanvas.getContext("2d");
   CTX.drawImage(NTATemplate, 0, 0);
-  console.log(CitCanvas.width, CitCanvas.height);
 
   // ------------------------------------------------------------------------------------------------
   // First Third of The Citation/NTA
