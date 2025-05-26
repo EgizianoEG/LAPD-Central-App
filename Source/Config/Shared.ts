@@ -1,5 +1,6 @@
 import { type ColorResolvable, Colors as DiscordColors } from "discord.js";
 import { env as Env } from "node:process";
+import AppLogger from "@Utilities/Classes/AppLogger.js";
 
 /**
  * Environment variable override for emoji configurations.
@@ -24,6 +25,16 @@ try {
     Env.APP_EMOJIS && Env.APP_EMOJIS.length >= 1300
       ? (JSON.parse(Env.APP_EMOJIS.replace(/['"]+/g, '"')) as typeof SharedData.Emojis)
       : null;
+
+  if (EnvAppEmojis !== null) {
+    AppLogger.info({
+      message: "Environment emojis loaded successfully.",
+      label: "Config:Shared.ts",
+      emojis: EnvAppEmojis,
+      length: Object.keys(EnvAppEmojis).length,
+      env_length: Env.APP_EMOJIS,
+    });
+  }
 } catch {
   EnvAppEmojis = null;
 }
