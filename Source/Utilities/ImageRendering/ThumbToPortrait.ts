@@ -4,6 +4,7 @@ import { GetDirName } from "@Utilities/Other/Paths.js";
 import { Thumbs } from "@Config/Shared.js";
 import { format } from "date-fns";
 import UploadToImgBB from "@Utilities/Other/ImgBBUpload.js";
+import FileSystem from "node:fs/promises";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Path from "node:path";
 
@@ -12,9 +13,12 @@ const ImgsPath = Path.join(GetDirName(import.meta.url), "..", "..", "Resources",
 const BackgroundPath = Path.join(ImgsPath, "OceanMistPortraitBackground.png");
 const USFlagVerticalPath = Path.join(ImgsPath, "USFlagVertical.png");
 
-let PortraitBackground = await loadImage(BackgroundPath).catch((Err) => {
+const USFlagVerticalBuffer = await FileSystem.readFile(USFlagVerticalPath);
+const PortraitBackgroundBuffer = await FileSystem.readFile(BackgroundPath);
+
+let USFlagVertical = await loadImage(USFlagVerticalBuffer).catch((Err) => {
   AppLogger.error({
-    message: "Failed to load portrait background image; will attempt again later if needed.",
+    message: "Failed to load US flag vertical image; will attempt again later if needed.",
     label: FileLabel,
     stack: Err.stack,
   });
@@ -22,9 +26,9 @@ let PortraitBackground = await loadImage(BackgroundPath).catch((Err) => {
   return null;
 });
 
-let USFlagVertical = await loadImage(USFlagVerticalPath).catch((Err) => {
+let PortraitBackground = await loadImage(PortraitBackgroundBuffer).catch((Err) => {
   AppLogger.error({
-    message: "Failed to load US flag vertical image; will attempt again later if needed.",
+    message: "Failed to load portrait background image; will attempt again later if needed.",
     label: FileLabel,
     stack: Err.stack,
   });
@@ -130,8 +134,8 @@ export default async function GeneratePortrait<AsURL extends boolean | undefined
 }
 
 async function GetProtraitBackgroundAndFlag() {
-  if (!PortraitBackground) PortraitBackground = await loadImage(BackgroundPath);
-  if (!USFlagVertical) USFlagVertical = await loadImage(USFlagVerticalPath);
+  if (!PortraitBackground) PortraitBackground = await loadImage(PortraitBackgroundBuffer);
+  if (!USFlagVertical) USFlagVertical = await loadImage(USFlagVerticalBuffer);
   return [PortraitBackground, USFlagVertical];
 }
 

@@ -16,15 +16,19 @@ export default async function VerifyDatabase(Client: DiscordClient): Promise<voi
     const DSGToCancel = new Set<string>();
     const GuildsInDB = new Collection(
       (await GuildModel.find().select({ _id: 1, deletion_scheduled_on: 1 }).lean().exec()).map(
-        (GuildDoc) => [GuildDoc._id, GuildDoc.deletion_scheduled_on] as [string, Date | null]
+        (GuildDoc) =>
+          [GuildDoc._id, GuildDoc.deletion_scheduled_on ?? null] as [string, Date | null]
       )
     );
 
+    // If a guild in DB and scheduled for deletion (value is Date), cancel the scheduled deletion.
+    // If a guild *is not* in DB (value is undefined), add it to the new guilds list.
     for (const JoinedGuild of Guilds.values()) {
-      const GuildFound = GuildsInDB.get(JoinedGuild.id);
-      if (GuildFound !== undefined) {
-        if (GuildFound) DSGToCancel.add(JoinedGuild.id);
+      const DBScheduledDate = GuildsInDB.get(JoinedGuild.id);
+      if (DBScheduledDate === undefined) {
         NewGuilds.push({ _id: JoinedGuild.id });
+      } else if (DBScheduledDate !== null) {
+        DSGToCancel.add(JoinedGuild.id);
       }
     }
 
