@@ -27,7 +27,7 @@ export default async function HandleUserActivityNoticeRoleAssignment(
       : GuildSettings?.reduced_activity.ra_role;
 
     if (!NoticeRole) return;
-    if (Array.isArray(UserId)) {
+    if (Array.isArray(UserId) && UserId.length > 0) {
       return Promise.all(
         UserId.map(async (User) => {
           const GuildMember = await Guild.members.fetch(User).catch(() => null);
@@ -40,7 +40,7 @@ export default async function HandleUserActivityNoticeRoleAssignment(
           );
         })
       );
-    } else {
+    } else if (typeof UserId === "string") {
       const GuildMember = await Guild.members.fetch(UserId).catch(() => null);
       if (!GuildMember) return;
       return HandleSingleUserRoleAssignment(NoticeRole, GuildMember, IsLeaveNotice, IsNoticeActive);

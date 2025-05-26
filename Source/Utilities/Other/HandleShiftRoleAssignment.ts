@@ -31,7 +31,7 @@ export default async function HandleShiftRoleAssignment(
       return;
     }
 
-    if (Array.isArray(UserId)) {
+    if (Array.isArray(UserId) && UserId.length > 0) {
       return Promise.all(
         UserId.map(async (User) => {
           const GuildMember = await TargetGuild.members.fetch(User);
@@ -39,7 +39,7 @@ export default async function HandleShiftRoleAssignment(
           return HandleSingleUserRoleAssignment(RASettings, GuildMember, CurrentStatus);
         })
       );
-    } else {
+    } else if (typeof UserId === "string") {
       const GuildMember = await TargetGuild.members.fetch(UserId);
       if (!GuildMember) return;
       return HandleSingleUserRoleAssignment(RASettings, GuildMember, CurrentStatus);
