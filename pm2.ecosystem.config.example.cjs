@@ -35,8 +35,9 @@ module.exports = {
         // Other Credentials
         IMGBB_API_KEY: "33cf14c3eb75cb58b36b7fca231da47f",
         OPEN_WEATHER_API_KEY: "095350bf11438685a23221485e7d3b8e",
-        LOGTAIL_SOURCE_TOKEN: "EsQFV7RVhjHKUdrRzM3uvfbX",
         BLOXLINK_API_KEY: "a3a7c9b3-5f8c-4e7b-ba7d-9b9f7f7f7f7f",
+        LOGTAIL_SOURCE_TOKEN: "EsQFV7RVhjHKUdrRzM3uvfbX",
+        LOGTAIL_INGESTING_HOST: "https://in.logtail.com",
 
         // Roblox credentials for accessing ceratin APIs (Currently used for user search only.)
         // These are not required for the bot to function, but are required for certain features. Cloud key is unused for the moment.

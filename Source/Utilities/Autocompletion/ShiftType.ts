@@ -1,5 +1,4 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import { EscapeRegExp } from "@Utilities/Strings/Formatters.js";
 import GuildModel from "@Models/Guild.js";
 
 const DefaultSuggestion = {
@@ -20,7 +19,7 @@ export default async function AutocompleteShiftType(
   IncludeDefault = true
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
   let Suggestions: (string | { name: string; value: string })[];
-  const EscapedValue = EscapeRegExp(TypedValue);
+  const LowerCaseTyped = TypedValue.toLowerCase();
   const ShiftTypes = await GuildModel.findById(GuildId)
     .select("settings.shift_management.shift_types")
     .then((GuildData) => {
@@ -32,11 +31,12 @@ export default async function AutocompleteShiftType(
 
   if (!ShiftTypes.length) {
     Suggestions = [];
-  } else if (EscapedValue.match(/^\s*$/)) {
+  } else if (TypedValue.match(/^\s*$/)) {
     Suggestions = ShiftTypes;
   } else {
     Suggestions = ShiftTypes.filter((Element) => {
-      return Element.match(new RegExp(EscapedValue, "i"));
+      const LowerCaseElement = Element.toLowerCase();
+      return LowerCaseElement.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseElement);
     });
   }
 

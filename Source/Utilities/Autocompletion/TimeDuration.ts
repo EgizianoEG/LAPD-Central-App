@@ -38,7 +38,8 @@ export default function AutocompleteTimeDuration(
     Suggestions = PredefinedDurations.filter((Duration) => !/,|and/gi.test(Duration));
   } else {
     Suggestions = PredefinedDurations.filter((Duration) => {
-      return Duration.toLowerCase().includes(Snz);
+      const LowerCaseDuration = Duration.toLowerCase();
+      return LowerCaseDuration.includes(Snz) || Snz.includes(LowerCaseDuration);
     });
   }
 

@@ -96,7 +96,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
             .replyToInteract(ButtonInteract, true);
         }
 
-        return Promise.all([
+        return Promise.allSettled([
           ShiftActionLogger.LogShiftVoid(ActiveShiftLatestVer, ButtonInteract),
           HandleShiftRoleAssignment(
             "off-duty",

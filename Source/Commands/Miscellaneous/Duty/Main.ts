@@ -1,3 +1,4 @@
+import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
   SlashCommandBuilder,
@@ -11,7 +12,6 @@ import DutyTypesSubcommandGroup from "./Duty Types/Main.js";
 import AutocompleteShiftType from "@Utilities/Autocompletion/ShiftType.js";
 import HasRobloxLinked from "@Utilities/Database/IsUserLoggedIn.js";
 import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
-import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 
 const Subcommands = [
   (await import("./Subcmds/Void.js")).default,
@@ -83,26 +83,37 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
   const { name, value } = Interaction.options.getFocused(true);
   const SubcommandGroup = Interaction.options.getSubcommandGroup();
   const SubcommandName = Interaction.options.getSubcommand();
-  const Suggestions =
+
+  if (
     ["type", "shift-type"].includes(name) ||
     (name === "name" &&
       SubcommandGroup === "types" &&
       SubcommandName === "delete" &&
-      (await UserHasPerms(Interaction, { management: true })))
-      ? await AutocompleteShiftType(value, Interaction.guildId, SubcommandName !== "delete")
-      : [{ name: "[Unauthorized]", value: "0" }];
-
-  return Interaction.respond(Suggestions);
+      (await UserHasPermsV2(Interaction.user.id, Interaction.guildId, { management: true }, true)))
+  ) {
+    const ShiftTypeSuggestions = await AutocompleteShiftType(value, Interaction.guildId);
+    return Interaction.respond(ShiftTypeSuggestions);
+  } else {
+    return Interaction.respond([{ name: "[Unauthorized]", value: "0" }]);
+  }
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
   callback: Callback,
   autocomplete: Autocomplete,
   options: {
-    cooldown: 2.5,
+    cooldown: {
+      $all_other: 2.5,
+      leaderboard: 5,
+      active: 5,
+      import: {
+        $user: { cooldown: 60, timeframe: 30 * 60, max_executions: 2 },
+        $guild: { cooldown: 15, timeframe: 60 * 60, max_executions: 6 },
+      },
+    },
     user_perms: {
       types: { management: true },
       admin: { management: true },

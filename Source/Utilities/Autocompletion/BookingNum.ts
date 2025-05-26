@@ -11,6 +11,7 @@ export default async function AutocompleteBookingNum(
   Typed: string,
   GuildId: string
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
+  const LowerCaseTyped = Typed.toLowerCase();
   const Bookings = await GetAllBookingNums(GuildId, true);
   let Suggestions: typeof Bookings;
 
@@ -18,7 +19,8 @@ export default async function AutocompleteBookingNum(
     Suggestions = Bookings;
   } else {
     Suggestions = Bookings.filter((Bk) => {
-      return Bk.autocomplete_label.toLowerCase().includes(Typed.toLowerCase());
+      const LowerCaseLabel = Bk.autocomplete_label.toLowerCase();
+      return LowerCaseLabel.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseLabel);
     });
   }
 

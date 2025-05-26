@@ -11,6 +11,7 @@ export default async function AutocompleteCitationNum(
   Typed: string,
   GuildId: string
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
+  const LowerCaseTyped = Typed.toLowerCase();
   const Cits = await GetAllCitationNums(GuildId, true);
   let Suggestions: typeof Cits;
 
@@ -18,7 +19,8 @@ export default async function AutocompleteCitationNum(
     Suggestions = Cits;
   } else {
     Suggestions = Cits.filter((Cit) => {
-      return Cit.autocomplete_label.toLowerCase().includes(Typed.toLowerCase());
+      const LowerCaseLabel = Cit.autocomplete_label.toLowerCase();
+      return LowerCaseLabel.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseLabel);
     });
   }
 

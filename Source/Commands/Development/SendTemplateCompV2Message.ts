@@ -1,3 +1,4 @@
+import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
 import { ErrorContainer } from "@Utilities/Classes/ExtraContainers.js";
 import {
   SlashCommandSubcommandsOnlyBuilder,
@@ -23,19 +24,19 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     .setRequired(true);
 
   const ActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(ComponentsInput);
-  const Modal = new ModalBuilder()
+  const JSONInputModal = new ModalBuilder()
     .setCustomId("components_v2_modal")
     .setTitle("Components V2 Message Creator")
     .addComponents(ActionRow);
 
-  await Interaction.showModal(Modal);
-  const ModalSubmit = await Interaction.awaitModalSubmit({
-    filter: (i) => i.customId === "components_v2_modal" && i.user.id === Interaction.user.id,
-    time: 5 * 60 * 1000,
-  }).catch(() => null);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(
+    Interaction,
+    JSONInputModal,
+    5 * 60_000
+  );
 
-  if (!ModalSubmit) return;
-  await HandleModalSubmit(ModalSubmit);
+  if (!ModalSubmission) return;
+  await HandleModalSubmit(ModalSubmission);
 }
 
 async function HandleModalSubmit(Interaction: ModalSubmitInteraction<"cached">) {

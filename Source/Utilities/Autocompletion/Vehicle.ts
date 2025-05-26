@@ -34,16 +34,16 @@ export default function AutocompleteVehicle(
   Typed: string
 ): Array<ApplicationCommandOptionChoiceData> {
   let Suggestions: string[] = [];
-  const LowerCased = Typed.toLowerCase();
+  const LowerCaseTyped = Typed.toLowerCase();
 
   if (Typed.match(/^\s*$/)) {
     Suggestions = ShuffleArray([...AllVehicleModelNames]);
-  } else if (VehicleTags.includes(LowerCased)) {
+  } else if (VehicleTags.includes(LowerCaseTyped)) {
     const MatchingModels = AllVehicleModels.filter(
       (Model) =>
-        Model.style.toLowerCase() === LowerCased ||
-        Model.class.toLowerCase() === LowerCased ||
-        Model.category.toLowerCase() === LowerCased
+        Model.style.toLowerCase() === LowerCaseTyped ||
+        Model.class.toLowerCase() === LowerCaseTyped ||
+        Model.category.toLowerCase() === LowerCaseTyped
     );
 
     Suggestions = MatchingModels.map((Model) =>
@@ -51,7 +51,8 @@ export default function AutocompleteVehicle(
     );
   } else {
     Suggestions = AllVehicleModelNames.filter((Name) => {
-      return Name.toLowerCase().includes(LowerCased);
+      const LowerCasedName = Name.toLowerCase();
+      return LowerCasedName.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCasedName);
     });
   }
 

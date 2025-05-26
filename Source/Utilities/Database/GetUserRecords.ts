@@ -38,7 +38,7 @@ export default async function GetUserRecords(
     total_arrests: Arrests.length,
     total_citations: Citations.length,
     incidents_as_suspect: IncidentsAsSuspect,
-    recent_arrest: Arrests[0] || null,
-    recent_citation: Citations[0] || null,
+    recent_arrest: Arrests[0] ?? null,
+    recent_citation: Citations[0] ?? null,
   };
 }

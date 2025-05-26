@@ -15,16 +15,31 @@ export function TitleCase(Str: string, Strict: boolean = true): string {
   const Uppers = [
     "id",
     "po",
+    "pd",
+    "swat",
+    "dmv",
     "leo",
     "adw",
     "atm",
     "lapd",
+    "chp",
+    "bolo",
+    "aka",
+    "ems",
+    "emt",
+    "emr",
+    "eta",
+    "dui",
+    "hq",
+    "gta",
+    "doa",
+    "veh",
+    "hwy",
     "lasd",
     "fbi",
     "dea",
     "lc",
     "mph",
-    "lbs",
   ];
 
   const Lowers = [
@@ -80,7 +95,7 @@ export function TitleCase(Str: string, Strict: boolean = true): string {
     }
   }
 
-  if (!Modified.match(/^x\d+/i)) {
+  if (!Modified.match(/^x\d{1,9}/i)) {
     return UpperFirst(Modified, false);
   }
 

@@ -54,8 +54,10 @@ import HumanizeDuration from "humanize-duration";
 import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
+import HandleShiftRoleAssignment from "@Utilities/Other/HandleShiftRoleAssignment.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
 import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
+import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
 
 // ---------------------------------------------------------------------------------------
 // File Constants, Types, & Enums:
@@ -557,15 +559,38 @@ async function HandleShiftDataWipeAllConfirm(ConfirmInteract: ButtonInteraction<
     components: [new InfoContainer().useInfoTemplate("SRWipeAllInProgress")],
   });
 
-  const [UpdatedShifTData, DeleteResponse] = await Promise.all([
-    GetSummarizedShiftInfo({ guild: ConfirmInteract.guildId }),
-    (await ShiftModel.deleteMany({ guild: ConfirmInteract.guildId }).exec()) as any,
-  ]);
+  const QueryFilter = { guild: ConfirmInteract.guildId };
+  const ShiftsToDelete = await ShiftModel.find(QueryFilter).exec();
+  const OngoingShiftsUsers = ShiftsToDelete.filter((S) => S.end_timestamp === null).map(
+    (S) => S.user
+  );
 
-  Object.assign(DeleteResponse, { totalTime: UpdatedShifTData.total_time });
-  if ((await HandleNoShiftsDeletedStatus(ConfirmInteract, UpdatedShifTData)) === true) return;
-  return Promise.all([
+  const TotalTimeToRemove = ShiftsToDelete.reduce(
+    (TotalTime, Shift) => TotalTime + (Shift.durations.on_duty ?? 0),
+    0
+  );
+
+  if (
+    await HandleNoShiftsDeletedStatus(ConfirmInteract, {
+      total_time: TotalTimeToRemove,
+      shift_count: ShiftsToDelete.length,
+    })
+  ) {
+    return;
+  }
+
+  const DeleteResponse = Object.assign(await ShiftModel.deleteMany(QueryFilter).exec(), {
+    totalTime: TotalTimeToRemove,
+  });
+
+  return Promise.allSettled([
     ShiftActionLogger.LogShiftsWipe(ConfirmInteract, DeleteResponse),
+    HandleShiftRoleAssignment(
+      "off-duty",
+      ConfirmInteract.client,
+      ConfirmInteract.guild,
+      OngoingShiftsUsers
+    ),
     ConfirmInteract.editReply({
       components: [
         new SuccessContainer().setDescription(
@@ -584,6 +609,7 @@ async function HandleShiftDataWipeAll(BtnInteract: ButtonInteraction<"cached">) 
   const ConfirmationContainer = GetSDConfirmationPromptContainer({
     SShiftInfo: SummarizedShiftInfo,
   });
+
   const ConfirmationComponents = GetDeleteConfirmationComponents(
     BtnInteract,
     `sdm-${ShiftDataActions.WipeAll}`
@@ -666,15 +692,36 @@ async function HandleShiftDataDeleteOfTypeConfirm(
     type: { $in: ShiftTypes },
   };
 
-  const [UpdatedShifTData, DeleteResponse] = await Promise.all([
-    GetSummarizedShiftInfo(QueryFilter),
-    (await ShiftModel.deleteMany(QueryFilter).exec()) as any,
-  ]);
+  const ShiftsToDelete = await ShiftModel.find(QueryFilter).exec();
+  const OngoingShiftsUsers = ShiftsToDelete.filter((S) => S.end_timestamp === null).map(
+    (S) => S.user
+  );
+  const TotalTimeToRemove = ShiftsToDelete.reduce(
+    (TotalTime, Shift) => TotalTime + (Shift.durations.on_duty ?? 0),
+    0
+  );
 
-  Object.assign(DeleteResponse, { totalTime: UpdatedShifTData.total_time });
-  if (await HandleNoShiftsDeletedStatus(ConfirmInteract, UpdatedShifTData)) return;
-  return Promise.all([
+  if (
+    await HandleNoShiftsDeletedStatus(ConfirmInteract, {
+      total_time: TotalTimeToRemove,
+      shift_count: ShiftsToDelete.length,
+    })
+  ) {
+    return;
+  }
+
+  const DeleteResponse = Object.assign(await ShiftModel.deleteMany(QueryFilter).exec(), {
+    totalTime: TotalTimeToRemove,
+  });
+
+  return Promise.allSettled([
     ShiftActionLogger.LogShiftsWipe(ConfirmInteract, DeleteResponse, ShiftTypes),
+    HandleShiftRoleAssignment(
+      "off-duty",
+      ConfirmInteract.client,
+      ConfirmInteract.guild,
+      OngoingShiftsUsers
+    ),
     ConfirmInteract.editReply({
       components: [
         new SuccessContainer().setDescription(
@@ -748,21 +795,40 @@ async function HandleShiftDataDeleteWithDateConfirm(
       ComparisonType === "Before" ? { $lte: ComparisonDate } : { $gte: ComparisonDate },
   };
 
-  const [UpdatedShifTData, DeleteResponse] = await Promise.all([
-    GetSummarizedShiftInfo(QueryFilter),
-    (await ShiftModel.deleteMany(QueryFilter).exec()) as any,
-  ]);
+  const ShiftsToDelete = await ShiftModel.find(QueryFilter).exec();
+  const OngoingShiftsUsers = ShiftsToDelete.filter((S) => S.end_timestamp === null).map(
+    (S) => S.user
+  );
 
-  Object.assign(DeleteResponse, {
-    totalTime: UpdatedShifTData.total_time,
+  const TotalTimeToRemove = ShiftsToDelete.reduce(
+    (TotalTime, Shift) => TotalTime + (Shift.durations.on_duty ?? 0),
+    0
+  );
+
+  if (
+    await HandleNoShiftsDeletedStatus(ConfirmInteract, {
+      total_time: TotalTimeToRemove,
+      shift_count: ShiftsToDelete.length,
+    })
+  ) {
+    return;
+  }
+
+  const DeleteResponse = Object.assign(await ShiftModel.deleteMany(QueryFilter).exec(), {
+    totalTime: TotalTimeToRemove,
     ...(ComparisonType === "Before"
       ? { shiftsBefore: ComparisonDate }
       : { shiftsAfter: ComparisonDate }),
   });
 
-  if (await HandleNoShiftsDeletedStatus(ConfirmInteract, UpdatedShifTData)) return;
-  return Promise.all([
+  return Promise.allSettled([
     ShiftActionLogger.LogShiftsWipe(ConfirmInteract, DeleteResponse, ShiftTypes),
+    HandleShiftRoleAssignment(
+      "off-duty",
+      ConfirmInteract.client,
+      ConfirmInteract.guild,
+      OngoingShiftsUsers
+    ),
     ConfirmInteract.editReply({
       components: [
         new SuccessContainer().setDescription(
@@ -976,7 +1042,13 @@ async function HandleUANDataWipeAllConfirm(
   });
 
   const NoticeType = IsLOA ? "LeaveOfAbsence" : "ReducedActivity";
+  const FoundNotices = await UANModel.find({
+    guild: ConfirmInteract.guildId,
+    type: NoticeType,
+  }).exec();
+
   const DeleteResponse = await UANModel.deleteMany({
+    _id: { $in: FoundNotices.map((N) => N._id) },
     guild: ConfirmInteract.guildId,
     type: NoticeType,
   }).exec();
@@ -987,8 +1059,14 @@ async function HandleUANDataWipeAllConfirm(
     return;
   }
 
-  return Promise.all([
+  return Promise.allSettled([
     Logger.LogUserActivityNoticesWipe(ConfirmInteract, DeleteResponse),
+    HandleUserActivityNoticeRoleAssignment(
+      FoundNotices.filter((N) => N.is_active).map((N) => N.user),
+      ConfirmInteract.guild,
+      NoticeType,
+      false
+    ),
     ConfirmInteract.editReply({
       components: [
         new SuccessContainer().setDescription(

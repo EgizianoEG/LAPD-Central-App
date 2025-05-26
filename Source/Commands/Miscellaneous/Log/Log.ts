@@ -1,7 +1,3 @@
-/* eslint indent: ["off", 2, { "ObjectExpression": 1 }] */
-// Dependencies:
-// -------------
-
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
@@ -12,6 +8,7 @@ import {
   ApplicationCommandOptionChoiceData,
 } from "discord.js";
 
+import AutocompleteIncidentType from "@Utilities/Autocompletion/IncidentType.js";
 import AutocompleteUsername from "@Utilities/Autocompletion/Username.js";
 import AutocompleteVehicle from "@Utilities/Autocompletion/Vehicle.js";
 import AutocompleteHeight from "@Utilities/Autocompletion/Height.js";
@@ -97,6 +94,7 @@ async function Callback(_: DiscordClient, Interaction: SlashCommandInteraction<"
  * @returns
  */
 async function Autocomplete(Interaction: AutocompleteInteraction) {
+  const SubCmdName = Interaction.options.getSubcommand();
   const { name, value } = Interaction.options.getFocused(true);
   let Suggestions: ApplicationCommandOptionChoiceData[] = [];
 
@@ -106,6 +104,8 @@ async function Autocomplete(Interaction: AutocompleteInteraction) {
     Suggestions = AutocompleteHeight(value);
   } else if (name === "weight") {
     Suggestions = AutocompleteWeight(value);
+  } else if (name === "type" && SubCmdName === "incident") {
+    Suggestions = await AutocompleteIncidentType(value);
   } else if (name === "color" || name === "vehicle-color") {
     Suggestions = AutocompleteColor(value);
   } else if (name === "vehicle" || name === "vehicle-model") {

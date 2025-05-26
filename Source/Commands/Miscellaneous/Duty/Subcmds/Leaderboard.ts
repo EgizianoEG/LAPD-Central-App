@@ -1,20 +1,13 @@
 import { EmbedBuilder, SlashCommandSubcommandBuilder } from "discord.js";
+import { ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { IsValidShiftTypeName } from "@Utilities/Other/Validators.js";
-import { ErrorMessages } from "@Resources/AppMessages.js";
 import { Shifts } from "@Typings/Utilities/Database.js";
 
+import GetValidTargetShiftTypes from "@Utilities/Other/GetTargetShiftType.js";
 import HandlePagePagination from "@Utilities/Other/HandlePagePagination.js";
-import DurationHumanize from "humanize-duration";
 import ShiftModel from "@Models/Shift.js";
 import Chunks from "@Utilities/Other/SliceIntoChunks.js";
 import Util from "util";
-
-const ReadableDuration = DurationHumanize.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
 
 // ---------------------------------------------------------------------------------------
 // Functions:
@@ -33,22 +26,22 @@ function FormatPageText(PUDurations: [string, number][], RSIndex: number = 0) {
 }
 
 /**
- *
+ * Builds the leaderboard pages for the given paginated shift durations.
  * @param Interaction - A cached user interaction to retrieve both guild name and icon url from.
  * @param PaginatedDurations - Paginated user durations; chunks of 10 entries or less.
- * @param CmdShiftType - Shift type that its leaderboard requested for; defaults to `null` and will consider it as all shift types.
+ * @param TargetShiftTypes - The shift types that its leaderboard requested for; an empty array will be considered as all shift types.
  * @returns
  */
 function BuildLeaderboardPages(
   Interaction: SlashCommandInteraction<"cached">,
   PaginatedDurations: [string, number][][],
-  CmdShiftType: string | null
+  TargetShiftTypes: string[]
 ) {
   const LeaderboardPages: EmbedBuilder[] = [];
   const FooterText = Util.format(
     "Showing leaderboard for %s duty shift type%s.",
-    CmdShiftType ?? "all",
-    CmdShiftType ? "" : "s"
+    TargetShiftTypes.length ? ListFormatter.format(TargetShiftTypes) : "all",
+    TargetShiftTypes.length === 1 ? "" : "s"
   );
 
   for (const [PageIndex, PageData] of PaginatedDurations.entries()) {
@@ -59,7 +52,7 @@ function BuildLeaderboardPages(
       .setFooter({ text: FooterText })
       .setAuthor({
         name: Interaction.guild.name,
-        iconURL: Interaction.guild.iconURL() ?? undefined,
+        iconURL: Interaction.guild.iconURL({ size: 64 }) ?? undefined,
       });
 
     LeaderboardPages.push(PageEmbed);
@@ -78,7 +71,6 @@ function GetPaginatedDurations(ShiftsData: Shifts.HydratedShiftDocument[]) {
   const UserGroupedDocs = Object.groupBy(ShiftsData, (Doc) => Doc.user);
   const MappedData = new Map<string, number>();
 
-  // Calculate total on duty durations for each user.
   for (const [User, Shifts] of Object.entries(UserGroupedDocs)) {
     if (!Shifts) continue;
     MappedData.set(
@@ -96,25 +88,18 @@ function GetPaginatedDurations(ShiftsData: Shifts.HydratedShiftDocument[]) {
   );
 }
 
-/**
- * @param Interaction
- */
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
-  const CmdShiftType = Interaction.options.getString("type", false);
-
-  // Always return if the shift type provided is malformed.
-  if (CmdShiftType && !IsValidShiftTypeName(CmdShiftType)) {
+  const [ValidShiftTypes, TargetShiftTypes] = await GetValidTargetShiftTypes(Interaction, false);
+  if (TargetShiftTypes.length && !ValidShiftTypes.length) {
     return new ErrorEmbed()
-      .setTitle(ErrorMessages.MalformedShiftTypeName.Title)
-      .setDescription(ErrorMessages.MalformedShiftTypeName.Description)
-      .replyToInteract(Interaction, true);
+      .useErrTemplate("MalformedShiftTypeName")
+      .replyToInteract(Interaction, true, false);
   }
 
-  // Get all shifts in the server that are finished with or without a specific type then return paginated.
   const PaginatedData = await ShiftModel.find({
+    type: ValidShiftTypes?.length ? { $in: ValidShiftTypes } : { $type: "string" },
+    guild: Interaction.guildId,
     end_timestamp: { $ne: null },
-    guild: { $eq: Interaction.guildId },
-    type: CmdShiftType ?? { $exists: true },
   }).then((Shifts) => {
     if (Shifts.length === 0) return [];
     return GetPaginatedDurations(Shifts);
@@ -122,16 +107,22 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   if (PaginatedData.length === 0) {
     const ReplyEmbed = new InfoEmbed().useInfoTemplate("NoShiftsFoundLeaderboard");
-    if (CmdShiftType) {
+    if (ValidShiftTypes.length) {
+      const PluralSTT = ValidShiftTypes.length === 1 ? "type" : "types";
+      const ShiftTypeText =
+        ValidShiftTypes.length > 1
+          ? ListFormatter.format(ValidShiftTypes.map((STN) => `\`${STN}\``))
+          : `\`${ValidShiftTypes[0]}\``;
+
       ReplyEmbed.setDescription(
-        `There were no shift records with of the \`${CmdShiftType}\` type to display a leaderboard for.`
+        `There were no shift records with of the ${ShiftTypeText} ${PluralSTT} to display a leaderboard for.`
       );
     }
 
     return ReplyEmbed.replyToInteract(Interaction, true);
   }
 
-  const BuiltPages = BuildLeaderboardPages(Interaction, PaginatedData, CmdShiftType);
+  const BuiltPages = BuildLeaderboardPages(Interaction, PaginatedData, ValidShiftTypes);
   return HandlePagePagination({
     context: "Commands:Miscellaneous:Duty:Leaderboard",
     pages: BuiltPages,
@@ -140,7 +131,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,
@@ -151,7 +142,7 @@ const CommandObject = {
       Option.setName("type")
         .setDescription("The type of duty shift to show leaderboard for.")
         .setMinLength(3)
-        .setMaxLength(20)
+        .setMaxLength(40)
         .setRequired(false)
         .setAutocomplete(true)
     ),

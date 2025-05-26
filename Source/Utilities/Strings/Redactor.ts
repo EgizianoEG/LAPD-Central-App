@@ -4,6 +4,7 @@ import FileSys from "node:fs";
 import Process from "node:process";
 import Linkify from "linkifyjs";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
+
 import { GetDirName } from "@Utilities/Other/Paths.js";
 import {
   Guild,
@@ -11,7 +12,13 @@ import {
   AutoModerationRule,
   AutoModerationActionType,
   AutoModerationRuleEventType,
+  AutoModerationRuleTriggerType,
 } from "discord.js";
+
+import {
+  IsValidChannelOrMessageLink,
+  IsValidDiscordAttachmentLink,
+} from "@Utilities/Other/Validators.js";
 
 // ---------------------------------------------------------------------------------------
 // Definitions:
@@ -81,6 +88,19 @@ export interface FilterUserInputOptions {
    * If not set, the input string will be filtered regardless of the member's roles.
    */
   input_from_roles?: string[];
+
+  /**
+   * Specifies whether to not redact links on Discord domains/subdomains that are considered safe.
+   * Safe links are those that are not considered harmful or malicious in nature such as channel, message, and attachment links.
+   * Options include:
+   * - `true`: Channel, message, and attachment links are excluded.
+   * - `false`: All Discord links are included.
+   * - `"channel/message"`: Only channel and message links are excluded.
+   * - `"attachment"`: Only attachment links are excluded.
+   * @remarks This option is only applicable when `filter_links_emails` is set to `true`.
+   * @default `"channel/message"`
+   */
+  allow_discord_safe_links?: boolean | "channel/message" | "attachment";
 }
 
 /**
@@ -176,18 +196,37 @@ try {
  * @param Input - The input string to redact links and emails from.
  * @param Replacement - The replacement character to use when redacting links and emails. Defaults to `*` for every single character redacted/replaced.
  * @param ReplacementType - The type of replacement to use, either "Character" or "Word". Defaults to "Character".
+ * @param ExcludeDiscordSafeLinks - A boolean or string indicating whether to exclude Discord safe links from redaction.
+ *  - If `true`, all Discord links are excluded.
+ *  - If `"channel/message"`, only channel and message links are excluded.
+ *  - If `"attachment"`, only attachment links are excluded.
+ *  - If `false`, no links are excluded.
  * @returns An array containing the modified input string (if modified, validate by comparing with `Input`).
  */
 export function RedactLinksAndEmails(
   Input: string,
   Replacement: string = "*",
-  ReplacementType: ReplacementType = "Character"
+  ReplacementType: ReplacementType = "Character",
+  ExcludeDiscordSafeLinks: boolean | "channel/message" | "attachment" = "channel/message"
 ): string {
   const Matches = Linkify.find(Input);
   const Parts: string[] = [];
   let LastIndex = 0;
 
   for (const Match of Matches) {
+    if (
+      Match.isLink &&
+      ((ExcludeDiscordSafeLinks === true &&
+        (IsValidChannelOrMessageLink(Match.href) ||
+          IsValidDiscordAttachmentLink(Match.href, false))) ||
+        (ExcludeDiscordSafeLinks === "channel/message" &&
+          IsValidChannelOrMessageLink(Match.href)) ||
+        (ExcludeDiscordSafeLinks === "attachment" &&
+          IsValidDiscordAttachmentLink(Match.href, false)))
+    ) {
+      continue;
+    }
+
     Parts.push(Input.slice(LastIndex, Match.start));
     Parts.push(ReplacementType === "Word" ? Replacement : Replacement.repeat(Match.value.length));
     LastIndex = Match.end;
@@ -259,7 +298,12 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
     typeof Options.filter_links_emails === "boolean" ? Options.filter_links_emails : true;
 
   if (Options.filter_links_emails) {
-    ModifiedInput = RedactLinksAndEmails(Input, Options.replacement);
+    ModifiedInput = RedactLinksAndEmails(
+      Input,
+      Options.replacement,
+      Options.replacement_type,
+      Options.allow_discord_safe_links
+    );
   }
 
   if (Options.guild_instance) {
@@ -354,7 +398,7 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
  * - All actions of the rule are of type `AutoModerationActionType.SendAlertMessage` which do not block the message triggered it.
  * - The rule is exempt from the target channel (`Rule.exemptChannels.has(FilteringOpts.target_channel)`).
  * - The rule is exempt from the member who wrote/typed the input string (`Rule.exemptRoles.hasAny(...FilteringOpts.input_from_roles)`).
- * - The rule is of trigger type `3`, `4`, `5`, or `6` which are executable by the way we handle them.
+ * - The rule is of trigger type `3`, `4`, `5`, or `6` which are *not* executable by the way we handle them.
  *
  * @see https://discord.com/developers/docs/resources/auto-moderation#auto-moderation for more information about why certain rules are not applicable to be executed here.
  */
@@ -372,7 +416,12 @@ function ShouldAutomoderationRuleBeApplied(
     (FilteringOpts.target_channel && Rule.exemptChannels.has(FilteringOpts.target_channel)) ||
     (FilteringOpts.input_from_roles &&
       Rule.exemptRoles.hasAny(...FilteringOpts.input_from_roles)) ||
-    [3, 4, 5, 6].includes(Rule.triggerType)
+    [
+      AutoModerationRuleTriggerType.Spam,
+      AutoModerationRuleTriggerType.MentionSpam,
+      AutoModerationRuleTriggerType.KeywordPreset,
+      AutoModerationRuleTriggerType.MemberProfile,
+    ].includes(Rule.triggerType)
   );
 }
 

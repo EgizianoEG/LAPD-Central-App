@@ -1,21 +1,15 @@
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { OSMetrics } from "@Typings/Utilities/Generic.js";
-import DurHumanizer from "humanize-duration";
 import Convert from "convert-units";
 import Process from "node:process";
 import OSUtils from "node-os-utils";
 import OS from "node:os";
 
 type MData<HR extends boolean = false> = OSMetrics.OSMetricsData<HR>;
-const HumanizeDuration = DurHumanizer.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
-
 export default async function GetOSMetrics<Readable extends boolean = false>(
   HumanReadable: Readable
 ): Promise<MData<Readable>> {
-  const PUptime = HumanReadable ? HumanizeDuration(Process.uptime() * 1000) : Process.uptime();
+  const PUptime = HumanReadable ? ReadableDuration(Process.uptime() * 1000) : Process.uptime();
   return {
     node_ver: Process.version.slice(1),
     process_uptime: PUptime as any,
@@ -39,7 +33,7 @@ function GetSysDetails<Readable extends boolean = false>(HR: Readable): MData<Re
   if (HR) {
     return {
       type: OS.type(),
-      uptime: HumanizeDuration(OS.uptime() * 1000) as any,
+      uptime: ReadableDuration(OS.uptime() * 1000) as any,
       version: OS.version(),
       platform: OS.platform() as any,
     };

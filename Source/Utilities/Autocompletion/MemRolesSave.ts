@@ -17,6 +17,7 @@ export default async function AutocompleteMemRolesSave(
   if (!IsValidDiscordId(UserId)) return [];
 
   let Suggestions: ApplicationCommandOptionChoiceData[] = [];
+  const LowerCaseTyped = Typed.trim().toLowerCase();
   const Saves = await MRolesModel.find({ guild: GuildId, member: UserId })
     .sort({ saved_at: -1 })
     .exec();
@@ -37,7 +38,8 @@ export default async function AutocompleteMemRolesSave(
     });
   } else {
     Suggestions = Saves.filter((Save) => {
-      return Save.autocomplete_text.toLowerCase().includes(Typed.trim().toLowerCase());
+      const LowerCaseLabel = Save.autocomplete_text.toLowerCase();
+      return LowerCaseLabel.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseLabel);
     }).map((Save) => {
       return { name: Save.autocomplete_text, value: Save.id };
     });

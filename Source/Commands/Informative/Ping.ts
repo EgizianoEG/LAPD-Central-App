@@ -1,41 +1,35 @@
-import { SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import {
-  ApplicationIntegrationType,
-  InteractionContextType,
-  SlashCommandBuilder,
-  MessageFlags,
-} from "discord.js";
+import { InteractionContextType, SlashCommandBuilder, MessageFlags } from "discord.js";
+import { SuccessContainer } from "@Utilities/Classes/ExtraContainers.js";
 
 // ---------------------------------------------------------------------------------------
-/**
- * @param Client
- * @param Interaction
- */
 async function Callback(Client: DiscordClient, Interaction: SlashCommandInteraction) {
-  await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const MsgFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
+  await Interaction.deferReply({ flags: MsgFlags });
   const Reply = await Interaction.fetchReply();
-  const ClientPing = Reply.createdTimestamp - Interaction.createdTimestamp;
+  const ResponseLatency = Reply.createdTimestamp - Interaction.createdTimestamp;
 
-  const ResponseEmbed = new SuccessEmbed()
-    .setTimestamp(Reply.createdTimestamp)
-    .setDescription(
-      "RT Latency: `%i`ms\n" + "Websocket: `%i`ms\n",
-      ClientPing,
-      Client.ws.ping >= 0 ? Client.ws.ping : 0
-    );
+  const ResponseContainer = new SuccessContainer().setDescription(
+    "Round Trip Latency: `%ims`\n" + "Websocket: `%ims`\n",
+    ResponseLatency,
+    Math.max(Client.ws.ping, 0)
+  );
 
-  return Interaction.editReply({ embeds: [ResponseEmbed] });
+  return Interaction.editReply({
+    components: [ResponseContainer],
+    flags: MsgFlags,
+  });
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject = {
   callback: Callback,
   data: new SlashCommandBuilder()
     .setName("ping")
-    .setDescription("Provides the current latency (ping) for both the bot and websocket.")
-    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
+    .setDescription(
+      "Shows the arpproximate current response latency of the app and the websocket connection."
+    )
     .setContexts(
       InteractionContextType.Guild,
       InteractionContextType.BotDM,

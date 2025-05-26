@@ -41,6 +41,7 @@ import { RandomString } from "@Utilities/Strings/Random.js";
 import { IsValidShiftId } from "@Utilities/Other/Validators.js";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { RootFilterQuery } from "mongoose";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
 import { SuccessEmbed, InfoEmbed, ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
@@ -55,7 +56,6 @@ import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
 import ParseDuration from "parse-duration";
-import DHumanize from "humanize-duration";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
 import Chunks from "@Utilities/Other/SliceIntoChunks.js";
@@ -69,12 +69,6 @@ const TimeModPlaceholders = [
   "E.g., 3hrs, 15m",
   "E.g., 2hrs",
 ];
-
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 3,
-  round: true,
-});
 
 enum ShiftModActions {
   TimeSet = "set",
@@ -176,10 +170,10 @@ function GetTimeModificationModal(
     );
 
   if (ActionType === "Set") {
-    const PrefilledInput = HumanizeDuration(ShiftDocument.durations.on_duty);
+    const PrefilledInput = ReadableDuration(ShiftDocument.durations.on_duty);
     if (PrefilledInput.length <= 50) {
       TimeModificationModal.components[0].components[0].setValue(
-        HumanizeDuration(ShiftDocument.durations.on_duty)
+        ReadableDuration(ShiftDocument.durations.on_duty)
       );
     }
   }
@@ -437,7 +431,7 @@ async function HandleShiftTimeSet(
       ShiftActionLogger.LogShiftTimeSet(ModalSubmission, ShiftDocument, UpdatedDoc),
       new SuccessEmbed()
         .setDescription(
-          `Successfully set the shift's on-duty time to ${HumanizeDuration(UpdatedDoc.durations.on_duty)}.`
+          `Successfully set the shift's on-duty time to ${ReadableDuration(UpdatedDoc.durations.on_duty)}.`
         )
         .replyToInteract(ModalSubmission, true),
     ]);
@@ -471,8 +465,8 @@ async function HandleShiftTimeAddSub(
   const RoundedDuration = Math.round(ParsedDuration ?? 0);
   const SuccessMsg =
     ActionType === "Add"
-      ? `Successfully added an extra \`${HumanizeDuration(RoundedDuration)}\` of on-duty time to the shift.`
-      : `Successfully subtracted \`${HumanizeDuration(RoundedDuration)}\` of on-duty time from the shift.`;
+      ? `Successfully added an extra \`${ReadableDuration(RoundedDuration)}\` of on-duty time to the shift.`
+      : `Successfully subtracted \`${ReadableDuration(RoundedDuration)}\` of on-duty time from the shift.`;
 
   if (!ParsedDuration) {
     return new ErrorEmbed()
@@ -628,7 +622,7 @@ async function RetrieveShiftRecordsAsContainers(
       if (ShiftType) {
         return Dedent(`
           - ${ShiftIdLine}
-            - **Duration:** ${HumanizeDuration(Data.duration)}
+            - **Duration:** ${ReadableDuration(Data.duration)}
             - **Started:** ${Started}
             - **Ended:** ${Ended}
         `);
@@ -636,14 +630,14 @@ async function RetrieveShiftRecordsAsContainers(
         return Dedent(`
           - ${ShiftIdLine}
             - **Type:** \`${Data.type}\`
-            - **Duration:** ${HumanizeDuration(Data.duration)}
+            - **Duration:** ${ReadableDuration(Data.duration)}
             - **Started:** ${Started}
             - **Ended:** ${Ended}
         `);
       }
     });
 
-    const ShiftTypeAppend = ShiftType ? `type: ${ShiftType}` : "all types";
+    const ShiftTypeAppend = ShiftType ? `type: \`${ShiftType}\`` : "all types";
     const PageContainer = new ContainerBuilder()
       .setAccentColor(resolveColor(Colors.Info))
       .addTextDisplayComponents(
@@ -759,7 +753,7 @@ async function GetActiveShiftAndShiftDataContainer(
       : `${Emojis.Online} On-Duty`;
 
     const TotalBreakTime = ActiveShift.hasBreaks()
-      ? `**Break Time:** ${HumanizeDuration(ActiveShift.durations.on_break)}`
+      ? `**Break Time:** ${ReadableDuration(ActiveShift.durations.on_break)}`
       : null;
 
     const ActiveShiftTextSummary = Dedent(`
@@ -767,7 +761,7 @@ async function GetActiveShiftAndShiftDataContainer(
       ${CmdShiftType ? "" : `\n**Type:** \`${ActiveShift.type}\``}
       **Status:** ${StatusText}
       **Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-      ${!ActiveShift.end_timestamp ? "" : `**On-Duty Time:** ${HumanizeDuration(ActiveShift.durations.on_duty)}`}
+      ${!ActiveShift.end_timestamp ? "" : `**On-Duty Time:** ${ReadableDuration(ActiveShift.durations.on_duty)}`}
       ${TotalBreakTime ?? ""}
     `).replace(/\n+/g, "\n");
 
@@ -777,12 +771,12 @@ async function GetActiveShiftAndShiftDataContainer(
     });
   } else if (RecentlyEndedShift) {
     const TotalBreakTime = RecentlyEndedShift.hasBreaks()
-      ? `**Break Time:** ${HumanizeDuration(RecentlyEndedShift.durations.on_break)}`
+      ? `**Break Time:** ${ReadableDuration(RecentlyEndedShift.durations.on_break, { largest: 3 })}`
       : "";
 
     const EndedShiftTextSummary = Dedent(`
       >>> **ID:** \`${RecentlyEndedShift._id}\`
-      **On-Duty Time:** ${HumanizeDuration(RecentlyEndedShift.durations.on_duty)}
+      **On-Duty Time:** ${ReadableDuration(RecentlyEndedShift.durations.on_duty)}
       ${CmdShiftType ? "" : `\n**Type:** \`${RecentlyEndedShift.type}\``}
       **Started:** ${FormatTime(RecentlyEndedShift.start_timestamp, "R")}
       **Ended:** ${FormatTime(RecentlyEndedShift.end_timestamp ?? Interaction.createdAt, "R")}
@@ -941,7 +935,11 @@ async function HandleShiftModifications(
         .replyToInteract(ModalSubmission, true, false);
     }
 
-    const ShiftFound = await ShiftModel.findById(ShiftId);
+    const ShiftFound = await ShiftModel.findOne({
+      guild: AdminInteract.guildId,
+      _id: ShiftId,
+    });
+
     if (!ShiftFound) {
       return new ErrorEmbed()
         .useErrTemplate("NoShiftFoundWithId", ShiftId)
@@ -1023,7 +1021,7 @@ async function HandleShiftCreation(
         Dedent(`
         Successfully created an administrative shift for <@${TargetUser.id}>:
         - Shift ID: \`${NewShiftRecord._id}\`
-        - Duration: ${HumanizeDuration(RoundedDuration)}
+        - Duration: ${ReadableDuration(RoundedDuration)}
         - Of Type: \`${InputShiftType}\`
       `)
       )
@@ -1134,7 +1132,7 @@ async function HandleUserShiftsWipe(
           >>> **Member:** <@${TargetUser.id}>
           **Wiped Shifts:** [${WipeResult.deletedCount}](${channelLink(ConfirmationInteract.channelId)})
           **Shifts of Type:** ${ShiftType ? inlineCode(ShiftType) : "*all types*"}  
-          **On-Duty Time Erased:** ${HumanizeDuration(WipeResult.totalTime)}
+          **On-Duty Time Erased:** ${ReadableDuration(WipeResult.totalTime)}
         `)
       );
 
@@ -1224,7 +1222,10 @@ async function HandleUserShiftDelete(
   const ModalSubmission = await ShowModalAndAwaitSubmission(BInteract, ShiftIdInputModal);
   if (!ModalSubmission) return;
   const ShiftId = ModalSubmission.fields.getTextInputValue("da-shift-id");
-  const ShiftDeleted = await ShiftModel.findByIdAndDelete(ShiftId);
+  const ShiftDeleted = await ShiftModel.findOneAndDelete({
+    guild: BInteract.guildId,
+    _id: ShiftId,
+  });
 
   if (!ShiftDeleted) {
     return new ErrorEmbed()

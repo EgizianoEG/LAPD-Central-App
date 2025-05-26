@@ -43,7 +43,7 @@ import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import { FormatSortRDInputNames } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { SanitizeDiscordAttachmentLink } from "@Utilities/Strings/OtherUtils.js";
-import { IncidentReportNumberLineRegex } from "@Resources/RegularExpressions.js";
+import { IncidentReportNumberLineRegex, ListSplitRegex } from "@Resources/RegularExpressions.js";
 
 import IsEqual from "lodash/isEqual.js";
 import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
@@ -54,7 +54,6 @@ import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
 
 const ListFormatter = new Intl.ListFormat("en");
 const NoneProvidedPlaceholder = "`[None Provided]`";
-const SplitRegexForInputs = /\s*,\s*(?:and\s*)?|\s+/i;
 const CompCollectorTimeout = 12.5 * 60 * 1000;
 const CompCollectorIdleTime = 10 * 60 * 1000;
 
@@ -311,6 +310,7 @@ async function EditIncidentReportLogMessageBasedOnRecordAndInteraction(
 
   return Message.edit({
     embeds: IncidentReportEmbeds,
+    files: [],
   });
 }
 
@@ -682,7 +682,7 @@ async function HandleIncidentSuspectsOrWitnessesEdit(
 
   const NewlySetNames = InputSubmission.fields
     .getTextInputValue(ModalInputIds[InputType])
-    .split(SplitRegexForInputs)
+    .split(ListSplitRegex)
     .filter((Name) => Name.length >= 2);
 
   if (InputType === "Suspects") IRUpdatesCopy.suspects = NewlySetNames;

@@ -32,6 +32,7 @@ import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js"
 import { milliseconds, addMilliseconds } from "date-fns";
 
 import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
 import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
 import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
 import ParseDuration from "parse-duration";
@@ -291,67 +292,56 @@ async function HandleLeaveExtend(
       )
     );
 
-  await Interaction.showModal(ExtendModal);
-  await Interaction.awaitModalSubmit({
-    time: 8 * 60_000,
-    filter: (i) => i.customId === `loa-extend-modal:${Interaction.user.id}:${UniqueID}`,
-  })
-    .then(async (Submission) => {
-      ActiveLeave = await ActiveLeave!.getUpToDate();
-      const Duration = Submission.fields.getTextInputValue("ext-duration");
-      const Reason = Submission.fields.getTextInputValue("ext-reason") || null;
-      const ParsedDuration = Math.round(ParseDuration(Duration, "millisecond") ?? 0);
-      const SubmissionHandled = ValidateExtendedDuration(Submission, ActiveLeave, ParsedDuration);
+  const Submission = await ShowModalAndAwaitSubmission(Interaction, ExtendModal, 8 * 60_000);
+  if (!Submission) return;
 
-      if (SubmissionHandled) return;
-      if (!ActiveLeave?.is_active) {
-        return Promise.all([
-          new ErrorEmbed().useErrTemplate("LOANotActive").replyToInteract(Submission, true),
-          Callback(Submission, MainPromptMsgId),
-          CompCollector.stop("Updated"),
-        ]);
-      } else if (ActiveLeave.extension_request) {
-        return Promise.all([
-          new ErrorEmbed()
-            .useErrTemplate("LOAExtensionLimitReached")
-            .replyToInteract(Submission, true),
-          Callback(Submission, MainPromptMsgId),
-          CompCollector.stop("Updated"),
-        ]);
-      }
+  ActiveLeave = await ActiveLeave.getUpToDate();
+  const Duration = Submission.fields.getTextInputValue("ext-duration");
+  const Reason = Submission.fields.getTextInputValue("ext-reason") || null;
+  const ParsedDuration = Math.round(ParseDuration(Duration, "millisecond") ?? 0);
+  const SubmissionHandled = ValidateExtendedDuration(Submission, ActiveLeave, ParsedDuration);
 
-      Submission.deferReply({ flags: MessageFlags.Ephemeral });
-      ActiveLeave.extension_request = {
-        status: "Pending",
-        date: Submission.createdAt,
-        reason: Reason,
-        duration: ParsedDuration,
-      };
+  if (SubmissionHandled) return;
+  if (!ActiveLeave?.is_active) {
+    return Promise.all([
+      new ErrorEmbed().useErrTemplate("LOANotActive").replyToInteract(Submission, true),
+      Callback(Submission, MainPromptMsgId),
+      CompCollector.stop("Updated"),
+    ]);
+  } else if (ActiveLeave.extension_request) {
+    return Promise.all([
+      new ErrorEmbed().useErrTemplate("LOAExtensionLimitReached").replyToInteract(Submission, true),
+      Callback(Submission, MainPromptMsgId),
+      CompCollector.stop("Updated"),
+    ]);
+  }
 
-      const RequestMsg = await LOAEventLogger.SendExtensionRequest(Submission, ActiveLeave);
-      const ReplyEmbed = new EmbedBuilder()
-        .setColor(Colors.Success)
-        .setTitle("Leave Extension Requested")
-        .setDescription(
-          "Successfully submitted leave extension request. You will be notified when the request is approved or denied via a DM notice if possible."
-        );
+  Submission.deferReply({ flags: MessageFlags.Ephemeral });
+  ActiveLeave.extension_request = {
+    status: "Pending",
+    date: Submission.createdAt,
+    reason: Reason,
+    duration: ParsedDuration,
+  };
 
-      ActiveLeave.extension_request.request_msg = RequestMsg
-        ? `${RequestMsg.channelId}:${RequestMsg.id}`
-        : null;
+  const RequestMsg = await LOAEventLogger.SendExtensionRequest(Submission, ActiveLeave);
+  const ReplyEmbed = new EmbedBuilder()
+    .setColor(Colors.Success)
+    .setTitle("Leave Extension Requested")
+    .setDescription(
+      "Successfully submitted leave extension request. You will be notified when the request is approved or denied via a DM notice if possible."
+    );
 
-      await ActiveLeave.save();
-      return Promise.allSettled([
-        Submission.editReply({ embeds: [ReplyEmbed] }),
-        Callback(Submission, MainPromptMsgId),
-        CompCollector.stop("Updated"),
-      ]);
-    })
-    .catch((Err: any) => {
-      if (!(Err instanceof Error && Err.message.match(/reason: (?:time|idle)/))) {
-        throw Err;
-      }
-    });
+  ActiveLeave.extension_request.request_msg = RequestMsg
+    ? `${RequestMsg.channelId}:${RequestMsg.id}`
+    : null;
+
+  await ActiveLeave.save();
+  return Promise.allSettled([
+    Submission.editReply({ embeds: [ReplyEmbed] }),
+    Callback(Submission, MainPromptMsgId),
+    CompCollector.stop("Updated"),
+  ]);
 }
 
 async function HandleLeaveEarlyEnd(

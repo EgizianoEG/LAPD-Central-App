@@ -2,8 +2,8 @@
 import type { PropertiesToString } from "utility-types";
 import type { Shifts } from "@Typings/Utilities/Database.js";
 import type { FilterQuery } from "mongoose";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
-import DHumanize from "humanize-duration";
 import Guild from "@Models/Guild.js";
 
 export type UserMainShiftsData = {
@@ -21,12 +21,6 @@ export type UserMainShiftsData = {
   /** The shift type with the highest total on-duty time. **/
   frequent_shift_type: string;
 };
-
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
 
 /**
  * Returns an object containing main data for a user's shifts.
@@ -204,13 +198,13 @@ export default async function GetMainShiftsData(
       if (Key === "avg_onduty" || Key === "avg_onbreak") {
         (Resp[0][Key] as unknown as string) =
           Duration > 500
-            ? HumanizeDuration(Duration)
+            ? ReadableDuration(Duration)
             : Duration > 0
               ? "less than 1 minute"
               : "*insufficient data*";
       } else {
         Resp[0][Key] =
-          Duration < 500 && Duration > 0 ? "less than 1 minute" : HumanizeDuration(Duration);
+          Duration < 500 && Duration > 0 ? "less than 1 minute" : ReadableDuration(Duration);
       }
     }
 

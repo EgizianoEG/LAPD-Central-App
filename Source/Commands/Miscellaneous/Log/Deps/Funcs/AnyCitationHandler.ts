@@ -2,6 +2,7 @@
 // -------------
 import {
   ModalSubmitInteraction,
+  ButtonInteraction,
   AttachmentBuilder,
   ActionRowBuilder,
   TextInputBuilder,
@@ -32,7 +33,7 @@ import {
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
 import { AllVehicleModelNames, AllVehicleModels } from "@Resources/ERLCVehicles.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { GetFilledCitation } from "@Utilities/Other/GetFilledCitation.js";
+import { RenderFilledNTAForm } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
 import { ReporterInfo } from "../../Log.js";
 import { RandomString } from "@Utilities/Strings/Random.js";
@@ -40,7 +41,7 @@ import { TitleCase } from "@Utilities/Strings/Converters.js";
 import { Colors } from "@Config/Shared.js";
 
 import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
-import LogTrafficCitation from "@Utilities/Other/LogCitation.js";
+import LogTrafficCitation from "@Utilities/Database/LogCitation.js";
 import FindClosestMatch from "didyoumean2";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
 import BrickColors from "@Resources/BrickColors.js";
@@ -51,9 +52,16 @@ import AppError from "@Utilities/Classes/AppError.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetAllCitationNums from "@Utilities/Database/GetCitationNumbers.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
+import CitationModel, { NTATypes } from "@Models/Citation.js";
 
 const CmdFileLabel = "Commands:Miscellaneous:Log:CitWarn";
 const ColorNames = BrickColors.map((BC) => BC.name);
+type CitationWithOptionalDetails = Omit<
+  GuildCitations.AnyCitationData,
+  "img_url" | "nta_type" | "comments" | "case_details"
+> &
+  PartialAllowNull<Pick<GuildCitations.AnyCitationData, "comments" | "case_details" | "nta_type">>;
 
 // ---------------------------------------------------------------------------------------
 /**
@@ -68,8 +76,14 @@ export default async function AnyCitationCallback(
   CmdFileLabel: string = "Commands:Miscellaneous:Log:AnyCitationHandler"
 ) {
   await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  const SubCmdName = Interaction.options.getSubcommand();
+  const CitationType = SubCmdName.includes("fine") ? "Fine" : "Warning";
+
   const CitationDetailsPart1: GuildCitations.InitialProvidedCmdDetails = {
     fine_amount: Interaction.options.getInteger("fine-amount", false),
+    nta_type: (Interaction.options.getString("nta-type", false) ?? NTATypes.Traffic) as NTATypes,
+    cit_type: CitationType,
+
     violator: {
       name: Interaction.options.getString("name", true),
       gender: Interaction.options.getString("gender", true),
@@ -83,10 +97,30 @@ export default async function AnyCitationCallback(
       lic_class: "A",
       city: "Los Angeles",
     },
+
     vehicle: {
+      is_boat: false,
+      is_vehicle: true,
+      is_aircraft: false,
+      commercial: Interaction.options.getBoolean("vehicle-commercial", false) ?? false,
+      hazardous_mat: Interaction.options.getBoolean("vehicle-hazardous", false) ?? false,
       lic_num: Interaction.options.getString("vehicle-plate", true).toUpperCase(),
       model: Interaction.options.getString("vehicle-model", true),
       color: Interaction.options.getString("vehicle-color", true),
+    },
+
+    comments: {
+      accident: Interaction.options.getBoolean("involved-accident", false) ?? false,
+      weather: Interaction.options.getString("weather", false),
+      traffic: Interaction.options.getString("traffic", false),
+      travel_dir: Interaction.options.getString("travel-dir", false),
+      road_surface: Interaction.options.getString("surface", false),
+    },
+
+    case_details: {
+      speed_approx: Interaction.options.getInteger("speed-approx", false),
+      posted_speed: Interaction.options.getInteger("speed-limit", false),
+      veh_speed_limit: Interaction.options.getInteger("vehicle-limit", false),
     },
   } as GuildCitations.InitialProvidedCmdDetails;
 
@@ -99,7 +133,7 @@ export default async function AnyCitationCallback(
   // If the validation failed and a feedback was given, return early.
   if (ValidationVars === true) return;
   try {
-    const [RespMsgButtons, Modal, ModalFilter] = GetAdditionalInputsModal(Interaction);
+    const [RespMsgButtons, Modal] = GetAdditionalInputsModal(Interaction);
     const ResponseMsg = await Interaction.editReply({
       embeds: [GetModalInputsPromptEmbed(CitationDetailsPart1, ValidationVars.vehicle)],
       components: [RespMsgButtons],
@@ -113,34 +147,33 @@ export default async function AnyCitationCallback(
 
     ActionCollector.on("collect", async (BInteract) => {
       try {
-        await BInteract.showModal(Modal);
-        await BInteract.awaitModalSubmit({ time: 10 * 60_000, filter: ModalFilter }).then(
-          async (Submission) => {
-            ActionCollector.stop("ModalSubmitted");
-            CitationDetailsPart1.violator.id = ValidationVars.violator_id;
-            CitationDetailsPart1.vehicle = {
-              color: CitationDetailsPart1.vehicle.color,
-              year: ValidationVars.vehicle.model_year.org,
-              make: ValidationVars.vehicle.brand,
-              model: ValidationVars.vehicle.name,
-              body_style: ValidationVars.vehicle.style,
-              lic_num: CitationDetailsPart1.vehicle.lic_num.toUpperCase(),
-            };
+        const ModalSubmission = await ShowModalAndAwaitSubmission(BInteract, Modal, 10 * 60_000);
+        if (!ModalSubmission) return;
 
-            await OnModalSubmission(
-              Interaction,
-              CitationDetailsPart1 as GuildCitations.AnyCitationData,
-              CitingOfficer,
-              Submission
-            );
-          }
+        CitationDetailsPart1.violator.id = ValidationVars.violator_id;
+        CitationDetailsPart1.vehicle = {
+          ...ValidationVars.vehicle,
+          color: CitationDetailsPart1.vehicle.color,
+          year: ValidationVars.vehicle.model_year.org,
+          make: ValidationVars.vehicle.brand,
+          model: ValidationVars.vehicle.name,
+          body_style: ValidationVars.vehicle.style,
+          lic_num: CitationDetailsPart1.vehicle.lic_num.toUpperCase(),
+        };
+
+        ActionCollector.stop("ModalSubmitted");
+        await OnModalSubmission(
+          Interaction,
+          CitationDetailsPart1 as GuildCitations.AnyCitationData,
+          CitingOfficer,
+          ModalSubmission
         );
       } catch (Err: any) {
         AppLogger.error({
           message: "An error occurred while handling additional citation details modal submission;",
           label: CmdFileLabel,
           stack: Err.stack,
-          details: { ...Err },
+          error: { ...Err },
         });
       }
     });
@@ -206,7 +239,7 @@ function GetAdditionalInputsModal(CmdInteract: SlashCommandInteraction<"cached">
   const ModalShowButtonAR = new ActionRowBuilder<ButtonBuilder>().setComponents(
     new ButtonBuilder()
       .setCustomId(`show-modal:${CmdInteract.user.id}`)
-      .setLabel("Complete Citation")
+      .setLabel("Complete Citation Details")
       .setStyle(ButtonStyle.Secondary)
   );
 
@@ -246,11 +279,7 @@ function GetAdditionalInputsModal(CmdInteract: SlashCommandInteraction<"cached">
       )
     );
 
-  const ModalFilter = (MS: ModalSubmitInteraction) => {
-    return MS.customId === Modal.data.custom_id;
-  };
-
-  return [ModalShowButtonAR, Modal, ModalFilter] as const;
+  return [ModalShowButtonAR, Modal] as const;
 }
 
 function GetModalInputsPromptEmbed(
@@ -264,6 +293,11 @@ function GetModalInputsPromptEmbed(
       "**Please review the current citation details and complete the remaining information by clicking the button below.**"
     )
     .setFields(
+      {
+        inline: false,
+        name: "NTA and Citation Type",
+        value: `${CmdProvidedInfo.nta_type ?? "Traffic"} ${CmdProvidedInfo.cit_type ?? "Warning"}`,
+      },
       {
         inline: true,
         name: "Violator",
@@ -331,7 +365,7 @@ async function HandleCmdOptsValidation(
 ): Promise<
   | {
       violator_id: number;
-      vehicle: (typeof AllVehicleModels)[number];
+      vehicle: (typeof AllVehicleModels)[number] & GuildCitations.VehicleInfo;
     }
   | true
 > {
@@ -409,7 +443,7 @@ async function HandleCmdOptsValidation(
   CitationInfo.violator.name = ExactUsername;
   return {
     violator_id: ViolatorID,
-    vehicle: { ...VehicleFound },
+    vehicle: { ...CitationInfo.vehicle, ...VehicleFound },
   };
 }
 
@@ -451,6 +485,7 @@ async function OnModalSubmission(
       .replyToInteract(ModalSubmission, true);
   }
 
+  let ConfirmationBtnResponse: ButtonInteraction<"cached"> | null = null;
   const UTIFOpts: FilterUserInputOptions = {
     replacement: "#",
     guild_instance: CmdInteract.guild,
@@ -459,120 +494,132 @@ async function OnModalSubmission(
     utif_setting_enabled: GuildSettings.utif_enabled,
   };
 
-  const CitationNumber = await GenerateCitationNumber(ModalSubmission.guildId);
-  const DateInfo = CmdInteract.createdAt
-    .toLocaleDateString("en-US", {
-      timeZone: "America/Los_Angeles",
-      weekday: "long",
-      month: "long",
-      year: "numeric",
-      day: "numeric",
-      hour12: true,
-    })
-    .match(/(?<dow>\w+), (?<date>.+)/);
+  try {
+    const CitationNumber = await GenerateCitationNumber(ModalSubmission.guildId);
+    const DateInfo = CmdInteract.createdAt
+      .toLocaleDateString("en-US", {
+        timeZone: "America/Los_Angeles",
+        weekday: "long",
+        month: "long",
+        year: "numeric",
+        day: "numeric",
+        hour12: true,
+      })
+      .match(/(?<dow>\w+), (?<date>.+)/);
 
-  const TimeInfo = CmdInteract.createdAt
-    .toLocaleTimeString("en-US", {
-      timeZone: "America/Los_Angeles",
-      hour12: true,
-    })
-    .match(/(?<time>[\d:]+) (?<day_period>\w+)/);
+    const TimeInfo = CmdInteract.createdAt
+      .toLocaleTimeString("en-US", {
+        timeZone: "America/Los_Angeles",
+        hour12: true,
+      })
+      .match(/(?<time>[\d:]+) (?<day_period>\w+)/);
 
-  const CitationFullData: Omit<GuildCitations.AnyCitationData, "img_url"> = {
-    dov: DateInfo!.groups!.date,
-    tov: TimeInfo!.groups!.time,
-    guild: ModalSubmission.guildId,
-    issued_on: CmdInteract.createdAt,
-    type: PCitationData.fine_amount ? "Fine" : "Warning",
-    dow: WeekDayToNum(DateInfo!.groups!.dow),
-    ampm: TimeInfo!.groups!.day_period as "AM" | "PM",
-    num: CitationNumber,
-    vehicle: PCitationData.vehicle,
-    fine_amount: PCitationData.fine_amount,
+    const CitationFullData: CitationWithOptionalDetails = {
+      ...PCitationData,
+      dov: DateInfo!.groups!.date,
+      tov: TimeInfo!.groups!.time,
+      guild: ModalSubmission.guildId,
+      issued_on: CmdInteract.createdAt,
 
-    violations: FormatCitViolations(
-      await FilterUserInput(
-        ModalSubmission.fields.getTextInputValue("traffic-violations"),
-        UTIFOpts
-      )
-    ),
+      nta_type: PCitationData.nta_type,
+      cit_type: PCitationData.cit_type
+        ? PCitationData.cit_type
+        : PCitationData.fine_amount
+          ? "Fine"
+          : "Warning",
 
-    violation_loc: TitleCase(
-      await FilterUserInput(
-        ModalSubmission.fields.getTextInputValue("violations-location"),
-        UTIFOpts
+      dow: WeekDayToNum(DateInfo!.groups!.dow),
+      ampm: TimeInfo!.groups!.day_period as "AM" | "PM",
+      num: CitationNumber,
+      vehicle: PCitationData.vehicle,
+      fine_amount: PCitationData.fine_amount,
+
+      violations: FormatCitViolations(
+        await FilterUserInput(
+          ModalSubmission.fields.getTextInputValue("traffic-violations"),
+          UTIFOpts
+        )
       ),
-      true
-    ),
 
-    violator: {
-      ...PCitationData.violator,
-      id: PCitationData.violator.id,
-      age: PCitationData.violator.age,
-      name: FormatUsername(ViolatorRobloxInfo),
-      city: "Los Angeles",
-      address:
-        TitleCase(
-          await FilterUserInput(
-            ModalSubmission.fields.getTextInputValue("residence-address"),
-            UTIFOpts
-          )
-        ) || "N/A",
-    },
+      violation_loc: TitleCase(
+        await FilterUserInput(
+          ModalSubmission.fields.getTextInputValue("violations-location"),
+          UTIFOpts
+        ),
+        true
+      ),
 
-    citing_officer: {
-      discord_id: CmdInteract.user.id,
-      roblox_id: CitingOfficer.RobloxUserId,
-      name: OfficerRobloxInfo.name,
-      display_name: OfficerRobloxInfo.displayName,
-    },
-  };
+      violator: {
+        ...PCitationData.violator,
+        id: PCitationData.violator.id,
+        age: PCitationData.violator.age,
+        name: FormatUsername(ViolatorRobloxInfo),
+        city: "Los Angeles",
+        address:
+          TitleCase(
+            await FilterUserInput(
+              ModalSubmission.fields.getTextInputValue("residence-address"),
+              UTIFOpts
+            )
+          ) || "N/A",
+      },
 
-  const CitationImgBuffer = await GetFilledCitation(CitationFullData);
-  const CitImageAttachment = new AttachmentBuilder(CitationImgBuffer, {
-    name: `citation_${CmdInteract.createdAt.getFullYear().toString().slice(-2)}_${CitationFullData.num}.jpg`,
-  });
+      citing_officer: {
+        discord_id: CmdInteract.user.id,
+        roblox_id: CitingOfficer.RobloxUserId,
+        name: OfficerRobloxInfo.name,
+        display_name: OfficerRobloxInfo.displayName,
+      },
+    };
 
-  const ConfirmationButtonAR = new ActionRowBuilder<ButtonBuilder>().setComponents(
-    new ButtonBuilder()
-      .setCustomId("confirm-citation")
-      .setLabel("Confirm and Submit Information")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId("cancel-citation")
-      .setLabel("Cancel Citation")
-      .setStyle(ButtonStyle.Danger)
-  );
+    const CitationDocument = new CitationModel(CitationFullData);
+    const CitationImgBuffer = await RenderFilledNTAForm(CitationDocument);
+    const CitImageAttachment = new AttachmentBuilder(CitationImgBuffer, {
+      name: `citation_${CmdInteract.createdAt.getFullYear().toString().slice(-2)}_${CitationFullData.num}.jpg`,
+    });
 
-  const ConfirmationMsgEmbed = new EmbedBuilder()
-    .setColor(Colors.Gold)
-    .setTitle("Confirmation Required")
-    .setImage(`attachment://${CitImageAttachment.name}`)
-    .setDescription(
-      `${userMention(CmdInteract.user.id)}, please confirm that the citation information in the attached image below is correct and ready to be submitted.`
+    const ConfirmationButtonAR = new ActionRowBuilder<ButtonBuilder>().setComponents(
+      new ButtonBuilder()
+        .setCustomId("confirm-citation")
+        .setLabel("Confirm and Submit")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId("cancel-citation")
+        .setLabel("Cancel Citation")
+        .setStyle(ButtonStyle.Danger)
     );
 
-  const ConfirmationMsg = await ModalSubmission.editReply({
-    components: [ConfirmationButtonAR],
-    embeds: [ConfirmationMsgEmbed],
-    files: [CitImageAttachment],
-  });
+    const ConfirmationMsgEmbed = new EmbedBuilder()
+      .setColor(Colors.Gold)
+      .setTitle("Confirmation Required")
+      .setImage(`attachment://${CitImageAttachment.name}`)
+      .setDescription(
+        `${userMention(CmdInteract.user.id)}, please confirm that the citation information in the attached image below is correct and ready to be submitted.`
+      );
 
-  const DisablePrompt = () => {
-    ConfirmationButtonAR.components.forEach((Button) => Button.setDisabled(true));
-    return ModalSubmission.editReply({
+    const ConfirmationMsg = await ModalSubmission.editReply({
       components: [ConfirmationButtonAR],
-    }).catch(() => null);
-  };
+      embeds: [ConfirmationMsgEmbed],
+      files: [CitImageAttachment],
+    });
 
-  const ButtonResponse = await ConfirmationMsg.awaitMessageComponent({
-    filter: (BI) => BI.user.id === CmdInteract.user.id,
-    componentType: ComponentType.Button,
-    time: 10 * 60_000,
-  }).catch((Err) => HandleActionCollectorExceptions(Err, DisablePrompt));
+    const DisablePrompt = () => {
+      ConfirmationButtonAR.components.forEach((Button) => Button.setDisabled(true));
+      return ModalSubmission.editReply({
+        components: [ConfirmationButtonAR],
+      }).catch(() => null);
+    };
 
-  try {
+    const ButtonResponse = await ConfirmationMsg.awaitMessageComponent({
+      filter: (BI) => BI.user.id === CmdInteract.user.id,
+      componentType: ComponentType.Button,
+      time: 10 * 60_000,
+    }).catch((Err) => HandleActionCollectorExceptions(Err, DisablePrompt));
+
     if (!ButtonResponse) return;
+    // eslint-disable-next-line sonarjs/no-dead-store
+    ConfirmationBtnResponse = ButtonResponse;
+
     if (ButtonResponse.customId === "confirm-citation") {
       await ButtonResponse.update({
         files: [],
@@ -583,7 +630,7 @@ async function OnModalSubmission(
 
       const MainLogMsgLink = await LogTrafficCitation(
         ButtonResponse,
-        CitationFullData,
+        CitationDocument,
         CitationImgBuffer,
         ViolatorRobloxInfo
       );
@@ -619,12 +666,13 @@ async function OnModalSubmission(
       message: "An error occurred while handling submission process of a citation.",
       label: CmdFileLabel,
       stack: Err.stack,
+      error: { ...Err },
     });
 
     return new ErrorEmbed()
       .setDescription(
         "Apologies; an error occurred while handling your traffic citation log request."
       )
-      .replyToInteract(ButtonResponse ?? ModalSubmission, true);
+      .replyToInteract(ConfirmationBtnResponse ?? ModalSubmission, true);
   }
 }

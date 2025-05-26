@@ -4,7 +4,7 @@
 import {
   User,
   Colors,
-  Message,
+  codeBlock,
   Collection,
   userMention,
   ButtonStyle,
@@ -16,11 +16,9 @@ import {
   ActionRowBuilder,
   TextInputBuilder,
   ButtonInteraction,
-  InteractionResponse,
   UserSelectMenuBuilder,
   ModalSubmitInteraction,
   SlashCommandSubcommandBuilder,
-  codeBlock,
 } from "discord.js";
 
 import {
@@ -33,7 +31,7 @@ import {
 import LogArrestReport, {
   type ArresteeInfoType,
   type ReporterInfoType,
-} from "@Utilities/Other/LogArrestReport.js";
+} from "@Utilities/Database/LogArrestReport.js";
 
 import { RandomString } from "@Utilities/Strings/Random.js";
 import { ReporterInfo } from "../Log.js";
@@ -41,12 +39,13 @@ import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
 import { ArraysAreEqual } from "@Utilities/Other/ArraysAreEqual.js";
-import { SplitRegexForInputs } from "./Incident.js";
+import { ListSplitRegex } from "@Resources/RegularExpressions.js";
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
 import { IsValidPersonHeight, IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
 
+import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
 import HandleCollectorFiltering from "@Utilities/Other/HandleCollectorFilter.js";
-import GetBookingMugshot from "@Utilities/Other/ThumbToMugshot.js";
+import GetBookingMugshot from "@Utilities/ImageRendering/ThumbToMugshot.js";
 import GetAllBookingNums from "@Utilities/Database/GetBookingNums.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
@@ -127,35 +126,41 @@ function GetArrestPendingSubmissionComponents() {
  * Handles the validation of the slash command inputs.
  * @param Interaction
  * @param CmdOptions
- * @returns
+ * @returns A boolean indicating whether the interaction was handled and responded to (true) or not (false).
  */
 async function HandleCmdOptsValidation(
   Interaction: SlashCommandInteraction<"cached">,
   CmdOptions: CmdOptionsType,
   Reporter: ReporterInfo
-): Promise<ReturnType<ErrorEmbed["replyToInteract"]> | null> {
+): Promise<boolean> {
   if (!IsValidPersonHeight(CmdOptions.Height)) {
     return new ErrorEmbed()
       .useErrTemplate("MalformedPersonHeight")
-      .replyToInteract(Interaction, true);
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   }
 
   if (!IsValidRobloxUsername(CmdOptions.Arrestee)) {
     return new ErrorEmbed()
       .useErrTemplate("MalformedRobloxUsername", CmdOptions.Arrestee)
-      .replyToInteract(Interaction, true);
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   }
 
   const [ARobloxId, , WasUserFound] = await GetIdByUsername(CmdOptions.Arrestee, true);
   if (!WasUserFound) {
     return new ErrorEmbed()
       .useErrTemplate("NonexistentRobloxUsername", CmdOptions.Arrestee)
-      .replyToInteract(Interaction, true);
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   } else if (Reporter.RobloxUserId === ARobloxId) {
-    return new ErrorEmbed().useErrTemplate("SelfArrestAttempt").replyToInteract(Interaction, true);
+    return new ErrorEmbed()
+      .useErrTemplate("SelfArrestAttempt")
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   }
 
-  return null;
+  return false;
 }
 
 /**
@@ -203,7 +208,7 @@ async function OnReportCancellation(ButtonInteract: ButtonInteraction<"cached">)
 async function HandleAddAssistingOfficersUsernames(
   BtnInteract: ButtonInteraction<"cached">,
   CurrentAsstUsernames: string[]
-) {
+): Promise<{ ModalSubmission?: ModalSubmitInteraction<"cached">; UsernamesInput?: string[] }> {
   const InputModal = new ModalBuilder()
     .setTitle("Add Assisting Officers - Usernames")
     .setCustomId(`arrest-add-ao-usernames:${BtnInteract.user.id}:${BtnInteract.createdTimestamp}`)
@@ -225,23 +230,17 @@ async function HandleAddAssistingOfficersUsernames(
     InputModal.components[0].components[0].setValue(PrefilledInput);
   }
 
-  await BtnInteract.showModal(InputModal);
-  const ModalSubmitInteract = await BtnInteract.awaitModalSubmit({
-    time: 8 * 60_000,
-    filter: (MS) => {
-      return MS.user.id === BtnInteract.user.id && MS.customId === InputModal.data.custom_id;
-    },
-  }).catch(() => null);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 8 * 60_000);
+  if (!ModalSubmission) return {};
+  await ModalSubmission.deferUpdate();
 
-  if (!ModalSubmitInteract) return {};
-  await ModalSubmitInteract.deferUpdate();
-  const UsernamesInput = ModalSubmitInteract.fields
+  const UsernamesInput = ModalSubmission.fields
     .getTextInputValue("input-usernames")
     .trim()
-    .split(SplitRegexForInputs)
+    .split(ListSplitRegex)
     .filter(IsValidRobloxUsername);
 
-  return { ModalSubmitInteract, UsernamesInput };
+  return { ModalSubmission, UsernamesInput };
 }
 
 async function OnReportConfirmation(
@@ -316,7 +315,7 @@ async function OnChargesModalSubmission(
     return_url: true,
     head_position: 25,
     height: CmdOptions.Height,
-    user_thumb_url: ThumbUrl,
+    thumb_img: ThumbUrl,
     booking_num: BookingNumber,
     user_gender: CmdOptions.Gender,
     booking_date: CmdInteract.createdAt,
@@ -408,12 +407,12 @@ async function OnChargesModalSubmission(
         await ReceivedInteract.deferUpdate();
         ComponentCollector.stop("Report Cancellation");
       } else if (ReceivedInteract.customId === "ao-add-usernames") {
-        const { ModalSubmitInteract, UsernamesInput } = await HandleAddAssistingOfficersUsernames(
+        const { ModalSubmission, UsernamesInput } = await HandleAddAssistingOfficersUsernames(
           ReceivedInteract,
           AsstOfficersUsernames
         );
 
-        if (!ModalSubmitInteract || !UsernamesInput) return;
+        if (!ModalSubmission || !UsernamesInput) return;
         if (!ArraysAreEqual(AsstOfficersUsernames, UsernamesInput)) {
           AsstOfficersUsernames = UsernamesInput;
 
@@ -422,7 +421,7 @@ async function OnChargesModalSubmission(
               FormatSortRDInputNames([...AsstOfficersDisIds, ...AsstOfficersUsernames], true)
             ) || "N/A";
 
-          await ModalSubmitInteract.editReply({
+          await ModalSubmission.editReply({
             embeds: [ConfirmationEmbed.setDescription(`Assisting Officers: ${FormattedMentions}`)],
             components: [AsstOfficersMenu, AddUsernamesConfirmationComponents],
           }).catch(() => null);
@@ -506,21 +505,20 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Repor
     AgeGroup: FormatAge(Interaction.options.getInteger("arrest-age", true)),
   } as CmdOptionsType;
 
-  const Response = await HandleCmdOptsValidation(Interaction, CmdOptions, Reporter);
-  if (Response instanceof Message || Response instanceof InteractionResponse) return;
-
+  const ResponseHandled = await HandleCmdOptsValidation(Interaction, CmdOptions, Reporter);
+  if (ResponseHandled) return;
   const AdditionalDataModal = GetAdditionalInformationModal(Interaction);
-  const ModalFilter = (MS) => {
-    return MS.user.id === Interaction.user.id && MS.customId === AdditionalDataModal.data.custom_id;
-  };
 
   try {
-    await Interaction.showModal(AdditionalDataModal);
-    await Interaction.awaitModalSubmit({ time: 8 * 60_000, filter: ModalFilter }).then(
-      async (Submission) => {
-        await OnChargesModalSubmission(Interaction, CmdOptions, Reporter, Submission);
-      }
+    const AdditionalDataSubmission = await ShowModalAndAwaitSubmission(
+      Interaction,
+      AdditionalDataModal,
+      8 * 60 * 1000,
+      true
     );
+
+    if (!AdditionalDataSubmission) return;
+    await OnChargesModalSubmission(Interaction, CmdOptions, Reporter, AdditionalDataSubmission);
   } catch (Err: unknown) {
     if (Err instanceof Error && !Err.message.match(/reason: (?:\w+Delete|time)/)) {
       throw new AppError({ message: Err.message, stack: Err.stack });

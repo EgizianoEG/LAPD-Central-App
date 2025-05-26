@@ -1,5 +1,6 @@
-import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import Dedent from "dedent";
+import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
+import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import {
   SlashCommandSubcommandsOnlyBuilder,
   InteractionContextType,
@@ -33,11 +34,11 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       )
     );
 
-  await Interaction.showModal(InputModal);
-  const ModalSubmission = await Interaction.awaitModalSubmit({
-    filter: (MS) => MS.customId === InputModal.data.custom_id,
-    time: 10 * 60 * 1000,
-  }).catch(() => null);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(
+    Interaction,
+    InputModal,
+    10 * 60 * 1000
+  );
 
   if (!ModalSubmission) return;
   await ModalSubmission.deferReply({ flags: MessageFlags.Ephemeral });

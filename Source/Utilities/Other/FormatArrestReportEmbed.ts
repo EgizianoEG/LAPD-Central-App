@@ -68,7 +68,7 @@ export default async function GetFormattedArrestReportEmbed(
         inline: true,
       },
       {
-        name: "Convicted Charges",
+        name: "Charges",
         value: ArrestInfo.arrestee.charges.join("\n"),
         inline: false,
       },

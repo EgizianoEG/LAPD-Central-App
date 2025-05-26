@@ -1,16 +1,10 @@
 import { isAfter, milliseconds, addMilliseconds, differenceInMilliseconds } from "date-fns";
 
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { Schema, model } from "mongoose";
-import DHumanize from "humanize-duration";
 
 type NoticeDocument = UserActivityNotice.ActivityNoticeHydratedDocument;
-const DurationHumanize = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
-
 const ActivityNoticeSchema = new Schema<
   UserActivityNotice.UserActivityNoticeDocument,
   UserActivityNotice.NoticeModel
@@ -287,19 +281,19 @@ ActivityNoticeSchema.virtual("duration_hr").get(function (this: NoticeDocument) 
     this.duration +
     (this.extension_request?.status === "Approved" ? this.extension_request.duration : 0);
   return this.early_end_date && this.review_date
-    ? DurationHumanize(differenceInMilliseconds(this.early_end_date, this.review_date))
-    : DurationHumanize(MainPlusExt);
+    ? ReadableDuration(differenceInMilliseconds(this.early_end_date, this.review_date))
+    : ReadableDuration(MainPlusExt);
 });
 
 ActivityNoticeSchema.virtual("original_duration_hr").get(function (this: NoticeDocument) {
-  return DurationHumanize(this.duration);
+  return ReadableDuration(this.duration);
 });
 
 ActivityNoticeSchema.virtual("extended_duration_hr").get(function (this: NoticeDocument) {
   if (this.extension_request) {
-    return DurationHumanize(this.extension_request.duration);
+    return ReadableDuration(this.extension_request.duration);
   }
-  return DurationHumanize(0);
+  return ReadableDuration(0);
 });
 
 ActivityNoticeSchema.pre("validate", function PreLeaveValidate() {

@@ -21,13 +21,12 @@ import {
   WarnContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
-import { Dedent } from "@Utilities/Strings/Formatters.js";
+import { Dedent, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
 import ResolveUsernamesToIds from "@Utilities/Other/ResolveDiscordUsernames.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import ParseDuration from "parse-duration";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import HDuration from "humanize-duration";
 import AppError from "@Utilities/Classes/AppError.js";
 
 type LeaderboardEntry = {
@@ -43,12 +42,6 @@ type LeaderboardEntry = {
   // ERM-specific fields (second alternative)
   // (No additional unique fields; just username + hr_time)
 };
-
-const ReadableDuration = HDuration.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
 
 const FileLabel = "Commands:Miscellaneous:Duty:Import";
 const LineRegex = DutyLeaderboardEntryRegex;
@@ -173,7 +166,10 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
     const ResolvedUserIds = await ResolveUsernamesToIds(
       Interaction.guild,
-      FileEntries.filter((Entry) => !Entry.user_id && Entry.username).map((Entry) => Entry.username)
+      FileEntries.filter((Entry) => !Entry.user_id && Entry.username).map(
+        (Entry) => Entry.username
+      ),
+      30_000
     );
 
     FileEntries.forEach((Entry) => {

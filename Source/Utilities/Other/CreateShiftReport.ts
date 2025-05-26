@@ -1,4 +1,5 @@
 import { SheetsAPI, DriveAPI } from "@Handlers/GoogleAPIs.js";
+import { ListFormatter } from "@Utilities/Strings/Formatters.js";
 import { GoogleAPI } from "@Config/Secrets.js";
 import { format } from "date-fns";
 
@@ -10,14 +11,15 @@ export default async function CreateShiftReport(
 ): Promise<string> {
   const ReportData = await GetActivityReportData(Opts);
   const Copy = await GetARSTemplateCopy();
+  const ShiftTypes = Array.isArray(Opts.shift_type)
+    ? Opts.shift_type
+    : Opts.shift_type
+      ? [Opts.shift_type]
+      : [];
 
-  // Set the data for the report
+  const ShiftTypeText = ShiftTypes.length > 0 ? ` — ${ListFormatter.format(ShiftTypes)}` : "";
   const SpreadsheetTitle = "LAPD Central — Activity Report";
-  const SheetOneTableTitle = Util.format(
-    "%s\nActivity Report%s",
-    Opts.guild.name,
-    typeof Opts.shift_type === "string" ? ` — ${Opts.shift_type}` : ""
-  );
+  const SheetOneTableTitle = Util.format("%s\nActivity Report%s", Opts.guild.name, ShiftTypeText);
 
   const FirstSheetName = GetFirstSheetName(new Date(), Opts.after);
   const RowEndIndex = ReportData.records.length === 1 ? 13 : ReportData.records.length + 10;

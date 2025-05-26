@@ -26,7 +26,9 @@ export default async function MongoDBHandler() {
       db_name: MongoDB.DBName,
       username: MongoDB.Username,
       stack: Err.stack,
-      ...Err,
+      error: {
+        ...Err,
+      },
     });
   }
 }

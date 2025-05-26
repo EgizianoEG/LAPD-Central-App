@@ -18,6 +18,11 @@ export default async function GetAllCitationNums(
       },
     },
     {
+      $sort: {
+        issued_on: -1,
+      },
+    },
+    {
       $project: {
         num: "$num",
         autocomplete_label: {
@@ -25,13 +30,16 @@ export default async function GetAllCitationNums(
             "#",
             { $toString: "$num" },
             " – ",
-            "$type",
+            "$nta_type",
+            " ",
+            "$cit_type",
             " – ",
             "$dov",
             " at ",
             "$tov",
             " ",
             "$ampm",
+            " [PDT]",
           ],
         },
       },

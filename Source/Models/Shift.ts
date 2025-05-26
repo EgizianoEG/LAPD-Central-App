@@ -7,9 +7,9 @@ import ShiftInstFuncs, {
 
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { Schema, model } from "mongoose";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { randomInt as RandomInteger } from "node:crypto";
 import ShiftDurations from "./Schemas/ShiftDurations.js";
-import DHumanize from "humanize-duration";
 
 enum ShiftFlags {
   /** Auto-generated/created by the system (e.g., scheduled shifts). Future usage 🤔? */
@@ -24,12 +24,6 @@ enum ShiftFlags {
   /** Manually created/initiated by admins or management staff. */
   Administrative = "Administrative",
 }
-
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 3,
-  round: true,
-});
 
 const ShiftSchema = new Schema<
   Shifts.ShiftDocument,
@@ -144,11 +138,11 @@ ShiftSchema.set("optimisticConcurrency", true);
 ShiftSchema.statics.startNewShift = StartNewShift;
 
 ShiftSchema.virtual("on_duty_time").get(function () {
-  return HumanizeDuration(this.durations.on_duty);
+  return ReadableDuration(this.durations.on_duty, { largest: 4 });
 });
 
 ShiftSchema.virtual("on_break_time").get(function () {
-  return HumanizeDuration(this.durations.on_break);
+  return ReadableDuration(this.durations.on_break, { largest: 3 });
 });
 
 ShiftSchema.pre("deleteOne", { query: false, document: true }, function (next) {

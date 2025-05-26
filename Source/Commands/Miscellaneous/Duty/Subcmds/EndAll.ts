@@ -1,21 +1,24 @@
-// Dependencies:
-// -------------
-
-import { InfoEmbed, WarnEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
+import { InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
   ButtonStyle,
   ButtonBuilder,
   ComponentType,
   ActionRowBuilder,
   SlashCommandSubcommandBuilder,
+  MessageFlags,
 } from "discord.js";
+
+import {
+  InfoContainer,
+  WarnContainer,
+  SuccessContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
 
 import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
 import HandleShiftRoleAssignment from "@Utilities/Other/HandleShiftRoleAssignment.js";
 import HandleCollectorFiltering from "@Utilities/Other/HandleCollectorFilter.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
 import ShiftModel from "@Models/Shift.js";
 
 // ---------------------------------------------------------------------------------------
@@ -27,7 +30,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   const QueryMatch = {
     guild: Interaction.guildId,
-    type: ShiftType ?? { $exists: true },
+    type: ShiftType || { $type: "string" },
     end_timestamp: null,
   };
 
@@ -38,10 +41,11 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       .replyToInteract(Interaction, true);
   }
 
-  const PromptEmbed = new WarnEmbed()
+  const PromptContainer = new WarnContainer()
     .setTitle("Confirmation Required")
     .setDescription(
-      "**Are you sure you want to end %s`%s` active shift%s under %s?**",
+      "Are you sure you want to end %s`%s` active shift%s under %s?\n" +
+        "-# *This prompt will automatically cancel in 5 minutes.*",
       ShiftCount === 1 ? "" : "all ",
       ShiftCount,
       ShiftCount > 1 ? "s" : "",
@@ -62,8 +66,8 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   ];
 
   const PromptSent = await Interaction.reply({
-    embeds: [PromptEmbed],
-    components: PromptComponents,
+    components: [PromptContainer.attachPromptActionRows(PromptComponents)],
+    flags: MessageFlags.IsComponentsV2,
   });
 
   const ButtonInteract = await PromptSent.awaitMessageComponent({
@@ -77,31 +81,23 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   if (ButtonInteract.customId.includes("cancel-end")) {
     return ButtonInteract.editReply({
-      components: [],
-      embeds: [
-        new InfoEmbed()
-          .setThumbnail(null)
+      components: [
+        new InfoContainer()
           .setTitle("End All Cancelled")
           .setDescription("Prompt to end all currently active shifts has been cancelled."),
       ],
     });
   }
 
-  const ActiveShifts = await GetShiftActive({ Interaction: ButtonInteract, ShiftType });
+  const ActiveShifts = await ShiftModel.find(QueryMatch).exec();
   if (!ActiveShifts.length) {
     return ButtonInteract.editReply({
-      components: [],
-      embeds: [
-        new InfoEmbed()
-          .setThumbnail(null)
-          .setTitle("No Shifts Ended")
-          .setDescription("There were no active shifts to end, and therefore no change was made."),
-      ],
+      components: [new InfoContainer().useInfoTemplate("NoShiftsEndedEndAll")],
     });
   }
 
   const ShiftsEndedFU: string[] = [];
-  await Promise.all(
+  await Promise.allSettled(
     ActiveShifts.map((Shift) =>
       Shift.end(ButtonInteract.createdAt).then((Shift) => ShiftsEndedFU.push(Shift.user))
     )
@@ -110,13 +106,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   const ESLength = ShiftsEndedFU.length;
   if (!ESLength) {
     return ButtonInteract.editReply({
-      components: [],
-      embeds: [
-        new InfoEmbed()
-          .setThumbnail(null)
-          .setTitle("No Shifts Ended")
-          .setDescription("There were no active shifts to end, and therefore no change was made."),
-      ],
+      components: [new InfoContainer().useInfoTemplate("NoShiftsEndedEndAll")],
     });
   }
 
@@ -124,24 +114,21 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     ShiftActionLogger.LogShiftsEndAll(ButtonInteract, ESLength, ShiftType).catch(() => null),
     HandleShiftRoleAssignment("off-duty", Interaction.client, Interaction.guild, ShiftsEndedFU),
     ButtonInteract.editReply({
-      components: [],
-      embeds: [
-        new SuccessEmbed()
-          .setThumbnail(null)
-          .setDescription(
-            ShiftType
-              ? `Successfully ended%s active \`${ESLength}\` shift%s under the \`${ShiftType}\` type.`
-              : `Successfully ended%s \`${ESLength}\` active shift%s.`,
-            ESLength === 1 ? "" : " all",
-            ESLength === 1 ? "" : "s"
-          ),
+      components: [
+        new SuccessContainer().setDescription(
+          ShiftType
+            ? `Successfully ended%s active \`${ESLength}\` shift%s under the \`${ShiftType}\` type.`
+            : `Successfully ended%s \`${ESLength}\` active shift%s.`,
+          ESLength === 1 ? "" : " all",
+          ESLength === 1 ? "" : "s"
+        ),
       ],
     }),
   ]);
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,

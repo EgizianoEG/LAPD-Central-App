@@ -50,8 +50,8 @@ export default async function GetStaffFieldActivity(
     }),
   ]);
 
-  const Warnings = Citations.filter((Citation) => Citation.type === "Warning").length;
-  const Fines = Citations.filter((Citation) => Citation.type === "Fine").length;
+  const Warnings = Citations.filter((Citation) => Citation.cit_type === "Warning").length;
+  const Fines = Citations.filter((Citation) => Citation.cit_type === "Fine").length;
 
   return {
     arrests_made: ArrestsMade,

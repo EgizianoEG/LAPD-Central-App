@@ -7,6 +7,7 @@ import { userMention } from "discord.js";
 import { TitleCase } from "./Converters.js";
 import { Vehicles } from "@Typings/Resources.js";
 import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import DHumanizer from "humanize-duration";
 import _Dedent from "dedent";
 
 /**
@@ -47,7 +48,7 @@ export function ListCharges<ReturnType extends boolean = true>(
     return !Charge.match(/^\s*[-+=#*] Statute/i);
   })
     .map((Charge, Index) => {
-      const Modified = Charge.trim().match(/^(?:\d+\W|\*|-|#\d+:?)?\s?(.+)$/)?.[1];
+      const Modified = Charge.trim().match(/^(?:\d{1,4}\W|\*|-|#\d{1,4}:?)?\s?(.+)$/)?.[1];
       return Ordered ? `${Index + 1}. ${Modified}` : Modified;
     })
     .filter((Charge): Charge is string => Charge !== undefined);
@@ -778,3 +779,23 @@ export function Dedent(text: string): string {
 export function EscapeRegExp(Str: string): string {
   return Str.replace(/[-[\]{}()*+!<=:?./\\^$|]/g, "\\$&");
 }
+
+/**
+ * Formats a given duration in milliseconds into a human-readable string.
+ * @param Duration - The duration in milliseconds to format.
+ * @param [Options] - Optional configuration for the formatter. Defaults to `{ largest: 4, round: true, conjunction: " and ", language: "en" }`.
+ * @returns A human-readable string representing the duration.
+ */
+export const ReadableDuration = DHumanizer.humanizer({
+  conjunction: " and ",
+  language: "en",
+  largest: 4,
+  round: true,
+});
+
+/**
+ * An instance of `Intl.ListFormat` for formatting lists of strings in a locale-sensitive manner.
+ * @uses 'en-US' locale.
+ * @param List - The list of strings to format.
+ */
+export const ListFormatter = new Intl.ListFormat("en-US");

@@ -42,6 +42,16 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     required: false,
   },
 
+  report_msg: {
+    type: String,
+    default: null,
+    required: false,
+    validate: [
+      (s: string | null) => s === null || /^\d{15,22}:\d{15,22}$/.test(s),
+      "Invalid format for report message; received: '{VALUE}'. Format: <log_channel>:<log_msg_id>.",
+    ],
+  },
+
   arrestee: {
     _id: false,
     required: true,

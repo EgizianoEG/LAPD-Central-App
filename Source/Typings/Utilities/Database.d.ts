@@ -3,6 +3,15 @@ import type { Types, HydratedDocument, Model } from "mongoose";
 import type { EyeColors, HairColors } from "@Resources/ERLCPDColors.ts";
 import type { ShiftFlags } from "@Models/Shift.ts";
 import type { Overwrite } from "utility-types";
+import type {
+  NTATypes,
+  CitationTypes,
+  TravelDirections,
+  WeatherConditions,
+  TrafficConditions,
+  RoadSurfaceConditions,
+} from "@Models/Citation.ts";
+
 import type ERLCAgeGroups from "@Resources/ERLCAgeGroups.ts";
 import type AppError from "@Utilities/Classes/AppError.ts";
 
@@ -187,6 +196,13 @@ export namespace Guilds {
     /** The guild's configuration. */
     settings: GuildSettings;
 
+    /**
+     * The date when the last logs cleanup (scheduled deletion) was performed.
+     * This is useful for tracking when the last cleanup occurred and can be used to skip
+     * unnecessary cleanups if the date is still within the configured interval.
+     */
+    last_logs_cleanup: Date | null;
+
     /** The date and time when the guild (the guild document) and it's associated data should be deleted from the database. */
     deletion_scheduled_on: Date | null;
   }
@@ -229,9 +245,12 @@ export namespace Shifts {
 
     /**
      * On-duty shift duration in milliseconds.
-     * This property is automatically calculated and cannot be set or modified.
+     * This property is automatically calculated and cannot be set or modified
+     * unless done explicitly using atomic database operations.
      * Attempting to modify it will not do any change unless setting it to `-1`
      * which will set it to the automatically calculated value.
+     *
+     * @remarks This property also takes into account the `on_duty_mod`.
      */
     on_duty: number;
 
@@ -253,7 +272,20 @@ export namespace Shifts {
   }
 
   interface ShiftDocumentOverrides {
-    durations: Types.Subdocument<undefined> & ShiftDurations;
+    durations: Types.Subdocument<undefined> &
+      ShiftDurations & {
+        /**
+         * @virtual - Not stored in the database.
+         * The on-duty time of this shift in a human-readable format.
+         */
+        on_duty_time: string;
+
+        /**
+         * @virtual - Not stored in the database.
+         * The on-break time of this shift in a human-readable format.
+         */
+        on_break_time: string;
+      };
 
     /**
      * Returns `true` if there is an active break; otherwise, `false`.
@@ -759,10 +791,20 @@ export namespace UserActivityNotice {
 }
 
 export namespace GuildCitations {
-  type CitationType = "Warning" | "Fine";
+  type NTAType = `${NTATypes}`;
+  type DayOfWeek = `${DayOfWeeks}`;
+  type CitationType = `${CitationTypes}`;
+  type WeatherCondition = `${WeatherConditions}`;
+  type TrafficCondition = `${TrafficConditions}`;
+  type TravelDirection = `${TravelDirections}`;
+  type RoadSurfaceCondition = `${RoadSurfaceConditions}`;
+
   interface WarningCitationData {
     /** Citation number. */
     num: number;
+
+    /** The type of the Notice to Appear (NTA) issued. Defaults to "Traffic". */
+    nta_type: NTAType;
 
     /** The Discord snowflake Id of the guild where this citation was issued. */
     guild: string;
@@ -796,6 +838,8 @@ export namespace GuildCitations {
      * Where it contains the violation vehicle/penal code and it's description.
      */
     violations: (string | Violation)[];
+    case_details: CaseDetails;
+    comments: Comments;
     violator: ViolatorInfo;
     vehicle: VehicleInfo;
   }
@@ -806,12 +850,15 @@ export namespace GuildCitations {
   }
 
   interface AnyCitationData extends WarningCitationData, PartialAllowNull<FineCitationData> {
-    type: GuildCitations.CitationType;
+    /** The type of citation. Either a `Warning` or a `Fine`. Automatically set based on the presence of `fine_amount`. */
+    cit_type: GuildCitations.CitationType;
   }
 
   interface InitialProvidedCmdDetails extends PartialAllowNull<AnyCitationData> {
     violator: Omit<ViolatorInfo, "address" | "id"> & Partial<ViolatorInfo>;
-    vehicle: Omit<VehicleInfo, "body_style" | "make" | "year"> & Partial<VehicleInfo>;
+    vehicle: Omit<VehicleInfo, "body_style" | "make" | "year"> & VehicleInfo;
+    comments?: Comments | null;
+    case_details?: CaseDetails | null;
   }
 
   interface CitingOfficerInfo {
@@ -825,8 +872,39 @@ export namespace GuildCitations {
     display_name: string;
   }
 
+  /** The comments provided by the officer who issued the citation. */
+  interface Comments {
+    /** The weather condition at the time of violation. */
+    weather?: WeatherCondition | null;
+
+    /** The road traffic condition at the time of violation. */
+    traffic?: TrafficCondition | null;
+
+    /** The road surface condition at the time of violation. */
+    road_surface?: RoadSurfaceCondition | null;
+
+    /** The direction of travel of the violator at the time of violation. */
+    travel_dir?: TravelDirection | null;
+
+    /** Whether the violation or stop was connected to a traffic accident. */
+    accident: boolean;
+  }
+
+  /** The details of the case/incident. */
+  interface CaseDetails {
+    /** The approximate speed of the vehicle/boat/aircraft. */
+    speed_approx?: number | null;
+
+    /** The speed limit of the road/intersection/area. */
+    posted_speed?: number | null;
+
+    /** The applicable legal speed limit for that vehicle at the location of the violation. */
+    veh_speed_limit?: number | null;
+  }
+
+  /** The details of a single violation. */
   interface Violation {
-    /** Whether the violation is correctable or not */
+    /** Whether the violation is *correctable* or *fixable* by the driver (e.g., equipment problems like a broken taillight, expired registration). */
     correctable?: boolean;
     /** The violation text itself */
     violation: string;
@@ -835,42 +913,42 @@ export namespace GuildCitations {
   }
 
   interface ViolatorInfo {
-    /** Roblox user Id */
+    /** Roblox user Id. */
     id: number;
 
     /** The name of the violator. Recommended to use the format: `[RobloxDisplayName] (@[RobloxUsername])` */
     name: string;
 
-    /** The age group of the violator */
+    /** The age group of the violator. */
     age: (typeof ERLCAgeGroups)[number]["name"];
 
     gender: "Male" | "Female" | "M" | "F";
 
-    /** Hair color */
+    /** Hair color .*/
     hair_color: (typeof HairColors)[number]["abbreviation"];
 
-    /** Eye color */
+    /** Eye color. */
     eye_color: (typeof EyeColors)[number]["abbreviation"];
 
-    /** Height in the format of feet and inches (5'7") */
+    /** Height in the format of feet and inches (5'7"). */
     height: `${number}'${number}` | string;
 
-    /** Weight in pounds (lbs) */
+    /** Weight in pounds (lbs). */
     weight: number;
 
-    /** Residence city */
+    /** Residence city. */
     city: string;
 
-    /** Residence address */
+    /** Residence address. */
     address: string;
 
-    /** The driving license number itself; not the *vehicle* license/plate number */
+    /** The driving license number itself; not the *vehicle* license/plate number. */
     lic_num: string;
 
-    /** The driving license class */
+    /** The driving license class. */
     lic_class: string;
 
-    /** Whether the driving license is commercial or not */
+    /** Whether the driving license is commercial or not. */
     lic_is_comm: boolean;
   }
 
@@ -881,6 +959,21 @@ export namespace GuildCitations {
     make: string;
     model: string;
     color: string;
+
+    /** Whether the vehicle is classified as a commercial vehicle under the California Vehicle Code § 15210(b). */
+    commercial?: boolean;
+
+    /** Whether the vehicle is transporting hazardous materials or not (Veh. Code, § 353). */
+    hazardous_mat?: boolean;
+
+    /** Whether the vehicle is a vehicle (yes...) */
+    is_vehicle: boolean;
+
+    /** Whether the vehicle is an aircraft or not. */
+    is_aircraft: boolean;
+
+    /** Whether the vehicle is a boat or not. */
+    is_boat: boolean;
   }
 }
 
@@ -894,6 +987,9 @@ export namespace GuildArrests {
 
     /** The booking number. */
     booking_num: number;
+
+    /** The arrest report message link as [ChannelId]:[MessageId] */
+    report_msg?: string | null;
 
     /** The date when the arrest report was made. */
     made_on: Date;

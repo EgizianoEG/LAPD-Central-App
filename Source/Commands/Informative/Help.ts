@@ -1,6 +1,5 @@
 import { Colors } from "@Config/Shared.js";
 import {
-  ApplicationIntegrationType,
   InteractionContextType,
   SlashCommandBuilder,
   EmbedBuilder,
@@ -8,7 +7,7 @@ import {
 } from "discord.js";
 
 // ---------------------------------------------------------------------------------------
-async function Callback(_: DiscordClient, Interaction: SlashCommandInteraction) {
+async function Callback(Interaction: SlashCommandInteraction) {
   const ResponseEmbed = new EmbedBuilder()
     .setColor(Colors.Info)
     .setTitle("Help and Information")
@@ -23,14 +22,13 @@ async function Callback(_: DiscordClient, Interaction: SlashCommandInteraction) 
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject = {
   callback: Callback,
   data: new SlashCommandBuilder()
     .setName("help")
     .setDescription("Learn more about LAPD Central.")
-    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(
       InteractionContextType.Guild,
       InteractionContextType.BotDM,

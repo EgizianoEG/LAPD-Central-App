@@ -161,6 +161,24 @@ export function IsEmptyObject(Obj: any): boolean {
 }
 
 /**
+ * Validates whether a given string is a valid Discord channel or message link.
+ * A valid link matches the following pattern:
+ * - Starts with "http://" or "https://".
+ * - Optionally includes "www.".
+ * - Contains "discord.com" or "discordapp.com".
+ * - Includes "/channels/" followed by either "@me" or a server Id (15 to 22 digits).
+ * - Optionally followed by one or two message Ids (15 to 22 digits each).
+ *
+ * @param Str - The string to validate as a Discord channel or message link.
+ * @returns `true` if the string is a valid link, otherwise `false`.
+ */
+export function IsValidChannelOrMessageLink(Str: string): boolean {
+  return /^https?:\/\/(?:www\.)?discord(?:app)?\.com\/channels\/(?:@me|\d{15,22})(?:\/\d{15,22}){1,2}$/i.test(
+    Str
+  );
+}
+
+/**
  *
  * @param URLString - The string to be validated as a Discord attachment link.
  * @param ValidateExpired - Whether to check if the attachment link is expired (return `false` if so).
@@ -181,21 +199,16 @@ export function IsValidDiscordAttachmentLink(
   }
 
   const AttachmentUrlRegex = new RegExp(
-    `^https?://(?:media|cdn)\\.discordapp\\.(?:com|net)/attachments/(\\d+)/(\\d+)/(.+)\\.${FileExtensionRegex}`
+    `^https?://(?:media|cdn)\\.discordapp\\.(?:com|net)/(?:ephemeral-)?attachments/(\\d{15,22})/(\\d{15,22})/(.+)\\.${FileExtensionRegex}`
   );
 
   const Matches = URLString.match(AttachmentUrlRegex);
-
-  if (
-    !Matches?.length ||
-    !URLString.includes("ex=") ||
-    !URLString.includes("hm=") ||
-    !URLString.includes("is=")
-  ) {
-    return false;
-  }
-
+  if (!Matches?.length) return false;
   if (ValidateExpired) {
+    if (!URLString.includes("ex=") || !URLString.includes("hm=") || !URLString.includes("is=")) {
+      return false;
+    }
+
     const URLInst = new URL(URLString);
     const ExpirationHex = URLInst.searchParams.get("ex");
     const IssueingHex = URLInst.searchParams.get("is");

@@ -1,7 +1,7 @@
 // Dependencies:
 // -------------
 import AutocompleteIncidentNum from "@Utilities/Autocompletion/IncidentNum.js";
-import AutocompleteCitationNum from "@Utilities/Autocompletion/CitationNum.js";
+import AutocompleteCitationNum from "@Utilities/Autocompletion/NoticeToAppearNum.js";
 import AutocompleteBookingNum from "@Utilities/Autocompletion/BookingNum.js";
 import AutocompleteUsername from "@Utilities/Autocompletion/Username.js";
 import SearchSubcmdGroup from "./Search/Search.js";
@@ -64,8 +64,11 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
   autocomplete: Autocomplete,
   callback: Callback,
   options: {
-    cooldown: 2.5,
     user_perms: { staff: true },
+    cooldown: {
+      $all: 2.5,
+      lookup: 8,
+    },
   },
 
   data: new SlashCommandBuilder()

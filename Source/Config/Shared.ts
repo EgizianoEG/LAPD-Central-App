@@ -1,4 +1,32 @@
 import { type ColorResolvable, Colors as DiscordColors } from "discord.js";
+import { env as Env } from "node:process";
+
+/**
+ * Environment variable override for emoji configurations.
+ *
+ * @description
+ * This allows customizing emoji IDs through an environment variable.
+ * The APP_EMOJIS environment variable must be a JSON string that:
+ * - Contains all the same keys as the default Emojis object
+ * - Can use single quotes (which will be converted to double quotes)
+ * - Is at least 1300 characters long to ensure it's kind of valid
+ *   Emojis object when parsed with all the keys existing
+ *
+ * @example
+ * ```py
+ * # Example environment variable format:
+ * APP_EMOJIS='{"Online":"<:CustomOnline:1234567890>","Offline":"<:CustomOffline:1234567890>",...}'
+ * ```
+ */
+let EnvAppEmojis: typeof SharedData.Emojis | null = null;
+try {
+  EnvAppEmojis =
+    Env.APP_EMOJIS && Env.APP_EMOJIS.length >= 1300
+      ? (JSON.parse(Env.APP_EMOJIS.replace(/['"]+/g, '"')) as typeof SharedData.Emojis)
+      : null;
+} catch {
+  EnvAppEmojis = null;
+}
 
 const SharedData = {
   Images: {
@@ -63,7 +91,6 @@ const SharedData = {
     Fingerprint: "<:Fingerprint:1363577813063565604>",
     StatusChange: "<:Status:1363577818226626902>",
 
-    Warning: "<:Warn:1186171864343654513>",
     FileEdit: "<:FileEdit:1185790827809738803>",
     FileDelete: "<:FileDelete:1185785834058813480>",
     Trash: "<:Trash:1185785496757088286>",
@@ -77,6 +104,7 @@ const SharedData = {
     WhiteCheck: "<:WhiteCheck:1272950397044133999>",
     WhiteCross: "<:Crossed:1271079415027073114>",
     WhiteBack: "<:TurnBack:1277740862821896272>",
+    WhiteInfo: "<:WhiteInfo:1376235794586534029>",
     StopWatch: "<:Time:1185414712670826557>",
     LosAngeles: "<:LosAngeles:1185406541709463652>",
     HamburgerList: "<:Menu:1185793738212114484>",
@@ -189,6 +217,17 @@ interface SharedConfig extends Omit<typeof SharedData, "Colors"> {
   Colors: ColorsType;
 }
 
+/**
+ * Apply environment emoji configuration if available.
+ *
+ * @description
+ * This overrides the default emoji configuration with values from the environment.
+ * The override mechanism exists because:
+ * 1. Discord emoji IDs are server[mutual]-specific
+ * 2. Different deployment environments may require different emoji sets
+ * 3. It allows customization without code changes
+ */
+SharedData.Emojis = EnvAppEmojis ?? SharedData.Emojis;
 export const Icons = SharedData.Icons;
 export const Emojis = SharedData.Emojis;
 export const Images = SharedData.Images;

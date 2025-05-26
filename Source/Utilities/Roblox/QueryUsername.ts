@@ -1,5 +1,5 @@
-import { RobloxQueryUsernameResultsCache } from "@Utilities/Other/Cache.js";
 import { IsValidRobloxUsername } from "../Other/Validators.js";
+import { RobloxAPICache } from "@Utilities/Other/Cache.js";
 import NobloxJs from "noblox.js";
 
 /**
@@ -12,12 +12,13 @@ import NobloxJs from "noblox.js";
  */
 export default async function QueryUsername(Typed: string, Limit: 10 | 25 | 50 | 100 = 10) {
   if (!IsValidRobloxUsername(Typed)) return [];
-  const CachedResults =
-    RobloxQueryUsernameResultsCache.get<Awaited<ReturnType<typeof NobloxJs.searchUsers>>>(Typed);
-  if (CachedResults) return CachedResults;
+  const CachedResults = RobloxAPICache.QueryUsernameResultsCache.get<
+    Awaited<ReturnType<typeof NobloxJs.searchUsers>>
+  >(`${Typed}:${Limit}`);
 
+  if (CachedResults) return CachedResults;
   return NobloxJs.searchUsers(Typed, Limit, undefined as any).then((Res) => {
-    RobloxQueryUsernameResultsCache.set(Typed, Res);
+    RobloxAPICache.QueryUsernameResultsCache.set(`${Typed}:${Limit}`, Res);
     return Res;
   });
 }

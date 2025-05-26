@@ -40,6 +40,11 @@ const GuildSchema = new Schema({
     type: GSettingsSchema,
   },
 
+  last_logs_cleanup: {
+    type: Date,
+    default: null,
+  },
+
   deletion_scheduled_on: {
     type: Date,
     default: null,

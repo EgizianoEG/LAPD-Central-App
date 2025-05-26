@@ -19,24 +19,19 @@ import {
   time as FormatTime,
   SeparatorSpacingSize,
   APIContainerComponent,
+  PermissionFlagsBits,
 } from "discord.js";
 
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { Colors } from "@Config/Shared.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { App as DiscordApp } from "@DiscordApp";
 import GuildModel from "@Models/Guild.js";
-import HDuration from "humanize-duration";
 import Dedent from "dedent";
 
 const BluewishText = (Text: string | number, ChannelId: string) => {
   return `[${Text}](${channelLink(ChannelId)})`;
 };
-
-const ReadableDuration = HDuration.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
 
 // ------------------------------------------------------------------------------------
 // Typings:
@@ -88,7 +83,10 @@ export default class ShiftActionLogger {
     const AbleToSendMsgs =
       ChannelExists?.isSendable() &&
       ChannelExists.isTextBased() &&
-      ChannelExists.permissionsFor(await Guild.members.fetchMe()).has("SendMessages");
+      ChannelExists.permissionsFor(await Guild.members.fetchMe()).has(
+        [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+        true
+      );
 
     return AbleToSendMsgs === true ? ChannelExists : null;
   }

@@ -6,6 +6,7 @@ import {
   EmbedBuilder,
   AttachmentBuilder,
   SlashCommandSubcommandBuilder,
+  messageLink,
 } from "discord.js";
 
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
@@ -47,9 +48,20 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   ]);
 
   const FormattedUsername = FormatUsername(RobloxUserInfo, false, true);
-  const IncidentsAsSuspectFormatted = UserRecords.incidents_as_suspect
-    .map((Inc) => `[\`${Inc.num}\`](${channelLink(Interaction.channelId)})`)
+  const IncidentsAsSuspectListed = UserRecords.incidents_as_suspect
+    .map((Inc) => {
+      if (Inc.log_message) {
+        return `[\`${Inc.log_message}\`](${messageLink(...(Inc.log_message.split(":") as [string, string]))})`;
+      } else {
+        return `[\`${Inc.num}\`](${channelLink(Interaction.channelId)})`;
+      }
+    })
     .join(", ");
+
+  const IncidentsAsSuspectText =
+    UserRecords.incidents_as_suspect.length > 0
+      ? IncidentsAsSuspectListed
+      : `[0](${channelLink(Interaction.channelId)})`;
 
   const ResponseEmbed = new EmbedBuilder()
     .setColor(Colors.DarkBlue)
@@ -64,16 +76,21 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
           - **Records:** 
             - Arrests: [${UserRecords.total_arrests}](${channelLink(Interaction.channelId)})
             - Citations: [${UserRecords.total_citations}](${channelLink(Interaction.channelId)})
-            - Incidents as Suspect: ${IncidentsAsSuspectFormatted}
+            - Incidents as Suspect: ${IncidentsAsSuspectText}
         `),
       },
     ]);
 
   if (UserRecords.recent_arrest) {
-    const RecentArr = UserRecords.recent_arrest;
-    const ArrestNotes = RecentArr.notes ? "\n```fix\n" + RecentArr.notes + "\n```" : "*N/A*";
+    const RecentArrest = UserRecords.recent_arrest;
+    const ReportMsgLink = RecentArrest.report_msg
+      ? messageLink(...(RecentArrest.report_msg.split(":") as [string, string]))
+      : channelLink(Interaction.channelId);
+
+    const ArrestNotes = RecentArrest.notes ? "\n```fix\n" + RecentArrest.notes + "\n```" : "*N/A*";
     const FSpaceCount = 10;
-    const Charges = RecentArr.arrestee.charges
+    let Charges = RecentArrest.arrestee.charges
+      .slice(0, 2)
       .map((Charge) => {
         if (Charge.includes("Statute") && Charge.includes("\n")) {
           const Split = Charge.split("\n");
@@ -83,14 +100,17 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       })
       .join(`\n${" ".repeat(FSpaceCount)}`);
 
+    if (RecentArrest.arrestee.charges.length > 2) {
+      Charges += `\n${" ".repeat(10)}-# 3. ...*and ${RecentArrest.arrestee.charges.length - 2} more.*`;
+    }
+
     ResponseEmbed.addFields({
       inline: true,
       name: "Recent Arrest",
       value: Dedent(`
-        - **Booking:** [\`${RecentArr.booking_num.toString().padStart(4, "0")}\`](${channelLink(Interaction.channelId)})
-        - **Made On:** ${time(RecentArr.made_on, "R")}
-        - **Mugshot:** [See Here ⎋](${RecentArr.arrestee.mugshot_url})
-        - **Arresting Officer:** ${userMention(RecentArr.arresting_officer.discord_id)}
+        - **Booking:** [\`${RecentArrest.booking_num.toString().padStart(4, "0")}\`](${ReportMsgLink})
+        - **Reported:** ${time(RecentArrest.made_on, "R")}
+        - **Arresting Officer:** ${userMention(RecentArrest.arresting_officer.discord_id)}
         - **Arrest Notes:** ${ArrestNotes}
         - **Charges:** 
           ${Charges}
@@ -106,21 +126,26 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   if (UserRecords.recent_citation) {
     const RecentCit = UserRecords.recent_citation;
-    const Violations = RecentCit.violations
+    let Violations = RecentCit.violations
+      .slice(0, 2)
       .map((V, I) => {
         if (typeof V === "string") return `${I + 1}. ${V}`;
-        return `${I + 1}. ${V.violation}`;
+        return `${I + 1}. ${V.violation} (${V.type})`;
       })
       .join(`\n${" ".repeat(10)}`);
+
+    if (RecentCit.violations.length > 2) {
+      Violations += `\n${" ".repeat(10)}-# 3. ...*and ${RecentCit.violations.length - 2} more.*`;
+    }
 
     ResponseEmbed.addFields({
       inline: true,
       name: "Recent Citation",
       value: Dedent(`
-        - **Num:** [\`${RecentCit.num}\`](${RecentCit.img_url || channelLink(Interaction.channelId)})
-        - **Type:** \`${RecentCit.type}\`
+        - **Num:** [\`${RecentCit.num.toString().padStart(5, "0")}\`](${RecentCit.img_url ?? channelLink(Interaction.channelId)})
+        - **Type:** ${RecentCit.nta_type} ${RecentCit.cit_type}
         - **Issued:** ${time(RecentCit.issued_on, "R")}
-        - **Citing Officer:** ${userMention(RecentCit.citing_officer.discord_id)}
+        - **Issuing Officer:** ${userMention(RecentCit.citing_officer.discord_id)}
         - **Violations:** 
           ${Violations}
       `),

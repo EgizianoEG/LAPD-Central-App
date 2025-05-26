@@ -45,6 +45,34 @@ const IgnoreSpecificConsoleLogs = Format((Msg) =>
 // --------------------------------------------------------------------------------------
 // Custom Formatters:
 // ------------------
+const FlattenLogMetadata = Format(
+  (Info: Winston.Logform.TransformableInfo): Winston.Logform.TransformableInfo => {
+    function FlattenDetails(Obj: any): any {
+      if (typeof Obj !== "object" || Obj === null) {
+        return Obj;
+      }
+
+      if ("details" in Obj && typeof Obj.details === "object") {
+        Obj = { ...Obj, ...Obj.details };
+        delete Obj.details;
+        Obj = FlattenDetails(Obj);
+      }
+
+      return Obj;
+    }
+
+    if ("details" in Info && Info.details !== null) {
+      Info.details = FlattenDetails(Info.details);
+    }
+
+    if ("metadata" in Info && Info.metadata !== null) {
+      Info.metadata = FlattenDetails(Info.metadata);
+    }
+
+    return Info;
+  }
+);
+
 const EliminateCircularRefs = Format(
   (Info: Winston.Logform.TransformableInfo): Winston.Logform.TransformableInfo => {
     const Seen = new WeakSet();
@@ -133,7 +161,7 @@ const AppLogger = Winston.createLogger({
         IgnoreSpecificConsoleLogs(),
         SplatFormat({ colors: true }),
         Format.timestamp({ format: "hh:mm:ss A" }),
-        Format.metadata({ key: "metadata" }),
+        Format.metadata(),
         Format.printf(FormatLogEntry)
       ),
     }),
@@ -146,6 +174,8 @@ const AppLogger = Winston.createLogger({
 if (Other.IsProdEnv && Other.LogTailSourceToken && Other.LogTailIngestingHost) {
   const LogTailInst = new Logtail(Other.LogTailSourceToken, {
     endpoint: Other.LogTailIngestingHost,
+    batchInterval: 2500,
+    syncMax: 8,
   });
 
   AppLogger.add(
@@ -154,9 +184,9 @@ if (Other.IsProdEnv && Other.LogTailSourceToken && Other.LogTailIngestingHost) {
       format: Format.combine(
         IgnorePrivateLogs(),
         SplatFormat({ colors: true }),
-        Format.timestamp(),
         EliminateCircularRefs(),
-        Format.metadata(),
+        Format.metadata({ key: "details" }),
+        FlattenLogMetadata(),
         Format.json({ space: 2 })
       ),
     })

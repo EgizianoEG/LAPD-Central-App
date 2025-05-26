@@ -1,6 +1,22 @@
 import type { Vehicles } from "@Typings/Resources.js";
 import { FormatVehicleName } from "@Utilities/Strings/Formatters.js";
 
+/**
+ * An array containing data for all ERLC vehicles, grouped by brand.
+ *
+ * **Disclaimer:**
+ * This file and mapping of game-specific vehicles to real-world counterparts is not
+ * 100% accurate and rather an approximation since there are no official alternative
+ * and some of these vehicles are modified that a counterpart does not match exactly.
+ * Each entry represents a vehicle brand and its in-game counterpart, along with a list of models.
+ * Each model includes its real-world name, in-game alias, style, class, category, and model year information.
+ *
+ * @remarks
+ * - The `brand` is the real-world manufacturer.
+ * - The `counterpart` is the in-game equivalent brand name.
+ * - The `models` array contains detailed information for each vehicle model.
+ * - The `model_year` object contains both the original and alternate (in-game) model year.
+ */
 export const ERLCVehiclesData: Vehicles.VehicleData[] = [
   {
     brand: "Nissan",
@@ -325,7 +341,7 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
     models: [
       {
         name: "Camaro SS",
-        alias: "Amigo Sport",
+        alias: "Amigo S",
         style: "Sedan",
         class: "Car",
         category: "Regular",
@@ -354,17 +370,6 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         model_year: {
           org: "2012",
           alt: "2011",
-        },
-      },
-      {
-        name: "Camaro ZL1",
-        alias: "Amigo LZR",
-        style: "Coupe",
-        class: "Car",
-        category: "Regular",
-        model_year: {
-          org: "2016",
-          alt: "2016",
         },
       },
       {
@@ -445,24 +450,35 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         },
       },
       {
-        name: "Corvette C1",
-        alias: "Corbeta C1",
+        name: "Corvette C2",
+        alias: "Corbeta C2",
         style: "Coupe",
         class: "Car",
         category: "Classic",
         model_year: {
-          org: "1953",
-          alt: "1953",
+          org: "1967",
+          alt: "1967",
         },
       },
       {
         name: "Corvette C7 ZR1",
-        alias: "Corbeta TZ",
+        alias: "Corbeta RZR",
         style: "Coupe",
         class: "Car",
         category: "Prestige",
         model_year: {
-          org: "2014",
+          org: "2019",
+          alt: "2014",
+        },
+      },
+      {
+        name: "Corvette C6 Z06",
+        alias: "Corbeta X08",
+        style: "Coupe",
+        class: "Car",
+        category: "Prestige",
+        model_year: {
+          org: "2013",
           alt: "2014",
         },
       },

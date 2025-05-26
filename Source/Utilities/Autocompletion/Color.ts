@@ -7,13 +7,15 @@ import ShuffleArray from "../Other/ShuffleArray.js";
  * @returns An array of suggestions
  */
 export default function AutocompleteColor(Typed: string): Array<{ name: string; value: string }> {
+  const LowerCaseTyped = Typed.toLowerCase();
   let Suggestions: string[] = [];
 
   if (Typed.match(/^\s*$/)) {
     Suggestions = ShuffleArray(Colors).map(({ name }) => name);
   } else {
     Suggestions = Colors.filter(({ name }) => {
-      return name.toLowerCase().includes(Typed.toLowerCase());
+      const LowerCaseName = name.toLowerCase();
+      return LowerCaseName.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseName);
     }).map(({ name }) => name);
   }
 

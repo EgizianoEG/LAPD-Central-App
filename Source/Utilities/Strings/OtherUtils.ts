@@ -15,3 +15,15 @@ export function SanitizeDiscordAttachmentLink(Link: string): string {
 
   return URLInst.href;
 }
+
+/**
+ * Extracts the file extension from a Discord attachment URL.
+ * @param AttachmentURL - The URL of the Discord attachment.
+ * @returns The file extension of the attachment if it matches a supported format
+ * (e.g., jpg, jpeg, png, gif, webp, bmp, tiff, svg, mp4, mov, mp3). Defaults to "png" if no match is found.
+ */
+export function GetDiscordAttachmentExtension(AttachmentURL: string): string {
+  return (
+    /(\w+)\.(jpg|jpeg|png|gif|webp|bmp|tiff|svg|mp4|mov|mp3)$/.exec(AttachmentURL)?.[1] ?? "png"
+  );
+}

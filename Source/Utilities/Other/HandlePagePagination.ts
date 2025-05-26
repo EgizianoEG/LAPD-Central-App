@@ -1,6 +1,7 @@
 import { RandomString } from "@Utilities/Strings/Random.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
+  MessageComponentInteraction,
   InteractionReplyOptions,
   StringSelectMenuBuilder,
   RepliableInteraction,
@@ -25,9 +26,12 @@ import {
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import HandleCollectorFiltering from "./HandleCollectorFilter.js";
 import GetPredefinedNavButtons, { type NavButtonsActionRow } from "./GetNavButtons.js";
+import ShowModalAndAwaitSubmission from "./ShowModalAwaitSubmit.js";
 import HandleActionCollectorExceptions from "./HandleCompCollectorExceptions.js";
+import DisableMessageComponents from "./DisableMsgComps.js";
 
 // ---------------------------------------------------------------------------------------
+const FileLabel = "Utilities:Other:HandlePagePagination.ts";
 const Clamp = (Value: number, Min: number, Max: number) => Math.min(Math.max(Value, Min), Max);
 interface PagePaginationOptions {
   /**
@@ -55,10 +59,30 @@ interface PagePaginationOptions {
   context?: string;
 
   /**
+   * The duration in milliseconds for which the pagination buttons should be active.
+   * If not provided, all components including pagination buttons will be active for a maximum of 14.5 minutes.
+   */
+  pagination_timeout?: number;
+
+  /**
    * The custom footer text to use for the components v2 paginator using components.
    * Leave empty to only add a separator component at the bottom in the case of components v2 pagination.
    */
   cv2_footer?: string;
+
+  /**
+   * A listener function for the components v2 interactive components other than pagination buttons.
+   * Could be used to handle accessory or other components in provided containers.
+   * @param Interaction - The interaction that triggered the listener.
+   * @param Page - The current page index.
+   * @param Pages - The array of pages (containers) being paginated between.
+   * @returns {any} The return value of the listener function.
+   */
+  cv2_comp_listener?: (
+    Interaction: MessageComponentInteraction,
+    Page: number,
+    Pages: (EmbedBuilder | ContainerBuilder)[]
+  ) => any;
 }
 
 /**
@@ -71,11 +95,14 @@ export default async function HandlePagePagination({
   interact: Interact,
   ephemeral: Ephemeral = false,
   cv2_footer: CV2Footer,
+  pagination_timeout: Timeout = 14.5 * 60 * 1000,
+  cv2_comp_listener: CV2CompListener = undefined,
   context,
 }: PagePaginationOptions): Promise<void> {
   let CurrPageIndex = 0;
   const IsComponentsV2Pagination = Pages[0] instanceof ContainerBuilder;
   const NavigationButtons = GetPredefinedNavButtons(Interact, Pages.length, true, true);
+  const NavigationButtonIds = NavigationButtons.components.map((Btn) => Btn.data.custom_id);
   let MsgFlags: MessageFlagsResolvable | undefined = Ephemeral ? MessageFlags.Ephemeral : undefined;
 
   if (IsComponentsV2Pagination) {
@@ -84,24 +111,36 @@ export default async function HandlePagePagination({
     AttachComponentsV2NavButtons(Pages as ContainerBuilder[], NavigationButtons);
   }
 
-  const PaginationReply = await HandleInitialInteractReply(Interact, Pages, MsgFlags);
+  let PaginationReply: Message | null = await HandleInitialInteractReply(Interact, Pages, MsgFlags);
   if (Pages.length === 1) return;
 
   const ComponentCollector = PaginationReply.createMessageComponentCollector({
     filter: (Btn) => HandleCollectorFiltering(Interact, Btn),
     componentType: ComponentType.Button,
-    time: 14.5 * 60 * 1000,
     idle: 8 * 60 * 1000,
+    time: Timeout,
   });
 
-  ComponentCollector.on("collect", async (NavInteraction: ButtonInteraction<"cached">) => {
+  ComponentCollector.on("collect", async (RecInteraction: MessageComponentInteraction) => {
+    if (
+      IsComponentsV2Pagination &&
+      CV2CompListener &&
+      !NavigationButtonIds.includes(RecInteraction.customId)
+    ) {
+      return CV2CompListener(RecInteraction, CurrPageIndex, Pages);
+    }
+
+    if (!RecInteraction.isButton()) {
+      return;
+    }
+
     let NewPageIndex: number = -1;
-    if (NavInteraction.customId.includes("current")) {
+    if (RecInteraction.customId.includes("current")) {
       let SPIndex: number | null = null;
       if (Pages.length > 25) {
-        SPIndex = await HandleModalPageSelection(Pages, CurrPageIndex, NavInteraction);
+        SPIndex = await HandleModalPageSelection(Pages, CurrPageIndex, RecInteraction);
       } else {
-        SPIndex = await HandleSelectMenuPageSelection(Pages, CurrPageIndex, NavInteraction);
+        SPIndex = await HandleSelectMenuPageSelection(Pages, CurrPageIndex, RecInteraction);
       }
 
       if (SPIndex !== null) NewPageIndex = SPIndex;
@@ -109,7 +148,7 @@ export default async function HandlePagePagination({
     }
 
     if (NewPageIndex === -1) {
-      switch (NavInteraction.customId.split(":")[0]) {
+      switch (RecInteraction.customId.split(":")[0]) {
         case "nav-next":
           NewPageIndex = Clamp(CurrPageIndex + 1, 0, Pages.length);
           break;
@@ -150,13 +189,18 @@ export default async function HandlePagePagination({
           }
         : { embeds: [Pages[NewPageIndex] as EmbedBuilder], components: [NavigationButtons] };
 
-      if (NavInteraction.deferred || NavInteraction.replied) {
-        await NavInteraction.editReply(EditReplyOpts).then(() => {
+      if (RecInteraction.deferred || RecInteraction.replied) {
+        PaginationReply = await RecInteraction.editReply(EditReplyOpts).then((Msg) => {
           CurrPageIndex = NewPageIndex;
+          return Msg;
         });
       } else {
-        await NavInteraction.update(EditReplyOpts).then(() => {
+        PaginationReply = await RecInteraction.update({
+          ...EditReplyOpts,
+          withResponse: true,
+        }).then((Msg) => {
           CurrPageIndex = NewPageIndex;
+          return Msg.resource?.message ?? null;
         });
       }
     } catch (Err: any) {
@@ -166,7 +210,7 @@ export default async function HandlePagePagination({
 
       AppLogger.error({
         message: "An error occurred while handling embed pagination;",
-        label: "Utilities:Other:HandleEmbedPagination",
+        label: FileLabel,
         stack: Err.stack,
         context,
       });
@@ -176,25 +220,26 @@ export default async function HandlePagePagination({
   ComponentCollector.on("end", async (Collected, EndReason: string) => {
     if (EndReason.match(/^\w+Delete/)) return;
     try {
-      NavigationButtons.components.forEach((Btn) => Btn.setDisabled(true));
-      const LastInteract = Collected.last() || Interact;
-      const EditOpts = IsComponentsV2Pagination
-        ? {
-            components: [
-              (Pages[CurrPageIndex] as ContainerBuilder).spliceComponents(-1, 1, NavigationButtons),
-            ],
-          }
-        : { components: [NavigationButtons] };
+      const LastInteract = Collected.last() ?? Interact;
+      if (PaginationReply === null || Date.now() - Interact.createdTimestamp >= 14.9 * 60 * 1000) {
+        return;
+      }
 
-      await LastInteract.editReply(EditOpts).catch(async function CatchError() {
-        const UpdatedResponseMsg = await PaginationReply.fetch(true).catch(() => null);
-        if (!UpdatedResponseMsg?.editable) return;
-        return UpdatedResponseMsg.edit(EditOpts);
+      const EditOpts = {
+        message: PaginationReply,
+        components: DisableMessageComponents(
+          PaginationReply.components.map((Comp) => Comp.toJSON())
+        ),
+      };
+
+      await LastInteract.editReply(EditOpts).catch(async function HandleEditReplyError() {
+        if (!PaginationReply?.editable) return;
+        return PaginationReply.edit(EditOpts);
       });
     } catch (Err: any) {
       AppLogger.error({
-        message: "An error occurred while ending the component collector for pagination;",
-        label: "Utilities:Other:HandleEmbedPagination",
+        message: "An error occurred while terminating pagination;",
+        label: FileLabel,
         stack: Err.stack,
         context,
       });
@@ -255,13 +300,11 @@ async function HandleModalPageSelection(
   BtnInteract: ButtonInteraction
 ): Promise<number | null> {
   const PageSelectModal = GetPageSelectModal(BtnInteract, Pages.length, CurrentIndex);
-  BtnInteract.showModal(PageSelectModal);
-
-  const ModalSubmission = await BtnInteract.awaitModalSubmit({
-    time: 5 * 60 * 1000,
-    filter: (MS) =>
-      MS.user.id === BtnInteract.user.id && MS.customId === PageSelectModal.data.custom_id,
-  }).catch(() => null);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(
+    BtnInteract,
+    PageSelectModal,
+    5 * 60 * 1000
+  );
 
   if (!ModalSubmission) return null;
   const InputPageNum = ModalSubmission.fields.getTextInputValue("page-num");

@@ -24,14 +24,7 @@ import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
 import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
-import DHumanize from "humanize-duration";
 import Dedent from "dedent";
-
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 3,
-  round: true,
-});
 
 export enum RecentShiftAction {
   End = "Shift Ended",
@@ -46,7 +39,6 @@ export enum ShiftMgmtActions {
   ShiftBreakToggle = "dm-break",
 }
 
-type ShiftDocument = Shifts.HydratedShiftDocument;
 type ShiftMgmtButtonsActionRow = ActionRowBuilder<
   ButtonBuilder & { data: { custom_id: string } }
 > & {
@@ -334,7 +326,7 @@ async function HandleOnBreakShift(
 
 async function HandleActiveShift(
   CmdInteract: SlashCommandInteraction<"cached">,
-  ShiftActive: ShiftDocument,
+  ShiftActive: Shifts.HydratedShiftDocument,
   MgmtPromptEmbed: EmbedBuilder
 ) {
   const PromptEmbed = MgmtPromptEmbed.setColor(Colors.ShiftOn);
@@ -352,7 +344,7 @@ async function HandleActiveShift(
           >>> **Status:** (${Emojis.Online}) On Duty
           **Shift Started:** ${FormatTime(ShiftActive.start_timestamp, "R")}
           **Break Count:** ${inlineCode(ShiftActive.events.breaks.length.toString())}
-          **Total Break Time:** ${HumanizeDuration(ShiftActive.durations.on_break)}
+          **Total Break Time:** ${ShiftActive.durations.on_break_time}
         `),
       });
     } else {

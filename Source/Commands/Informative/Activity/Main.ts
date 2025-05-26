@@ -2,6 +2,7 @@
 // -------------
 import AutocompleteShiftType from "@Utilities/Autocompletion/ShiftType.js";
 import AutocompleteTimeDuration from "../../../Utilities/Autocompletion/TimeDuration.js";
+import { secondsInDay, secondsInHour } from "date-fns/constants";
 import {
   SlashCommandBuilder,
   InteractionContextType,
@@ -58,8 +59,23 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
   autocomplete: Autocomplete,
   callback: Callback,
   options: {
-    cooldown: { report: 10, for: 2.5 },
     user_perms: { report: { management: true }, $all: { staff: true } },
+    cooldown: {
+      for: 2.5,
+      report: {
+        $user: {
+          cooldown: 10,
+          max_executions: 8,
+          timeframe: secondsInHour,
+        },
+
+        $guild: {
+          max_executions: 30,
+          timeframe: secondsInDay,
+          cooldown: 10,
+        },
+      },
+    },
   },
 
   data: new SlashCommandBuilder()

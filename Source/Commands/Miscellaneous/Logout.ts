@@ -1,25 +1,29 @@
 // Dependencies:
 // -------------
 
+import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ErrorMessages } from "@Resources/AppMessages.js";
 import {
-  Colors,
-  EmbedBuilder,
-  ComponentType,
-  SlashCommandBuilder,
-  InteractionContextType,
   ApplicationIntegrationType,
+  InteractionContextType,
+  SlashCommandBuilder,
   ActionRowBuilder,
+  ComponentType,
   ButtonBuilder,
   MessageFlags,
   ButtonStyle,
 } from "discord.js";
 
-import { ErrorMessages } from "@Resources/AppMessages.js";
-import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import {
+  WarnContainer,
+  InfoContainer,
+  SuccessContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
 
-import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
-import IsUserLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
+import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
 import UpdateLinkedRobloxUser from "@Utilities/Database/UpdateLinkedUser.js";
+import IsUserLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
+import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:
@@ -66,40 +70,32 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   const UserLoggedIn = await IsUserLoggedIn(Interaction);
   if (await HandleLoggedInUser(Interaction, !!UserLoggedIn)) return;
 
+  const MsgFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
   const RobloxUsername = (await GetUserInfo(UserLoggedIn)).name;
-  const ButtonsActionRow = new ActionRowBuilder().setComponents(
+  const ButtonsActionRow = new ActionRowBuilder<ButtonBuilder>().setComponents(
     new ButtonBuilder()
       .setLabel("Confirm and Log Out")
       .setCustomId("confirm-logout")
-      .setStyle(ButtonStyle.Success),
+      .setStyle(ButtonStyle.Danger),
     new ButtonBuilder()
       .setLabel("Cancel")
       .setCustomId("cancel-logout")
       .setStyle(ButtonStyle.Secondary)
-  ) as ActionRowBuilder<ButtonBuilder>;
+  );
 
-  const PromptEmbed = new EmbedBuilder()
+  const PromptContainer = new WarnContainer()
     .setTitle("Logout Process")
-    .setColor(Colors.Aqua)
+    .setFooter("*This prompt will automatically cancel after 5 minutes of inactivity.*")
     .setDescription(
       `Are you sure that you want to log out and unlink your Roblox account, \`${RobloxUsername}\`, from the application?\n` +
         "- To confirm your log out, press the `Confirm and Log Out` button\n" +
-        "- To cancel the logout, press the `Cancel` button\n\n" +
-        "*This prompt will automatically cancel after 5 minutes of inactivity.*"
+        "- To cancel the logout, press the `Cancel` button\n\n"
     );
 
   const PromptReply = await Interaction.reply({
-    flags: MessageFlags.Ephemeral,
-    embeds: [PromptEmbed],
-    components: [ButtonsActionRow],
+    components: [PromptContainer.attachPromptActionRows(ButtonsActionRow)],
+    flags: MsgFlags,
   });
-
-  const DisablePrompt = () => {
-    ButtonsActionRow.components.forEach((Button) => Button.setDisabled(true));
-    return PromptReply.edit({
-      components: [ButtonsActionRow],
-    });
-  };
 
   return PromptReply.awaitMessageComponent({
     componentType: ComponentType.Button,
@@ -110,50 +106,39 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       if (ButtonAction.customId === "confirm-logout") {
         await UpdateLinkedRobloxUser(Interaction);
         return ButtonAction.editReply({
-          components: [],
-          embeds: [
-            new SuccessEmbed().setDescription(
-              "Successfully unlinked Roblox account and logged out of the application for user `%s`.",
+          flags: MsgFlags,
+          components: [
+            new SuccessContainer().setDescription(
+              "Successfully unlinked Roblox account `%s` and logged out of the application.",
               RobloxUsername
             ),
           ],
         });
       } else {
         return ButtonAction.editReply({
-          components: [],
-          embeds: [
-            new InfoEmbed()
+          flags: MsgFlags,
+          components: [
+            new InfoContainer()
               .setTitle("Process Cancellation")
-              .setDescription("Logout process has been cancelled."),
+              .setDescription("Logout process has been cancelled at your request."),
           ],
         });
       }
     })
-    .catch(async (Err) => {
-      if (Err.message.match(/reason: time/)) {
-        return DisablePrompt();
-      } else if (Err.message.match(/reason: \w+Delete/)) {
-        /* Ignore message/channel/guild deletion */
-      } else {
-        throw Err;
-      }
-    });
+    .catch((Err) => HandleActionCollectorExceptions(Err, PromptReply));
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject = {
+  callback: Callback,
+  options: { cooldown: 10 },
   data: new SlashCommandBuilder()
     .setName("log-out")
     .setDescription("Log out and unlink the associated Roblox account from the application.")
     .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild),
-
-  callback: Callback,
-  options: {
-    cooldown: 30,
-  },
 };
 
 // ---------------------------------------------------------------------------------------

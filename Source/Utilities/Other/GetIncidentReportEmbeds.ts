@@ -1,9 +1,12 @@
 import {
   Colors,
+  Collection,
   inlineCode,
+  messageLink,
   userMention,
   channelLink,
   EmbedBuilder,
+  AttachmentBuilder,
   time as FormatTime,
 } from "discord.js";
 
@@ -16,16 +19,33 @@ const ListFormatter = new Intl.ListFormat("en");
 /**
  * Generates an array of embeds to display an incident report.
  * @param IncidentRecord - The incident record to generate the embed for.
- * @param ReportTargetChannel - The channel which the report will be sent to. Used to for the embed(s) title URL and gallray view feature.
+ * @param Options - The channel which the report will be sent to. Used to for the embed(s) title URL and gallray view feature.
  *                              If not provided, a dummy URL will be used that won't redirect user to any destination.
  *
  * @returns An array of embeds or single embed if attachments were provided with only one element.
  */
 export default function GetIncidentReportEmbeds(
   IncidentRecord: GuildIncidents.IncidentRecord,
-  ReportTargetChannel?: {
+  Options?: {
+    /**
+     * The channel which the report will be sent to. Used to for the embed(s) title URL and gallray view feature.
+     * If not provided, a dummy URL will be used that shouldn't redirect user to any destination.
+     */
     guild_id?: string;
+
+    /**
+     * The channel which the report will be sent to. Used to for the embed(s) title URL and gallray view feature.
+     * If not provided, a dummy URL will be used that shouldn't redirect user to any destination.
+     */
     channel_id?: string;
+
+    /**
+     * Override the attachments to be used in the embed.
+     * This is useful for when you want to display a different set of attachments than the ones in the incident record
+     * or when there is a need to display a set of attachments that are yet to be uploaded in a message.
+     * @default undefined
+     */
+    attachments_override?: Collection<string, AttachmentBuilder>;
   }
 ) {
   const AttachmentDistributerEmbeds: EmbedBuilder[] = [];
@@ -45,12 +65,22 @@ export default function GetIncidentReportEmbeds(
     ? ListFormatter.format(FormatSortRDInputNames(IncidentRecord.suspects, true, false))
     : "N/A";
 
+  const LogMessageDetails = IncidentRecord.log_message?.split(":");
+  const LogMessageURL =
+    LogMessageDetails && LogMessageDetails[0] !== Options?.channel_id
+      ? messageLink(LogMessageDetails[0], LogMessageDetails[1])
+      : null;
+
+  const IncidentNumber = LogMessageURL
+    ? `[${inlineCode(IncidentRecord.num)}](${LogMessageURL})`
+    : inlineCode(IncidentRecord.num);
+
   const IncidentReportEmbed = new EmbedBuilder()
     .setTitle("LAPD — Incident Report")
     .setColor(Colors.DarkBlue)
     .setDescription(
       Dedent(`
-        **Incident Number:** ${inlineCode(IncidentRecord.num)}
+        **Incident Number:** ${IncidentNumber}
         **Incident Reported By:** ${userMention(IncidentRecord.reporter.discord_id)}
         **Incident Reported On:** ${FormatTime(IncidentRecord.reported_on, "f")}
         **Involved Officers:** ${IIOfficersFormatted}
@@ -108,21 +138,56 @@ export default function GetIncidentReportEmbeds(
     });
   }
 
-  const IncidentAttachments = IncidentRecord.attachments.filter((AttachmentLink) =>
-    IsValidDiscordAttachmentLink(AttachmentLink, false, "image")
-  );
+  const IncidentAttachments =
+    Options?.attachments_override ??
+    new Collection(
+      IncidentRecord.attachments
+        .filter((AttachmentLink) => IsValidDiscordAttachmentLink(AttachmentLink, false, "image"))
+        .map((AttachmentLink) => [AttachmentLink, AttachmentLink])
+    );
 
-  if (IncidentAttachments.length) {
-    IncidentReportEmbed.setImage(IncidentAttachments[0]);
-    if (IncidentAttachments.length > 1) {
-      const SampleURL = ReportTargetChannel?.channel_id
-        ? channelLink(ReportTargetChannel.channel_id)
-        : `https://discord.com/channels/${ReportTargetChannel?.guild_id || IncidentRecord.guild}/`;
+  const GetAttachmentURL = (Attachment: string | { name: string; url: string }) => {
+    if (typeof Attachment === "string") {
+      return Attachment;
+    }
 
-      IncidentReportEmbed.setURL(SampleURL);
-      for (const AttachmentLink of IncidentAttachments.slice(1)) {
+    return `attachment://${Attachment.name}`;
+  };
+
+  if (IncidentAttachments.size) {
+    const First = IncidentAttachments.first();
+    const FirstKey = IncidentAttachments.keys().next().value;
+
+    IncidentReportEmbed.setImage(
+      typeof First === "string"
+        ? First
+        : GetAttachmentURL({
+            name: First!.name!,
+            url: FirstKey!,
+          })
+    );
+
+    if (IncidentAttachments.size > 1) {
+      const GrouppingURL =
+        LogMessageURL ??
+        (Options?.channel_id
+          ? channelLink(Options.channel_id)
+          : `https://discord.com/channels/${Options?.guild_id || IncidentRecord.guild}/`);
+
+      IncidentReportEmbed.setURL(GrouppingURL);
+      for (const [AttachmentLink, Value] of IncidentAttachments.entries().drop(1)) {
         AttachmentDistributerEmbeds.push(
-          new EmbedBuilder().setURL(SampleURL).setColor(Colors.DarkBlue).setImage(AttachmentLink)
+          new EmbedBuilder()
+            .setURL(LogMessageURL ?? GrouppingURL)
+            .setColor(Colors.DarkBlue)
+            .setImage(
+              typeof Value === "string"
+                ? Value
+                : GetAttachmentURL({
+                    name: Value.name!,
+                    url: AttachmentLink,
+                  })
+            )
         );
       }
     }

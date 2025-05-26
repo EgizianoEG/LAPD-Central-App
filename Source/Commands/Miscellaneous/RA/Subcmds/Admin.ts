@@ -26,7 +26,7 @@ import { Colors, Emojis } from "@Config/Shared.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
 import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
-import GetDiscordAPITime from "@Utilities/Other/GetDiscordAPITime.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
 import GetUANData from "@Utilities/Database/GetUANData.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Dedent from "dedent";
@@ -174,12 +174,7 @@ async function HandleApprovalOrDenial(
   ActionType: "Approval" | "Denial"
 ): Promise<boolean> {
   const NotesModal = GetNotesModal(Interaction, ActionType);
-  await Interaction.showModal(NotesModal);
-
-  const NotesSubmission = await Interaction.awaitModalSubmit({
-    filter: (i) => i.customId === NotesModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
+  const NotesSubmission = await ShowModalAndAwaitSubmission(Interaction, NotesModal, 8 * 60_000);
 
   if (!NotesSubmission) return false;
   await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
@@ -228,14 +223,9 @@ async function HandleEarlyTermination(
   ActiveRA: RADocument
 ) {
   const NotesModal = GetNotesModal(Interaction, "Termination");
-  await Interaction.showModal(NotesModal);
-
-  const NotesSubmission = await Interaction.awaitModalSubmit({
-    filter: (i) => i.customId === NotesModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
-
+  const NotesSubmission = await ShowModalAndAwaitSubmission(Interaction, NotesModal, 8 * 60_000);
   if (!NotesSubmission) return false;
+
   const RefreshedActiveRA = await ActiveRA.getUpToDate();
   if (!RefreshedActiveRA || !RefreshedActiveRA.is_active) {
     return NotesSubmission.reply({
@@ -291,11 +281,10 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     await Interaction.deferReply();
   }
 
-  const TimeNow = await GetDiscordAPITime();
   const NoticesData = await GetUANData({
     guild_id: Interaction.guildId,
     user_id: TargetUser.id,
-    now: TimeNow,
+    now: Date.now(),
     type: "ReducedActivity",
   });
 

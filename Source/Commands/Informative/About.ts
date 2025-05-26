@@ -1,27 +1,18 @@
-import Humanizer from "humanize-duration";
+import { InteractionContextType, SlashCommandBuilder, OAuth2Scopes } from "discord.js";
 import { IsValidDiscordId } from "@Utilities/Other/Validators.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { Discord } from "@Config/Secrets.js";
-import {
-  ApplicationIntegrationType,
-  InteractionContextType,
-  SlashCommandBuilder,
-  OAuth2Scopes,
-} from "discord.js";
 
 const ListFormatter = new Intl.ListFormat("en");
 const AppAuthorId = "560396280497438731";
 const RepoURL = "https://github.com/EgizianoEG/LAPD-Central-App";
-// ---------------------------------------------------------------------------------------
 
-/**
- * @param Client
- * @param Interaction
- */
+// ---------------------------------------------------------------------------------------
 async function Callback(Client: DiscordClient, Interaction: SlashCommandInteraction) {
   await Interaction.deferReply();
 
-  const SupportServer = Client.guilds.cache.get(Discord.SupportGuildId || "000");
+  const SupportServer = Client.guilds.cache.get(Discord.SupportGuildId ?? "000");
   const SServerInvite =
     SupportServer?.invites.cache.find((Invite) => Invite.inviterId === Client.user.id) ??
     (await SupportServer?.invites
@@ -40,16 +31,17 @@ async function Callback(Client: DiscordClient, Interaction: SlashCommandInteract
     permissions: [
       "AttachFiles",
       "ManageRoles",
+      "ViewChannel",
       "SendMessages",
+      "AddReactions",
       "ManageNicknames",
-      "UseExternalEmojis",
+      "ReadMessageHistory",
+      "SendMessagesInThreads",
     ],
   });
 
-  const AppUptime = Humanizer(Client.uptime, {
-    conjunction: " and ",
+  const AppUptime = ReadableDuration(Client.uptime, {
     largest: 3,
-    round: true,
   });
 
   const ResponseEmbed = new InfoEmbed()
@@ -100,14 +92,13 @@ async function Callback(Client: DiscordClient, Interaction: SlashCommandInteract
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject = {
   callback: Callback,
   data: new SlashCommandBuilder()
     .setName("about")
     .setDescription("Provides information about the application.")
-    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(
       InteractionContextType.Guild,
       InteractionContextType.BotDM,

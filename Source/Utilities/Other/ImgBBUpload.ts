@@ -30,6 +30,6 @@ export default async function UploadToImgBB(
       expiration: Expiration,
     },
   })
-    .then((Resp) => Resp.data?.data.display_url || null)
+    .then((Resp) => Resp.data?.data.url ?? Resp.data?.data.display_url ?? null)
     .catch(() => null);
 }

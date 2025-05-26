@@ -1,23 +1,17 @@
 import AppError from "@Utilities/Classes/AppError.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import DHumanizer from "humanize-duration";
 import { MessageFlags, ChatInputCommandInteraction } from "discord.js";
 import { InfoEmbed, ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
 import {
   HandleCommandCooldowns,
   HandleDevOnlyCommands,
   HandleUserPermissions,
-  HandleBotPermissions,
+  HandleAppPermissions,
 } from "@Utilities/Other/CommandExecutionGuards.js";
 
 const FileLogLabel = "Events:InteractionCreate:SlashCommandHandler";
-const ReadableDuration = DHumanizer.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
-
 // ------------------------------------------------------------------------------------------------------------------------------------------------------
 /**
  * Handles the user execution of slash commands.
@@ -55,10 +49,10 @@ export default async function SlashCommandHandler(
         .replyToInteract(Interaction, true);
     }
 
-    await HandleCommandCooldowns(Client, Interaction, CommandObject, FullCmdName);
+    await HandleCommandCooldowns(Interaction, CommandObject, FullCmdName);
     await HandleDevOnlyCommands(CommandObject, Interaction);
     await HandleUserPermissions(CommandObject, Interaction);
-    await HandleBotPermissions(CommandObject, Interaction);
+    await HandleAppPermissions(CommandObject, Interaction);
     if (Interaction.replied) return;
 
     if (typeof CommandObject.callback === "function") {
@@ -72,11 +66,9 @@ export default async function SlashCommandHandler(
         message: "Handled execution of slash command %o.",
         label: FileLogLabel,
         splat: [FullCmdName],
-        details: {
-          execution_time: ReadableDuration(Date.now() - Interaction.createdTimestamp),
-          stringified: Interaction.toString(),
-          cmd_options: Interaction.options,
-        },
+        execution_time: ReadableDuration(Date.now() - Interaction.createdTimestamp),
+        stringified: Interaction.toString(),
+        cmd_options: Interaction.options,
       });
 
       if (Interaction.replied || Interaction.deferred) return;
@@ -100,6 +92,7 @@ export default async function SlashCommandHandler(
       label: FileLogLabel,
       error_id: ErrorId,
       stack: Err.stack,
+      error: { ...Err },
       splat: [FullCmdName],
       cmd_options: Interaction.options,
     });

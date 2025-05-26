@@ -9,7 +9,7 @@ import {
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import { formatDistance, isAfter } from "date-fns";
+import { format, formatDistance, isAfter } from "date-fns";
 import { FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
@@ -18,6 +18,7 @@ import * as Chrono from "chrono-node";
 import GetStaffFieldActivity from "@Utilities/Database/GetFieldActivity.js";
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
+import GeneratePortrait from "@Utilities/ImageRendering/ThumbToPortrait.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 import Dedent from "dedent";
@@ -79,6 +80,12 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       Size: "420x420",
       Format: "png",
       CropType: "bust",
+    }).then(async (ImgURL) => {
+      if (ImgURL.includes("placehold")) return ImgURL;
+      return GeneratePortrait<false>({
+        thumb_img: ImgURL,
+        return_url: false,
+      });
     }),
     GetMainShiftsData({
       user: OfficerSelected.id,
@@ -97,7 +104,6 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   const ResponseEmbed = new EmbedBuilder()
     .setTitle(`Officer Activity — @${OfficerSelected.user.username}`)
-    .setThumbnail(TargetRUserThumb)
     .setColor(Colors.DarkBlue)
     .setFields(
       {
@@ -143,8 +149,9 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   if (TargetRUserThumb.includes("placehold")) {
     return Interaction.editReply({ embeds: [ResponseEmbed] });
   } else {
+    const DateText = format(Interaction.createdAt, "yy-MM-dd-'T'-HH-mm");
     const RThumbAttachment = new AttachmentBuilder(TargetRUserThumb, {
-      name: `th-${TargetRUserInfo?.name.toLowerCase() || "unknown"}.png`,
+      name: `official-portrait-${TargetRUserInfo?.name.toLowerCase() ?? "000"}-${DateText}.jpg`,
     });
 
     ResponseEmbed.setThumbnail(`attachment://${RThumbAttachment.name}`);

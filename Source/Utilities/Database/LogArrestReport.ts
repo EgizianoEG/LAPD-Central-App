@@ -9,7 +9,7 @@ import AppError from "@Utilities/Classes/AppError.js";
 import ArrestModel from "@Models/Arrest.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
-import GetFormattedArrestReportEmbed from "./FormatArrestReportEmbed.js";
+import GetFormattedArrestReportEmbed from "../Other/FormatArrestReportEmbed.js";
 
 export type ReporterInfoType = {
   /** Shift currently active for the reporting officer */
@@ -63,7 +63,6 @@ export default async function LogArrestReport(
   const ArrestRecord = await ArrestModel.create({
     guild: CachedInteract.guildId,
     made_on: ReporterInfo.report_date,
-    assisting_officers: ReporterInfo.asst_officers,
     notes: ArresteeInfo.notes ?? null,
     booking_num: ArresteeInfo.booking_num,
 
@@ -78,6 +77,7 @@ export default async function LogArrestReport(
       mugshot_url: ArresteeInfo.booking_mugshot,
     },
 
+    assisting_officers: ReporterInfo.asst_officers,
     arresting_officer: {
       formatted_name: FReporterName,
       discord_id: ReporterInfo.discord_user_id,
@@ -101,7 +101,12 @@ export default async function LogArrestReport(
     CachedInteract,
     GuildSettings.duty_activities.log_channels.arrests,
     { embeds: [FormattedReport] }
-  );
+  ).then((SentMessage) => SentMessage?.url ?? null);
+
+  if (MainMsgLink) {
+    ArrestRecord.report_msg = MainMsgLink.split(/[/\\]/).slice(-2).join(":");
+    ArrestRecord.save().catch(() => null);
+  }
 
   return {
     main_msg_link: MainMsgLink,

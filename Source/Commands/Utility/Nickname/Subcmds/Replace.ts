@@ -12,25 +12,23 @@ import {
   GuildMember,
   Collection,
   Message,
-  Colors,
+  User,
 } from "discord.js";
 
 import Dedent from "dedent";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import DHumanize from "humanize-duration";
-import { Emojis } from "@Config/Shared.js";
+import SafeRegex from "safe-regex";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
+import { Emojis, Colors } from "@Config/Shared.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
-import { OngoingServerMemberNicknamesReplaceCache } from "@Utilities/Other/Cache.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed, WarnEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import {
+  GuildMembersCache,
+  OngoingServerMemberNicknamesReplaceCache,
+} from "@Utilities/Other/Cache.js";
 
 const RegexFlags = ["i", "g", "gi"];
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 3,
-  round: true,
-});
-
 // ---------------------------------------------------------------------------------------
 // Helpers & Handlers:
 // -------------------
@@ -106,6 +104,17 @@ async function HandleReplacementCancellation(ButtonInteract: ButtonInteraction<"
   }
 }
 
+function GetCancellationButton(
+  Interact: ButtonInteraction<"cached">
+): ActionRowBuilder<ButtonBuilder> {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`nr-stop:${Interact.user.id}:${Interact.createdTimestamp}`)
+      .setLabel("Stop Process")
+      .setStyle(ButtonStyle.Secondary)
+  );
+}
+
 /**
  * Processes batched nickname replacements for a list of members, updating their nicknames
  * in batches and providing progress updates via a button interaction.
@@ -129,13 +138,57 @@ async function HandleReplacementCancellation(ButtonInteract: ButtonInteraction<"
 async function ProcessBatchedReplacements(
   ButtonInteract: ButtonInteraction<"cached">,
   Replacements: ReturnType<typeof NicknameReplaceMapper>[],
-  BatchSize = 50
-): Promise<{ TotalReplaced: number; TotalFailed: number }> {
+  BatchSize = 20
+): Promise<{
+  TotalReplaced: number;
+  TotalFailed: number;
+  EarlyTermination?: boolean;
+  TerminationReason?: string;
+}> {
   const TotalMembers = Replacements.length;
   let ProcessedCount = 0;
   let TotalReplaced = 0;
   let TotalFailed = 0;
   let LastUpdateTime = Date.now();
+  let LastPermissionCheckTime = Date.now();
+  let OperationCancelledBy: User | null = null;
+
+  const LengthIssues = Replacements.filter(({ replaced }) => replaced.length > 32);
+  const CompCollector = ButtonInteract.channel?.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: 60 * 60 * 1000,
+    filter: (Interact) =>
+      Interact.customId ===
+        `nr-stop:${ButtonInteract.user.id}:${ButtonInteract.createdTimestamp}` &&
+      (Interact.user.id === ButtonInteract.user.id ||
+        Interact.member.permissions.has(PermissionFlagsBits.Administrator)),
+  });
+
+  CompCollector?.on("collect", async (Interact) => {
+    OperationCancelledBy = Interact.user;
+    await Interact.update({
+      components: [],
+      embeds: [
+        new WarnEmbed()
+          .setTitle("Stopping Process")
+          .setDescription("Stopping the process after completing the current batch..."),
+      ],
+    }).catch(() => null);
+  });
+
+  if (LengthIssues.length > 0) {
+    await UpdateProgressMessage(
+      ButtonInteract,
+      0,
+      TotalMembers,
+      0,
+      undefined,
+      undefined,
+      `**Warning:** ${LengthIssues.length} replacement(s) exceed Discord's 32 nickname character limit and will be truncated.`
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
 
   const Batches: (typeof Replacements)[] = [];
   for (let i = 0; i < TotalMembers; i += BatchSize) {
@@ -144,12 +197,91 @@ async function ProcessBatchedReplacements(
 
   await UpdateProgressMessage(ButtonInteract, 0, TotalMembers, 0);
   for (let BatchIndex = 0; BatchIndex < Batches.length; BatchIndex++) {
+    if (OperationCancelledBy) {
+      await UpdateProgressMessage(
+        ButtonInteract,
+        ProcessedCount,
+        TotalMembers,
+        TotalReplaced,
+        BatchIndex,
+        Batches.length,
+        `Operation cancelled at ${userMention(OperationCancelledBy)}'s request.`
+      );
+
+      return {
+        TotalReplaced,
+        TotalFailed,
+        EarlyTermination: true,
+        TerminationReason: `Cancelled by ${userMention(OperationCancelledBy)}.`,
+      };
+    }
+
+    const CurrentTime = Date.now();
+    if (BatchIndex % 3 === 0 || CurrentTime - LastPermissionCheckTime > 10_000) {
+      try {
+        const AppMember = await ButtonInteract.guild.members.fetchMe();
+        if (!AppMember.permissions.has(PermissionFlagsBits.ManageNicknames, true)) {
+          await UpdateProgressMessage(
+            ButtonInteract,
+            ProcessedCount,
+            TotalMembers,
+            TotalReplaced,
+            BatchIndex + 1,
+            Batches.length,
+            "Operation terminated early due to permission changes."
+          );
+
+          return {
+            TotalReplaced,
+            TotalFailed,
+            EarlyTermination: true,
+            TerminationReason: "Application lost required permissions during the operation.",
+          };
+        }
+
+        if (Batches.length > 5 && BatchIndex < Batches.length - 1) {
+          const RemainingMembers = Batches.slice(BatchIndex + 1).flat();
+          const FilteredRemainingMembers = RemainingMembers.filter(
+            ({ member }) => member.manageable
+          );
+
+          if (FilteredRemainingMembers.length < RemainingMembers.length) {
+            const SkippedCount = RemainingMembers.length - FilteredRemainingMembers.length;
+            TotalFailed += SkippedCount;
+            Batches.splice(BatchIndex + 1);
+
+            for (let i = 0; i < FilteredRemainingMembers.length; i += BatchSize) {
+              Batches.push(FilteredRemainingMembers.slice(i, i + BatchSize));
+            }
+
+            await UpdateProgressMessage(
+              ButtonInteract,
+              ProcessedCount,
+              TotalMembers,
+              TotalReplaced,
+              BatchIndex + 1,
+              Batches.length,
+              `${SkippedCount} member(s) skipped due to role changes.`
+            );
+          }
+        }
+
+        LastPermissionCheckTime = CurrentTime;
+      } catch (error) {
+        AppLogger.warn({
+          message: "Failed to recheck permissions during nickname replacement",
+          label: "Commands:Utility:Nickname:Replace",
+          error,
+        });
+      }
+    }
+
     const CurrentBatch = Batches[BatchIndex];
     const BatchResults = await Promise.allSettled(
       CurrentBatch.map(async ({ member, replaced }) => {
         try {
           await member.setNickname(
-            replaced,
+            replaced.substring(0, 32),
             `Automated nickname replacement; executed by @${ButtonInteract.user.username}`
           );
           return true;
@@ -167,7 +299,26 @@ async function ProcessBatchedReplacements(
     TotalFailed += CurrentBatch.length - BatchSuccesses;
     ProcessedCount += CurrentBatch.length;
 
-    const CurrentTime = Date.now();
+    if (BatchSuccesses <= BatchSize / 2) {
+      await UpdateProgressMessage(
+        ButtonInteract,
+        ProcessedCount,
+        TotalMembers,
+        TotalReplaced,
+        BatchIndex + 1,
+        Batches.length,
+        "Operation terminated early due to high failure rate."
+      );
+
+      return {
+        TotalReplaced,
+        TotalFailed,
+        EarlyTermination: true,
+        TerminationReason:
+          "High failure rate detected. Operation terminated to prevent API bad requests.",
+      };
+    }
+
     if (CurrentTime - LastUpdateTime > 3 * 1000 || BatchIndex === Batches.length - 1) {
       await UpdateProgressMessage(
         ButtonInteract,
@@ -177,7 +328,7 @@ async function ProcessBatchedReplacements(
         BatchIndex + 1,
         Batches.length
       );
-      LastUpdateTime = CurrentTime;
+      LastUpdateTime = Date.now();
     }
 
     if (BatchIndex < Batches.length - 1) {
@@ -185,6 +336,7 @@ async function ProcessBatchedReplacements(
     }
   }
 
+  CompCollector?.stop();
   return { TotalReplaced, TotalFailed };
 }
 
@@ -196,6 +348,7 @@ async function ProcessBatchedReplacements(
  * @param SuccessCount - The number of nicknames successfully replaced.
  * @param CurrentBatch - (Optional) The current batch number being processed, if batching is used.
  * @param TotalBatches - (Optional) The total number of batches, if batching is used.
+ * @param StatusMessage - (Optional) A custom status message to display, used for early termination notices.
  * @returns A promise that resolves when the progress message has been updated.
  */
 async function UpdateProgressMessage(
@@ -204,7 +357,8 @@ async function UpdateProgressMessage(
   TotalCount: number,
   SuccessCount: number,
   CurrentBatch?: number,
-  TotalBatches?: number
+  TotalBatches?: number,
+  StatusMessage?: string
 ): Promise<void> {
   const PercentComplete = Math.round((ProcessedCount / TotalCount) * 100);
   const ProgressBarSegments = 20;
@@ -225,13 +379,13 @@ async function UpdateProgressMessage(
         Successfully replaced: \`${SuccessCount}\`
         Failed replacements: \`${ProcessedCount - SuccessCount}\`${BatchInfo}
         
-        Kindly wait. Matching nicknames are currently being modified, which may take some time.
+        ${StatusMessage ?? "Kindly wait. Matching nicknames are currently being modified, which may take some time."}
       `)
     );
 
   await ButtonInteract.editReply({
     embeds: [ProgressEmbed],
-    components: [],
+    components: [GetCancellationButton(ButtonInteract)],
   }).catch(() => null);
 }
 
@@ -272,9 +426,9 @@ async function HandleReplacementConfirmation(
   }
 
   OngoingServerMemberNicknamesReplaceCache.set(ButtonInteract.guildId, true);
-  const Replacements = EligibleMembers.filter(
-    (Member) => AppMember.roles.highest.comparePositionTo(Member.roles.highest) > 0
-  ).map((Member) => NicknameReplaceMapper(Member, MatchRegex, ReplacementExp));
+  const Replacements = EligibleMembers.filter((Member) => Member.manageable).map((Member) =>
+    NicknameReplaceMapper(Member, MatchRegex, ReplacementExp)
+  );
 
   await ButtonInteract.update({
     components: [],
@@ -288,11 +442,8 @@ async function HandleReplacementConfirmation(
 
   let FinalRespEmbed: EmbedBuilder;
   const BatchSize = Replacements.length > 500 ? 50 : Replacements.length > 200 ? 25 : 15;
-  const { TotalReplaced, TotalFailed } = await ProcessBatchedReplacements(
-    ButtonInteract,
-    Replacements,
-    BatchSize
-  );
+  const { TotalReplaced, TotalFailed, EarlyTermination, TerminationReason } =
+    await ProcessBatchedReplacements(ButtonInteract, Replacements, BatchSize);
 
   setTimeout(
     () => {
@@ -304,18 +455,38 @@ async function HandleReplacementConfirmation(
   if (TotalReplaced === 0) {
     FinalRespEmbed = new ErrorEmbed().useErrTemplate("NicknameReplaceNoReplacementsMade");
   } else {
-    FinalRespEmbed = new SuccessEmbed().setTitle("Success").setDescription(
-      Dedent(`
-          **Process completed successfully.**
+    FinalRespEmbed = new SuccessEmbed()
+      .setTitle(
+        EarlyTermination
+          ? TerminationReason?.includes("Cancelled")
+            ? "Process Cancelled"
+            : "Process Terminated Early"
+          : "Success"
+      )
+      .setDescription(
+        Dedent(`
+          **${
+            EarlyTermination
+              ? TerminationReason?.includes("Cancelled")
+                ? "Process cancelled by user."
+                : "Process terminated early."
+              : "Process completed successfully."
+          }**${EarlyTermination ? `\n**Reason:** ${TerminationReason}` : ""}
           **Here is a summary of the results:**
           > - Members Matched: \`${MatchingMembers.size}\`
           > - Members Eligible: \`${EligibleMembers.size}\`
           > - Nicknames Replaced: \`${TotalReplaced}\`
           > - Nicknames Failed: \`${TotalFailed}\`
           
-          -# The process took approximately ${HumanizeDuration(Date.now() - ButtonInteract.createdTimestamp)}.
+          -# The process took approximately ${ReadableDuration(Date.now() - ButtonInteract.createdTimestamp, { largest: 3 })}.
         `)
-    );
+      );
+
+    if (EarlyTermination && !TerminationReason?.includes("Cancelled")) {
+      FinalRespEmbed.setColor(Colors.Warning);
+    } else if (TerminationReason?.includes("Cancelled")) {
+      FinalRespEmbed.setColor(Colors.Greyple);
+    }
   }
 
   await ButtonInteract.editReply({
@@ -400,7 +571,7 @@ async function HandlePromptInteractions(
 async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
   const InputRegex = CmdInteract.options.getString("regex", true);
   const InputRFlag = CmdInteract.options.getString("flags", false);
-  const RoleFilter = CmdInteract.options.getRole("role_filter", false);
+  const RoleFilter = CmdInteract.options.getRole("role-filter", false);
   const InputReplacement = CmdInteract.options.getString("replacement", true);
   const AppMember = await CmdInteract.guild.members.fetchMe();
 
@@ -413,7 +584,16 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
   await CmdInteract.deferReply();
   try {
     const MatchRegex = new RegExp(InputRegex, InputRFlag ?? undefined);
-    const GuildMembers = await CmdInteract.guild.members.fetch();
+    if (!SafeRegex(MatchRegex)) {
+      return new ErrorEmbed()
+        .useErrTemplate("ProvidedUnsafeRegex")
+        .replyToInteract(CmdInteract, true);
+    }
+
+    const GuildMembers =
+      GuildMembersCache.get<Collection<string, GuildMember>>(CmdInteract.guildId) ??
+      (await CmdInteract.guild.members.fetch());
+
     const MembersMatching = GuildMembers.filter((Member) => {
       return (
         !Member.user.bot &&
@@ -423,7 +603,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     });
 
     const EligibleMembers = MembersMatching.filter((Member) => {
-      return AppMember.roles.highest.comparePositionTo(Member.roles.highest) > 0;
+      return Member.manageable;
     });
 
     if (MembersMatching.size === 0) {
@@ -447,7 +627,8 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     }
 
     const FormattedSampleReplacementList = SampleReplacements.map(
-      (Rep) => `${userMention(Rep.member.id)}: \`${Rep.original}\` → \`${Rep.replaced}\``
+      (Rep) =>
+        `${userMention(Rep.member.id)}: \`${Rep.original}\` → \`${Rep.replaced.substring(0, 32)}\``
     ).join(`\n${" ".repeat(12)}- `);
 
     const Plural = MembersMatching.size > 1 ? "s" : "";
@@ -461,9 +642,10 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
           **Are you certain you want to replace ${MembersMatching.size === 1 ? "this" : "these"} \
           [${MembersMatching.size}](${channelLink(CmdInteract.channelId)}) \
           nickname${Plural} matching the regex \`${InputRegex}\` with \`${InputReplacement}\`?**
-          
+
           **Please keep in mind that:**
           - This action will not affect users with a role position higher than the application's highest role.
+          - New nicknames that exceed Discord's 32 character limit will be truncated automatically from the end.
           - This is an irreversible action that will replace any nicknames that match this regex, as demonstrated by the example${Plural} below:
             - ${FormattedSampleReplacementList}
         `)
@@ -528,7 +710,7 @@ const CommandObject = {
         )
     )
     .addRoleOption((Opt) =>
-      Opt.setName("role_filter")
+      Opt.setName("role-filter")
         .setDescription("Only replace nicknames of members in this role (optional).")
         .setRequired(false)
     ),
