@@ -2,10 +2,81 @@ import { TenCodes, ElevenCodes, LiteralCodes, CodeType } from "@Resources/RadioC
 import { AllVehicleModels, ERLCVehiclesData } from "@Resources/ERLCVehicles.js";
 import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
 import { FormatVehicleName } from "@Utilities/Strings/Formatters.js";
+import { resolveColor } from "discord.js";
 import { Vehicles } from "@Typings/Resources.js";
 import BrickColors from "@Resources/BrickColors.js";
 import SampleTexts from "@Resources/SampleTexts.js";
-import { resolveColor } from "discord.js";
+
+const ValidateVehicleModel = (Model: Vehicles.VehicleModel) => {
+  expect(Model).toHaveProperty("name");
+  expect(Model).toHaveProperty("alias");
+  expect(Model).toHaveProperty("style");
+  expect(Model).toHaveProperty("class");
+  expect(Model).toHaveProperty("category");
+  expect(Model).toHaveProperty("model_year");
+};
+
+const ValidateExtendedVehicleModel = (
+  Model: Vehicles.VehicleModel & { brand: string; counterpart: string }
+) => {
+  expect(Model).toHaveProperty("brand");
+  expect(Model).toHaveProperty("counterpart");
+  ValidateVehicleModel(Model);
+};
+
+const ValidateMessageProperties = (Msg: any) => {
+  expect(Msg).toHaveProperty("Title");
+  expect(Msg).toHaveProperty("Description");
+  expect(typeof Msg.Title).toBe("string");
+  expect(typeof Msg.Description).toBe("string");
+};
+
+const ValidateOptionalColorProperty = (Msg: any) => {
+  if (Object.hasOwn(Msg, "Color")) {
+    expect(typeof resolveColor(Msg.Color)).toBe("number");
+  }
+};
+
+const ValidateOptionalThumbProperty = (Msg: any) => {
+  if (Object.hasOwn(Msg, "Thumb")) {
+    expect(typeof Msg.Thumb === "string" || Msg.Thumb === null).toBe(true);
+  }
+};
+
+const ValidateCodeStructure = (Code: CodeType) => {
+  expect(Code).toHaveProperty("code");
+  expect(Code).toHaveProperty("title");
+  expect(Code).toHaveProperty("description");
+  expect(typeof Code.code).toBe("string");
+  expect(typeof Code.title).toBe("string");
+  expect(typeof Code.description).toBe("string");
+
+  if (Code.notes) {
+    expect(Array.isArray(Code.notes) || typeof Code.notes === "object").toBe(true);
+  }
+  if (Code.usage_contexts) {
+    expect(Array.isArray(Code.usage_contexts) || typeof Code.usage_contexts === "object").toBe(
+      true
+    );
+  }
+  if (Code.usage_examples) {
+    expect(Array.isArray(Code.usage_examples) || typeof Code.usage_examples === "object").toBe(
+      true
+    );
+  }
+  if (Code.references) {
+    expect(Array.isArray(Code.references)).toBe(true);
+  }
+};
+
+const ValidateBrickColor = (Color: any) => {
+  expect(Color).toHaveProperty("name");
+  expect(Color).toHaveProperty("hex");
+  expect(Color).toHaveProperty("number");
+  expect(typeof Color.name).toBe("string");
+  expect(typeof Color.hex).toBe("string");
+  expect(typeof Color.number).toBe("number");
+};
 
 describe("Sample Texts (SampleTexts.js)", () => {
   it("Should only contain lines of alpha letters, spaces, and dashes with a word range of 7 to 12 words", () => {
@@ -23,11 +94,7 @@ describe("Application Messages (AppMessages.js)", () => {
     test.each(Object.entries(ErrorMessages))(
       "'%s' message object should have Title and Description properties of type string",
       (_, Msg) => {
-        expect(Msg).toHaveProperty("Title");
-        expect(Msg).toHaveProperty("Description");
-
-        expect(typeof Msg.Title).toBe("string");
-        expect(typeof Msg.Description).toBe("string");
+        ValidateMessageProperties(Msg);
       }
     );
   });
@@ -36,11 +103,7 @@ describe("Application Messages (AppMessages.js)", () => {
     test.each(Object.entries(InfoMessages))(
       "%s message object should have 'Title' and 'Description' properties of type string",
       (_, Msg) => {
-        expect(Msg).toHaveProperty("Title");
-        expect(Msg).toHaveProperty("Description");
-
-        expect(typeof Msg.Title).toBe("string");
-        expect(typeof Msg.Description).toBe("string");
+        ValidateMessageProperties(Msg);
       }
     );
   });
@@ -49,26 +112,16 @@ describe("Application Messages (AppMessages.js)", () => {
     test.each(Object.entries(InfoMessages))(
       "%s message object should have, if specified, 'Color' of type ColorResolvable and 'Thumb' of type string or null",
       (_, Msg) => {
-        if (Object.hasOwn(Msg, "Color")) {
-          expect(typeof resolveColor((Msg as any).Color)).toBe("number");
-        }
-
-        if (Object.hasOwn(Msg, "Thumb")) {
-          expect(typeof (Msg as any).Thumb === "string" || (Msg as any).Thumb === null).toBe(true);
-        }
+        ValidateOptionalColorProperty(Msg);
+        ValidateOptionalThumbProperty(Msg);
       }
     );
 
     test.each(Object.entries(ErrorMessages))(
       "%s message object should have, if specified, 'Color' of type ColorResolvable and 'Thumb' of type string or null",
       (_, Msg) => {
-        if (Object.hasOwn(Msg, "Color")) {
-          expect(typeof resolveColor((Msg as any).Color)).toBe("number");
-        }
-
-        if (Object.hasOwn(Msg, "Thumb")) {
-          expect(typeof (Msg as any).Thumb === "string" || (Msg as any).Thumb === null).toBe(true);
-        }
+        ValidateOptionalColorProperty(Msg);
+        ValidateOptionalThumbProperty(Msg);
       }
     );
   });
@@ -87,14 +140,7 @@ describe("ER:LC Vehicles (ERLCVehicles.js)", () => {
         expect(Vehicle).toHaveProperty("models");
         expect(Array.isArray(Vehicle.models)).toBe(true);
 
-        Vehicle.models.forEach((Model: Vehicles.VehicleModel) => {
-          expect(Model).toHaveProperty("name");
-          expect(Model).toHaveProperty("alias");
-          expect(Model).toHaveProperty("style");
-          expect(Model).toHaveProperty("class");
-          expect(Model).toHaveProperty("category");
-          expect(Model).toHaveProperty("model_year");
-        });
+        Vehicle.models.forEach(ValidateVehicleModel);
       });
     });
   });
@@ -105,29 +151,17 @@ describe("ER:LC Vehicles (ERLCVehicles.js)", () => {
     });
 
     test("Each vehicle model object in AllVehicleModels should have the expected structure", () => {
-      AllVehicleModels.forEach(
-        (Model: Vehicles.VehicleModel & { brand: string; counterpart: string }) => {
-          expect(Model).toHaveProperty("brand");
-          expect(Model).toHaveProperty("counterpart");
-          expect(Model).toHaveProperty("name");
-          expect(Model).toHaveProperty("alias");
-          expect(Model).toHaveProperty("style");
-          expect(Model).toHaveProperty("class");
-          expect(Model).toHaveProperty("category");
-          expect(Model).toHaveProperty("model_year");
-        }
-      );
+      AllVehicleModels.forEach(ValidateExtendedVehicleModel);
     });
 
     test("For autocompletion purposes, each vehicle must have a label for autocomplete less than or equal to 100 characters long", () => {
       for (const Brand of ERLCVehiclesData) {
         for (const Model of Brand.models) {
-          expect(
-            FormatVehicleName(Model, {
-              name: Brand.brand,
-              alias: Brand.counterpart,
-            }).length
-          ).toBeLessThanOrEqual(100);
+          const formattedName = FormatVehicleName(Model, {
+            name: Brand.brand,
+            alias: Brand.counterpart,
+          });
+          expect(formattedName.length).toBeLessThanOrEqual(100);
         }
       }
     });
@@ -135,36 +169,13 @@ describe("ER:LC Vehicles (ERLCVehicles.js)", () => {
 });
 
 describe("LEO Radio Codes (RadioCodes.js)", () => {
-  const TestCodeArray = (Codes: CodeType[], CodeType: string) => {
-    test(`'${CodeType}' should be an array`, () => {
+  const TestCodeArray = (Codes: CodeType[], CodeTypeName: string) => {
+    test(`'${CodeTypeName}' should be an array`, () => {
       expect(Array.isArray(Codes)).toBe(true);
     });
 
-    test(`each code object in '${CodeType}' code type should have the expected structure`, () => {
-      Codes.forEach((Code: CodeType) => {
-        expect(Code).toHaveProperty("code");
-        expect(Code).toHaveProperty("title");
-        expect(Code).toHaveProperty("description");
-        expect(typeof Code.code).toBe("string");
-        expect(typeof Code.title).toBe("string");
-        expect(typeof Code.description).toBe("string");
-        if (Code.notes) {
-          expect(Array.isArray(Code.notes) || typeof Code.notes === "object").toBe(true);
-        }
-        if (Code.usage_contexts) {
-          expect(
-            Array.isArray(Code.usage_contexts) || typeof Code.usage_contexts === "object"
-          ).toBe(true);
-        }
-        if (Code.usage_examples) {
-          expect(
-            Array.isArray(Code.usage_examples) || typeof Code.usage_examples === "object"
-          ).toBe(true);
-        }
-        if (Code.references) {
-          expect(Array.isArray(Code.references)).toBe(true);
-        }
-      });
+    test(`each code object in '${CodeTypeName}' code type should have the expected structure`, () => {
+      Codes.forEach(ValidateCodeStructure);
     });
   };
 
@@ -179,14 +190,7 @@ describe("Roblox Brick Colors (BrickColors.js)", () => {
   });
 
   test("Each object in BrickColors should have the expected structure", () => {
-    BrickColors.forEach((Color) => {
-      expect(Color).toHaveProperty("name");
-      expect(Color).toHaveProperty("hex");
-      expect(Color).toHaveProperty("number");
-      expect(typeof Color.name).toBe("string");
-      expect(typeof Color.hex).toBe("string");
-      expect(typeof Color.number).toBe("number");
-    });
+    BrickColors.forEach(ValidateBrickColor);
   });
 
   test("Hex color codes should be valid", () => {
