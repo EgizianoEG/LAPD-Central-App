@@ -96,7 +96,12 @@ function GetSavePages(
 async function HandleSaveDetailsView(DetailsInteract: MessageComponentInteraction) {
   if (!DetailsInteract.isButton() || !DetailsInteract.inCachedGuild()) return;
   const SaveId = DetailsInteract.customId.split(":")[2];
-  const SaveDocument = isValidObjectId(SaveId) ? await MSRolesModel.findById(SaveId).exec() : null;
+  const SaveDocument = isValidObjectId(SaveId)
+    ? await MSRolesModel.findOne({
+        guild: DetailsInteract.guildId,
+        _id: SaveId,
+      }).exec()
+    : null;
 
   if (!SaveDocument) {
     return new ErrorEmbed()

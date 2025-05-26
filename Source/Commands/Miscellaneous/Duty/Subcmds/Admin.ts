@@ -935,7 +935,11 @@ async function HandleShiftModifications(
         .replyToInteract(ModalSubmission, true, false);
     }
 
-    const ShiftFound = await ShiftModel.findById(ShiftId);
+    const ShiftFound = await ShiftModel.findOne({
+      guild: AdminInteract.guildId,
+      _id: ShiftId,
+    });
+
     if (!ShiftFound) {
       return new ErrorEmbed()
         .useErrTemplate("NoShiftFoundWithId", ShiftId)
@@ -1218,7 +1222,10 @@ async function HandleUserShiftDelete(
   const ModalSubmission = await ShowModalAndAwaitSubmission(BInteract, ShiftIdInputModal);
   if (!ModalSubmission) return;
   const ShiftId = ModalSubmission.fields.getTextInputValue("da-shift-id");
-  const ShiftDeleted = await ShiftModel.findByIdAndDelete(ShiftId);
+  const ShiftDeleted = await ShiftModel.findOneAndDelete({
+    guild: BInteract.guildId,
+    _id: ShiftId,
+  });
 
   if (!ShiftDeleted) {
     return new ErrorEmbed()

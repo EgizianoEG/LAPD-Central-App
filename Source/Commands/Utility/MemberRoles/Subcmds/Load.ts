@@ -23,7 +23,12 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const SelectedMember = CmdInteraction.options.getMember("member");
   const SaveId = CmdInteraction.options.getString("save", true);
   const IsValidSaveId = Types.ObjectId.isValid(SaveId);
-  const Save = IsValidSaveId ? await MSRolesModel.findById(SaveId) : null;
+  const Save = IsValidSaveId
+    ? await MSRolesModel.findOne({
+        guild: CmdInteraction.guildId,
+        _id: SaveId,
+      })
+    : null;
 
   if (!SelectedMember) {
     return new ErrorEmbed()

@@ -102,7 +102,11 @@ export default async function UANManagementHandlerWrapper(
  */
 async function UANManagementHandler(Interaction: ButtonInteraction<"cached">) {
   const [Action, , NoticeId] = Interaction.customId.split(":");
-  const RequestDocument = await LeaveOfAbsenceModel.findById(NoticeId).exec();
+  const RequestDocument = await LeaveOfAbsenceModel.findOne({
+    guild: Interaction.guildId,
+    _id: NoticeId,
+  }).exec();
+
   if (await HandleNoticeReviewValidation(Interaction, RequestDocument)) return;
   return FunctionMap[Action](Interaction, RequestDocument);
 }
