@@ -23,7 +23,9 @@ const JestConfig: JestConfigWithTsJest = {
     }),
   },
 
+  transformIgnorePatterns: ["/node_modules/(?!chalk|ansi-styles)/.+\\.js$"],
   transform: {
+    "\\.jsx?$": "babel-jest",
     "^.+\\.tsx?$": [
       "ts-jest",
       {
