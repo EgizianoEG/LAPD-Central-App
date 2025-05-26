@@ -112,7 +112,7 @@ export default async function HandlePagePagination({
   }
 
   let PaginationReply: Message | null = await HandleInitialInteractReply(Interact, Pages, MsgFlags);
-  if (Pages.length === 1) return;
+  if (Pages.length === 1 && !(IsComponentsV2Pagination && CV2CompListener)) return;
 
   const ComponentCollector = PaginationReply.createMessageComponentCollector({
     filter: (Btn) => HandleCollectorFiltering(Interact, Btn),
@@ -130,7 +130,7 @@ export default async function HandlePagePagination({
       return CV2CompListener(RecInteraction, CurrPageIndex, Pages);
     }
 
-    if (!RecInteraction.isButton()) {
+    if (!RecInteraction.isButton() || Pages.length === 1) {
       return;
     }
 
