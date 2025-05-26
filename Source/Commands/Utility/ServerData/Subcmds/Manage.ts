@@ -56,6 +56,7 @@ import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
 import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
+import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
 
 // ---------------------------------------------------------------------------------------
 // File Constants, Types, & Enums:
@@ -976,7 +977,13 @@ async function HandleUANDataWipeAllConfirm(
   });
 
   const NoticeType = IsLOA ? "LeaveOfAbsence" : "ReducedActivity";
+  const FoundNotices = await UANModel.find({
+    guild: ConfirmInteract.guildId,
+    type: NoticeType,
+  }).exec();
+
   const DeleteResponse = await UANModel.deleteMany({
+    _id: { $in: FoundNotices.map((N) => N._id) },
     guild: ConfirmInteract.guildId,
     type: NoticeType,
   }).exec();
@@ -987,8 +994,14 @@ async function HandleUANDataWipeAllConfirm(
     return;
   }
 
-  return Promise.all([
+  return Promise.allSettled([
     Logger.LogUserActivityNoticesWipe(ConfirmInteract, DeleteResponse),
+    HandleUserActivityNoticeRoleAssignment(
+      FoundNotices.filter((N) => N.is_active).map((N) => N.user),
+      ConfirmInteract.guild,
+      NoticeType,
+      false
+    ),
     ConfirmInteract.editReply({
       components: [
         new SuccessContainer().setDescription(
