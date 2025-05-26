@@ -1,6 +1,6 @@
 {
   "name": "lapd-central-bot",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "A discord.js bot designed to be used as a helper to manage and operate role playing LAPD Discord servers.",
   "author": "EgizianoEG",
   "license": "MIT",
