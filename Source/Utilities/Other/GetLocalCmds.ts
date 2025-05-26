@@ -75,7 +75,7 @@ async function TryImportCommand(
     }
   } catch (Err: unknown) {
     if (Err instanceof Error) {
-      AppLogger.debug({
+      AppLogger.warn({
         message: "Failed to import main command file; Skipping...",
         stack: Err.stack,
         label: FileLabel,
