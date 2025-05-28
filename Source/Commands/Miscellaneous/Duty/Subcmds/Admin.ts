@@ -36,6 +36,7 @@ import {
 } from "@Utilities/Classes/ExtraContainers.js";
 
 import { Shifts } from "@Typings/Utilities/Database.js";
+import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns";
 import { RandomString } from "@Utilities/Strings/Random.js";
 import { IsValidShiftId } from "@Utilities/Other/Validators.js";
@@ -43,7 +44,6 @@ import { Colors, Emojis } from "@Config/Shared.js";
 import { RootFilterQuery } from "mongoose";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
-import { SuccessEmbed, InfoEmbed, ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
@@ -387,7 +387,7 @@ async function HandleShiftTimeReset(
     const UpdatedDoc = await ShiftDocument.resetOnDutyTime(AdminInteract.createdTimestamp);
     return Promise.allSettled([
       ShiftActionLogger.LogShiftTimeReset(AdminInteract, ShiftDocument, UpdatedDoc),
-      new SuccessEmbed()
+      new SuccessContainer()
         .setDescription("Successfully reset the shift's on-duty time.")
         .replyToInteract(AdminInteract, true),
     ]);
@@ -432,7 +432,7 @@ async function HandleShiftTimeSet(
 
     return Promise.allSettled([
       ShiftActionLogger.LogShiftTimeSet(ModalSubmission, ShiftDocument, UpdatedDoc),
-      new SuccessEmbed()
+      new SuccessContainer()
         .setDescription(
           `Successfully set the shift's on-duty time to ${ReadableDuration(UpdatedDoc.durations.on_duty)}.`
         )
@@ -484,7 +484,7 @@ async function HandleShiftTimeAddSub(
   try {
     const UpdatedDoc = await ShiftDocument.addSubOnDutyTime(ActionType, RoundedDuration);
     return Promise.allSettled([
-      new SuccessEmbed().setDescription(SuccessMsg).replyToInteract(ModalSubmission, true),
+      new SuccessContainer().setDescription(SuccessMsg).replyToInteract(ModalSubmission, true),
       ShiftActionLogger.LogShiftTimeAddSub(
         ModalSubmission,
         UpdatedDoc,
@@ -1025,7 +1025,7 @@ async function HandleShiftCreation(
       TargetUser,
       CmdShiftType: ShiftType,
     }).then(({ RespContainer }) => BInteract.editReply({ components: [RespContainer] })),
-    new SuccessEmbed()
+    new SuccessContainer()
       .setTitle("Shift Created")
       .setDescription(
         Dedent(`
@@ -1066,7 +1066,7 @@ async function HandleShiftListing(
       pages: Pages,
     });
   } else {
-    return new InfoEmbed()
+    return new InfoContainer()
       .setTitle("No Recorded Shifts")
       .setDescription(
         `There are no recorded shifts for this member${
@@ -1254,7 +1254,7 @@ async function HandleUserShiftDelete(
     GetActiveShiftAndShiftDataContainer(BInteract, { TargetUser, CmdShiftType }).then(
       ({ RespContainer }) => BInteract.editReply({ components: [RespContainer] })
     ),
-    new SuccessEmbed()
+    new SuccessContainer()
       .setTitle("Shift Deleted")
       .setDescription(`The shift with the identifier \`${ShiftId}\` was successfully deleted.`)
       .replyToInteract(ModalSubmission),
