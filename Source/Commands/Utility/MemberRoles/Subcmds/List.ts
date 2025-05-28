@@ -130,7 +130,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     guild: CmdInteraction.guildId,
     member: SelectedMember.id,
   })
-    .sort({ saved_at: "desc" })
+    .sort({ saved_on: -1 })
     .exec();
 
   if (Saves.length === 0) {
