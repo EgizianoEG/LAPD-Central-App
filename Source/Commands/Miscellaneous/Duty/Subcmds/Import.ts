@@ -93,7 +93,7 @@ async function AwaitImportConfirmation(
 
   const PromptMessage = await Interaction.reply({
     flags: MessageFlags.IsComponentsV2,
-    components: [PromptContainer, ButtonsRow],
+    components: [PromptContainer.attachPromptActionRows(ButtonsRow)],
     withResponse: true,
   }).then((Resp) => Resp.resource!.message! as Message<true>);
 
