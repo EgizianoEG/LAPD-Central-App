@@ -3,13 +3,14 @@
 
 import {
   Colors,
+  channelLink,
   roleMention,
   userMention,
-  EmbedBuilder,
   MessageFlags,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
+import { BaseExtraContainer } from "@Utilities/Classes/ExtraContainers.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import MSRolesModel from "@Models/MemberRoles.js";
 import Dedent from "dedent";
@@ -20,9 +21,10 @@ import Dedent from "dedent";
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const SelectedMember = CmdInteraction.options.getMember("member");
   const BackupReason = CmdInteraction.options.getString("reason");
+  const MsgFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
 
   if (SelectedMember) {
-    await CmdInteraction.deferReply({ flags: MessageFlags.Ephemeral });
+    await CmdInteraction.deferReply({ flags: MsgFlags });
   } else {
     return new ErrorEmbed()
       .useErrTemplate("MemberNotFound")
@@ -48,7 +50,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     saved_on: CmdInteraction.createdAt,
   });
 
-  const RespEmbed = new EmbedBuilder()
+  const RespEmbed = new BaseExtraContainer()
     .setColor(Colors.Greyple)
     .setTitle("Backup Created")
     .setDescription(
@@ -56,24 +58,17 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
         ${userMention(SelectedMember.id)}'s currently assigned roles were successfully saved and backed up with the save ID: \`${Save.id}\`.
         - **Current Nickname:** \`${Save.nickname}\`
         - **Current Username:** \`@${Save.username}\`
+        ${Save.reason ? `- **Reason for Backup:** ${Save.reason}\n` : ""}
+        **Backed Up Roles ([${CurrRoles.length}](${channelLink(CmdInteraction.channelId)}))**:
+        >>> ${CurrRoles.map((Role) => roleMention(Role.role_id)).join(", ")}
       `)
-    )
-    .addFields({
-      name: `**Backed Up Roles - ${Save.roles.length}**`,
-      value: Save.roles.map((Role) => roleMention(Role.role_id)).join(", "),
-    });
-
-  if (Save.reason) {
-    RespEmbed.setDescription(
-      `${RespEmbed.data.description}\n- **Reason for Backup:** ${Save.reason}`
     );
-  }
 
-  return CmdInteraction.editReply({ embeds: [RespEmbed] });
+  return CmdInteraction.editReply({ components: [RespEmbed], flags: MsgFlags });
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,

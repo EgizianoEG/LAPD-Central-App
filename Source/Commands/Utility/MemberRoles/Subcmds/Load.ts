@@ -5,10 +5,16 @@ import {
   Role,
   Colors,
   channelLink,
-  EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
+
+import {
+  BaseExtraContainer,
+  SuccessContainer,
+  ErrorContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
 
 import { Types } from "mongoose";
 import { Emojis } from "@Config/Shared.js";
@@ -45,12 +51,13 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   }
 
   await CmdInteraction.reply({
-    embeds: [
-      new EmbedBuilder()
+    flags: MessageFlags.IsComponentsV2,
+    components: [
+      new BaseExtraContainer()
         .setTitle(
-          `${Emojis.LoadingGrey}\u{2000}Member Roles Load     @${SelectedMember.user.username}`
+          `${Emojis.LoadingGrey}\u{2000}Loading Member Roles     @${SelectedMember.user.username}`
         )
-        .setDescription("Assigning saved roles...")
+        .setDescription("Applying saved roles to the member...")
         .setColor(Colors.Greyple),
     ],
   });
@@ -70,7 +77,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     });
 
   if (FilteredRoles.length === 0) {
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("NoAssignableRolesToLoad")
       .replyToInteract(CmdInteraction, true, false);
   }
@@ -96,11 +103,11 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   `);
 
   return CmdInteraction.editReply({
-    embeds: [
-      new EmbedBuilder()
-        .setTitle(`Member Roles Reassigned     @${SelectedMember.user.username}`)
-        .setDescription(RespEmbedDesc)
-        .setColor(Colors.Greyple),
+    flags: MessageFlags.IsComponentsV2,
+    components: [
+      new SuccessContainer()
+        .setTitle(`Member Roles Reassigned     <@${SelectedMember.user}>`)
+        .setDescription(RespEmbedDesc),
     ],
   }).catch(() => null);
 }
