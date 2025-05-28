@@ -893,6 +893,18 @@ export const ErrorMessages = {
     Description:
       "The duty import file included no valid entries that could be processed. Make sure the entries in the file are formatted correctly, then try again.",
   },
+
+  ActionRequiresMemberPresence: {
+    Title: "User Must Be Present Member",
+    Description:
+      "You cannot take this action on a person who is not currently a member of the server.",
+  },
+
+  UANRequesterNoLongerAMember: {
+    Title: "Requester No Longer A Member",
+    Description:
+      "The requester of this notice is no longer a member of this server. You cannot take approval action on this request at this time.",
+  },
 };
 
 export const InfoMessages = {
