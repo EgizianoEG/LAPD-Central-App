@@ -31,8 +31,6 @@ try {
       message: "Environment emojis loaded successfully.",
       label: "Config:Shared.ts",
       emojis: EnvAppEmojis,
-      length: Object.keys(EnvAppEmojis).length,
-      env_length: Env.APP_EMOJIS,
     });
   }
 } catch {

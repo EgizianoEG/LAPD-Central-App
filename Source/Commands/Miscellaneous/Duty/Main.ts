@@ -110,8 +110,8 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
       leaderboard: 5,
       active: 5,
       import: {
-        $user: { cooldown: 60, timeframe: 30 * 60, max_executions: 2 },
-        $guild: { cooldown: 15, timeframe: 60 * 60, max_executions: 6 },
+        $user: { cooldown: 60, timeframe: 15 * 60, max_executions: 2 },
+        $guild: { cooldown: 15, timeframe: 30 * 60, max_executions: 6 },
       },
     },
     user_perms: {

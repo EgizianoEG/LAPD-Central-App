@@ -136,7 +136,7 @@ async function HandleUnauthorizedManagement(Interaction: ButtonInteraction<"cach
  * @param Interaction - The current interaction being processed.
  * @param RequestDocument - The notice document to validate.
  * @param InitialInteraction - The original button interaction that started the process.
- * @returns A Promise resolving to true if validation failed (action blocked), false if review can proceed.
+ * @returns A Promise resolving to `true` if validation failed (action blocked), `false` if review can proceed.
  */
 async function HandleNoticeReviewValidation(
   Interaction: ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">,
@@ -200,6 +200,21 @@ async function HandleNoticeReviewValidation(
     }
 
     return Promise.all(Tasks).then(() => true);
+  } else if (RequestDocument) {
+    const IsTargetPresentMember = await Interaction.guild.members
+      .fetch(RequestDocument.user)
+      .catch(() => null);
+
+    if (!IsTargetPresentMember) {
+      const ReplyEmbed = new ErrorEmbed().useErrTemplate("UANRequesterNoLongerAMember");
+      await Interaction.deferUpdate().catch(() => null);
+      return Interaction.followUp({
+        embeds: [ReplyEmbed],
+        flags: MessageFlags.Ephemeral,
+      })
+        .then(() => true)
+        .catch(() => true);
+    }
   }
 
   return false;
