@@ -36,6 +36,7 @@ import {
 } from "@Utilities/Classes/ExtraContainers.js";
 
 import { Shifts } from "@Typings/Utilities/Database.js";
+import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns";
 import { RandomString } from "@Utilities/Strings/Random.js";
 import { IsValidShiftId } from "@Utilities/Other/Validators.js";
@@ -43,7 +44,6 @@ import { Colors, Emojis } from "@Config/Shared.js";
 import { RootFilterQuery } from "mongoose";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
-import { SuccessEmbed, InfoEmbed, ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
@@ -89,8 +89,10 @@ enum ShiftModActions {
  */
 function GetShiftAdminButtonsRows(
   ShiftActive: Shifts.HydratedShiftDocument | boolean | null,
-  Interaction: SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">
+  Interaction: SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">,
+  TargetUser: User
 ) {
+  const IsMemberInGuild = Interaction.guild.members.cache.has(TargetUser.id);
   const ActionRowOne = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("da-list")
@@ -115,7 +117,8 @@ function GetShiftAdminButtonsRows(
       .setCustomId("da-create")
       .setLabel("Create Shift")
       .setEmoji(Emojis.WhitePlus)
-      .setStyle(ButtonStyle.Secondary),
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!IsMemberInGuild),
     new ButtonBuilder()
       .setCustomId("da-end")
       .setLabel("End")
@@ -384,7 +387,7 @@ async function HandleShiftTimeReset(
     const UpdatedDoc = await ShiftDocument.resetOnDutyTime(AdminInteract.createdTimestamp);
     return Promise.allSettled([
       ShiftActionLogger.LogShiftTimeReset(AdminInteract, ShiftDocument, UpdatedDoc),
-      new SuccessEmbed()
+      new SuccessContainer()
         .setDescription("Successfully reset the shift's on-duty time.")
         .replyToInteract(AdminInteract, true),
     ]);
@@ -429,7 +432,7 @@ async function HandleShiftTimeSet(
 
     return Promise.allSettled([
       ShiftActionLogger.LogShiftTimeSet(ModalSubmission, ShiftDocument, UpdatedDoc),
-      new SuccessEmbed()
+      new SuccessContainer()
         .setDescription(
           `Successfully set the shift's on-duty time to ${ReadableDuration(UpdatedDoc.durations.on_duty)}.`
         )
@@ -481,7 +484,7 @@ async function HandleShiftTimeAddSub(
   try {
     const UpdatedDoc = await ShiftDocument.addSubOnDutyTime(ActionType, RoundedDuration);
     return Promise.allSettled([
-      new SuccessEmbed().setDescription(SuccessMsg).replyToInteract(ModalSubmission, true),
+      new SuccessContainer().setDescription(SuccessMsg).replyToInteract(ModalSubmission, true),
       ShiftActionLogger.LogShiftTimeAddSub(
         ModalSubmission,
         UpdatedDoc,
@@ -733,7 +736,7 @@ async function GetActiveShiftAndShiftDataContainer(
     `**Average Time:** ${UserShiftsData.avg_onduty}`;
 
   const FooterShiftType = CmdShiftType ? inlineCode(CmdShiftType) : "all types";
-  const ButtonActionRows = GetShiftAdminButtonsRows(ActiveShift, Interaction);
+  const ButtonActionRows = GetShiftAdminButtonsRows(ActiveShift, Interaction, TargetUser);
   const RespContainer = new ContainerBuilder()
     .setAccentColor(resolveColor(ContainerAccentColor))
     .addTextDisplayComponents(
@@ -968,6 +971,13 @@ async function HandleShiftCreation(
   TargetUser: User,
   ShiftType: Nullable<string>
 ) {
+  const IsMemberInGuild = BInteract.guild.members.cache.has(TargetUser.id);
+  if (!IsMemberInGuild) {
+    return new ErrorEmbed()
+      .useErrTemplate("ActionRequiresMemberPresence", TargetUser.id)
+      .replyToInteract(BInteract, true);
+  }
+
   const ShiftCreationModal = GetShiftCreationModal(BInteract, ShiftType);
   const ModalSubmission = await ShowModalAndAwaitSubmission(BInteract, ShiftCreationModal);
   if (!ModalSubmission) return;
@@ -1015,7 +1025,7 @@ async function HandleShiftCreation(
       TargetUser,
       CmdShiftType: ShiftType,
     }).then(({ RespContainer }) => BInteract.editReply({ components: [RespContainer] })),
-    new SuccessEmbed()
+    new SuccessContainer()
       .setTitle("Shift Created")
       .setDescription(
         Dedent(`
@@ -1056,7 +1066,7 @@ async function HandleShiftListing(
       pages: Pages,
     });
   } else {
-    return new InfoEmbed()
+    return new InfoContainer()
       .setTitle("No Recorded Shifts")
       .setDescription(
         `There are no recorded shifts for this member${
@@ -1244,7 +1254,7 @@ async function HandleUserShiftDelete(
     GetActiveShiftAndShiftDataContainer(BInteract, { TargetUser, CmdShiftType }).then(
       ({ RespContainer }) => BInteract.editReply({ components: [RespContainer] })
     ),
-    new SuccessEmbed()
+    new SuccessContainer()
       .setTitle("Shift Deleted")
       .setDescription(`The shift with the identifier \`${ShiftId}\` was successfully deleted.`)
       .replyToInteract(ModalSubmission),
@@ -1255,6 +1265,7 @@ async function HandleUserShiftDelete(
 // Initial Logic:
 // --------------
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
+  await Interaction.deferReply();
   const CmdShiftType = Interaction.options.getString("type", false);
   const TargetMember = Interaction.options.getUser("member", true);
 
@@ -1269,11 +1280,10 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     CmdShiftType,
   });
 
-  const RespMessage = await Interaction.reply({
+  const RespMessage = await Interaction.editReply({
     flags: MessageFlags.IsComponentsV2,
     components: [RespContainer],
-    withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  });
 
   const ActionCollector = RespMessage.createMessageComponentCollector({
     filter: (BI) => HandleCollectorFiltering(Interaction, BI),

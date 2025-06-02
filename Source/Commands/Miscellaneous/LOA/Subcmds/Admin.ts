@@ -66,20 +66,18 @@ async function PromiseAllThenTrue<T>(Values: T[]): Promise<boolean> {
 
 /**
  * Retrieves the target member from the interaction.
- * - If the interaction is a button, it retrieves the ID from the embed's author URL.
+ * - If the interaction is a button, it retrieves the Id from the button custom Id.
  * - If the interaction is a command, it retrieves the user from the "member" option.
- * @param Interaction The interaction to retrieve the target member from.
- * @returns The target member or null if not found.
+ * @param Interaction - The interaction to retrieve the target member/user from.
+ * @returns The target user or `null` if not found.
  */
-async function GetTargetMember(Interaction: CmdOrButtonInteraction): Promise<User | null> {
+async function GetTargetUser(Interaction: CmdOrButtonInteraction): Promise<User | null> {
   if (Interaction.isButton()) {
-    const ReplyMessage = await Interaction.fetchReply();
-    const ReplyEmbed = ReplyMessage.embeds[0];
-    const TargetMemberId = ReplyEmbed?.data.author?.url?.split("/").pop();
-    if (!ReplyEmbed || !TargetMemberId) return null;
+    const TargetMemberId = Interaction.customId.split(":")[3];
+    if (!TargetMemberId) return null;
     return Interaction.client.users.fetch(TargetMemberId).catch(() => null);
   } else if (Interaction.isCommand()) {
-    // The target member is an available option in the command.
+    // The target user is an available option in the command.
     return Interaction.options.getUser("member", true);
   } else {
     return null;
@@ -104,7 +102,6 @@ function GetPanelEmbed(
     .setColor(Colors.DarkBlue)
     .setAuthor({
       name: `@${TargetMember.username}`,
-      url: `https://discord.com/users/${TargetMember.id}`,
       iconURL: TargetMember.displayAvatarURL({ size: 128 }),
     });
 
@@ -198,6 +195,7 @@ function GetPanelEmbed(
  */
 function GetPanelComponents(
   Interaction: CmdOrButtonInteraction,
+  TargetUserId: string,
   ActiveOrPendingLeave: Awaited<ReturnType<typeof GetLOAsData>>["active_notice"]
 ): ActionRowBuilder<ButtonBuilder>[] {
   const ActionRow = new ActionRowBuilder<ButtonBuilder>();
@@ -268,7 +266,7 @@ function GetPanelComponents(
   // Add the user id and leave id to the custom_id of each button.
   ActionRow.components.forEach((Button) =>
     Button.setCustomId(
-      `${(Button.data as APIButtonComponentWithCustomId).custom_id}:${Interaction.user.id}:${ActiveOrPendingLeave?._id ?? "0"}`
+      `${(Button.data as APIButtonComponentWithCustomId).custom_id}:${Interaction.user.id}:${ActiveOrPendingLeave?._id ?? "0"}:${TargetUserId}`
     )
   );
 
@@ -411,8 +409,16 @@ async function HandleLeaveStart(
       Callback(InitialCmdInteract),
       new ErrorEmbed()
         .useErrTemplate("LOAAlreadyExistsManagement")
-        .replyToInteract(ButtonInteract, true, true),
+        .replyToInteract(ButtonInteract, true),
     ]);
+  }
+
+  const MemberInGuild = await ButtonInteract.guild.members.fetch(TargetMemberId).catch(() => null);
+
+  if (!MemberInGuild) {
+    return new ErrorEmbed()
+      .useErrTemplate("ActionRequiresMemberPresence")
+      .replyToInteract(ButtonInteract, true);
   }
 
   const LeaveOptsModal = new ModalBuilder()
@@ -541,6 +547,13 @@ async function HandleLeaveExtend(
   };
 
   if (!ActiveLeave) return HandleNonActiveLeave();
+  const MemberInGuild = await ButtonInteract.guild.members.fetch(TargetMemberId).catch(() => null);
+  if (!MemberInGuild) {
+    return new ErrorEmbed()
+      .useErrTemplate("ActionRequiresMemberPresence")
+      .replyToInteract(ButtonInteract, true);
+  }
+
   const ExtensionOptsModal = new ModalBuilder()
     .setTitle("Leave of Absence Extension")
     .setCustomId(`loa-admin-ext:${ButtonInteract.user.id}:${RandomString(4)}`)
@@ -805,7 +818,7 @@ async function HandleExtensionApprovalOrDenial(
 // Initial Logic:
 // --------------
 async function Callback(Interaction: CmdOrButtonInteraction) {
-  const TargetMember = await GetTargetMember(Interaction);
+  const TargetMember = await GetTargetUser(Interaction);
   if (!TargetMember) return Interaction.isButton() && Interaction.deferUpdate().catch(() => null);
   if (TargetMember.bot) {
     return new ErrorEmbed()
@@ -823,7 +836,7 @@ async function Callback(Interaction: CmdOrButtonInteraction) {
   let PromptMessage: Message<true>;
   const ActiveOrPendingLOA = LOAData.active_notice ?? LOAData.pending_notice;
   const PanelEmbed = GetPanelEmbed(Interaction, TargetMember, LOAData);
-  const PanelComps = GetPanelComponents(Interaction, ActiveOrPendingLOA);
+  const PanelComps = GetPanelComponents(Interaction, TargetMember.id, ActiveOrPendingLOA);
   const ReplyOpts = {
     embeds: [PanelEmbed],
     components: PanelComps,
