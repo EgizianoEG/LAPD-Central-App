@@ -1,7 +1,7 @@
 import type * as DiscordJSMask from "discord.js";
 import type * as MongooseMask from "mongoose";
 import type * as UtilityTypesMask from "utility-types";
-import type { ScheduleOptions } from "node-cron";
+import type { Options as ScheduleOptions } from "node-cron";
 import type { GeneralTypings } from "./Utilities/Generic.d.ts";
 import type {
   MessageContextMenuCommandInteraction,
