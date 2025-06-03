@@ -98,7 +98,7 @@ function GetShiftAdminButtonsRows(
       .setCustomId("da-list")
       .setLabel("List")
       .setEmoji(Emojis.HamburgerList)
-      .setStyle(ButtonStyle.Success),
+      .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId("da-modify")
       .setLabel("Modify")
