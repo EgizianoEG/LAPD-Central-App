@@ -483,6 +483,17 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         },
       },
       {
+        name: "Corvette X08",
+        alias: "Corbeta 1M Edition",
+        style: "Coupe",
+        class: "Car",
+        category: "Prestige",
+        model_year: {
+          org: "2013",
+          alt: "2014",
+        },
+      },
+      {
         name: "Corvette C8 Z06",
         alias: "Corbeta 8",
         style: "Coupe",
