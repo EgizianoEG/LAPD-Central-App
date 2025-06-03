@@ -1,8 +1,8 @@
 // Dependencies:
 // -------------
-import GetWeatherIcon from "@Utilities/Other/GetWeatherIcon.js";
+import GetWeatherIcon from "@Utilities/Helpers/GetWeatherIcon.js";
 import { Icons, Emojis } from "@Config/Shared.js";
-import { GetCurrentWeather } from "@Utilities/Other/WeatherData.js";
+import { GetCurrentWeather } from "@Utilities/External/WeatherData.js";
 import {
   ApplicationIntegrationType,
   InteractionContextType,

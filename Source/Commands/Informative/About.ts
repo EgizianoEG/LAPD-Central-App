@@ -1,5 +1,5 @@
 import { InteractionContextType, SlashCommandBuilder, OAuth2Scopes } from "discord.js";
-import { IsValidDiscordId } from "@Utilities/Other/Validators.js";
+import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { Discord } from "@Config/Secrets.js";

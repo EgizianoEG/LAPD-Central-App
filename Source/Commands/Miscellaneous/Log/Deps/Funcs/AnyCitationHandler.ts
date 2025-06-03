@@ -28,10 +28,10 @@ import {
   IsValidLicensePlate,
   IsValidPersonHeight,
   IsValidRobloxUsername,
-} from "@Utilities/Other/Validators.js";
+} from "@Utilities/Helpers/Validators.js";
 
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
-import { AllVehicleModelNames, AllVehicleModels } from "@Resources/ERLCVehicles.js";
+import { AllVehicleModelNames, AllVehicleModels } from "@Resources/ERLC-Data/ERLCVehicles.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { RenderFilledNTAForm } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
@@ -40,7 +40,7 @@ import { RandomString } from "@Utilities/Strings/Random.js";
 import { TitleCase } from "@Utilities/Strings/Converters.js";
 import { Colors } from "@Config/Shared.js";
 
-import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
+import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
 import LogTrafficCitation from "@Utilities/Database/LogCitation.js";
 import FindClosestMatch from "didyoumean2";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
@@ -52,7 +52,7 @@ import AppError from "@Utilities/Classes/AppError.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetAllCitationNums from "@Utilities/Database/GetCitationNumbers.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import CitationModel, { NTATypes } from "@Models/Citation.js";
 
 const CmdFileLabel = "Commands:Miscellaneous:Log:CitWarn";

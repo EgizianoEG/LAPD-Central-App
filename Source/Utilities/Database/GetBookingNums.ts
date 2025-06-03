@@ -1,4 +1,4 @@
-import { BookingAutocompletionCache } from "@Utilities/Other/Cache.js";
+import { BookingAutocompletionCache } from "@Utilities/Helpers/Cache.js";
 import { AggregateResults } from "@Typings/Utilities/Database.js";
 import ArrestModel from "@Models/Arrest.js";
 

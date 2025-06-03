@@ -11,7 +11,7 @@ import {
 
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { FormatUsername } from "@Utilities/Strings/Formatters.js";
-import { IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 
 import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";

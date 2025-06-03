@@ -1,7 +1,7 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from "discord.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import GetIncidentRecord from "@Utilities/Database/GetIncidentRecord.js";
-import GetIncidentReportEmbeds from "@Utilities/Other/GetIncidentReportEmbeds.js";
+import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

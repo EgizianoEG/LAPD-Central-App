@@ -158,11 +158,10 @@ function AreSlashCommandOptionsDifferent(
       (LocalOption.type === ApplicationCommandOptionType.Subcommand ||
         LocalOption.type === ApplicationCommandOptionType.SubcommandGroup) &&
       "options" in LocalOption &&
-      "options" in ExistingOption
+      "options" in ExistingOption &&
+      AreSlashCommandOptionsDifferent(LocalOption.options, ExistingOption.options)
     ) {
-      if (AreSlashCommandOptionsDifferent(LocalOption.options, ExistingOption.options)) {
-        return true;
-      }
+      return true;
     }
   }
 

@@ -1,7 +1,7 @@
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
 import { Other as OtherSecrets } from "@Config/Secrets.js";
-import { CronJobFileDefReturn } from "@Typings/Global.js";
-import GetOSMetrics from "@Utilities/Other/GetOSMetrics.js";
+import { CronJobFileDefReturn } from "@Typings/Core/System.js";
+import GetOSMetrics from "@Utilities/Helpers/GetOSMetrics.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 
 if (OtherSecrets.IsProdEnv) {

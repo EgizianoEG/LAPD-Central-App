@@ -1,4 +1,4 @@
-import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 import { GuildArrests } from "@Typings/Utilities/Database.js";
 import { model, Model, Schema } from "mongoose";
 

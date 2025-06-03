@@ -1,9 +1,9 @@
 import { LoadThumbImageWithFallback, RelSize, RelY } from "./ThumbToMugshot.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas/index.js";
-import { GetDirName } from "@Utilities/Other/Paths.js";
+import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import { Thumbs } from "@Config/Shared.js";
 import { format } from "date-fns";
-import UploadToImgBB from "@Utilities/Other/ImgBBUpload.js";
+import UploadToImgBB from "@Utilities/External/ImgBBUpload.js";
 import FileSystem from "node:fs/promises";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Path from "node:path";

@@ -2,7 +2,7 @@
 // -------------
 
 import { OpenWeather as OpenWeatherConfig } from "@Config/Secrets.js";
-import { WeatherDataTypings } from "@Typings/Utilities/Weather.js";
+import { WeatherDataTypings } from "@Typings/External/Weather.js";
 import Axios, { AxiosResponse } from "axios";
 import Convert from "convert-units";
 

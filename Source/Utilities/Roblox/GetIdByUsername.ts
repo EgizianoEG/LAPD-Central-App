@@ -1,5 +1,5 @@
-import { APIResponses } from "@Typings/Utilities/Roblox.js";
-import { RobloxAPICache } from "../Other/Cache.js";
+import { APIResponses } from "@Typings/External/Roblox.js";
+import { RobloxAPICache } from "../Helpers/Cache.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Axios from "axios";
 export type ReturnType<Input> = Input extends string[]

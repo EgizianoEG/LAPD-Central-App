@@ -1,5 +1,5 @@
 import { SlashCommandSubcommandBuilder } from "discord.js";
-import UANListCmdCallback from "@Utilities/Other/UANsListCmdCallback.js";
+import UANListCmdCallback from "@Utilities/Discord/UANsListCmdCallback.js";
 // ---------------------------------------------------------------------------------------
 // Command structure:
 // ------------------

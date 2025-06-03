@@ -1,4 +1,4 @@
-import { ImgBB } from "@Typings/Utilities/APIResponses.js";
+import { ImgBB } from "@Typings/External/ImgBB.js";
 import { Other } from "@Config/Secrets.js";
 import Axios from "axios";
 
@@ -23,7 +23,7 @@ export default async function UploadToImgBB(
   const Payload = new FormData();
   Payload.append("image", Img.toString("base64"));
 
-  return Axios.post<ImgBB.ImageUpload>("https://api.imgbb.com/1/upload", Payload, {
+  return Axios.post<ImgBB.Response.ImageUpload>("https://api.imgbb.com/1/upload", Payload, {
     params: {
       key: Other.ImgBB_API_Key,
       name: ImgName,

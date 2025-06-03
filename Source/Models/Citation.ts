@@ -1,7 +1,7 @@
-import { EyeColors, HairColors } from "@Resources/ERLCPDColors.js";
+import { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.js";
 import { model, Model, Schema } from "mongoose";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
-import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 
 type CitationPlainDoc = GuildCitations.AnyCitationData;
 type CitationModelType = Model<CitationPlainDoc, unknown>;

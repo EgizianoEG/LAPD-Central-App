@@ -1,5 +1,5 @@
 import { ButtonInteraction } from "discord.js";
-import { SendGuildMessages } from "@Utilities/Other/GuildMessages.js";
+import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
 import { CmdOptionsType } from "@Cmds/Miscellaneous/Log/Deps/Arrest.js";
 import { FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { Shifts } from "@Typings/Utilities/Database.js";
@@ -9,7 +9,7 @@ import AppError from "@Utilities/Classes/AppError.js";
 import ArrestModel from "@Models/Arrest.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
-import GetFormattedArrestReportEmbed from "../Other/FormatArrestReportEmbed.js";
+import GetFormattedArrestReportEmbed from "../Reports/FormatArrestReportEmbed.js";
 
 export type ReporterInfoType = {
   /** Shift currently active for the reporting officer */

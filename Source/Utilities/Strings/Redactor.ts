@@ -5,7 +5,7 @@ import Process from "node:process";
 import Linkify from "linkifyjs";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 
-import { GetDirName } from "@Utilities/Other/Paths.js";
+import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import {
   Guild,
   Collection,
@@ -18,7 +18,7 @@ import {
 import {
   IsValidChannelOrMessageLink,
   IsValidDiscordAttachmentLink,
-} from "@Utilities/Other/Validators.js";
+} from "@Utilities/Helpers/Validators.js";
 
 // ---------------------------------------------------------------------------------------
 // Definitions:

@@ -1,6 +1,6 @@
 import { Collection, Guild, GuildMember } from "discord.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import { GuildMembersCache } from "./Cache.js";
+import { GuildMembersCache } from "../Helpers/Cache.js";
 const FileLabel = "Utilities:ResolveDiscordUsernames";
 
 /**

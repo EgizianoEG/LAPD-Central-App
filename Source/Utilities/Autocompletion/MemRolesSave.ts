@@ -1,5 +1,5 @@
 import { ApplicationCommandOptionChoiceData } from "discord.js";
-import { IsValidDiscordId } from "@Utilities/Other/Validators.js";
+import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
 import MRolesModel from "@Models/MemberRoles.js";
 
 /**

@@ -38,19 +38,19 @@ import { ReporterInfo } from "../Log.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import { ArraysAreEqual } from "@Utilities/Other/ArraysAreEqual.js";
+import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { ListSplitRegex } from "@Resources/RegularExpressions.js";
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
-import { IsValidPersonHeight, IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidPersonHeight, IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
-import HandleCollectorFiltering from "@Utilities/Other/HandleCollectorFilter.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
 import GetBookingMugshot from "@Utilities/ImageRendering/ThumbToMugshot.js";
 import GetAllBookingNums from "@Utilities/Database/GetBookingNums.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
-import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";

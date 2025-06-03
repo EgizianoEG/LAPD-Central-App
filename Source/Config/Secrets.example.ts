@@ -1,4 +1,4 @@
-import { Secrets } from "@Typings/Config.js";
+import { Secrets } from "@Typings/Core/Config.js";
 import { env as Env } from "node:process";
 const EnvBotDevs = Env.BOT_DEVS ? (JSON.parse(Env.BOT_DEVS.replace(/'+/g, '"')) as string[]) : null;
 const WLGuilds = Env.WL_GUILDS ? (JSON.parse(Env.WL_GUILDS.replace(/'+/g, '"')) as string[]) : null;

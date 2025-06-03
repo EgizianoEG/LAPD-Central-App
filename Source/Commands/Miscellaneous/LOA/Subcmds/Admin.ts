@@ -28,8 +28,8 @@ import { HandleDurationValidation } from "./Request.js";
 import { ValidateExtendedDuration } from "./Manage.js";
 import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
+import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
 import ParseDuration from "parse-duration";
 import GetLOAsData from "@Utilities/Database/GetUANData.js";

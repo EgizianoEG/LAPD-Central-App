@@ -23,7 +23,7 @@ import {
 
 import { Dedent, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
-import ResolveUsernamesToIds from "@Utilities/Other/ResolveDiscordUsernames.js";
+import ResolveUsernamesToIds from "@Utilities/Discord/ResolveDiscordUsernames.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import ParseDuration from "parse-duration";
 import AppLogger from "@Utilities/Classes/AppLogger.js";

@@ -51,13 +51,13 @@ import ShiftModel from "@Models/Shift.js";
 import * as Chrono from "chrono-node";
 
 import HumanizeDuration from "humanize-duration";
-import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
-import HandleShiftRoleAssignment from "@Utilities/Other/HandleShiftRoleAssignment.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
-import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import HandleShiftRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
+import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
 
 // ---------------------------------------------------------------------------------------
 // File Constants, Types, & Enums:

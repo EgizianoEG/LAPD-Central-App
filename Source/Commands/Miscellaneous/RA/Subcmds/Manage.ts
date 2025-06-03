@@ -22,7 +22,7 @@ import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { compareDesc } from "date-fns";
 
-import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import GetUANData from "@Utilities/Database/GetUANData.js";
 import Dedent from "dedent";
 

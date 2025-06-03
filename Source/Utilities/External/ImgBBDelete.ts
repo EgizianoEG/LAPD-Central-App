@@ -1,5 +1,5 @@
 import { Other } from "@Config/Secrets.js";
-import { ImgBB } from "@Typings/Utilities/APIResponses.js";
+import { ImgBB } from "@Typings/External/ImgBB.js";
 import Axios from "axios";
 const ExtractRegex = /^https?:\/\/\w+\.com?\/(\w+)\/(\w+)$/i;
 
@@ -12,7 +12,7 @@ const ExtractRegex = /^https?:\/\/\w+\.com?\/(\w+)\/(\w+)$/i;
 export default async function DeleteFromImgBB(
   ImgDeleteURL: string,
   SilenceErrors: boolean = false
-): Promise<ImgBB.ImageDelete | null> {
+): Promise<ImgBB.Response.ImageDelete | null> {
   const [, DelId, DelHash] = ImgDeleteURL.match(ExtractRegex) || [];
   if (!DelId || !DelHash) throw new Error("Unknown ImgBB delete url format.");
 
@@ -23,7 +23,7 @@ export default async function DeleteFromImgBB(
   Payload.append("deleting[id]", DelId);
   Payload.append("deleting[hash]", DelHash);
 
-  return Axios.post<ImgBB.ImageDelete>("https://ibb.co/json", Payload)
+  return Axios.post<ImgBB.Response.ImageDelete>("https://ibb.co/json", Payload)
     .then((Resp) => Resp.data)
     .catch((Err) => {
       if (SilenceErrors) return null;

@@ -19,10 +19,10 @@ import {
 import Dedent from "dedent";
 import GetActiveShifts from "@Utilities/Database/GetShiftActive.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import HandleCollectorFiltering from "@Utilities/Other/HandleCollectorFilter.js";
-import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
-import HandleShiftRoleAssignment from "@Utilities/Other/HandleShiftRoleAssignment.js";
-import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
+import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import HandleShiftRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
+import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

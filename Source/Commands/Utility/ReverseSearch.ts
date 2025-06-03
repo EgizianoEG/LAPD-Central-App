@@ -6,7 +6,7 @@ import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
 import GuildProfile from "@Models/GuildProfile.js";
 
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 import {
   userMention,
   SlashCommandBuilder,

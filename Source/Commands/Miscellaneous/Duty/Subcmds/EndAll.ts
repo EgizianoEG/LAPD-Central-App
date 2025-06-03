@@ -15,9 +15,9 @@ import {
   SuccessContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
-import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
-import HandleShiftRoleAssignment from "@Utilities/Other/HandleShiftRoleAssignment.js";
-import HandleCollectorFiltering from "@Utilities/Other/HandleCollectorFilter.js";
+import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
+import HandleShiftRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
+import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import ShiftModel from "@Models/Shift.js";
 

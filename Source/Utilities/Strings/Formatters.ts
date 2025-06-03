@@ -1,12 +1,12 @@
 /* eslint-disable sonarjs/cognitive-complexity */
-import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 import { AddStatutesRegexes, ATVCodesRegexes } from "@Resources/RegularExpressions.js";
 import { format as FormatStr } from "node:util";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
 import { userMention } from "discord.js";
 import { TitleCase } from "./Converters.js";
 import { Vehicles } from "@Typings/Resources.js";
-import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 import DHumanizer from "humanize-duration";
 import _Dedent from "dedent";
 

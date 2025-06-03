@@ -24,9 +24,9 @@ import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { UserActivityNoticeMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
-import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
+import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetUANsData from "@Utilities/Database/GetUANData.js";

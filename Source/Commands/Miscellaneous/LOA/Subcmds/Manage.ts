@@ -31,10 +31,10 @@ import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
 import { milliseconds, addMilliseconds } from "date-fns";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
+import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
-import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import ParseDuration from "parse-duration";
 import GetLOAsData from "@Utilities/Database/GetUANData.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";

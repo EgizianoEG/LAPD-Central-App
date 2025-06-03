@@ -10,13 +10,17 @@ import {
   ContextMenuCommandInteraction,
 } from "discord.js";
 
+import {
+  UserCommandExecutionsCache,
+  GuildCommandExecutionsCache,
+} from "@Utilities/Helpers/Cache.js";
+
 import { Discord } from "@Config/Secrets.js";
 import { UnorderedList } from "@Utilities/Strings/Formatters.js";
 import { PascalToNormal } from "@Utilities/Strings/Converters.js";
-import { CommandCooldowns } from "@Typings/Global.js";
-import { IsValidUserPermsObj } from "@Utilities/Other/Validators.js";
+import { CommandCooldowns } from "@Typings/Core/Commands.js";
+import { IsValidUserPermsObj } from "@Utilities/Helpers/Validators.js";
 import { WarnEmbed, ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { UserCommandExecutionsCache, GuildCommandExecutionsCache } from "@Utilities/Other/Cache.js";
 import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 import Dedent from "dedent";
 

@@ -1,5 +1,5 @@
 import { milliseconds, subMilliseconds } from "date-fns";
-import { CronJobFileDefReturn } from "@Typings/Global.js";
+import { CronJobFileDefReturn } from "@Typings/Core/System.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import GuildModel from "@Models/Guild.js";
 import ArrestModel from "@Models/Arrest.js";

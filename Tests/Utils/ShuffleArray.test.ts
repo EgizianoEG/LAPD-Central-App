@@ -1,4 +1,4 @@
-import Shuffle from "@Utilities/Other/ShuffleArray.js";
+import Shuffle from "@Utilities/Helpers/ShuffleArray.js";
 
 describe("ShuffleArray()", () => {
   it("Should shuffle an array of elements", () => {

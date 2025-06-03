@@ -1,9 +1,9 @@
-import { GetDirName } from "@Utilities/Other/Paths.js";
+import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import { CamelCase } from "@Utilities/Strings/Converters.js";
 import { Events } from "discord.js";
 
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import GetFiles from "@Utilities/Other/GetFilesFrom.js";
+import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
 import Path from "node:path";
 
 export default async function EventHandler(Client: DiscordClient) {

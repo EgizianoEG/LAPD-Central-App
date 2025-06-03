@@ -2,7 +2,7 @@ import { SlashCommandSubcommandBuilder, MessageFlags } from "discord.js";
 import { RenderFilledNTAForm } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import ConstructNTAContainer from "@Utilities/Other/ConstructNTAContainer.js";
+import ConstructNTAContainer from "@Utilities/Reports/ConstructNTAContainer.js";
 import GetCitationRecord from "@Utilities/Database/GetCitRecord.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 

@@ -2,15 +2,15 @@
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
 import { Client, Collection, GatewayIntentBits } from "discord.js";
 import { Discord as DiscordSecrets } from "@Config/Secrets.js";
-import { GetDirName } from "@Utilities/Other/Paths.js";
+import { GetDirName } from "@Utilities/Helpers/Paths.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
 import Express from "express";
-import GetFiles from "@Utilities/Other/GetFilesFrom.js";
+import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import FileSystem from "node:fs";
-import GetOSMetrics from "@Utilities/Other/GetOSMetrics.js";
+import GetOSMetrics from "@Utilities/Helpers/GetOSMetrics.js";
 import DurHumanizer from "humanize-duration";
 AppLogger.info(Chalk.grey("=========================== New Run ==========================="));
 
