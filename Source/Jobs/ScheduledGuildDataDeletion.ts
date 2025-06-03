@@ -1,4 +1,4 @@
-import { CronJobFileDefReturn } from "@Typings/Global.js";
+import { CronJobFileDefReturn } from "@Typings/Core/System.js";
 import DeleteAllAssociatedGuildData from "@Utilities/Database/DeleteAssociatedGuildData.js";
 import GuildModel from "@Models/Guild.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";

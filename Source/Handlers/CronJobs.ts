@@ -1,4 +1,4 @@
-import { CronJobFileDefReturn } from "@Typings/Global.js";
+import { CronJobFileDefReturn } from "@Typings/Core/System.js";
 import { GetDirName } from "@Utilities/Helpers/Paths.js";
 
 import AppLogger from "@Utilities/Classes/AppLogger.js";

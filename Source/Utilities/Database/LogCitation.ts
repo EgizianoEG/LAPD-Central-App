@@ -1,7 +1,7 @@
 import { ModalSubmitInteraction, ButtonInteraction, MessageFlags } from "discord.js";
 import { TemplateDimensions } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
 import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
-import { APIResponses } from "@Typings/Utilities/Roblox.js";
+import { APIResponses } from "@Typings/External/Roblox.js";
 
 import AppError from "@Utilities/Classes/AppError.js";
 import CitationModel from "@Models/Citation.js";

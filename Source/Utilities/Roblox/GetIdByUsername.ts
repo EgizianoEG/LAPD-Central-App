@@ -1,4 +1,4 @@
-import { APIResponses } from "@Typings/Utilities/Roblox.js";
+import { APIResponses } from "@Typings/External/Roblox.js";
 import { RobloxAPICache } from "../Helpers/Cache.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Axios from "axios";

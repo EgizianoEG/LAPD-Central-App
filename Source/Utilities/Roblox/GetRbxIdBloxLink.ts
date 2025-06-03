@@ -1,7 +1,7 @@
 import { differenceInDays, isSameDay, startOfToday } from "date-fns";
 import { BloxlinkDiscordToRobloxUsageChache } from "@Utilities/Helpers/Cache.js";
 import { RedactTextByOptions } from "@Utilities/Strings/Redactor.js";
-import { Bloxlink } from "@Typings/Utilities/APIResponses.js";
+import { GlobalAPI } from "@Typings/External/Bloxlink.js";
 import { Other } from "@Config/Secrets.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Axios from "axios";
@@ -61,7 +61,7 @@ export default async function GetRobloxIdFromDiscordBloxlink(
   }
 
   try {
-    const Resp = await Axios.get<Bloxlink.GlobalDiscordToRobloxIdResponse>(
+    const Resp = await Axios.get<GlobalAPI.DiscordToRobloxIdResponse>(
       `https://api.blox.link/v4/public/discord-to-roblox/${DiscordUserId}`,
       {
         headers: { Authorization: Other.BloxlinkAPIKey },

@@ -1,5 +1,5 @@
 import { Thumbs } from "@Config/Shared.js";
-import { APIResponses, APITypes } from "@Typings/Utilities/Roblox.js";
+import { APIResponses, APITypes } from "@Typings/External/Roblox.js";
 import GetPlaceholderImgURL from "@Utilities/Helpers/GetPlaceholderImg.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Axios from "axios";

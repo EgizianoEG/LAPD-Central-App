@@ -1,6 +1,6 @@
 import { Dedent, FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
-import { APIResponses } from "@Typings/Utilities/Roblox.js";
+import { APIResponses } from "@Typings/External/Roblox.js";
 import { UpperFirst } from "@Utilities/Strings/Converters.js";
 import {
   time,

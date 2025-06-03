@@ -1,5 +1,5 @@
 import { BaseUserActivityNoticeLogger } from "@Utilities/Classes/UANEventLogger.js";
-import { type CronJobFileDefReturn } from "@Typings/Global.js";
+import { CronJobFileDefReturn } from "@Typings/Core/System.js";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { subDays } from "date-fns";
 
