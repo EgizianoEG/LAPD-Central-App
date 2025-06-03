@@ -31,7 +31,7 @@ import {
 } from "@Utilities/Helpers/Validators.js";
 
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
-import { AllVehicleModelNames, AllVehicleModels } from "@Resources/ERLCVehicles.js";
+import { AllVehicleModelNames, AllVehicleModels } from "@Resources/ERLC-Data/ERLCVehicles.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { RenderFilledNTAForm } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";

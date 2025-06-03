@@ -50,7 +50,7 @@ import GetAllBookingNums from "@Utilities/Database/GetBookingNums.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
-import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";

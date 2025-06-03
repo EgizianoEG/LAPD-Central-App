@@ -2,7 +2,7 @@ import {
   AllVehicleModels,
   ERLCVehiclesData,
   AllVehicleModelNames,
-} from "@Resources/ERLCVehicles.js";
+} from "@Resources/ERLC-Data/ERLCVehicles.js";
 
 import { ApplicationCommandOptionChoiceData } from "discord.js";
 import { FormatVehicleName } from "../Strings/Formatters.js";
