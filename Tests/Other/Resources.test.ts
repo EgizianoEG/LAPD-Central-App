@@ -1,5 +1,5 @@
 import { TenCodes, ElevenCodes, LiteralCodes, CodeType } from "@Resources/RadioCodes.js";
-import { AllVehicleModels, ERLCVehiclesData } from "@Resources/ERLCVehicles.js";
+import { AllVehicleModels, ERLCVehiclesData } from "@Resources/ERLC-Data/ERLCVehicles.js";
 import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
 import { FormatVehicleName } from "@Utilities/Strings/Formatters.js";
 import { resolveColor } from "discord.js";
