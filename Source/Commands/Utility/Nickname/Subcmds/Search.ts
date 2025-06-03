@@ -8,9 +8,9 @@ import {
 
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import SafeRegex from "safe-regex";
-import HandlePagePagination from "@Utilities/Other/HandlePagePagination.js";
+import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import { ErrorContainer, InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
-import { GuildMembersCache } from "@Utilities/Other/Cache.js";
+import { GuildMembersCache } from "@Utilities/Helpers/Cache.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
 

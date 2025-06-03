@@ -38,7 +38,7 @@ import {
 
 import { Emojis } from "@Config/Shared.js";
 import { GuildIncidents } from "@Typings/Utilities/Database.js";
-import { ArraysAreEqual } from "@Utilities/Other/ArraysAreEqual.js";
+import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import { FormatSortRDInputNames } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
@@ -49,8 +49,8 @@ import IsEqual from "lodash/isEqual.js";
 import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 import IncidentModel from "@Models/Incident.js";
 import GetIncidentRecord from "@Utilities/Database/GetIncidentRecord.js";
-import GetIncidentReportEmbeds from "@Utilities/Other/GetIncidentReportEmbeds.js";
-import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
+import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 
 const ListFormatter = new Intl.ListFormat("en");
 const NoneProvidedPlaceholder = "`[None Provided]`";

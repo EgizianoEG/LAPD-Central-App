@@ -32,9 +32,9 @@ import { Types } from "mongoose";
 import { TitleCase } from "@Utilities/Strings/Converters.js";
 import { ReporterInfo } from "../Log.js";
 import { milliseconds } from "date-fns";
-import { ArraysAreEqual } from "@Utilities/Other/ArraysAreEqual.js";
+import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { ListSplitRegex } from "@Resources/RegularExpressions.js";
-import { SendGuildMessages } from "@Utilities/Other/GuildMessages.js";
+import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
 import { GuildIncidents, Guilds } from "@Typings/Utilities/Database.js";
 import { FormatSortRDInputNames } from "@Utilities/Strings/Formatters.js";
 import { GetDiscordAttachmentExtension } from "@Utilities/Strings/OtherUtils.js";
@@ -43,8 +43,8 @@ import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Reda
 import IncidentModel, { GenerateNextIncidentNumber } from "@Models/Incident.js";
 
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
-import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
-import GetIncidentReportEmbeds from "@Utilities/Other/GetIncidentReportEmbeds.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import GuildModel from "@Models/Guild.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";

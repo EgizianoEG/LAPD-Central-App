@@ -24,10 +24,10 @@ import {
 import { DummyText } from "@Utilities/Strings/Random.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { FormatUsername } from "@Utilities/Strings/Formatters.js";
-import { IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 
 import GetRobloxIdFromDiscordBloxlink from "@Utilities/Roblox/GetRbxIdBloxLink.js";
-import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import UpdateLinkedRobloxUser from "@Utilities/Database/UpdateLinkedUser.js";
 import AutocompleteUsername from "@Utilities/Autocompletion/Username.js";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";

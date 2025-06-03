@@ -2,13 +2,13 @@
 import { Canvas, createCanvas, loadImage, SKRSContext2D } from "@napi-rs/canvas/index.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
 import { CitationTypes } from "@Models/Citation.js";
-import { GetDirName } from "../Other/Paths.js";
+import { GetDirName } from "../Helpers/Paths.js";
 
 import Path from "node:path";
 import JSBarcode from "jsbarcode";
 import FileSystem from "node:fs/promises";
-import UploadToImgBB from "../Other/ImgBBUpload.js";
-import GetPlaceholderImgURL from "../Other/GetPlaceholderImg.js";
+import UploadToImgBB from "../External/ImgBBUpload.js";
+import GetPlaceholderImgURL from "../Helpers/GetPlaceholderImg.js";
 
 const NTAFineTemplateImgBuffer = await FileSystem.readFile(
   Path.join(GetDirName(import.meta.url), "..", "..", "Resources", "Imgs", "NTA-TR130-F.png")

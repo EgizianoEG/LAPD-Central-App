@@ -3,7 +3,7 @@ import { type CronJobFileDefReturn } from "@Typings/Global.js";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { subDays } from "date-fns";
 
-import HandleNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
+import HandleNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
 import ActivityNoticeModel from "@Models/UserActivityNotice.js";
 const BaseUANLogger = new BaseUserActivityNoticeLogger(true);
 

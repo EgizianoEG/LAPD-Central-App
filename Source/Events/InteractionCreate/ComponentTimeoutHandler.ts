@@ -1,6 +1,6 @@
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import DisableComponents from "@Utilities/Other/DisableMsgComps.js";
-import { IsValidDiscordId } from "@Utilities/Other/Validators.js";
+import DisableComponents from "@Utilities/Discord/DisableMsgComps.js";
+import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
 import { differenceInMilliseconds } from "date-fns";
 import { InfoEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { MessageFlags, ComponentType, BaseInteraction } from "discord.js";

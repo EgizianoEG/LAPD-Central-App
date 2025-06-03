@@ -6,7 +6,7 @@ import {
 
 import { ApplicationCommandOptionChoiceData } from "discord.js";
 import { FormatVehicleName } from "../Strings/Formatters.js";
-import ShuffleArray from "../Other/ShuffleArray.js";
+import ShuffleArray from "../Helpers/ShuffleArray.js";
 
 const VehicleTags: string[] = [];
 for (const Brand of ERLCVehiclesData) {

@@ -9,7 +9,7 @@ import {
   resolveColor,
 } from "discord.js";
 
-import HandlePagePagination from "@Utilities/Other/HandlePagePagination.js";
+import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import GetShiftTypes from "@Utilities/Database/GetShiftTypes.js";
 import Dedent from "dedent";
 import Util from "node:util";

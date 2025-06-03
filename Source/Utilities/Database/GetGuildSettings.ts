@@ -1,4 +1,4 @@
-import { GuildSettingsCache } from "@Utilities/Other/Cache.js";
+import { GuildSettingsCache } from "@Utilities/Helpers/Cache.js";
 import { Guilds } from "@Typings/Utilities/Database.js";
 import GuildModel from "@Models/Guild.js";
 type HydratedGuildSettings = Mongoose.HydratedSingleSubdocument<Guilds.GuildSettings>;

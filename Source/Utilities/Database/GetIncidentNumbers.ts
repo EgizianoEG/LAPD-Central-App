@@ -1,6 +1,6 @@
 import { AggregateResults } from "@Typings/Utilities/Database.js";
 import IncidentModel from "@Models/Incident.js";
-import { IncidentAutocompletionCache } from "@Utilities/Other/Cache.js";
+import { IncidentAutocompletionCache } from "@Utilities/Helpers/Cache.js";
 
 export default async function GetAllIncidentNums(
   GuildId: string,

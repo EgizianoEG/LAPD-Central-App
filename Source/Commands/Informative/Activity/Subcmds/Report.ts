@@ -19,8 +19,8 @@ import * as Chrono from "chrono-node";
 import ShiftModel from "@Models/Shift.js";
 import ParseDuration from "parse-duration";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import CreateShiftReport from "@Utilities/Other/CreateShiftReport.js";
-import GetValidTargetShiftTypes from "@Utilities/Other/GetTargetShiftType.js";
+import CreateShiftReport from "@Utilities/Reports/CreateShiftReport.js";
+import GetValidTargetShiftTypes from "@Utilities/Helpers/GetTargetShiftType.js";
 
 // ---------------------------------------------------------------------------------------
 // Command Handling:

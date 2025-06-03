@@ -26,7 +26,7 @@ import { ErrorEmbed, InfoEmbed, SuccessEmbed, WarnEmbed } from "@Utilities/Class
 import {
   GuildMembersCache,
   OngoingServerMemberNicknamesReplaceCache,
-} from "@Utilities/Other/Cache.js";
+} from "@Utilities/Helpers/Cache.js";
 
 const RegexFlags = ["i", "g", "gi"];
 // ---------------------------------------------------------------------------------------

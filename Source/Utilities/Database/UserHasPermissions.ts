@@ -1,6 +1,6 @@
 import { BaseInteraction, GuildMember, PermissionFlagsBits } from "discord.js";
-import { UserPermsCache, DBRolePermsCache } from "../Other/Cache.js";
-import { IsPlainObject, IsEmptyObject } from "../Other/Validators.js";
+import { UserPermsCache, DBRolePermsCache } from "../Helpers/Cache.js";
+import { IsPlainObject, IsEmptyObject } from "../Helpers/Validators.js";
 import { GeneralTypings } from "@Typings/Utilities/Generic.js";
 import { App as Client } from "@DiscordApp";
 import { DeepPartial } from "utility-types";

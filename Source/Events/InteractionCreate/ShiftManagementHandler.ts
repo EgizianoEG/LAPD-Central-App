@@ -26,9 +26,9 @@ import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { differenceInSeconds } from "date-fns";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { DutyManagementBtnCustomIdRegex } from "@Resources/RegularExpressions.js";
-import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Other/Validators.js";
+import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
 
-import HandleRoleAssignment from "@Utilities/Other/HandleShiftRoleAssignment.js";
+import HandleRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";

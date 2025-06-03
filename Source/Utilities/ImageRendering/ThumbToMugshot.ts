@@ -1,7 +1,7 @@
 import { Canvas, Image, createCanvas, loadImage } from "@napi-rs/canvas/index.js";
 import { Thumbs } from "@Config/Shared.js";
 import { format } from "date-fns";
-import UploadToImgBB from "../Other/ImgBBUpload.js";
+import UploadToImgBB from "../External/ImgBBUpload.js";
 
 let BgCanvas: Canvas | null = null;
 const ImgWidth = 420;

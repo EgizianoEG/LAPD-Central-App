@@ -20,7 +20,7 @@ import {
   SuccessContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
-import HandleActionCollectorExceptions from "@Utilities/Other/HandleCompCollectorExceptions.js";
+import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
 import UpdateLinkedRobloxUser from "@Utilities/Database/UpdateLinkedUser.js";
 import IsUserLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";

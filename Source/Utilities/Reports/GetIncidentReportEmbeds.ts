@@ -10,7 +10,7 @@ import {
   time as FormatTime,
 } from "discord.js";
 
-import { IsValidDiscordAttachmentLink } from "./Validators.js";
+import { IsValidDiscordAttachmentLink } from "../Helpers/Validators.js";
 import { FormatSortRDInputNames } from "@Utilities/Strings/Formatters.js";
 import { GuildIncidents } from "@Typings/Utilities/Database.js";
 import Dedent from "dedent";

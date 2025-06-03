@@ -9,7 +9,7 @@ import {
   HandleDevOnlyCommands,
   HandleUserPermissions,
   HandleAppPermissions,
-} from "@Utilities/Other/CommandExecutionGuards.js";
+} from "@Utilities/Discord/CommandExecutionGuards.js";
 
 const FileLogLabel = "Events:InteractionCreate:ContextMenuCommandHandler";
 // ------------------------------------------------------------------------------------------------------------------------------------------------------

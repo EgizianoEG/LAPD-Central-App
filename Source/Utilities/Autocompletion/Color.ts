@@ -1,5 +1,5 @@
 import Colors from "@Resources/BrickColors.js";
-import ShuffleArray from "../Other/ShuffleArray.js";
+import ShuffleArray from "../Helpers/ShuffleArray.js";
 
 /**
  * Autocompletes an input brick color name

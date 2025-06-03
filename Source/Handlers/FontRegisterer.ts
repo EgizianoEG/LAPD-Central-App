@@ -1,5 +1,5 @@
 import { GlobalFonts } from "@napi-rs/canvas/index.js";
-import { GetDirName } from "@Utilities/Other/Paths.js";
+import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Path from "node:path";
 

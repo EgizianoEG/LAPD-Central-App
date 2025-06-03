@@ -12,7 +12,7 @@ import { differenceInHours } from "date-fns";
 import { milliseconds } from "date-fns/milliseconds";
 
 import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
-import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import ParseDuration from "parse-duration";
 
 const MaxLeaveDuration = milliseconds({ months: 3 });

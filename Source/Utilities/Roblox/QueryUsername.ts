@@ -1,5 +1,5 @@
-import { IsValidRobloxUsername } from "../Other/Validators.js";
-import { RobloxAPICache } from "@Utilities/Other/Cache.js";
+import { IsValidRobloxUsername } from "../Helpers/Validators.js";
+import { RobloxAPICache } from "@Utilities/Helpers/Cache.js";
 import NobloxJs from "noblox.js";
 
 /**

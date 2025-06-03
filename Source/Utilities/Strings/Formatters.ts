@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/cognitive-complexity */
-import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 import { AddStatutesRegexes, ATVCodesRegexes } from "@Resources/RegularExpressions.js";
 import { format as FormatStr } from "node:util";
 import { GuildCitations } from "@Typings/Utilities/Database.js";

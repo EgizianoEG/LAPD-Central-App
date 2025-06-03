@@ -49,13 +49,13 @@ import {
 import { Dedent } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns/milliseconds";
-import { ArraysAreEqual } from "@Utilities/Other/ArraysAreEqual.js";
+import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
-import DisableMessageComponents from "@Utilities/Other/DisableMsgComps.js";
-import AwaitMessageWithTimeout from "@Utilities/Other/MessageCreateListener.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import AwaitMessageWithTimeout from "@Utilities/Discord/MessageCreateListener.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import ParseDuration from "parse-duration";
 import GuildModel from "@Models/Guild.js";

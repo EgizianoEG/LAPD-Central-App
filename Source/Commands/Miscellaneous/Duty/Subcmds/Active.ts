@@ -12,10 +12,10 @@ import { Colors, Emojis } from "@Config/Shared.js";
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 
-import GetValidTargetShiftTypes from "@Utilities/Other/GetTargetShiftType.js";
-import HandlePagePagination from "@Utilities/Other/HandlePagePagination.js";
+import GetValidTargetShiftTypes from "@Utilities/Helpers/GetTargetShiftType.js";
+import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import ShiftModel from "@Models/Shift.js";
-import Chunks from "@Utilities/Other/SliceIntoChunks.js";
+import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
 
 // ---------------------------------------------------------------------------------------
 // Constants:

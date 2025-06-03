@@ -1,4 +1,4 @@
-import ShowModalAndAwaitSubmission from "@Utilities/Other/ShowModalAwaitSubmit.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import { ErrorContainer } from "@Utilities/Classes/ExtraContainers.js";
 import {
   SlashCommandSubcommandsOnlyBuilder,

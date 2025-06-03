@@ -1,14 +1,14 @@
 import { ModalSubmitInteraction, ButtonInteraction, MessageFlags } from "discord.js";
 import { TemplateDimensions } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
-import { SendGuildMessages } from "@Utilities/Other/GuildMessages.js";
+import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
 import { APIResponses } from "@Typings/Utilities/Roblox.js";
 
 import AppError from "@Utilities/Classes/AppError.js";
 import CitationModel from "@Models/Citation.js";
-import UploadToImgBB from "../Other/ImgBBUpload.js";
+import UploadToImgBB from "../External/ImgBBUpload.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import GetPlaceholderImgURL from "../Other/GetPlaceholderImg.js";
-import ConstructNTAContainer from "@Utilities/Other/ConstructNTAContainer.js";
+import GetPlaceholderImgURL from "../Helpers/GetPlaceholderImg.js";
+import ConstructNTAContainer from "@Utilities/Reports/ConstructNTAContainer.js";
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
 
 /**

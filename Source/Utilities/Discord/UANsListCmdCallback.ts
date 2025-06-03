@@ -9,9 +9,9 @@ import {
   resolveColor,
 } from "discord.js";
 
-import Chunks from "@Utilities/Other/SliceIntoChunks.js";
+import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
 import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
-import HandlePagePagination from "@Utilities/Other/HandlePagePagination.js";
+import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 
 /**
  * Handles the User Activity Notice list command, displaying active or pending notices.
