@@ -101,6 +101,13 @@ export default async function GetActivityReportData(
     const GuildShiftTypes = GuildConfig.shift_management.shift_types;
     const ValidShiftTypes = SpecifiedShiftTypes.map((ST) => {
       const ShiftType = GuildShiftTypes.find((Type) => Type.name === ST);
+      if (!ShiftType && ST.toLowerCase() === "default") {
+        return {
+          name: "Default",
+          access_roles: GuildStaffMgmtRoles,
+        };
+      }
+
       if (!ShiftType) throw new AppError({ template: "NonexistentShiftTypeUsage", showable: true });
       return ShiftType;
     });
