@@ -19,7 +19,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   }
 
   return CmdInteraction.reply({
-    embeds: [await GetFormattedArrestReportEmbed(ArrestRecord)],
+    embeds: [await GetFormattedArrestReportEmbed(ArrestRecord, true)],
     flags: MessageFlags.Ephemeral,
   });
 }

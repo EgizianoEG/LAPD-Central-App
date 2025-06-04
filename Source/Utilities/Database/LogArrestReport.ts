@@ -11,28 +11,36 @@ import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
 import GetFormattedArrestReportEmbed from "../Reports/FormatArrestReportEmbed.js";
 
-export type ReporterInfoType = {
-  /** Shift currently active for the reporting officer */
+export type ReportInfoType = {
+  /** Shift currently active for the reporting officer. */
   shift_active: Shifts.HydratedShiftDocument | null;
 
-  /** Arresting/Reporting officer's Discord Id */
-  discord_user_id: string;
+  arresting_officer: {
+    discord_id: string;
+    roblox_user: {
+      display_name: string;
+      name: string;
+      id: string | number;
+    };
+  };
 
-  /** Discord Ids of the arrest assisting officers if applicable */
+  reporting_officer?: null | {
+    discord_id: string;
+    roblox_user: {
+      display_name: string;
+      name: string;
+      id: string | number;
+    };
+  };
+
+  /** Discord Ids and Roblox usernames of the arrest assisting officers if applicable. */
   asst_officers?: string[];
 
-  /** The date of the report/arrest; defaults to the CMD interaction created at date */
+  /** The date of the report/arrest; defaults to the CMD interaction created at date. */
   report_date?: Date;
-
-  /** Arresting/Reporting officer's roblox user details */
-  roblox_user: {
-    display_name: string;
-    name: string;
-    id: string | number;
-  };
 };
 
-export type ArresteeInfoType = Omit<CmdOptionsType, "Arrestee"> & {
+export type ArresteeInfoType = Omit<CmdOptionsType, "Arrestee" | "PrimaryOfficer"> & {
   notes?: string | null;
   formatted_charges: string[];
   booking_mugshot: string;
@@ -47,13 +55,11 @@ export type ArresteeInfoType = Omit<CmdOptionsType, "Arrestee"> & {
 export default async function LogArrestReport(
   CachedInteract: SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">,
   ArresteeInfo: ArresteeInfoType,
-  ReporterInfo: ReporterInfoType
+  ReportInfo: ReportInfoType
 ) {
-  ReporterInfo.report_date = ReporterInfo.report_date ?? CachedInteract.createdAt;
-  ReporterInfo.asst_officers = ReporterInfo.asst_officers ?? [];
-
+  ReportInfo.report_date = ReportInfo.report_date ?? CachedInteract.createdAt;
+  ReportInfo.asst_officers = ReportInfo.asst_officers ?? [];
   const FArresteeName = FormatUsername(ArresteeInfo.roblox_user);
-  const FReporterName = FormatUsername(ReporterInfo.roblox_user);
   const GuildSettings = await GetGuildSettings(CachedInteract.guildId);
 
   if (!GuildSettings) {
@@ -62,9 +68,10 @@ export default async function LogArrestReport(
 
   const ArrestRecord = await ArrestModel.create({
     guild: CachedInteract.guildId,
-    made_on: ReporterInfo.report_date,
+    made_on: ReportInfo.report_date,
     notes: ArresteeInfo.notes ?? null,
     booking_num: ArresteeInfo.booking_num,
+    assisting_officers: ReportInfo.asst_officers,
 
     arrestee: {
       roblox_id: Number(ArresteeInfo.roblox_user.id),
@@ -77,12 +84,19 @@ export default async function LogArrestReport(
       mugshot_url: ArresteeInfo.booking_mugshot,
     },
 
-    assisting_officers: ReporterInfo.asst_officers,
     arresting_officer: {
-      formatted_name: FReporterName,
-      discord_id: ReporterInfo.discord_user_id,
-      roblox_id: Number(ReporterInfo.roblox_user.id),
+      formatted_name: FormatUsername(ReportInfo.arresting_officer.roblox_user),
+      discord_id: ReportInfo.arresting_officer.discord_id,
+      roblox_id: Number(ReportInfo.arresting_officer.roblox_user.id),
     },
+
+    reporting_officer: ReportInfo.reporting_officer
+      ? {
+          formatted_name: FormatUsername(ReportInfo.reporting_officer.roblox_user),
+          discord_id: ReportInfo.reporting_officer.discord_id,
+          roblox_id: Number(ReportInfo.reporting_officer.roblox_user.id),
+        }
+      : null,
   });
 
   if (!ArrestRecord) {

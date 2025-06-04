@@ -136,6 +136,29 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
       },
     },
   },
+
+  reporting_officer: {
+    _id: false,
+    default: null,
+    required: false,
+    type: {
+      roblox_id: {
+        type: Number,
+        required: true,
+      },
+
+      formatted_name: {
+        type: String,
+        required: true,
+      },
+
+      discord_id: {
+        type: String,
+        index: true,
+        required: true,
+      },
+    },
+  },
 });
 
 ArrestSchema.set("optimisticConcurrency", true);

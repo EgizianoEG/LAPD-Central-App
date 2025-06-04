@@ -1000,9 +1000,14 @@ export namespace GuildArrests {
     /** Detailed information about the arrestee. */
     arrestee: ArresteeInfo;
 
-    /** An array of arresting officers' discord ids who assisted with the arrest. */
+    /** An array of arresting officers' discord ids or Roblox usernames who assisted with the arrest. */
     assisting_officers: string[];
-    arresting_officer: ArrestingOfficerInfo;
+
+    /** Detailed information about the arresting officer. */
+    arresting_officer: OfficerInfo;
+
+    /** A detailed information about the reporting officer (who submitted the arrest log/report), if any. */
+    reporting_officer?: OfficerInfo;
   }
 
   interface ArresteeInfo {
@@ -1030,9 +1035,11 @@ export namespace GuildArrests {
     charges: string[];
   }
 
-  interface ArrestingOfficerInfo {
+  interface OfficerInfo {
     roblox_id: number;
     discord_id: string;
+
+    /** The formatted Roblox name of the officer. */
     formatted_name: string;
   }
 }

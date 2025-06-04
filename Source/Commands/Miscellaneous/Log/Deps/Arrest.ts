@@ -6,6 +6,7 @@ import {
   Colors,
   codeBlock,
   Collection,
+  GuildMember,
   userMention,
   ButtonStyle,
   ModalBuilder,
@@ -30,7 +31,7 @@ import {
 
 import LogArrestReport, {
   type ArresteeInfoType,
-  type ReporterInfoType,
+  type ReportInfoType,
 } from "@Utilities/Database/LogArrestReport.js";
 
 import { RandomString } from "@Utilities/Strings/Random.js";
@@ -55,9 +56,11 @@ import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
 import Dedent from "dedent";
+import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 
 const ListFormatter = new Intl.ListFormat("en");
-export type CmdOptionsType = {
+export type CmdOptionsType<IsPrimaryOfficerNullable extends boolean = false> = {
+  PrimaryOfficer: IsPrimaryOfficerNullable extends true ? GuildMember | null : GuildMember;
   Arrestee: string;
   AgeGroup: (typeof ERLCAgeGroups)[number]["name"];
   Gender: "Male" | "Female";
@@ -75,7 +78,7 @@ function GetAdditionalInformationModal(CmdInteract: SlashCommandInteraction<"cac
     .setComponents(
       new ActionRowBuilder<TextInputBuilder>().setComponents(
         new TextInputBuilder()
-          .setLabel("Convicted Charges")
+          .setLabel("Charges")
           .setStyle(TextInputStyle.Paragraph)
           .setCustomId("charges-text")
           .setPlaceholder("1. [Charge #1]\n2. [Charge #2]\n3. ...")
@@ -130,9 +133,23 @@ function GetArrestPendingSubmissionComponents() {
  */
 async function HandleCmdOptsValidation(
   Interaction: SlashCommandInteraction<"cached">,
-  CmdOptions: CmdOptionsType,
+  CmdOptions: CmdOptionsType<true>,
   Reporter: ReporterInfo
 ): Promise<boolean> {
+  if (CmdOptions.PrimaryOfficer?.user.bot) {
+    return new ErrorEmbed()
+      .useErrTemplate("BotMemberSelected")
+      .replyToInteract(Interaction, true)
+      .then(() => true);
+  }
+
+  if (!CmdOptions.PrimaryOfficer) {
+    return new ErrorEmbed()
+      .useErrTemplate("MemberNotFound")
+      .replyToInteract(Interaction, true)
+      .then(() => true);
+  }
+
   if (!IsValidPersonHeight(CmdOptions.Height)) {
     return new ErrorEmbed()
       .useErrTemplate("MalformedPersonHeight")
@@ -245,7 +262,7 @@ async function HandleAddAssistingOfficersUsernames(
 
 async function OnReportConfirmation(
   ButtonInteract: ButtonInteraction<"cached">,
-  ReporterInfo: ReporterInfoType,
+  ReporterInfo: ReportInfoType,
   ArresteeInfo: ArresteeInfoType
 ) {
   const LoggedReport = await LogArrestReport(ButtonInteract, ArresteeInfo, ReporterInfo);
@@ -275,19 +292,18 @@ async function OnChargesModalSubmission(
 ) {
   await ModalInteraction.deferReply({ flags: MessageFlags.Ephemeral });
   const [ArresteeId] = await GetIdByUsername(CmdOptions.Arrestee, true);
-  const ARUserInfo = await GetUserInfo(ArresteeId);
-  const ThumbUrl = await GetUserThumbnail({
-    UserIds: ArresteeId,
-    Size: "420x420",
-    Format: "png",
-    CropType: "headshot",
-    IsManCharacter: CmdOptions.Gender === "Male",
-  });
-
-  const ExistingBookingNums = (await GetAllBookingNums(CmdInteract.guildId)).map((Num) => Num.num);
-  const UTIFEnabled = await GetGuildSettings(CmdInteract.guildId).then(
-    (Doc) => Doc?.utif_enabled ?? false
-  );
+  const [ArresteeUserInfo, ArresteeThumbURL, ExistingBookingNums, UTIFEnabled] = await Promise.all([
+    GetUserInfo(ArresteeId),
+    GetUserThumbnail({
+      UserIds: ArresteeId,
+      Size: "420x420",
+      Format: "png",
+      CropType: "headshot",
+      IsManCharacter: CmdOptions.Gender === "Male",
+    }),
+    GetAllBookingNums(CmdInteract.guildId).then((Nums) => Nums.map((Num) => Num.num)),
+    GetGuildSettings(CmdInteract.guildId).then((Doc) => Doc?.utif_enabled ?? false),
+  ]);
 
   let AsstOfficersDisIds: string[] = [];
   let AsstOfficersUsernames: string[] = [];
@@ -311,25 +327,45 @@ async function OnChargesModalSubmission(
 
   const FCharges = FormatCharges(RInputCharges);
   const BookingNumber = parseInt(RandomString(4, /\d/, ExistingBookingNums));
+  const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
+
+  const ArrestingOfficerRobloxId = PrimaryIsReporter
+    ? null
+    : await IsLoggedIn({
+        user: { id: CmdOptions.PrimaryOfficer.user.id },
+        guildId: CmdInteract.guildId,
+      });
+
+  const ArrestingOfficerRobloxInfo = ArrestingOfficerRobloxId
+    ? await GetUserInfo(ArrestingOfficerRobloxId)
+    : null;
+
   const BookingMugshotURL = await GetBookingMugshot<true>({
     return_url: true,
     head_position: 25,
     height: CmdOptions.Height,
-    thumb_img: ThumbUrl,
+    thumb_img: ArresteeThumbURL,
     booking_num: BookingNumber,
     user_gender: CmdOptions.Gender,
     booking_date: CmdInteract.createdAt,
   });
 
+  if (!PrimaryIsReporter) {
+    AsstOfficersDisIds.push(CmdInteract.user.id);
+  }
+
   const ConfirmationEmbed = new EmbedBuilder()
     .setTitle("Arrest Report - Confirmation")
-    .setDescription("Assisting Officers: N/A")
+    .setDescription(
+      `Arresting Officer: <@${CmdOptions.PrimaryOfficer.user.id}>\n` +
+        `Assisting Officers: ${ListFormatter.format(AsstOfficersDisIds.map((Id) => userMention(Id))) || "N/A"}`
+    )
     .setThumbnail(BookingMugshotURL)
     .setColor(Colors.Gold)
     .setFields([
       {
         name: "Arrestee",
-        value: `${ARUserInfo.displayName} (@${ARUserInfo.name})`,
+        value: `${ArresteeUserInfo.displayName} (@${ArresteeUserInfo.name})`,
         inline: true,
       },
       {
@@ -353,7 +389,7 @@ async function OnChargesModalSubmission(
         inline: true,
       },
       {
-        name: "Convicted Charges",
+        name: "Charges",
         value: FCharges.join("\n"),
         inline: false,
       },
@@ -390,14 +426,22 @@ async function OnChargesModalSubmission(
         ReceivedInteract.users
       );
 
-      AsstOfficersDisIds = [...Filtered.keys()];
+      AsstOfficersDisIds = [
+        ...(PrimaryIsReporter ? [] : [CmdInteract.user.id]),
+        ...Filtered.keys(),
+      ];
+
       AsstOfficersMenu.components[0].setDefaultUsers(AsstOfficersDisIds);
       const FormattedMentions =
         ListFormatter.format(AsstOfficersDisIds.map((Id) => userMention(Id))) || "N/A";
 
       await ReceivedInteract.editReply({
-        embeds: [ConfirmationEmbed.setDescription(`Assisting Officers: ${FormattedMentions}`)],
         components: [AsstOfficersMenu, AddUsernamesConfirmationComponents],
+        embeds: [
+          ConfirmationEmbed.setDescription(
+            `Arresting Officer: <@${CmdOptions.PrimaryOfficer.user.id}>\nAssisting Officers: ${FormattedMentions}`
+          ),
+        ],
       }).catch(() => null);
     } else if (ReceivedInteract.isButton()) {
       if (ReceivedInteract.customId === "confirm-report") {
@@ -445,15 +489,30 @@ async function OnChargesModalSubmission(
       if (!LastInteraction?.isButton()) return;
       if (EndReason === "Report Confirmation") {
         const ReporterRobloxUserInfo = await GetUserInfo(ReporterMainInfo.RobloxUserId);
-        const ReporterInfo: ReporterInfoType = {
+        const ReporterInfo: ReportInfoType = {
           shift_active: ReporterMainInfo.ActiveShift,
-          discord_user_id: CmdInteract.user.id,
           report_date: CmdInteract.createdAt,
           asst_officers: [...AsstOfficersDisIds, ...AsstOfficersUsernames],
-          roblox_user: {
-            display_name: ReporterRobloxUserInfo.displayName,
-            name: ReporterRobloxUserInfo.name,
-            id: ReporterMainInfo.RobloxUserId,
+
+          reporting_officer: PrimaryIsReporter
+            ? null
+            : {
+                discord_id: CmdInteract.user.id,
+                roblox_user: {
+                  display_name: ReporterRobloxUserInfo.displayName,
+                  name: ReporterRobloxUserInfo.name,
+                  id: ReporterRobloxUserInfo.id,
+                },
+              },
+
+          arresting_officer: {
+            discord_id: CmdOptions.PrimaryOfficer.user.id,
+            roblox_user: {
+              display_name:
+                ArrestingOfficerRobloxInfo?.displayName ?? ReporterRobloxUserInfo.displayName,
+              name: ArrestingOfficerRobloxInfo?.name ?? ReporterRobloxUserInfo.name,
+              id: ArrestingOfficerRobloxInfo?.id ?? ReporterRobloxUserInfo.id,
+            },
           },
         };
 
@@ -467,8 +526,8 @@ async function OnChargesModalSubmission(
           AgeGroup: CmdOptions.AgeGroup,
           formatted_charges: FCharges,
           roblox_user: {
-            display_name: ARUserInfo.displayName,
-            name: ARUserInfo.name,
+            display_name: ArresteeUserInfo.displayName,
+            name: ArresteeUserInfo.name,
             id: ArresteeId,
           },
         };
@@ -498,12 +557,13 @@ async function OnChargesModalSubmission(
 
 async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Reporter: ReporterInfo) {
   const CmdOptions = {
+    PrimaryOfficer: Interaction.options.getMember("primary-officer"),
     Arrestee: Interaction.options.getString("name", true),
     Gender: Interaction.options.getString("gender", true),
     Height: FormatHeight(Interaction.options.getString("height", true)),
     Weight: Interaction.options.getInteger("weight", true),
     AgeGroup: FormatAge(Interaction.options.getInteger("arrest-age", true)),
-  } as CmdOptionsType;
+  } as CmdOptionsType<true>;
 
   const ResponseHandled = await HandleCmdOptsValidation(Interaction, CmdOptions, Reporter);
   if (ResponseHandled) return;
@@ -518,7 +578,12 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Repor
     );
 
     if (!AdditionalDataSubmission) return;
-    await OnChargesModalSubmission(Interaction, CmdOptions, Reporter, AdditionalDataSubmission);
+    await OnChargesModalSubmission(
+      Interaction,
+      CmdOptions as unknown as CmdOptionsType,
+      Reporter,
+      AdditionalDataSubmission
+    );
   } catch (Err: unknown) {
     if (Err instanceof Error && !Err.message.match(/reason: (?:\w+Delete|time)/)) {
       throw new AppError({ message: Err.message, stack: Err.stack });
@@ -571,6 +636,13 @@ const CommandObject = {
         .setMinValue(25)
         .setMaxValue(700)
         .setAutocomplete(true)
+    )
+    .addUserOption((Option) =>
+      Option.setName("primary-officer")
+        .setDescription(
+          "The officer who conducted the arrest and has primary responsibility for this case. Defaults to you."
+        )
+        .setRequired(false)
     ),
 };
 

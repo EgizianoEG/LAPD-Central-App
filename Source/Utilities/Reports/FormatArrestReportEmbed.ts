@@ -1,5 +1,6 @@
 import { FormatSortRDInputNames, FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { Colors, EmbedBuilder, userMention } from "discord.js";
+import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
 import { GuildArrests } from "@Typings/Utilities/Database.js";
 import { Icons } from "@Config/Shared.js";
 
@@ -12,7 +13,8 @@ export default async function GetFormattedArrestReportEmbed(
   RefetchUsernames: boolean = true
 ) {
   let FArresteeName = ArrestInfo.arrestee.formatted_name;
-  let FOfficerName = ArrestInfo.arresting_officer.formatted_name;
+  let FOfficerName =
+    ArrestInfo.reporting_officer?.formatted_name ?? ArrestInfo.arresting_officer.formatted_name;
 
   if (RefetchUsernames) {
     const ArresteeUserInfo = await GetUserInfo(ArrestInfo.arrestee.roblox_id);
@@ -22,14 +24,28 @@ export default async function GetFormattedArrestReportEmbed(
   }
 
   const FAsstOfficers = ArrestInfo.assisting_officers.length
-    ? ListFormatter.format(FormatSortRDInputNames(ArrestInfo.assisting_officers, true))
+    ? ListFormatter.format(
+        FormatSortRDInputNames(
+          ArrestInfo.assisting_officers.filter((ID) =>
+            IsValidDiscordId(ID) && ArrestInfo.reporting_officer
+              ? ID !== ArrestInfo.reporting_officer.discord_id
+              : true
+          ),
+          true
+        )
+      )
     : "N/A";
 
+  const ReportSubmittingAndArresstingOfficerText = ArrestInfo.reporting_officer
+    ? `Arrest report submitted by: ${userMention(ArrestInfo.reporting_officer.discord_id)}\n` +
+      `Arresting officer: ${userMention(ArrestInfo.arresting_officer.discord_id)}`
+    : `Arresting and report submitting officer: ${userMention(ArrestInfo.arresting_officer.discord_id)}`;
+
   const ReportDescription = Dedent(`
-    Arrest report submitted by: ${userMention(ArrestInfo.arresting_officer.discord_id)}
-    Arrest assisting officers: ${FAsstOfficers}
+    ${ReportSubmittingAndArresstingOfficerText}
+    Assisting officers: ${FAsstOfficers}
     Booking number: \`${ArrestInfo.booking_num.toString().padStart(4, "0")}\`
-  `);
+  `).trim();
 
   return new EmbedBuilder()
     .setTitle("LAPD — Arrest Report")
