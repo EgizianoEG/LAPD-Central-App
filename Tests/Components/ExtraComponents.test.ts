@@ -1,4 +1,8 @@
 /* eslint-disable sonarjs/no-duplicate-string */
+jest.mock("@Utilities/Discord/MentionCmd.js", () => {
+  return jest.fn((CmdName: string) => `/${CmdName}`);
+});
+
 import AppError from "@Utilities/Classes/AppError.js";
 import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
 import { Colors } from "@Config/Shared.js";
