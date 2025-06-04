@@ -34,19 +34,19 @@ export const BloxlinkDiscordToRobloxUsageChache = new NodeCache({
 });
 
 export const IncidentAutocompletionCache = new NodeCache({
-  stdTTL: 15,
+  stdTTL: 20,
   useClones: false,
   checkperiod: DefaultCheckPeriod,
 });
 
 export const CitationAutocompletionCache = new NodeCache({
-  stdTTL: 15,
+  stdTTL: 20,
   useClones: false,
   checkperiod: DefaultCheckPeriod,
 });
 
 export const BookingAutocompletionCache = new NodeCache({
-  stdTTL: 15,
+  stdTTL: 20,
   useClones: false,
   checkperiod: DefaultCheckPeriod,
 });
@@ -77,6 +77,12 @@ export const UserCommandExecutionsCache = new NodeCache({
 
 export const GuildCommandExecutionsCache = new NodeCache({
   stdTTL: 3600,
+  useClones: false,
+  checkperiod: DefaultCheckPeriod,
+});
+
+export const GuildAutomodRulesCache = new NodeCache({
+  stdTTL: 35,
   useClones: false,
   checkperiod: DefaultCheckPeriod,
 });

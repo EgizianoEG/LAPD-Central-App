@@ -19,6 +19,7 @@ import {
   IsValidChannelOrMessageLink,
   IsValidDiscordAttachmentLink,
 } from "@Utilities/Helpers/Validators.js";
+import { GuildAutomodRulesCache } from "@Utilities/Helpers/Cache.js";
 
 // ---------------------------------------------------------------------------------------
 // Definitions:
@@ -307,18 +308,28 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
   }
 
   if (Options.guild_instance) {
-    const AutomoderationRules = await Options.guild_instance.autoModerationRules
-      .fetch()
-      .catch((Err: any) => {
-        AppLogger.error({
-          message: "Failed to fetch auto-moderation rules for guild '%s'",
-          label: FileLabel,
-          stack: Err.stack,
-          splat: [Options.guild_instance!.id],
-        });
+    const CachedAutoModerationRules = GuildAutomodRulesCache.get<
+      Collection<string, AutoModerationRule>
+    >(Options.guild_instance.id);
 
-        return new Collection<string, AutoModerationRule>();
-      });
+    const AutomoderationRules =
+      CachedAutoModerationRules ??
+      (await Options.guild_instance.autoModerationRules
+        .fetch()
+        .then((Rules) => {
+          GuildAutomodRulesCache.set(Options.guild_instance!.id, Rules);
+          return Rules;
+        })
+        .catch((Err: any) => {
+          AppLogger.error({
+            message: "Failed to fetch auto-moderation rules for guild '%s'",
+            label: FileLabel,
+            stack: Err.stack,
+            splat: [Options.guild_instance!.id],
+          });
+
+          return new Collection<string, AutoModerationRule>();
+        }));
 
     for (const Rule of AutomoderationRules.values()) {
       if (!ShouldAutomoderationRuleBeApplied(Rule, Options)) continue;
