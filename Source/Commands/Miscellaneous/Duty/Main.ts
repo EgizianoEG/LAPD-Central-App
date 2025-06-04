@@ -84,6 +84,15 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
   const SubcommandGroup = Interaction.options.getSubcommandGroup();
   const SubcommandName = Interaction.options.getSubcommand();
 
+  if (name === "since" && value.match(/^\s*$/)) {
+    return Interaction.respond(
+      ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"].map((Choice) => ({
+        name: Choice,
+        value: Choice,
+      }))
+    );
+  }
+
   if (
     ["type", "shift-type"].includes(name) ||
     (name === "name" &&
