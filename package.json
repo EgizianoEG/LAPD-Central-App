@@ -50,6 +50,7 @@
     "discord.js": "^14.19.3",
     "express": "^5.1.0",
     "ffi-rs": "^1.2.10",
+    "fuse.js": "^7.1.0",
     "googleapis": "^149.0.0",
     "humanize-duration": "^3.32.1",
     "jsbarcode": "^3.11.6",
