@@ -227,12 +227,23 @@ async function GetCmdProvidedDetails(
   }
 
   IncidentType = MatchedType;
+  const UniqueAttachments = new Set<string>();
   const ProvidedAttachments =
     CmdInteract.options.resolved?.attachments?.map((Attachment) => Attachment) || [];
 
-  const FilteredAttachments = ProvidedAttachments.filter((Attachment) =>
-    Attachment.contentType?.match(/^image[/\\](?:png|jpg|jpeg)/i)
-  )
+  const FilteredAttachments = ProvidedAttachments.filter((Attachment) => {
+    if (!Attachment.contentType?.match(/^image[/\\](?:png|jpg|jpeg)/i)) {
+      return false;
+    }
+
+    const UniqueId = `${Attachment.size}-${Attachment.contentType}-${Attachment.width}x${Attachment.height}`;
+    if (UniqueAttachments.has(UniqueId)) {
+      return false;
+    }
+
+    UniqueAttachments.add(UniqueId);
+    return true;
+  })
     .map((Attachment) => Attachment.url)
     .reverse();
 
