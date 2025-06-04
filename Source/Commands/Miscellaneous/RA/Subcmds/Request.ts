@@ -3,6 +3,7 @@ import { ReducedActivityEventLogger } from "@Utilities/Classes/UANEventLogger.js
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
   HandleDurationValidation,
+  EvaluatePendingOrActiveNotices,
   HasRecentlyEndedDeniedCancelledUAN,
 } from "@Cmds/Miscellaneous/LOA/Subcmds/Request.js";
 
@@ -16,27 +17,14 @@ const RAEventLogger = new ReducedActivityEventLogger();
 // -----------------
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const ActiveOrPendingNotice = await UserActivityNoticeModel.findOne(
-    {
-      user: Interaction.user.id,
-      guild: Interaction.guildId,
-      $or: [
-        { status: "Pending", review_date: null },
-        {
-          status: "Approved",
-          early_end_date: null,
-          end_date: { $gt: Interaction.createdAt },
-        },
-      ],
-    },
-    { status: 1 }
-  )
-    .lean()
-    .exec();
-
-  if (ActiveOrPendingNotice) {
+  const PendingOrActiveNoticeStatuses = await EvaluatePendingOrActiveNotices(Interaction);
+  if (PendingOrActiveNoticeStatuses.loa.active || PendingOrActiveNoticeStatuses.loa.pending) {
     return new ErrorEmbed()
-      .useErrTemplate("UANoticeAlreadyExists", "reduced activity")
+      .useErrTemplate("RARequestLOANoticeIsPendingOrActive")
+      .replyToInteract(Interaction, true, true);
+  } else if (PendingOrActiveNoticeStatuses.ra.active || PendingOrActiveNoticeStatuses.ra.pending) {
+    return new ErrorEmbed()
+      .useErrTemplate("RARequestNoticeAlreadyExists")
       .replyToInteract(Interaction, true, true);
   }
 

@@ -1,5 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { Emojis, Colors } from "@Config/Shared.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import Dedent from "dedent";
 
 /**
@@ -577,12 +578,29 @@ export const ErrorMessages = {
       "The application couldn't replace any nicknames that matched the provided criteria. This could be due to factors such as role position or insufficient permissions.",
   },
 
-  /**
-   * @template {string} NoticeType
-   */
-  UANoticeAlreadyExists: {
-    Title: "Notice Already Exists",
-    Description: "You cannot request a %s while you have an active or pending activity notice.",
+  RARequestNoticeAlreadyExists: {
+    Title: "Existing Notice Found",
+    Description:
+      "You cannot request a reduced activity at the moment, as you already have an active or pending one.",
+  },
+
+  RARequestLOANoticeIsPendingOrActive: {
+    Title: "Leave of Absence Conflict",
+    Description:
+      "You cannot request a reduced activity while a leave still pending or active. Please submit an RA request only when no leave is active or awaiting approval.",
+  },
+
+  LOARequestNoticeAlreadyExists: {
+    Title: "Existing Leave Found",
+    Description:
+      "You cannot request a leave of absence at the moment as you already have an active or pending one. " +
+      `If you wish to extend your current leave, please use the ${MentionCmdByName("loa manage")} command.`,
+  },
+
+  LOARequestRANoticeIsPending: {
+    Title: "Reduced Activity Conflict",
+    Description:
+      "You cannot request a leave of absence while a reduced activity request is still pending. Please cancel the RA request before submitting a leave request.",
   },
 
   LOAAlreadyExistsManagement: {
