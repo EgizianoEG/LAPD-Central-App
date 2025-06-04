@@ -19,10 +19,7 @@ export default async function AutocompleteIncidentNum(
     Suggestions = Incidents;
   } else {
     Suggestions = Incidents.filter((Incident) => {
-      const LowerCasedIncident = Incident.autocomplete_label.toLowerCase();
-      return (
-        LowerCasedIncident.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCasedIncident)
-      );
+      return Incident.autocomplete_label.toLowerCase().includes(LowerCaseTyped);
     });
   }
 

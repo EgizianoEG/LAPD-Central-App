@@ -1,5 +1,6 @@
-import { AggregateResults } from "@Typings/Utilities/Database.js";
+/* eslint-disable sonarjs/no-duplicate-string */
 import IncidentModel from "@Models/Incident.js";
+import { AggregateResults } from "@Typings/Utilities/Database.js";
 import { IncidentAutocompletionCache } from "@Utilities/Helpers/Cache.js";
 
 export default async function GetAllIncidentNums(
@@ -31,9 +32,15 @@ export default async function GetAllIncidentNums(
     {
       $project: {
         num: "$num",
+        reported_on: "$reported_on",
         autocomplete_label: {
           $concat: ["INC-", "$num", " - ", "$type", " – Reported on ", "$reported_on"],
         },
+      },
+    },
+    {
+      $sort: {
+        reported_on: 1,
       },
     },
   ])

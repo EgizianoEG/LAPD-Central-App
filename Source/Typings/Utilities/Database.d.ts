@@ -1114,6 +1114,7 @@ export namespace AggregateResults {
   interface GetIncidentNumbers {
     _id: string;
     num: string;
+    reported_on: Date;
     autocomplete_label: string;
   }
   [];
