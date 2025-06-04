@@ -35,6 +35,7 @@ const RCoords = {
 
   dov: { x: 0.0265, y: 0.138 },
   tov: { x: 0.298, y: 0.138 },
+  case_num: { x: 0.875, y: 0.1359 },
 
   violator: {
     name: { x: 0.0265, y: 0.182 },
@@ -48,6 +49,7 @@ const RCoords = {
     eyes: { x: 0.285, y: 0.3605 },
     height: { x: 0.3915, y: 0.3605 },
     weight: { x: 0.5048, y: 0.3605 },
+    zip_code: { x: 0.7802, y: 0.2695 },
     lic_is_comm: {
       yes: { x: 0.529, y: 0.3105 },
       no: { x: 0.6165, y: 0.3105 },
@@ -220,6 +222,9 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   // Date of Violation
   CTX.fillText(CitData.dov, RCoords.dov.x * TWidth, RCoords.dov.y * THeight);
 
+  // Case Number
+  CTX.fillText("—", RCoords.case_num.x * TWidth, RCoords.case_num.y * THeight);
+
   // Time of Violation
   CTX.letterSpacing = "0.2em";
   CTX.fillText(CitData.tov, RCoords.tov.x * TWidth, RCoords.tov.y * THeight);
@@ -267,6 +272,9 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
     RCoords.violator.city.x * TWidth,
     RCoords.violator.city.y * THeight
   );
+
+  // Violator's Zip Code
+  CTX.fillText("—", RCoords.violator.zip_code.x * TWidth, RCoords.violator.zip_code.y * THeight);
 
   // Violator's Driver License Number
   CTX.letterSpacing = "0.35em";
@@ -499,37 +507,31 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   CTX.fillStyle = "black";
 
   // Speed Approximation
-  if (CitData.case_details?.speed_approx) {
-    CTX.textAlign = "center";
-    CTX.fillText(
-      `${CitData.case_details.speed_approx} MPH`,
-      RCoords.spd_appx.x * TWidth,
-      RCoords.spd_appx.y * THeight,
-      0.2 * TWidth
-    );
-  }
+  CTX.textAlign = "center";
+  CTX.fillText(
+    CitData.case_details.speed_approx ? `${CitData.case_details.speed_approx} MPH` : "—",
+    RCoords.spd_appx.x * TWidth,
+    RCoords.spd_appx.y * THeight,
+    0.2 * TWidth
+  );
 
   // Posted Speed Limit
-  if (CitData.case_details?.posted_speed) {
-    CTX.textAlign = "center";
-    CTX.fillText(
-      `${CitData.case_details.posted_speed} MPH`,
-      RCoords.spd_limit.x * TWidth,
-      RCoords.spd_limit.y * THeight,
-      0.2 * TWidth
-    );
-  }
+  CTX.textAlign = "center";
+  CTX.fillText(
+    CitData.case_details.posted_speed ? `${CitData.case_details.posted_speed} MPH` : "—",
+    RCoords.spd_limit.x * TWidth,
+    RCoords.spd_limit.y * THeight,
+    0.2 * TWidth
+  );
 
   // Vehicle Speed Limit
-  if (CitData.case_details?.veh_speed_limit) {
-    CTX.textAlign = "center";
-    CTX.fillText(
-      `${CitData.case_details.veh_speed_limit} MPH`,
-      RCoords.veh_spd_limit.x * TWidth,
-      RCoords.veh_spd_limit.y * THeight,
-      0.2 * TWidth
-    );
-  }
+  CTX.textAlign = "center";
+  CTX.fillText(
+    CitData.case_details.veh_speed_limit ? `${CitData.case_details.veh_speed_limit} MPH` : "—",
+    RCoords.veh_spd_limit.x * TWidth,
+    RCoords.veh_spd_limit.y * THeight,
+    0.2 * TWidth
+  );
 
   // Fine Amount (if any)
   if (CitData.cit_type === CitationTypes.Fine && CitData.fine_amount) {
