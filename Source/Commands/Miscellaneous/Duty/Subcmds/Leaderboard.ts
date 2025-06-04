@@ -1,10 +1,12 @@
 import { EmbedBuilder, SlashCommandSubcommandBuilder } from "discord.js";
 import { ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { isAfter } from "date-fns/isAfter";
 import { Shifts } from "@Typings/Utilities/Database.js";
 
 import GetValidTargetShiftTypes from "@Utilities/Helpers/GetTargetShiftType.js";
 import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
+import * as Chrono from "chrono-node";
 import ShiftModel from "@Models/Shift.js";
 import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
 import Util from "util";
@@ -18,8 +20,7 @@ import Util from "util";
  * @param RSIndex - The index of which the ranking should be started from; defaults to `0`.
  * @returns
  */
-function FormatPageText(PUDurations: [string, number][], RSIndex: number = 0) {
-  PUDurations = PUDurations || [];
+function FormatPageText(PUDurations: [string, number][] = [], RSIndex: number = 0) {
   return Array.from(PUDurations, ([UserId, TotalDuration]) => {
     return `${++RSIndex}. <@${UserId}> \u{1680} ${ReadableDuration(TotalDuration)}`;
   }).join("\n");
@@ -89,6 +90,26 @@ function GetPaginatedDurations(ShiftsData: Shifts.HydratedShiftDocument[]) {
 }
 
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
+  const InputSince = Interaction.options.getString("since");
+  let SinceDate: Date | null = null;
+
+  if (InputSince) {
+    SinceDate = Chrono.parseDate(InputSince, Interaction.createdAt);
+    if (!SinceDate && !InputSince.match(/\bago\s*$/i)) {
+      SinceDate = Chrono.parseDate(`${InputSince} ago`, Interaction.createdAt);
+    }
+
+    if (!SinceDate) {
+      return new ErrorEmbed()
+        .useErrTemplate("UnknownDateFormat")
+        .replyToInteract(Interaction, true, false);
+    } else if (isAfter(SinceDate, Interaction.createdAt)) {
+      return new ErrorEmbed()
+        .useErrTemplate("DateInFuture")
+        .replyToInteract(Interaction, true, false);
+    }
+  }
+
   const [ValidShiftTypes, TargetShiftTypes] = await GetValidTargetShiftTypes(Interaction, false);
   if (TargetShiftTypes.length && !ValidShiftTypes.length) {
     return new ErrorEmbed()
@@ -97,6 +118,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   }
 
   const PaginatedData = await ShiftModel.find({
+    ...(SinceDate ? { start_timestamp: { $gte: SinceDate } } : {}),
     type: ValidShiftTypes?.length ? { $in: ValidShiftTypes } : { $type: "string" },
     guild: Interaction.guildId,
     end_timestamp: { $ne: null },
@@ -142,6 +164,16 @@ const CommandObject = {
       Option.setName("type")
         .setDescription("The type of duty shift to show leaderboard for.")
         .setMinLength(3)
+        .setMaxLength(40)
+        .setRequired(false)
+        .setAutocomplete(true)
+    )
+    .addStringOption((Option) =>
+      Option.setName("since")
+        .setDescription(
+          "A specific date, timeframe, or relative time expression to view leaderboard since then."
+        )
+        .setMinLength(2)
         .setMaxLength(40)
         .setRequired(false)
         .setAutocomplete(true)
