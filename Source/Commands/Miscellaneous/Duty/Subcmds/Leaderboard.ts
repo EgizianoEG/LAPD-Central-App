@@ -1,6 +1,7 @@
 import { EmbedBuilder, SlashCommandSubcommandBuilder } from "discord.js";
 import { ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { formatDistance } from "date-fns/formatDistance";
 import { isAfter } from "date-fns/isAfter";
 import { Shifts } from "@Typings/Utilities/Database.js";
 
@@ -36,13 +37,23 @@ function FormatPageText(PUDurations: [string, number][] = [], RSIndex: number = 
 function BuildLeaderboardPages(
   Interaction: SlashCommandInteraction<"cached">,
   PaginatedDurations: [string, number][][],
-  TargetShiftTypes: string[]
+  TargetShiftTypes: string[],
+  SinceDate?: Date | null
 ) {
+  const Flattened = PaginatedDurations.flat();
+  const TotalRecords = Flattened.length;
+  const TotalDuration =
+    TotalRecords > 2 ? Flattened.reduce((Sum, [, Duration]) => Sum + Duration, 0) : null;
+
   const LeaderboardPages: EmbedBuilder[] = [];
   const FooterText = Util.format(
-    "Showing leaderboard for %s duty shift type%s.",
+    "Showing leaderboard%s for %s duty shift type%s.%s",
+    SinceDate
+      ? ` since ${formatDistance(SinceDate, Interaction.createdAt, { addSuffix: true })}`
+      : "",
     TargetShiftTypes.length ? ListFormatter.format(TargetShiftTypes) : "all",
-    TargetShiftTypes.length === 1 ? "" : "s"
+    TargetShiftTypes.length === 1 ? "" : "s",
+    TotalDuration ? `\nApprox. total time: ${ReadableDuration(TotalDuration, { largest: 4 })}` : ""
   );
 
   for (const [PageIndex, PageData] of PaginatedDurations.entries()) {
@@ -144,7 +155,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     return ReplyEmbed.replyToInteract(Interaction, true);
   }
 
-  const BuiltPages = BuildLeaderboardPages(Interaction, PaginatedData, ValidShiftTypes);
+  const BuiltPages = BuildLeaderboardPages(Interaction, PaginatedData, ValidShiftTypes, SinceDate);
   return HandlePagePagination({
     context: "Commands:Miscellaneous:Duty:Leaderboard",
     pages: BuiltPages,
