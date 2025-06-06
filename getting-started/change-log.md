@@ -82,8 +82,6 @@ layout:
 * **Consistent Role Backup and Restore UI:**\
   The role backup and restore flows (all commands) now use enhanced containers and no more embeds, display role lists as clickable mentions, and include backup reasons in the descriptions.
 
-***
-
 ### Notable Fixes
 
 * **Button Interaction Consistency:**\
@@ -91,8 +89,6 @@ layout:
   &#xNAN;_&#x57;hy:_ Fixes edge cases where button interactions could fail or target the wrong user.
 * **Role Backup List Being Shown Unsorted:**\
   Sort order for listing member role backups now uses the correct field (`saved_on` instead of `saved_at`).
-
-***
 
 ### Refactoring
 
@@ -103,14 +99,14 @@ layout:
 * **Utility Function Renames and Parameterization:**\
   Functions like `GetTargetMember` have been revised and renamed to `GetTargetUser` with clearer parameter types and usages.
 
-***
-
 ### Additional Notes
 
 * **Cooldown Adjustments:**\
   The duty import command cooldowns and timeframes were shortened for both user and guild scopes.
 
 [**Full diff: v1.0.0...v1.1.0**](https://github.com/EgizianoEG/LAPD-Central-App/compare/v1.0.0...v1.1.0)
+
+***
 
 ## [Version 1.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.0.0) — **May 26, 2025**
 
