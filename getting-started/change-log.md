@@ -1,10 +1,13 @@
 ---
+description: >-
+  Track LAPD Central's evolution with detailed release notes, feature additions,
+  and bug fixes. Each version includes commit links for full transparency.
 icon: newspaper
 layout:
   title:
     visible: true
   description:
-    visible: false
+    visible: true
   tableOfContents:
     visible: true
   outline:
@@ -15,7 +18,7 @@ layout:
 
 # Change Log
 
-## [Version 1.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.1.0) —  June &#x36;**, 2025**
+## [Version 1.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.1.0) (Latest) —  June &#x36;**, 2025**
 
 ### Enhancements
 
