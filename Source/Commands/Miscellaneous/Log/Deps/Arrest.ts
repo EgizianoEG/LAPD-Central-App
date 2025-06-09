@@ -298,7 +298,7 @@ async function OnChargesModalSubmission(
       UserIds: ArresteeId,
       Size: "420x420",
       Format: "png",
-      CropType: "headshot",
+      CropType: "bust",
       IsManCharacter: CmdOptions.Gender === "Male",
     }),
     GetAllBookingNums(CmdInteract.guildId).then((Nums) => Nums.map((Num) => Num.num)),
@@ -341,6 +341,7 @@ async function OnChargesModalSubmission(
     : null;
 
   const BookingMugshotURL = await GetBookingMugshot<true>({
+    thumb_is_bust: true,
     return_url: true,
     head_position: 25,
     height: CmdOptions.Height,

@@ -15,6 +15,14 @@ export interface GetBookingMugshotOptions {
   thumb_img: string | URL | Buffer;
 
   /**
+   * Whether the thumbnail image is a bust (upper body only) or headshot.
+   * If `true`, the image will be treated as a bust, and the head position
+   * will be adjusted accordingly.
+   * Defaults to `true`.
+   */
+  thumb_is_bust?: boolean;
+
+  /**
    * The booking number associated with the mugshot.
    * Can be provided as a string or a number.
    */
@@ -67,6 +75,7 @@ export interface GetBookingMugshotOptions {
 export default async function GetBookingMugshot<AsURL extends boolean | undefined = undefined>(
   Options: GetBookingMugshotOptions
 ): Promise<AsURL extends true ? string : AsURL extends false ? Buffer : Buffer | string> {
+  Options.thumb_is_bust = typeof Options.thumb_is_bust === "boolean" ? Options.thumb_is_bust : true;
   const BkgNumPadded = Options.booking_num.toString().padStart(3, "0");
   const LAPDDivision = Options.division?.length ? Options.division.toUpperCase() : "WILSHIRE";
   const ImgCanvas = createCanvas(ImgWidth, ImgHeight);
@@ -74,7 +83,7 @@ export default async function GetBookingMugshot<AsURL extends boolean | undefine
   const ThumbImage = await LoadThumbImageWithFallback(Options.thumb_img, Options.user_gender);
 
   // Calculate height positioning
-  const HighestY = FindHighestNonTransparentPixelY(ThumbImage);
+  const HighestY = FindHighestNonTransparentPixelY(ThumbImage, true);
   const HeadHeightPercentage = HighestY !== null ? (HighestY / ImgHeight) * 100 : 0;
   const PersonHeight = Options.height ? ParseHeight(Options.height) : 70;
   const HeadPosition = Options.head_position ?? 15;
@@ -98,7 +107,7 @@ export default async function GetBookingMugshot<AsURL extends boolean | undefine
   ThumbCTX.shadowOffsetX = RelSize(3);
   ThumbCTX.shadowOffsetY = RelSize(3);
 
-  ThumbCTX.drawImage(ThumbImage, 0, 0, ImgHeight, ImgHeight);
+  ThumbCTX.drawImage(ThumbImage, 0, Options.thumb_is_bust ? RelY(15) : 0, ImgHeight, ImgHeight);
   ImgCTX.drawImage(ThumbCanvas, 0, 0);
 
   // Create information box for department, date and booking number
@@ -314,11 +323,14 @@ export async function LoadThumbImageWithFallback(
  * @param Image - The image object to analyze. It should have `width` and `height` properties.
  * @returns The Y-coordinate of the highest non-transparent pixel (distance from top), or `null` if no such pixel exists.
  */
-function FindHighestNonTransparentPixelY(Image: Image): number | null {
+function FindHighestNonTransparentPixelY(
+  Image: Image,
+  ThumbIsBust: boolean = false
+): number | null {
   const Canvas = createCanvas(Image.width, Image.height);
   const Ctx = Canvas.getContext("2d");
 
-  Ctx.drawImage(Image, 0, 0);
+  Ctx.drawImage(Image, 0, ThumbIsBust ? RelY(15) : 0);
   const ImgData = Ctx.getImageData(0, 0, Image.width, Image.height);
   const ImagePixelData = ImgData.data;
 
