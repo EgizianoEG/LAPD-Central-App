@@ -44,8 +44,15 @@ export default async function GetMainShiftsData(
   QueryFilter: FilterQuery<Shifts.ShiftDocument>,
   HasActiveShift: boolean = false
 ) {
-  QueryFilter.end_timestamp = { $ne: null };
   QueryFilter.type = QueryFilter.type || { $exists: true };
+  if (typeof QueryFilter.end_timestamp === "object" && QueryFilter.end_timestamp !== null) {
+    QueryFilter.end_timestamp = {
+      $ne: null,
+      ...QueryFilter.end_timestamp,
+    };
+  } else {
+    QueryFilter.end_timestamp = { $ne: null };
+  }
 
   const ServerSetShiftQuota = await Guild.findById(
     QueryFilter.guild,

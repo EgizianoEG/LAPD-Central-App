@@ -12,6 +12,7 @@ import {
   type SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
+const DateOffsets = ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"];
 const Subcommands = [
   (await import("./Subcmds/Officer.js")).default,
   (await import("./Subcmds/Report.js")).default,
@@ -40,9 +41,14 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">): Pro
   if (name === "shift-type") {
     Suggestions = await AutocompleteShiftType(value, Interaction.guildId);
   } else if (name === "since" && value.match(/^\s*$/)) {
-    Suggestions = ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"].map(
-      (Choice) => ({ name: Choice, value: Choice })
-    );
+    Suggestions = DateOffsets.map((Choice) => ({ name: Choice, value: Choice }));
+  } else if (["to", "until"].includes(name) && value.match(/^\s*$/)) {
+    Suggestions = DateOffsets.map((Choice) => ({
+      name: Choice,
+      value: Choice,
+    }));
+
+    Suggestions.unshift({ name: "today", value: "today" });
   } else if (name === "time-requirement") {
     Suggestions = AutocompleteTimeDuration(value);
   } else {

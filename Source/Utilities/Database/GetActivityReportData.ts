@@ -16,6 +16,9 @@ interface GetActivityReportDataOpts {
   /** The date to return the activity report data after. If not provided, defaults to all the time. */
   after?: Date | null;
 
+  /** The date to return the activity report data until. If not provided, defaults to the current date. */
+  until?: Date | null;
+
   /** The shift type(s) to get the activity report data for. */
   shift_type?: string | string[] | null;
 
@@ -126,7 +129,7 @@ export default async function GetActivityReportData(
     );
   }
 
-  const RetrieveDate = new Date();
+  const RetrieveDate = Opts.until ?? new Date();
   const RecordsBaseData = await ProfileModel.aggregate<
     AggregateResults.BaseActivityReportData["records"][number]
   >(CreateActivityReportAggregationPipeline({ ...Opts, shift_type: SpecifiedShiftTypes })).exec();
@@ -368,6 +371,9 @@ function CreateActivityReportAggregationPipeline(
                     $or: [Opts.after ? { $gte: ["$start_timestamp", Opts.after] } : true],
                   },
                   {
+                    $or: [Opts.until ? { $lte: ["$end_timestamp", Opts.until] } : true],
+                  },
+                  {
                     $or: [Opts.shift_type.length ? { $in: ["$type", Opts.shift_type] } : true],
                   },
                 ],
@@ -441,6 +447,9 @@ function CreateActivityReportAggregationPipeline(
                   {
                     $cond: { if: Opts.after, then: { $gte: ["$made_on", Opts.after] }, else: true },
                   },
+                  {
+                    $cond: { if: Opts.until, then: { $lte: ["$made_on", Opts.until] }, else: true },
+                  },
                 ],
               },
             },
@@ -462,6 +471,9 @@ function CreateActivityReportAggregationPipeline(
                   { $in: ["$$user", "$assisting_officers"] },
                   {
                     $cond: { if: Opts.after, then: { $gte: ["$made_on", Opts.after] }, else: true },
+                  },
+                  {
+                    $cond: { if: Opts.until, then: { $lte: ["$made_on", Opts.until] }, else: true },
                   },
                 ],
               },
@@ -489,6 +501,13 @@ function CreateActivityReportAggregationPipeline(
                       else: true,
                     },
                   },
+                  {
+                    $cond: {
+                      if: Opts.until,
+                      then: { $lte: ["$issued_on", Opts.until] },
+                      else: true,
+                    },
+                  },
                 ],
               },
             },
@@ -512,6 +531,13 @@ function CreateActivityReportAggregationPipeline(
                     $cond: {
                       if: Opts.after,
                       then: { $gte: ["$reported_on", Opts.after] },
+                      else: true,
+                    },
+                  },
+                  {
+                    $cond: {
+                      if: Opts.until,
+                      then: { $lte: ["$reported_on", Opts.until] },
                       else: true,
                     },
                   },

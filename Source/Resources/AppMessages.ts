@@ -455,10 +455,22 @@ export const ErrorMessages = {
       "The format of the duration you have entered is either incorrect or not supported. Kindly attempt again using a different format.",
   },
 
+  SinceUntilDatesOutOfOrder: {
+    Title: "Invalid Date Range",
+    Description:
+      "The date range you have entered is invalid. Kindly provide an earlier date for the `since` field and a later date for the `to` field.",
+  },
+
   NotEnoughTimePassedAR: {
     Title: "Insufficient Time",
     Description:
       "The time that has passed since the date you entered is insufficient to complete this action. Please provide a date that is at least one day earlier than today.",
+  },
+
+  InvalidDateRangeAR: {
+    Title: "Date Range Too Short",
+    Description:
+      "The duration between the two dates you have entered is too short. Kindly specify a duration of at least 1 day.",
   },
 
   /**
