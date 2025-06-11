@@ -1,5 +1,5 @@
 import { Collection, Guild, GuildMember, Role } from "discord.js";
-import { differenceInHours, isAfter } from "date-fns";
+import { add, sub, isAfter, differenceInHours } from "date-fns";
 import { AggregateResults } from "@Typings/Utilities/Database.js";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import GetGuildSettings from "./GetGuildSettings.js";
@@ -451,6 +451,27 @@ function CreateActivityReportAggregationPipeline(
                   { $eq: ["$user", "$$user"] },
                   { $eq: ["$guild", "$$guild"] },
                   { $in: ["$status", ["Approved", "Pending"]] },
+                  {
+                    $or: [
+                      {
+                        $and: [
+                          Opts.after
+                            ? { $gte: ["$request_date", sub(Opts.after, { days: 3 })] }
+                            : true,
+                          Opts.until
+                            ? { $lte: ["$request_date", add(Opts.until, { days: 3 })] }
+                            : true,
+                        ],
+                      },
+                      {
+                        $and: [
+                          { $ne: ["$end_date", null] },
+                          Opts.after ? { $gte: ["$end_date", Opts.after] } : true,
+                          Opts.until ? { $lte: ["$end_date", Opts.until] } : true,
+                        ],
+                      },
+                    ],
+                  },
                 ],
               },
             },

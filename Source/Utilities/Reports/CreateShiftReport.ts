@@ -231,7 +231,7 @@ async function GetARSTemplateCopy() {
  */
 function GetFirstSheetName(EndDate: Date, StartDate?: Date | null): string {
   if (!StartDate) {
-    const SPortion = format(EndDate, "MMMM do");
+    const SPortion = format(EndDate, "MMMM do 'at' p O, yyyy");
     return `Report: Until ${SPortion}`;
   }
 
