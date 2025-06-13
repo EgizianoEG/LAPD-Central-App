@@ -29,8 +29,8 @@
   * [Logging a Citation](guides-and-how-to/duty-activities-and-logging/logging-a-citation.md)
   * [Logging an Arrest](guides-and-how-to/duty-activities-and-logging/logging-an-arrest.md)
 * [Other Guides](guides-and-how-to/other-guides/README.md)
-  * [Sheets Activity Report](guides-and-how-to/other-guides/sheets-activity-report.md)
   * [Linking Roblox Account](guides-and-how-to/other-guides/linking-roblox-account.md)
+  * [Sheets Activity Report](guides-and-how-to/other-guides/sheets-activity-report.md)
   * [Server Data Deletion](guides-and-how-to/other-guides/server-data-deletion.md)
 
 ## Miscellaneous

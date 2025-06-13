@@ -1,3 +1,7 @@
+---
+icon: link
+---
+
 # Linking Roblox Account
 
 Linking a Roblox account makes it easier for both the application and user to execute certain commands which require the Roblox ID, username, and/or display name such as logging an arrest with `/log arrest` slash command. This is a summarized guide on how the linking being done via the application without any third-parties.
