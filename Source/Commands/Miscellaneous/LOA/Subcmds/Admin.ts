@@ -469,7 +469,7 @@ async function HandleLeaveStart(
 
   const LeaveReason = ModalSubmission.fields.getTextInputValue("notes");
   const LeaveDuration = ModalSubmission.fields.getTextInputValue("duration");
-  const DurationParsed = Math.round(ParseDuration(LeaveDuration, "millisecond") ?? 0);
+  const DurationParsed = Math.round(Math.abs(ParseDuration(LeaveDuration, "millisecond") ?? 0));
   const IsManageableInput = ModalSubmission.fields.getTextInputValue("manageable");
   if (await HandleDurationValidation(ModalSubmission, "LeaveOfAbsence", DurationParsed)) return;
 
@@ -589,7 +589,7 @@ async function HandleLeaveExtend(
   if (!Submission) return;
   const Duration = Submission.fields.getTextInputValue("ext-duration");
   const NotesInput = Submission.fields.getTextInputValue("ext-notes") || null;
-  const ParsedDuration = Math.round(ParseDuration(Duration, "millisecond") ?? 0);
+  const ParsedDuration = Math.round(Math.abs(ParseDuration(Duration, "millisecond") ?? 0));
   const SubmissionHandled = ValidateExtendedDuration(Submission, ActiveLeave, ParsedDuration);
   if (SubmissionHandled) return;
   else await Submission.deferReply({ flags: MessageFlags.Ephemeral });
