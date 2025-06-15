@@ -1,7 +1,10 @@
 import { GuildSettingsCache } from "@Utilities/Helpers/Cache.js";
 import { Guilds } from "@Typings/Utilities/Database.js";
 import GuildModel from "@Models/Guild.js";
+
 type HydratedGuildSettings = Mongoose.HydratedSingleSubdocument<Guilds.GuildSettings>;
+const DefaultGuildSettings: Guilds.GuildSettings = new GuildModel().toObject()
+  .settings as Guilds.GuildSettings;
 
 /**
  * Retrieves the settings for a specific guild from the database, with optional caching and lean query support.
@@ -37,8 +40,9 @@ export default async function GetGuildSettings<ReturnLeaned extends boolean | un
   }
 
   if (GuildDocument) {
-    GuildSettingsCache.set(`${GuildId}:${Lean}`, GuildDocument.settings);
-    return GuildDocument.settings as any;
+    const Settings: Guilds.GuildSettings = { ...DefaultGuildSettings, ...GuildDocument.settings };
+    GuildSettingsCache.set(`${GuildId}:${Lean}`, Settings);
+    return Settings as any;
   } else {
     return null;
   }

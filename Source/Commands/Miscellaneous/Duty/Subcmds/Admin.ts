@@ -412,7 +412,7 @@ async function HandleShiftTimeSet(
 
   const InputDuration = ModalSubmission.fields.getTextInputValue("da-st-mod-input");
   const ParsedDuration = ParseDuration(InputDuration, "millisecond");
-  const RoundedDuration = Math.round(ParsedDuration ?? 0);
+  const RoundedDuration = Math.round(Math.abs(ParsedDuration ?? 0));
 
   if (!ParsedDuration) {
     return new ErrorEmbed()
@@ -465,7 +465,7 @@ async function HandleShiftTimeAddSub(
 
   const InputDuration = ModalSubmission.fields.getTextInputValue("da-st-mod-input");
   const ParsedDuration = ParseDuration(InputDuration, "millisecond");
-  const RoundedDuration = Math.round(ParsedDuration ?? 0);
+  const RoundedDuration = Math.round(Math.abs(ParsedDuration ?? 0));
   const SuccessMsg =
     ActionType === "Add"
       ? `Successfully added an extra \`${ReadableDuration(RoundedDuration)}\` of on-duty time to the shift.`
@@ -985,7 +985,7 @@ async function HandleShiftCreation(
   const InputDuration = ModalSubmission.fields.getTextInputValue("shift-duration");
   const InputShiftType = ModalSubmission.fields.getTextInputValue("shift-type");
   const ParsedDuration = ParseDuration(InputDuration, "millisecond");
-  const RoundedDuration = Math.round(ParsedDuration ?? 0);
+  const RoundedDuration = Math.round(Math.abs(ParsedDuration ?? 0));
 
   if (!ParsedDuration) {
     return new ErrorEmbed()

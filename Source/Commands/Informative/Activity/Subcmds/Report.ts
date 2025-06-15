@@ -41,8 +41,8 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   if (DateRangeFilters === true) return;
   if (InputQuotaDuration) {
     const ParsedDuration = ParseDuration(InputQuotaDuration, "millisecond");
-    if (ParsedDuration) {
-      QuotaDur = Math.round(ParsedDuration);
+    if (typeof ParsedDuration === "number") {
+      QuotaDur = Math.round(Math.abs(ParsedDuration));
     } else {
       return new ErrorEmbed()
         .useErrTemplate("UnknownDurationExp")

@@ -151,7 +151,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       )
       .map((Entry) => {
         if (!Entry.duty_ms && Entry.hr_time) {
-          Entry.duty_ms = Math.round(ParseDuration(Entry.hr_time, "millisecond") ?? 0);
+          Entry.duty_ms = Math.round(Math.abs(ParseDuration(Entry.hr_time, "millisecond") ?? 0));
         } else if (typeof Entry.duty_ms === "string") {
           Entry.duty_ms = parseInt(Entry.duty_ms, 10);
         }
