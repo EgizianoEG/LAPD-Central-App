@@ -1110,6 +1110,156 @@ export namespace GuildIncidents {
   }
 }
 
+export namespace RolePersist {
+  type HydratedRolePersistDocument = HydratedDocument<RolePersistDocument, RolePersistVirtuals>;
+  interface RolePersistModel extends Model<RolePersistDocument, {}, {}, RolePersistVirtuals> {}
+
+  interface SavedByInfo {
+    user_id: string;
+    username: string;
+  }
+
+  interface SavedRole {
+    role_id: string;
+    role_name: string;
+  }
+
+  interface RolePersistVirtuals {
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a Discord user mention for the user who has this record; *not the user who created it*.
+     */
+    user_mention: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted timestamp for when the record was saved.
+     */
+    saved_on_timestamp: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a human-readable formatted date for when the record was saved.
+     */
+    saved_on_formatted: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted timestamp for the expiration date, or null if no expiry is set.
+     */
+    expiration_timestamp: string | null;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns an array of Discord role mentions for all saved roles.
+     */
+    roles_mentioned: string[];
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns formatted text for autocompletion display showing save details and expiration.
+     */
+    autocomplete_text: string;
+  }
+
+  interface RolePersistDocument {
+    /** The MongoDB ObjectId of the role persist record. */
+    _id: Types.ObjectId;
+
+    /** The Discord guild snowflake Id where the roles were saved. */
+    guild: string;
+
+    /** The Discord user snowflake Id whose roles were persisted. */
+    user: string;
+
+    /** Information about who saved the roles. */
+    saved_by: SavedByInfo;
+
+    /** The date when the roles were saved. */
+    saved_on: Date;
+
+    /** Optional reason for saving the roles. */
+    reason: string | null;
+
+    /** Optional expiration date for the saved roles. */
+    expiry: Date | null;
+
+    /** Array of saved roles (1-3 roles maximum). */
+    roles: SavedRole[];
+  }
+}
+
+export namespace MemberSavedRoles {
+  type HydratedMemberRolesDocument = HydratedDocument<MemberRolesDocument, MemberRolesVirtuals>;
+  interface MemberRolesModel extends Model<MemberRolesDocument, {}, {}, MemberRolesVirtuals> {}
+
+  interface SavedRole {
+    role_id: string;
+    role_name: string;
+  }
+
+  interface MemberRolesVirtuals {
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a Discord user mention for the member.
+     */
+    user_mention: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted timestamp for when the roles were saved.
+     */
+    saved_on_timestamp: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a human-readable formatted date for when the roles were saved.
+     */
+    saved_on_formatted: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns an array of Discord role mentions for all saved roles.
+     */
+    roles_mentioned: string[];
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns formatted text for autocompletion display showing member info and save date.
+     */
+    autocomplete_text: string;
+  }
+
+  interface MemberRolesDocument {
+    /** The MongoDB ObjectId of the member roles record. */
+    _id: Types.ObjectId;
+
+    /** The Discord guild snowflake Id where the roles were saved. */
+    guild: string;
+
+    /** The Discord member snowflake Id whose roles were saved. */
+    member: string;
+
+    /** The username of the member at the time the roles were saved. */
+    username: string;
+
+    /** The nickname of the member at the time the roles were saved. */
+    nickname: string;
+
+    /** The Discord user snowflake Id of who saved the roles. */
+    saved_by: string;
+
+    /** The date when the roles were saved. */
+    saved_on: Date;
+
+    /** Optional reason for saving the roles. */
+    reason: string | null;
+
+    /** Array of saved roles. */
+    roles: SavedRole[];
+  }
+}
+
 export namespace AggregateResults {
   interface GetCitationNumbers {
     _id: string;

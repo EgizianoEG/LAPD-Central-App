@@ -1,24 +1,7 @@
 import { time, roleMention, userMention } from "discord.js";
+import { SavedRoleSchema } from "./Schemas/SavedRole.js";
 import { Schema, model } from "mongoose";
 import { format } from "date-fns";
-
-const SavedRoleSchema = new Schema(
-  {
-    role_id: {
-      type: String,
-      match: /^\d{15,22}$/,
-      required: true,
-    },
-
-    name: {
-      type: String,
-      minLength: 1,
-      maxLength: 32,
-      required: true,
-    },
-  },
-  { _id: false, versionKey: false }
-);
 
 const MemberRoles = new Schema(
   {
@@ -38,6 +21,8 @@ const MemberRoles = new Schema(
 
     username: {
       type: String,
+      minLength: 2,
+      maxLength: 32,
       required: true,
     },
 
@@ -57,6 +42,7 @@ const MemberRoles = new Schema(
 
     saved_on: {
       type: Date,
+      required: true,
       default: Date.now,
     },
 

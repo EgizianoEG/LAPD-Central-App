@@ -50,7 +50,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     saved_on: CmdInteraction.createdAt,
   });
 
-  const RespEmbed = new BaseExtraContainer()
+  const RespContainer = new BaseExtraContainer()
     .setColor(Colors.Greyple)
     .setTitle("Backup Created")
     .setDescription(
@@ -64,7 +64,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
       `)
     );
 
-  return CmdInteraction.editReply({ components: [RespEmbed], flags: MsgFlags });
+  return CmdInteraction.editReply({ components: [RespContainer], flags: MsgFlags });
 }
 
 // ---------------------------------------------------------------------------------------
