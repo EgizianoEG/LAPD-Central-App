@@ -30,7 +30,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   const RequestReason = Interaction.options.getString("reason", true);
   const RequestDuration = Interaction.options.getString("duration", true);
-  const DurationParsed = Math.round(ParseDuration(RequestDuration, "millisecond") ?? 0);
+  const DurationParsed = Math.round(Math.abs(ParseDuration(RequestDuration, "millisecond") ?? 0));
   if (await HandleDurationValidation(Interaction, "ReducedActivity", DurationParsed)) return;
   if (await HasRecentlyEndedDeniedCancelledUAN(Interaction, "ReducedActivity")) return;
 

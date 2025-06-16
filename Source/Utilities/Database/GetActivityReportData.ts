@@ -1,5 +1,5 @@
-import { Collection, Guild, GuildMember } from "discord.js";
-import { differenceInHours, isAfter } from "date-fns";
+import { Collection, Guild, GuildMember, Role } from "discord.js";
+import { add, sub, isAfter, differenceInHours } from "date-fns";
 import { AggregateResults } from "@Typings/Utilities/Database.js";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import GetGuildSettings from "./GetGuildSettings.js";
@@ -15,6 +15,9 @@ interface GetActivityReportDataOpts {
 
   /** The date to return the activity report data after. If not provided, defaults to all the time. */
   after?: Date | null;
+
+  /** The date to return the activity report data until. If not provided, defaults to the current date. */
+  until?: Date | null;
 
   /** The shift type(s) to get the activity report data for. */
   shift_type?: string | string[] | null;
@@ -126,7 +129,7 @@ export default async function GetActivityReportData(
     );
   }
 
-  const RetrieveDate = new Date();
+  const RetrieveDate = Opts.until ?? new Date();
   const RecordsBaseData = await ProfileModel.aggregate<
     AggregateResults.BaseActivityReportData["records"][number]
   >(CreateActivityReportAggregationPipeline({ ...Opts, shift_type: SpecifiedShiftTypes })).exec();
@@ -145,7 +148,7 @@ export default async function GetActivityReportData(
 
   const ProcessedMemberIds = new Set<string>();
   const MembersById = new Map(Opts.members.map((Member) => [Member.id, Member]));
-  const Records = RecordsBaseData.map((Record, Index) => {
+  const Records = RecordsBaseData.map((Record) => {
     const Member = MembersById.get(Record.id);
     const RecentUAN = Record.recent_activity_notice;
     const TypeAbbr = RecentUAN?.type === "LeaveOfAbsence" ? "leave" : "ra";
@@ -237,13 +240,18 @@ export default async function GetActivityReportData(
 
     return {
       values: [
-        { userEnteredValue: { numberValue: Index + 1 } },
+        { userEnteredValue: { numberValue: Record.total_time, member: Member } },
+        { userEnteredValue: { numberValue: 0 } },
         {
           userEnteredValue: {
             stringValue: FormatName(Member, Opts.include_member_nicknames),
           },
         },
-        { userEnteredValue: { stringValue: HighestHoistedRoleName(Member, ShiftStatusRoles) } },
+        {
+          userEnteredValue: {
+            stringValue: GetHighestHoistedRole(Member, ShiftStatusRoles) as Role | string | null,
+          },
+        },
         { userEnteredValue: { stringValue: ReadableDuration(Record.total_time) } },
         { userEnteredValue: { numberValue: Record.arrests } },
         { userEnteredValue: { numberValue: Record.arrests_assisted } },
@@ -267,9 +275,10 @@ export default async function GetActivityReportData(
     .forEach((Member) => {
       Records.push({
         values: [
-          { userEnteredValue: { numberValue: Records.length + 1 } },
+          { userEnteredValue: { numberValue: 0, member: Member } },
+          { userEnteredValue: { numberValue: 0 } },
           { userEnteredValue: { stringValue: FormatName(Member, Opts.include_member_nicknames) } },
-          { userEnteredValue: { stringValue: HighestHoistedRoleName(Member, ShiftStatusRoles) } },
+          { userEnteredValue: { stringValue: GetHighestHoistedRole(Member, ShiftStatusRoles) } },
           { userEnteredValue: { stringValue: ReadableDuration(0) } },
           { userEnteredValue: { numberValue: 0 } },
           { userEnteredValue: { numberValue: 0 } },
@@ -281,10 +290,48 @@ export default async function GetActivityReportData(
       });
     });
 
+  Records.sort((A, B) => {
+    const ATotalTime = A.values[0].userEnteredValue.numberValue ?? 0;
+    const BTotalTime = B.values[0].userEnteredValue.numberValue ?? 0;
+    if (BTotalTime !== ATotalTime) return BTotalTime - ATotalTime;
+
+    // Secondary sort: Role position descending (higher roles first).
+    const MemberAHHRole = A.values[3].userEnteredValue.stringValue as Role | null;
+    const MemberBHHRole = B.values[3].userEnteredValue.stringValue as Role | null;
+    if (MemberAHHRole && MemberBHHRole) {
+      const RoleComparison = MemberBHHRole.comparePositionTo(MemberAHHRole);
+      if (RoleComparison !== 0) return RoleComparison;
+    }
+
+    // Tertiary sort: Alphabetical by name when time and roles are equal.
+    const AName = A.values[2].userEnteredValue.stringValue! as string;
+    const BName = B.values[2].userEnteredValue.stringValue! as string;
+    return AName.localeCompare(BName, undefined, {
+      ignorePunctuation: true,
+      sensitivity: "base",
+      numeric: true,
+    });
+  });
+
+  Records.forEach((Record, Index) => {
+    Record.values[1].userEnteredValue.numberValue = Index + 1;
+  });
+
   return {
-    statistics: ReportStatistics,
-    records: Records,
     quota: Opts.quota_duration ? ReadableDuration(Opts.quota_duration) : "None",
+    statistics: ReportStatistics,
+    records: Records.map((Record) => ({
+      values: Record.values.slice(1).map((Value) => {
+        const UserEnteredValue = Value.userEnteredValue;
+        if (UserEnteredValue.stringValue instanceof Role) {
+          UserEnteredValue.stringValue = UserEnteredValue.stringValue.name;
+        } else if (UserEnteredValue.stringValue === null) {
+          UserEnteredValue.stringValue = "N/A";
+        }
+
+        return { userEnteredValue: UserEnteredValue, ...(Value.note ? { note: Value.note } : {}) };
+      }),
+    })) as ActivityReportDataReturn["records"],
   };
 }
 
@@ -311,9 +358,12 @@ function FormatName(Member: GuildMember | string, IncludeNickname?: boolean) {
  * @param DisregardedRoleIds - An optional array of role IDs to exclude from consideration.
  * @returns The name of the highest hoisted role, or "N/A" if no valid hoisted role is found.
  */
-function HighestHoistedRoleName(Member: GuildMember, DisregardedRoleIds: string[] = []): string {
+function GetHighestHoistedRole(
+  Member: GuildMember,
+  DisregardedRoleIds: string[] = []
+): Role | null {
   if (Member.roles.highest.hoist && !DisregardedRoleIds.includes(Member.roles.highest.id)) {
-    return Member.roles.highest.name;
+    return Member.roles.highest;
   }
 
   const TopHoistedRole = [...Member.roles.cache.values()]
@@ -321,8 +371,8 @@ function HighestHoistedRoleName(Member: GuildMember, DisregardedRoleIds: string[
     .sort((A, B) => B.position - A.position)[0];
 
   return (
-    TopHoistedRole?.name ??
-    (Member.roles.highest.id === Member.guild.roles.everyone.id ? "N/A" : Member.roles.highest.name)
+    TopHoistedRole ??
+    (Member.roles.highest.id === Member.guild.roles.everyone.id ? null : Member.roles.highest)
   );
 }
 
@@ -368,6 +418,9 @@ function CreateActivityReportAggregationPipeline(
                     $or: [Opts.after ? { $gte: ["$start_timestamp", Opts.after] } : true],
                   },
                   {
+                    $or: [Opts.until ? { $lte: ["$end_timestamp", Opts.until] } : true],
+                  },
+                  {
                     $or: [Opts.shift_type.length ? { $in: ["$type", Opts.shift_type] } : true],
                   },
                 ],
@@ -398,6 +451,27 @@ function CreateActivityReportAggregationPipeline(
                   { $eq: ["$user", "$$user"] },
                   { $eq: ["$guild", "$$guild"] },
                   { $in: ["$status", ["Approved", "Pending"]] },
+                  {
+                    $or: [
+                      {
+                        $and: [
+                          Opts.after
+                            ? { $gte: ["$request_date", sub(Opts.after, { days: 3 })] }
+                            : true,
+                          Opts.until
+                            ? { $lte: ["$request_date", add(Opts.until, { days: 3 })] }
+                            : true,
+                        ],
+                      },
+                      {
+                        $and: [
+                          { $ne: ["$end_date", null] },
+                          Opts.after ? { $gte: ["$end_date", Opts.after] } : true,
+                          Opts.until ? { $lte: ["$end_date", Opts.until] } : true,
+                        ],
+                      },
+                    ],
+                  },
                 ],
               },
             },
@@ -441,6 +515,9 @@ function CreateActivityReportAggregationPipeline(
                   {
                     $cond: { if: Opts.after, then: { $gte: ["$made_on", Opts.after] }, else: true },
                   },
+                  {
+                    $cond: { if: Opts.until, then: { $lte: ["$made_on", Opts.until] }, else: true },
+                  },
                 ],
               },
             },
@@ -462,6 +539,9 @@ function CreateActivityReportAggregationPipeline(
                   { $in: ["$$user", "$assisting_officers"] },
                   {
                     $cond: { if: Opts.after, then: { $gte: ["$made_on", Opts.after] }, else: true },
+                  },
+                  {
+                    $cond: { if: Opts.until, then: { $lte: ["$made_on", Opts.until] }, else: true },
                   },
                 ],
               },
@@ -489,6 +569,13 @@ function CreateActivityReportAggregationPipeline(
                       else: true,
                     },
                   },
+                  {
+                    $cond: {
+                      if: Opts.until,
+                      then: { $lte: ["$issued_on", Opts.until] },
+                      else: true,
+                    },
+                  },
                 ],
               },
             },
@@ -512,6 +599,13 @@ function CreateActivityReportAggregationPipeline(
                     $cond: {
                       if: Opts.after,
                       then: { $gte: ["$reported_on", Opts.after] },
+                      else: true,
+                    },
+                  },
+                  {
+                    $cond: {
+                      if: Opts.until,
+                      then: { $lte: ["$reported_on", Opts.until] },
                       else: true,
                     },
                   },

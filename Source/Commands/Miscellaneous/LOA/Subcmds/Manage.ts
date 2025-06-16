@@ -298,7 +298,7 @@ async function HandleLeaveExtend(
   ActiveLeave = await ActiveLeave.getUpToDate();
   const Duration = Submission.fields.getTextInputValue("ext-duration");
   const Reason = Submission.fields.getTextInputValue("ext-reason") || null;
-  const ParsedDuration = Math.round(ParseDuration(Duration, "millisecond") ?? 0);
+  const ParsedDuration = Math.round(Math.abs(ParseDuration(Duration, "millisecond") ?? 0));
   const SubmissionHandled = ValidateExtendedDuration(Submission, ActiveLeave, ParsedDuration);
 
   if (SubmissionHandled) return;

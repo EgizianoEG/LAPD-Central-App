@@ -21,7 +21,7 @@ export default async function CreateShiftReport(
   const SpreadsheetTitle = "LAPD Central — Activity Report";
   const SheetOneTableTitle = Util.format("%s\nActivity Report%s", Opts.guild.name, ShiftTypeText);
 
-  const FirstSheetName = GetFirstSheetName(new Date(), Opts.after);
+  const FirstSheetName = GetFirstSheetName(Opts.until ?? new Date(), Opts.after);
   const RowEndIndex = ReportData.records.length === 1 ? 13 : ReportData.records.length + 10;
   const CSpreadsheet = await SheetsAPI.spreadsheets.get({
     spreadsheetId: Copy.data.id!,
@@ -231,7 +231,7 @@ async function GetARSTemplateCopy() {
  */
 function GetFirstSheetName(EndDate: Date, StartDate?: Date | null): string {
   if (!StartDate) {
-    const SPortion = format(EndDate, "MMMM do");
+    const SPortion = format(EndDate, "MMMM do 'at' p O, yyyy");
     return `Report: Until ${SPortion}`;
   }
 

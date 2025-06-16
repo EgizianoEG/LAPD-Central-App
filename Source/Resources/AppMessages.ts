@@ -374,7 +374,7 @@ export const ErrorMessages = {
   BotMemberSelected: {
     Title: "Bot Member Selected",
     Description:
-      "You cannot select a bot as a target. Please choose a human member for this action.",
+      "You cannot select a bot as a target. Please choose a human member or user for this action.",
   },
 
   UnknownDateFormat: {
@@ -387,6 +387,12 @@ export const ErrorMessages = {
     Title: "Date In The Future",
     Description:
       "It looks like the date you provided is in the future. Please provide a date from the past.",
+  },
+
+  DateInPast: {
+    Title: "Date In The Past",
+    Description:
+      "It looks like the date you provided is in the past. Please provide a date from the future.",
   },
 
   FailedToVoidShift: {
@@ -432,7 +438,7 @@ export const ErrorMessages = {
   DBFailedToDeleteRolesSave: {
     Title: "Database Error",
     Description:
-      "There was an error deleting this save. Please try again later or contact support.",
+      "There was an error deleting this record. Please try again later or contact support.",
   },
 
   /**
@@ -455,10 +461,22 @@ export const ErrorMessages = {
       "The format of the duration you have entered is either incorrect or not supported. Kindly attempt again using a different format.",
   },
 
+  SinceUntilDatesOutOfOrder: {
+    Title: "Invalid Date Range",
+    Description:
+      "The date range you have entered is invalid. Kindly provide an earlier date for the `since` field and a later date for the `to` field.",
+  },
+
   NotEnoughTimePassedAR: {
     Title: "Insufficient Time",
     Description:
       "The time that has passed since the date you entered is insufficient to complete this action. Please provide a date that is at least one day earlier than today.",
+  },
+
+  InvalidDateRangeAR: {
+    Title: "Date Range Too Short",
+    Description:
+      "The duration between the two dates you have entered is too short. Kindly specify a duration of at least 1 day.",
   },
 
   /**
@@ -592,9 +610,12 @@ export const ErrorMessages = {
 
   LOARequestNoticeAlreadyExists: {
     Title: "Existing Leave Found",
-    Description:
-      "You cannot request a leave of absence at the moment as you already have an active or pending one. " +
-      `If you wish to extend your current leave, please use the ${MentionCmdByName("loa manage")} command.`,
+    get Description() {
+      return (
+        "You cannot request a leave of absence at the moment as you already have an active or pending one. " +
+        `If you wish to extend your current leave, please use the ${MentionCmdByName("loa manage")} command.`
+      );
+    },
   },
 
   LOARequestRANoticeIsPending: {
@@ -923,6 +944,43 @@ export const ErrorMessages = {
     Description:
       "The requester of this notice is no longer a member of this server. You cannot take approval action on this request at this time.",
   },
+
+  RolePersistNoValidRolesProvided: {
+    Title: "No Valid Roles Provided",
+    Description:
+      "You have not provided any valid roles to persist. Please provide at least one valid role by typing and mentioning it.",
+  },
+
+  RolePersistCannotPersistProvidedRoles: {
+    Title: "Role Persistence Failed",
+    Description:
+      "**The selected role(s) cannot be saved and persisted due to permission constraints**.\n\n" +
+      "**Please ensure all roles:**\n" +
+      "- Are not managed by integrations or bots\n" +
+      "- Lack administrative permissions (like 'Manage Roles')\n" +
+      "- Are hierarchically below the application's highest role position",
+  },
+
+  RolePersistSomeRolesNotPersistable: {
+    Title: "Some Roles Not Persistable",
+    Description:
+      "**One or more of the selected roles cannot be saved and persisted due to permission constraints**.\n\n" +
+      "**Please ensure all roles:**\n" +
+      "- Are not managed by integrations or bots\n" +
+      "- Lack administrative permissions (like 'Manage Roles')\n" +
+      "- Are hierarchically below the application's highest role position",
+  },
+
+  RolePersistRecordNotFound: {
+    Title: "Record Not Found",
+    Description: "The specified role persist record could not be found for the selected person.",
+  },
+
+  RolePersistExpiryTooSoon: {
+    Title: "Expiry Too Soon",
+    Description:
+      "The expiry date you have entered is too soon. Kindly specify an expiry date that is at least 3 hours in the future.",
+  },
 };
 
 export const InfoMessages = {
@@ -952,12 +1010,22 @@ export const InfoMessages = {
     Description: "Kindly wait while the duty import process is in progress.",
   },
 
+  RolePersistSavesNotFoundFSM: {
+    Title: "Saves Not Found",
+    Description: "There were no role persistence records found for the selected person.",
+  },
+
+  RolePersistNoRecordsFound: {
+    Title: "No Records Found",
+    Description: "There are currently no role persistence records in this server.",
+  },
+
   /**
    * Roles save not found for a selected member
    */
   RoleSavesNotFoundFSM: {
     Title: "Saves Not Found",
-    Description: "There were no saves or backups found for the selected user.",
+    Description: "There were no saves or backups found for the selected person.",
   },
 
   /**

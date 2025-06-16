@@ -798,11 +798,12 @@ function GetAdditionalConfigComponents(
       )
   );
 
-  LogDelIntervalSMAR.components[0].options.forEach((Option) => {
+  for (const Option of LogDelIntervalSMAR.components[0].options) {
     if (Option.data.value === `${SetIntervalInDays}d`) {
       Option.setDefault(true);
+      break;
     }
-  });
+  }
 
   return [LogDelIntervalSMAR, UTIFilteringEnabledAR, SetDefaultShiftQuotaAR] as const;
 }
@@ -1550,7 +1551,7 @@ async function HandleOutsideLogChannelBtnInteracts(
 
   const InputModal = new ModalBuilder()
     .setTitle(`Outside Log Channel - ${LogChannelTopic}`)
-    .setCustomId(BtnInteract.customId)
+    .setCustomId(`${BtnInteract.customId}:${RandomString(4)}`)
     .setComponents(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
         new TextInputBuilder()
@@ -1623,7 +1624,9 @@ async function HandleDefaultShiftQuotaBtnInteract(
 ): Promise<number> {
   const InputModal = new ModalBuilder()
     .setTitle("Default Shift Quota Duration")
-    .setCustomId(CTAIds[ConfigTopics.AdditionalConfiguration].ServerDefaultShiftQuota)
+    .setCustomId(
+      CTAIds[ConfigTopics.AdditionalConfiguration].ServerDefaultShiftQuota + RandomString(4)
+    )
     .setComponents(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
         new TextInputBuilder()
@@ -1648,15 +1651,18 @@ async function HandleDefaultShiftQuotaBtnInteract(
   const InputDuration = ModalSubmission.fields.getTextInputValue("default_quota").trim();
   const ParsedDuration = ParseDuration(InputDuration, "millisecond");
 
-  if (ParsedDuration) {
+  if (typeof ParsedDuration === "number") {
     ModalSubmission.deferUpdate().catch(() => null);
-    return Math.round(ParsedDuration);
-  } else {
+    return Math.round(Math.abs(ParsedDuration));
+  } else if (InputDuration.length) {
     new ErrorContainer()
       .useErrTemplate("UnknownDurationExp")
       .replyToInteract(ModalSubmission, true, true);
 
     return CurrentQuota;
+  } else {
+    ModalSubmission.deferUpdate().catch(() => null);
+    return 0;
   }
 }
 
@@ -1810,7 +1816,7 @@ async function HandleAdditionalConfigPageInteracts(
 ) {
   let LogDeletionInterval = CurrConfiguration.duty_activities.log_deletion_interval;
   let DefaultShiftQuota = CurrConfiguration.shift_management.default_quota;
-  let UTIFEnabled = CurrConfiguration.utif_enabled;
+  let UTIFEnabled = !!CurrConfiguration.utif_enabled;
 
   const BCCompActionCollector = AddConfigPrompt.createMessageComponentCollector<
     ComponentType.Button | ComponentType.StringSelect
@@ -1823,7 +1829,7 @@ async function HandleAdditionalConfigPageInteracts(
     if (
       CurrConfiguration.duty_activities.log_deletion_interval === LogDeletionInterval &&
       CurrConfiguration.shift_management.default_quota === DefaultShiftQuota &&
-      CurrConfiguration.utif_enabled === UTIFEnabled
+      !!CurrConfiguration.utif_enabled === UTIFEnabled
     ) {
       return new InfoContainer()
         .useInfoTemplate("ConfigTopicNoChangesMade", "additional")

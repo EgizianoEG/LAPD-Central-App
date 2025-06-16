@@ -9,7 +9,7 @@ import {
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import { format, formatDistance, isAfter } from "date-fns";
+import { format, formatDistance, isAfter, isBefore } from "date-fns";
 import { FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
@@ -24,16 +24,82 @@ import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 import Dedent from "dedent";
 
 // ---------------------------------------------------------------------------------------
+// Functions:
+// ----------
 /**
- * Officer activity show command.
- * @param Interaction
+ * Parses and validates date inputs from a slash command interaction.
+ * @param ReceivedInteract - The cached slash command interaction containing date input options.
+ * @returns A promise that resolves to either:
+ *   - An object containing parsed `since` and `until` dates (or null if not provided).
+ *   - `true` if an error occurred during parsing or validation (error response sent to user).
  */
-async function Callback(Interaction: SlashCommandInteraction<"cached">) {
-  const InputSince = Interaction.options.getString("since");
-  const PrivateResponse = Interaction.options.getBoolean("private") ?? false;
-  let OfficerSelected = Interaction.options.getMember("officer");
-  let SinceDate: Date | null = null;
+export async function ParseDateInputs(ReceivedInteract: SlashCommandInteraction<"cached">): Promise<
+  | {
+      since: Date | null;
+      until: Date | null;
+    }
+  | true
+> {
+  const InputSince = ReceivedInteract.options.getString("since");
+  const InputUntil = ReceivedInteract.options.getString("to");
+  const ParsedDates: { since: Date | null; until: Date | null } = {
+    since: null,
+    until: null,
+  };
 
+  ParsedDates.since = InputSince ? Chrono.parseDate(InputSince, ReceivedInteract.createdAt) : null;
+  ParsedDates.until = InputUntil ? Chrono.parseDate(InputUntil, ReceivedInteract.createdAt) : null;
+
+  if (!ParsedDates.since && !ParsedDates.until) {
+    return Promise.resolve(ParsedDates);
+  }
+
+  if (!ParsedDates.since && InputSince && !InputSince.match(/\bago\s*$/i)) {
+    ParsedDates.since = Chrono.parseDate(`${InputSince} ago`, ReceivedInteract.createdAt);
+    if (!ParsedDates.since) {
+      await new ErrorEmbed()
+        .useErrTemplate("UnknownDateFormat")
+        .replyToInteract(ReceivedInteract, true, false);
+      return true;
+    } else if (isAfter(ParsedDates.since, ReceivedInteract.createdAt)) {
+      await new ErrorEmbed()
+        .useErrTemplate("DateInFuture")
+        .replyToInteract(ReceivedInteract, true, false);
+      return true;
+    }
+  }
+
+  if (!ParsedDates.until && InputUntil && !InputUntil.match(/\bago\s*$/i)) {
+    ParsedDates.until = Chrono.parseDate(`${InputSince} ago`, ReceivedInteract.createdAt);
+    if (!ParsedDates.until) {
+      await new ErrorEmbed()
+        .useErrTemplate("UnknownDateFormat")
+        .replyToInteract(ReceivedInteract, true, false);
+      return true;
+    } else if (isAfter(ParsedDates.until, ReceivedInteract.createdAt)) {
+      await new ErrorEmbed()
+        .useErrTemplate("DateInFuture")
+        .replyToInteract(ReceivedInteract, true, false);
+      return true;
+    }
+  }
+
+  if (ParsedDates.since && ParsedDates.until && isBefore(ParsedDates.until, ParsedDates.since)) {
+    await new ErrorEmbed()
+      .useErrTemplate("SinceUntilDatesOutOfOrder")
+      .replyToInteract(ReceivedInteract, true, false);
+    return true;
+  }
+
+  return Promise.resolve(ParsedDates);
+}
+
+async function Callback(Interaction: SlashCommandInteraction<"cached">) {
+  const PrivateResponse = Interaction.options.getBoolean("private") ?? false;
+  const DateFiltering = await ParseDateInputs(Interaction);
+  let OfficerSelected = Interaction.options.getMember("officer");
+
+  if (DateFiltering === true) return;
   if (OfficerSelected) {
     if (OfficerSelected.user.bot) {
       return new ErrorEmbed()
@@ -48,23 +114,6 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     OfficerSelected = Interaction.member;
   }
 
-  if (InputSince) {
-    SinceDate = Chrono.parseDate(InputSince, Interaction.createdAt);
-    if (!SinceDate && !InputSince.match(/\bago\s*$/i)) {
-      SinceDate = Chrono.parseDate(`${InputSince} ago`, Interaction.createdAt);
-    }
-
-    if (!SinceDate) {
-      return new ErrorEmbed()
-        .useErrTemplate("UnknownDateFormat")
-        .replyToInteract(Interaction, true, false);
-    } else if (isAfter(SinceDate, Interaction.createdAt)) {
-      return new ErrorEmbed()
-        .useErrTemplate("DateInFuture")
-        .replyToInteract(Interaction, true, false);
-    }
-  }
-
   await Interaction.deferReply({ flags: PrivateResponse ? MessageFlags.Ephemeral : undefined });
   const CurrServerNickname = OfficerSelected.nickname ?? OfficerSelected.user.displayName;
   const LinkedRobloxUserId = await IsLoggedIn({
@@ -74,7 +123,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   const [TargetRUserInfo, FieldActivityData, TargetRUserThumb, ShiftsData] = await Promise.all([
     LinkedRobloxUserId === 0 ? null : GetUserInfo(LinkedRobloxUserId),
-    GetStaffFieldActivity(OfficerSelected, SinceDate),
+    GetStaffFieldActivity(OfficerSelected, DateFiltering.since, DateFiltering.until),
     GetUserThumbnail({
       UserIds: LinkedRobloxUserId,
       Size: "420x420",
@@ -90,7 +139,8 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     GetMainShiftsData({
       user: OfficerSelected.id,
       guild: Interaction.guildId,
-      start_timestamp: SinceDate ? { $gte: SinceDate } : { $exists: true },
+      start_timestamp: DateFiltering.since ? { $gte: DateFiltering.since } : { $exists: true },
+      end_timestamp: DateFiltering.until ? { $lte: DateFiltering.until } : { $exists: true },
     }),
   ]);
 
@@ -140,9 +190,15 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       }
     );
 
-  if (SinceDate) {
+  if (DateFiltering.since) {
     ResponseEmbed.setFooter({
-      text: `Showing activity since ${formatDistance(SinceDate, Interaction.createdAt, { addSuffix: true })}`,
+      text: `Showing activity from ${formatDistance(DateFiltering.since, Interaction.createdAt, { addSuffix: true })}`,
+    });
+  }
+
+  if (DateFiltering.until) {
+    ResponseEmbed.setFooter({
+      text: `${ResponseEmbed.data.footer?.text ?? ""} ${ResponseEmbed.data.footer?.text?.length ? "to" : "Showing activity until"} ${formatDistance(DateFiltering.until, Interaction.createdAt, { addSuffix: true })}`,
     });
   }
 
@@ -181,6 +237,16 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
       Option.setName("since")
         .setDescription(
           "A specific date, timeframe, or relative time expression to view activity since then."
+        )
+        .setMinLength(2)
+        .setMaxLength(40)
+        .setRequired(false)
+        .setAutocomplete(true)
+    )
+    .addStringOption((Option) =>
+      Option.setName("to")
+        .setDescription(
+          "A specific date, timeframe, or relative time expression to view activity until then."
         )
         .setMinLength(2)
         .setMaxLength(40)
