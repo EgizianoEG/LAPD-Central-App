@@ -5,6 +5,7 @@ export const SavedRoleSchema = new Schema(
     role_id: {
       type: String,
       match: /^\d{15,22}$/,
+      index: true,
       required: true,
     },
 
