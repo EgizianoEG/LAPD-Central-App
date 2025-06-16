@@ -277,6 +277,19 @@ Below is a categorized list of all commands available through the LAPD Central a
     **Ephemeral:** No\
     **Permissions:** User required permissions are `Manage Server` and `Manage Roles`.\
     **Description:** Assigns previously saved roles to a member. This command would not remove any unsaved roles and will keep it assigned.
+* **Role Persistence**
+  * **Add**\
+    **Command:** `/role-persist add <user:User> <roles:Text> [expiry:DateTimeExpression] [reason:Text]` \
+    **Ephemeral:** No\
+    **Description:** Creates a database record and persist the specified mentioned roles for a target person and reassign them on rejoin.
+  * **Remove**\
+    **Command:** `/role-persist remove <user:User> <id:HexText>`\
+    **Ephemeral:** No\
+    **Description:** Removes a role persistence record from the database and removes the roles from the target person if applicable.
+  * **List**\
+    **Command:** `/role-persist list [user:User]`\
+    **Ephemeral:** Optional\
+    **Description:** Shows persistence records in effect (active) either for everyone or for a target person.
 * **Member Nicknames**
   * **Nicknames Search&#x20;**<mark style="color:blue;">**(\*)**</mark>\
     **Command:** `/nicknames search <regex:Text> [flags:Text] [ephemeral:Boolean]` \
