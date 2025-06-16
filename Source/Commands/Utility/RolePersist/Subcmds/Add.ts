@@ -155,10 +155,10 @@ const CommandObject = {
   callback: CmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("add")
-    .setDescription("Persists specified roles for a member, reapplying them upon rejoin.")
+    .setDescription("Persists specified roles for a person, reapplying them upon rejoin.")
     .addUserOption((Option) =>
       Option.setName("user")
-        .setDescription("The member or user for whom to persist roles.")
+        .setDescription("The person for whom to persist roles.")
         .setRequired(true)
     )
     .addStringOption((Option) =>
@@ -170,7 +170,7 @@ const CommandObject = {
     .addStringOption((Option) =>
       Option.setName("expiry")
         .setDescription(
-          "Optional: Duration (e.g., '30 days') or date for persistence expiry. Defaults to indefinite."
+          "Optional: Duration (e.g., '30 days') or date for expiry. Leave blank for indefinite."
         )
         .setAutocomplete(true)
         .setMinLength(2)

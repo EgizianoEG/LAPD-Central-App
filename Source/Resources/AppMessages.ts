@@ -948,13 +948,13 @@ export const ErrorMessages = {
   RolePersistNoValidRolesProvided: {
     Title: "No Valid Roles Provided",
     Description:
-      "You have not provided any valid roles to persist. Please provide at least one valid role to persist.",
+      "You have not provided any valid roles to persist. Please provide at least one valid role by typing and mentioning it.",
   },
 
   RolePersistCannotPersistProvidedRoles: {
     Title: "Role Persistence Failed",
     Description:
-      "**The selected roles cannot be saved and persisted due to permission constraints**.\n\n" +
+      "**The selected role(s) cannot be saved and persisted due to permission constraints**.\n\n" +
       "**Please ensure all roles:**\n" +
       "- Are not managed by integrations or bots\n" +
       "- Lack administrative permissions (like 'Manage Roles')\n" +
@@ -973,7 +973,7 @@ export const ErrorMessages = {
 
   RolePersistRecordNotFound: {
     Title: "Record Not Found",
-    Description: "The specified role persist record could not be found for the selected member.",
+    Description: "The specified role persist record could not be found for the selected person.",
   },
 
   RolePersistExpiryTooSoon: {
@@ -1012,7 +1012,7 @@ export const InfoMessages = {
 
   RolePersistSavesNotFoundFSM: {
     Title: "Saves Not Found",
-    Description: "There were no role persistence records found for the selected user.",
+    Description: "There were no role persistence records found for the selected person.",
   },
 
   RolePersistNoRecordsFound: {
@@ -1025,7 +1025,7 @@ export const InfoMessages = {
    */
   RoleSavesNotFoundFSM: {
     Title: "Saves Not Found",
-    Description: "There were no saves or backups found for the selected user.",
+    Description: "There were no saves or backups found for the selected person.",
   },
 
   /**

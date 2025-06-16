@@ -125,10 +125,10 @@ const CommandObject = {
   callback: CmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("remove")
-    .setDescription("Removes a specific role persistence record for a member.")
+    .setDescription("Removes a specific role persistence record for a person.")
     .addUserOption((Option) =>
       Option.setName("user")
-        .setDescription("The member or user whose role persistence record will be removed.")
+        .setDescription("The person whose role persistence record will be removed.")
         .setRequired(true)
     )
     .addStringOption((Option) =>

@@ -1,6 +1,7 @@
 import {
   time,
   Colors,
+  RoleManager,
   userMention,
   ButtonStyle,
   MessageFlags,
@@ -11,7 +12,6 @@ import {
   TextDisplayBuilder,
   MessageComponentInteraction,
   SlashCommandSubcommandBuilder,
-  RoleManager,
 } from "discord.js";
 
 import { Emojis } from "@Config/Shared.js";
@@ -211,17 +211,15 @@ const CommandObject = {
   callback: CmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("list")
-    .setDescription(
-      "Lists all role persistence records; either for a specific user or for all users."
-    )
+    .setDescription("Shows role persistence records for a specific person or for everyone.")
     .addUserOption((Option) =>
       Option.setName("user")
-        .setDescription("The member or user for whom to show persistence records.")
+        .setDescription("The person whose persistence records you want to view.")
         .setRequired(false)
     )
     .addBooleanOption((Option) =>
       Option.setName("private")
-        .setDescription("Whether to show the response only to you. Defaults to false.")
+        .setDescription("Show results privately; otherwise, show them publicly. Default is public.")
         .setRequired(false)
     ),
 };
