@@ -106,7 +106,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     flags: MessageFlags.IsComponentsV2,
     components: [
       new SuccessContainer()
-        .setTitle(`Member Roles Reassigned     <@${SelectedMember.user}>`)
+        .setTitle(`Member Roles Reassigned     <@${SelectedMember.user.id}>`)
         .setDescription(RespEmbedDesc),
     ],
   }).catch(() => null);

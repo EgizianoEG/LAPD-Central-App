@@ -86,3 +86,9 @@ export const GuildAutomodRulesCache = new NodeCache({
   useClones: false,
   checkperiod: DefaultCheckPeriod,
 });
+
+export const GeneralAutocompletionCache = new NodeCache({
+  stdTTL: 15,
+  useClones: false,
+  checkperiod: DefaultCheckPeriod,
+});
