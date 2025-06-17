@@ -1,49 +1,30 @@
-import { GuildSettingsCache } from "@Utilities/Helpers/Cache.js";
+import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
 import { Guilds } from "@Typings/Utilities/Database.js";
 import GuildModel from "@Models/Guild.js";
 
-type HydratedGuildSettings = Mongoose.HydratedSingleSubdocument<Guilds.GuildSettings>;
-const DefaultGuildSettings: Guilds.GuildSettings = new GuildModel().toObject()
-  .settings as Guilds.GuildSettings;
-
 /**
- * Retrieves the settings for a specific guild from the database, with optional caching and lean query support.
- * @template ReturnLeaned - Determines if the returned data should be a lean object or a hydrated document.
+ * Retrieves the settings for a specific guild from the database.
  * @param GuildId - The unique identifier of the guild whose settings are to be retrieved.
- * @param [Lean=true] - If true, returns a plain JavaScript object (lean); if false, returns a Mongoose document. Defaults to `true`.
- * @param [UseCache=true] - Whether to use the cache for retrieving guild settings. Defaults to `true`.
  * @returns A promise that resolves to the guild's settings, either as a hydrated document or a lean object, or `null` if not found due to an edge case.
  * @remarks This function will attempt to create a new guild document if it doesn't exist in the database, and it will cache the settings for future use.
  */
-export default async function GetGuildSettings<ReturnLeaned extends boolean | undefined = true>(
-  GuildId: string,
-  Lean: ReturnLeaned = true as ReturnLeaned,
-  UseCache: boolean = true
-): Promise<ReturnLeaned extends true ? HydratedGuildSettings | null : Guilds.GuildSettings | null> {
-  if (UseCache) {
-    const CachedSettings = GuildSettingsCache.get<HydratedGuildSettings | Guilds.GuildSettings>(
-      `${GuildId}:${Lean}`
-    );
+export default async function GetGuildSettings(
+  GuildId: string
+): Promise<Guilds.GuildSettings | null> {
+  const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
+  let GuildDocument = GuildDocumentCacheRef ? structuredClone(GuildDocumentCacheRef) : null;
 
-    if (CachedSettings) return CachedSettings as any;
+  if (!MongoDBCache.StreamChangeConnected.Guilds) {
+    GuildDocument = (await GuildModel.findById(GuildId).lean().exec()) as Guilds.GuildDocument;
   }
 
-  let GuildDocument = await GuildModel.findById(GuildId, { settings: 1 }, { lean: Lean }).exec();
-  if (!GuildDocument) {
-    GuildDocument = await GuildModel.create({
+  if (!GuildDocumentCacheRef && !GuildDocument) {
+    const CreatedDocument = await GuildModel.create({
       _id: GuildId,
     });
 
-    if (Lean) {
-      GuildDocument = GuildDocument.toObject() as any;
-    }
+    GuildDocument = CreatedDocument.toObject();
   }
 
-  if (GuildDocument) {
-    const Settings: Guilds.GuildSettings = { ...DefaultGuildSettings, ...GuildDocument.settings };
-    GuildSettingsCache.set(`${GuildId}:${Lean}`, Settings);
-    return Settings as any;
-  } else {
-    return null;
-  }
+  return GuildDocument ? GuildDocument.settings : null;
 }

@@ -18,12 +18,12 @@ import {
 
 import { Guilds, Shifts } from "@Typings/Utilities/Database.js";
 import { Colors, Emojis } from "@Config/Shared.js";
+import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
-import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 import Dedent from "dedent";
 
 export enum RecentShiftAction {
@@ -146,7 +146,7 @@ export async function CheckShiftTypeRestrictions(
   if (!CmdShiftType && !GuildDefaultType) return true;
 
   // Users with management permissions can use any shift type.
-  const UserHasMgmtPerms = await UserHasPerms(Interaction, {
+  const UserHasMgmtPerms = await UserHasPermsV2(Interaction.user.id, Interaction.guildId, {
     management: { guild: true, app: true, $or: true },
   });
 

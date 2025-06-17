@@ -98,7 +98,7 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
     (name === "name" &&
       SubcommandGroup === "types" &&
       SubcommandName === "delete" &&
-      (await UserHasPermsV2(Interaction.user.id, Interaction.guildId, { management: true }, true)))
+      (await UserHasPermsV2(Interaction.user.id, Interaction.guildId, { management: true })))
   ) {
     const ShiftTypeSuggestions = await AutocompleteShiftType(value, Interaction.guildId);
     return Interaction.respond(ShiftTypeSuggestions);

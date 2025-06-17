@@ -22,7 +22,7 @@ export default async function HandleShiftRoleAssignment(
     const TargetGuild = typeof Guild === "string" ? await Client.guilds.fetch(Guild) : Guild;
 
     if (!TargetGuild) return;
-    const RASettings = await GetGuildSettings(TargetGuild.id, true).then((Settings) => {
+    const RASettings = await GetGuildSettings(TargetGuild.id).then((Settings) => {
       if (!Settings) return null;
       return Settings.shift_management.role_assignment;
     });

@@ -83,7 +83,7 @@ export class BaseUserActivityNoticeLogger {
     Type: "log" | "requests",
     AdditionalPerms?: bigint | bigint[]
   ) {
-    const LoggingChannelId = await GetGuildSettings(Guild.id, true, true).then((Settings) => {
+    const LoggingChannelId = await GetGuildSettings(Guild.id).then((Settings) => {
       if (!Settings) return null;
       return Settings[this.module_setting][`${Type}_channel`];
     });

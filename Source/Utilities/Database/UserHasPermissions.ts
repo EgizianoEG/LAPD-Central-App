@@ -1,10 +1,9 @@
 import { BaseInteraction, GuildMember, PermissionFlagsBits } from "discord.js";
-import { UserPermsCache, DBRolePermsCache } from "../Helpers/Cache.js";
 import { IsPlainObject, IsEmptyObject } from "../Helpers/Validators.js";
 import { GeneralTypings } from "@Typings/Utilities/Generic.js";
 import { App as Client } from "@DiscordApp";
 import { DeepPartial } from "utility-types";
-import GuildModel from "@Models/Guild.js";
+import GetGuildSettings from "./GetGuildSettings.js";
 
 type DBRolePermsType = {
   staff: string[];
@@ -48,14 +47,12 @@ export default async function UserHasPerms<RMissing extends boolean = false>(
  * @param {string | string[]} User - Can be either a string or an array of strings. It represents the user or users for whom the permissions need to be checked.
  * @param {string} GuildId - A string that represents the ID of the guild (server) where the user's permissions will be checked.
  * @param {GeneralTypings.UserPermissionsConfig} Permissions - Represents the permissions that the user should have.
- * @param {boolean} [UseCache=false] - A boolean flag that determines whether to use the cache for retrieving user permissions (if available); default: `false`
  * @returns A `Promise` that resolves to a boolean value or a record of boolean values if `User` is an array.
  */
 export async function UserHasPermsV2<UType extends string | string[]>(
   User: UType,
   GuildId: string,
-  Permissions: DeepPartial<GeneralTypings.UserPermissionsConfig>,
-  UseCache: boolean = false
+  Permissions: DeepPartial<GeneralTypings.UserPermissionsConfig>
 ): Promise<UType extends string ? boolean : Record<string, boolean>> {
   if (
     !IsPlainObject(Permissions) ||
@@ -72,43 +69,22 @@ export async function UserHasPermsV2<UType extends string | string[]>(
     }
   }
 
-  if (UseCache && typeof User === "string") {
-    const Cached = UserPermsCache.get(`${GuildId}:${User}:${JSON.stringify(Permissions)}`);
-    if (typeof Cached === "boolean") return Cached as any;
-  }
-
   const Guild = Client.guilds.cache.get(GuildId);
   if (typeof User === "string") {
     const GuildMember = Guild?.members.cache.get(User);
     if (!GuildMember) return false as any;
-
-    const Result = CheckPerms(await GetDBRolePerms(GuildId, UseCache), Permissions, GuildMember);
-    UserPermsCache.set(`${GuildId}:${User}:${JSON.stringify(Permissions)}`, Result);
+    const Result = CheckPerms(await GetDBRolePerms(GuildId), Permissions, GuildMember);
     return Result[0] as UHPV2Return<UType>;
   } else if (Array.isArray(User)) {
     const Result = {};
     for (const UserId of User) {
-      if (UseCache) {
-        const Cached = UserPermsCache.get(`${GuildId}:${UserId}:${JSON.stringify(Permissions)}`);
-        if (typeof Cached === "boolean") {
-          Result[UserId] = Cached;
-          continue;
-        }
-      }
-
       const GuildMember = Guild?.members.cache.get(UserId);
       if (!GuildMember) {
         Result[UserId] = false;
         continue;
       }
 
-      Result[UserId] = CheckPerms(
-        await GetDBRolePerms(GuildId, UseCache),
-        Permissions,
-        GuildMember
-      );
-
-      UserPermsCache.set(`${GuildId}:${User}:${JSON.stringify(Permissions)}`, Result[UserId]);
+      Result[UserId] = CheckPerms(await GetDBRolePerms(GuildId), Permissions, GuildMember);
     }
 
     return Result[0] as UHPV2Return<UType>;
@@ -138,26 +114,17 @@ function GetLogicalOperation(Obj: object & { $and?: boolean; $or?: boolean }): "
 /**
  * Retrieves role permissions for a guild from a database, with an option to use a cache.
  * @param {string} GuildId - A string representing the ID of the guild (server).
- * @param {boolean} [UseCache=false] - A boolean that determines whether to use the cache or not.
  * @returns
  */
-async function GetDBRolePerms(
-  GuildId: string,
-  UseCache: boolean = false
-): Promise<DBRolePermsType> {
-  if (UseCache && DBRolePermsCache.has(GuildId)) {
-    return DBRolePermsCache.get(GuildId) as DBRolePermsType;
-  }
-
-  return GuildModel.findById(GuildId)
-    .select({ settings: { role_perms: 1 } })
-    .then((GuildData) => {
-      if (GuildData) {
-        DBRolePermsCache.set(GuildId, GuildData.settings.role_perms);
-        return GuildData.settings.role_perms;
-      }
-      throw new Error(`Could not find a guild with the ID '${GuildId}' in the database.`);
-    });
+async function GetDBRolePerms(GuildId: string): Promise<DBRolePermsType> {
+  return GetGuildSettings(GuildId).then((GuildSettings) => {
+    if (GuildSettings?.role_perms) {
+      return GuildSettings.role_perms;
+    }
+    throw new Error(
+      `Could not find role permissions for guild with ID '${GuildId}' in the database.`
+    );
+  });
 }
 
 /**

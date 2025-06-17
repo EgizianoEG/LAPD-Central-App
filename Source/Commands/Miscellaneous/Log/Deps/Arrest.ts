@@ -194,16 +194,11 @@ async function FilterAsstOfficers(
 ) {
   if (!UsersCollection.size) return UsersCollection;
 
-  const Perms = await UserHasPermsV2(
-    [...UsersCollection.keys()],
-    GuildId,
-    {
-      management: true,
-      staff: true,
-      $or: true,
-    },
-    true
-  );
+  const Perms = await UserHasPermsV2([...UsersCollection.keys()], GuildId, {
+    management: true,
+    staff: true,
+    $or: true,
+  });
 
   UsersCollection.delete(ReporterId);
   UsersCollection.sweep((User) => User.bot || !Perms[User.id]);

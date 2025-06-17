@@ -1,5 +1,6 @@
 import GuildModel from "@Models/Guild.js";
 import AppError from "../Classes/AppError.js";
+import GetGuildSettings from "./GetGuildSettings.js";
 
 /**
  * Deletes a specified shift type from the guild ID given.
@@ -27,16 +28,12 @@ import AppError from "../Classes/AppError.js";
  * }
  */
 export default async function DeleteShiftType(Name: string, GuildId: string) {
-  const GuildDoc = await GuildModel.findById(GuildId)
-    .select("settings.shift_management.shift_types")
-    .exec();
-
+  const GuildSettings = await GetGuildSettings(GuildId);
   const ShiftTypeIndex =
-    GuildDoc?.settings.shift_management.shift_types.findIndex(
-      (ShiftType) => ShiftType.name === Name
-    ) ?? -1;
+    GuildSettings?.shift_management.shift_types.findIndex((ShiftType) => ShiftType.name === Name) ??
+    -1;
 
-  if (!GuildDoc) {
+  if (!GuildSettings) {
     throw new AppError({
       template: "GuildConfigNotFound",
       showable: true,
@@ -49,7 +46,14 @@ export default async function DeleteShiftType(Name: string, GuildId: string) {
       showable: true,
     });
   } else {
-    GuildDoc.settings.shift_management.shift_types.splice(ShiftTypeIndex, 1);
-    return GuildDoc.save();
+    return GuildModel.updateOne(
+      { _id: GuildId },
+      { $pull: { "shift_management.shift_types": { name: Name } } },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
+    );
   }
 }

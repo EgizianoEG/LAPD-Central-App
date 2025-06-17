@@ -116,7 +116,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     flags: RespFlags,
   });
 
-  const GuildSettings = await GetGuildSettings(CmdInteraction.guildId, true);
+  const GuildSettings = await GetGuildSettings(CmdInteraction.guildId);
   const FetchedGuildMembers = await CmdInteraction.guild.members.fetch();
   const ServerDefaultQuota = GuildSettings?.shift_management.default_quota ?? 0;
   const ReportSpredsheetURL = await CreateShiftReport({

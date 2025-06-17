@@ -1,4 +1,6 @@
 import { secondsInDay } from "date-fns/constants";
+import { Collection } from "discord.js";
+import { Guilds } from "@Typings/Utilities/Database.js";
 import NodeCache from "node-cache";
 
 const DefaultCheckPeriod = 5 * 60;
@@ -16,17 +18,15 @@ export const RobloxAPICache = {
   }),
 };
 
-export const DBRolePermsCache = new NodeCache({
-  stdTTL: 20,
-  useClones: false,
-  checkperiod: DefaultCheckPeriod,
-});
-
-export const UserPermsCache = new NodeCache({
-  stdTTL: 20,
-  useClones: false,
-  checkperiod: DefaultCheckPeriod,
-});
+export const MongoDBCache = {
+  /**
+   * Indicates whether a stream change connection for a cached collection
+   * is connected and the data stored is up-to-date or not.
+   *  @type {Map<string, Guilds.GuildDocument>}
+   */
+  StreamChangeConnected: { Guilds: false },
+  Guilds: new Collection<string, Guilds.GuildDocument>(),
+};
 
 export const BloxlinkDiscordToRobloxUsageChache = new NodeCache({
   stdTTL: secondsInDay,
@@ -47,12 +47,6 @@ export const CitationAutocompletionCache = new NodeCache({
 
 export const BookingAutocompletionCache = new NodeCache({
   stdTTL: 20,
-  useClones: false,
-  checkperiod: DefaultCheckPeriod,
-});
-
-export const GuildSettingsCache = new NodeCache({
-  stdTTL: 10,
   useClones: false,
   checkperiod: DefaultCheckPeriod,
 });
