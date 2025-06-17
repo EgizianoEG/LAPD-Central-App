@@ -37,9 +37,9 @@ export namespace Guilds {
   }
 
   interface GuildLogs {
-    arrests: GuildArrests.ArrestRecord[];
-    citations: GuildCitations.AnyCitationData[];
-    incidents: [];
+    arrests: string[];
+    citations: string[];
+    incidents: string[];
   }
 
   interface GuildSettings {
