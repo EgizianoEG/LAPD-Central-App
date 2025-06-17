@@ -481,9 +481,10 @@ async function OnChargesModalSubmission(
     if (EndReason.match(/reason: (?:\w+Delete|time)/)) {
       AsstOfficersMenu.components[0].setDisabled(true);
       AddUsernamesConfirmationComponents.components.forEach((Btn) => Btn.setDisabled(true));
-      await ConfirmationMsg.edit({ components: [AddUsernamesConfirmationComponents] }).catch(
-        () => null
-      );
+      return LastInteraction?.editReply({
+        message: ConfirmationMsg,
+        components: [AddUsernamesConfirmationComponents],
+      }).catch(() => null);
     }
 
     try {

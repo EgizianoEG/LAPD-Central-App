@@ -233,7 +233,7 @@ export default async function HandlePagePagination({
       };
 
       await LastInteract.editReply(EditOpts).catch(async function HandleEditReplyError() {
-        if (!PaginationReply?.editable) return;
+        if (!PaginationReply?.editable || PaginationReply.flags.has(MessageFlags.Ephemeral)) return;
         return PaginationReply.edit(EditOpts);
       });
     } catch (Err: any) {
