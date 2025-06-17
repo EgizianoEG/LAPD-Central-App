@@ -23,7 +23,7 @@ import { Colors, Emojis, Images, Thumbs } from "@Config/Shared.js";
 import { ReadableDuration, Dedent } from "@Utilities/Strings/Formatters.js";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { addMilliseconds } from "date-fns";
-import GuildModel from "@Models/Guild.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 
 type UserActivityNoticeDoc = UserActivityNotice.ActivityNoticeHydratedDocument;
 type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">;
@@ -49,35 +49,75 @@ export class BaseUserActivityNoticeLogger {
   }
 
   /**
+   * Checks if the application has the required permissions in the specified channel to either send or edit notice messages.
+   * @param Guild - The Discord guild where the channel is located.
+   * @param Channel - The guild-based channel to check permissions for.
+   * @param Perms - The permission flags to check for. Defaults to `ViewChannel` and `SendMessages` permissions.
+   * @returns A promise that resolves to `true` if the bot has all required permissions and the channel is sendable and text-based, `false` otherwise.
+   */
+  protected async LoggingChannelHasPerms(
+    Guild: Guild,
+    Channel: GuildBasedChannel,
+    Perms: bigint | bigint[] = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+  ) {
+    const ClientMember = await Guild.members.fetchMe().catch(() => null);
+    return (
+      ClientMember &&
+      Channel.isSendable() &&
+      Channel.isTextBased() &&
+      Channel.permissionsFor(ClientMember).has(Perms, true)
+    );
+  }
+
+  /**
    * Retrieves the logging channel for the specified type (log or requests).
    * @param Guild - The guild where the logging channel is being retrieved.
    * @param Type - The type of logging channel to return:
    * - `log`: The channel where updates on notices will be sent.
    * - `requests`: The channel where requests for notices will be sent for approval.
+   * @param AdditionalPerms - Additional permissions required for the logging channel in order to return.
    * @returns The logging channel if found and accessible, otherwise `null`.
    */
-  protected async GetLoggingChannel(Guild: Guild, Type: "log" | "requests") {
-    const LoggingChannelId = await GuildModel.findById(Guild.id)
-      .select(`settings.${this.module_setting}`)
-      .then((GuildDoc) => {
-        if (GuildDoc) {
-          return GuildDoc.settings[this.module_setting][`${Type}_channel`];
-        }
-        return null;
-      });
+  protected async FetchLoggingChannel(
+    Guild: Guild,
+    Type: "log" | "requests",
+    AdditionalPerms?: bigint | bigint[]
+  ) {
+    const LoggingChannelId = await GetGuildSettings(Guild.id, true, true).then((Settings) => {
+      if (!Settings) return null;
+      return Settings[this.module_setting][`${Type}_channel`];
+    });
 
     if (!LoggingChannelId) return null;
     const LoggingChannel = await Guild.channels.fetch(LoggingChannelId).catch(() => null);
     const AbleToSendMsgs =
-      LoggingChannel?.isSendable() &&
-      LoggingChannel.isTextBased() &&
-      LoggingChannel.permissionsFor(await Guild.members.fetchMe()).has(
-        [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
-        true
-      );
+      LoggingChannel && (await this.LoggingChannelHasPerms(Guild, LoggingChannel, AdditionalPerms));
 
     return AbleToSendMsgs === true
       ? (LoggingChannel as GuildBasedChannel & TextBasedChannel)
+      : null;
+  }
+
+  /**
+   * Retrieves and validates a Discord channel from a channel:message ID string format.
+   * @param Guild - The Discord guild to fetch the channel from.
+   * @param ChannelId - A string containing channel Id.
+   * @param AdditionalPerms - Additional permissions to check for the channel. Defaults to `ViewChannel`, `SendMessages`, and `ReadMessageHistory`.
+   * @returns The validated channel if it exists, is sendable, text-based, and has required permissions; otherwise `null`.
+   */
+  protected async FetchValidRequestsChannelFromId(
+    Guild: Guild,
+    ChannelId: string,
+    AdditionalPerms: bigint | bigint[] = [
+      PermissionFlagsBits.ViewChannel,
+      PermissionFlagsBits.SendMessages,
+    ]
+  ): Promise<(GuildBasedChannel & TextBasedChannel) | null> {
+    const Channel = await Guild.channels.fetch(ChannelId).catch(() => null);
+    return Channel?.isSendable() &&
+      Channel.isTextBased() &&
+      (await this.LoggingChannelHasPerms(Guild, Channel, AdditionalPerms))
+      ? Channel
       : null;
   }
 
@@ -115,25 +155,35 @@ export class BaseUserActivityNoticeLogger {
    * @param IsExt - Whether the buttons are for an extension request.
    * @param UserId - The ID of the user who submitted the notice.
    * @param NoticeId - The ID of the notice.
+   * @param NoticeReviewed - Whether the notice has already been reviewed (optional, defaults to `false`).
+   *                         This determines whether the buttons should be disabled or not.
    * @returns An action row containing the management buttons.
    */
-  protected CreateManagementButtons(IsExt: boolean, UserId: string, NoticeId: string) {
+  protected CreateManagementButtons(
+    IsExt: boolean,
+    UserId: string,
+    NoticeId: string,
+    NoticeReviewed: boolean = false
+  ): ActionRowBuilder<ButtonBuilder> {
     const ExtPrefix = IsExt ? "ext-" : "";
     return new ActionRowBuilder<ButtonBuilder>().setComponents(
       new ButtonBuilder()
         .setCustomId(`${this.cmd_name}-${ExtPrefix}approve:${UserId}:${NoticeId}`)
         .setLabel("Approve")
         .setEmoji(Emojis.WhiteCheck)
+        .setDisabled(NoticeReviewed ?? false)
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(`${this.cmd_name}-${ExtPrefix}deny:${UserId}:${NoticeId}`)
         .setLabel("Deny")
         .setEmoji(Emojis.WhiteCross)
+        .setDisabled(NoticeReviewed ?? false)
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId(`${this.cmd_name}-info:${UserId}:${NoticeId}`)
         .setLabel("Additional Information")
         .setEmoji(Emojis.WhitePlus)
+        .setDisabled(NoticeReviewed ?? false)
         .setStyle(ButtonStyle.Secondary)
     );
   }
@@ -209,7 +259,7 @@ export class BaseUserActivityNoticeLogger {
     Interaction: SlashCommandInteraction<"cached">,
     PendingNotice: UserActivityNoticeDoc
   ) {
-    const RequestsChannel = await this.GetLoggingChannel(Interaction.guild, "requests");
+    const RequestsChannel = await this.FetchLoggingChannel(Interaction.guild, "requests");
     const Requester = await Interaction.guild.members.fetch(PendingNotice.user).catch(() => null);
 
     // Send a DM notice to the requester.
@@ -261,7 +311,7 @@ export class BaseUserActivityNoticeLogger {
     const RequestEmbed = this.GetRequestEmbed({
       Guild,
       Type: RequestStatus === "Cancelled" ? RequestStatus : "Pending",
-      NoticeDocument: NoticeDocument,
+      NoticeDocument,
       CancellationDate:
         RequestStatus === "Cancelled" ? NoticeDocument.review_date : (undefined as any),
     }).setTimestamp(NoticeDocument.review_date);
@@ -304,7 +354,7 @@ export class BaseUserActivityNoticeLogger {
    */
   async LogApproval(Interaction: ManagementInteraction, ApprovedRequest: UserActivityNoticeDoc) {
     const Requester = await Interaction.guild.members.fetch(ApprovedRequest.user).catch(() => null);
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
 
     if (Requester) {
       const DMApprovalNotice = new EmbedBuilder()
@@ -371,13 +421,13 @@ export class BaseUserActivityNoticeLogger {
     }
 
     if (ApprovedRequest.request_msg) {
-      const [, ReqMsgId] = ApprovedRequest.request_msg.split(":");
-      const RequestsChannel = await this.GetLoggingChannel(Interaction.guild, "requests");
-      if (!RequestsChannel) return;
+      const [ReqMsgChannelId, ReqMsgId] = ApprovedRequest.request_msg.split(":");
+      const ReqMsgChannel = await this.FetchValidRequestsChannelFromId(
+        Interaction.guild,
+        ReqMsgChannelId
+      );
 
-      const RequestMessage = await RequestsChannel.messages.fetch(ReqMsgId);
-      if (!RequestMessage) return;
-
+      if (!ReqMsgChannel) return;
       const RequestEmbed = this.GetRequestEmbed({
         Type: "Pending",
         NoticeDocument: ApprovedRequest,
@@ -390,14 +440,16 @@ export class BaseUserActivityNoticeLogger {
           iconURL: Interaction.user.displayAvatarURL(this.ImgURLOpts),
         });
 
-      const RequestButtons = ActionRowBuilder.from<ButtonBuilder>(
-        RequestMessage.components[0] as any
+      const ReviewActionButtons = this.CreateManagementButtons(
+        false,
+        ApprovedRequest.user,
+        ApprovedRequest._id.toString(),
+        true
       );
 
-      RequestButtons.components.forEach((Button) => Button.setDisabled(true));
-      await RequestMessage.edit({ embeds: [RequestEmbed], components: [RequestButtons] }).catch(
-        () => null
-      );
+      await ReqMsgChannel.messages
+        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .catch(() => null);
     }
   }
 
@@ -409,7 +461,7 @@ export class BaseUserActivityNoticeLogger {
    * @returns A Promise resolving after the log and updates are completed.
    */
   async LogDenial(Interaction: ManagementInteraction, DeniedRequest: UserActivityNoticeDoc) {
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members.fetch(DeniedRequest.user).catch(() => null);
 
     if (Requester) {
@@ -468,15 +520,13 @@ export class BaseUserActivityNoticeLogger {
     }
 
     if (DeniedRequest.request_msg) {
-      const [, ReqMsgId] = DeniedRequest.request_msg.split(":");
-      const RequestMessage = await this.GetLoggingChannel(Interaction.guild, "requests")
-        .then((Channel) => Channel?.messages.fetch(ReqMsgId))
-        .catch(() => null);
+      const [ReqMsgChannelId, ReqMsgId] = DeniedRequest.request_msg.split(":");
+      const ReqMsgChannel = await this.FetchValidRequestsChannelFromId(
+        Interaction.guild,
+        ReqMsgChannelId
+      );
 
-      if (!RequestMessage) {
-        return;
-      }
-
+      if (!ReqMsgChannel) return;
       const RequestEmbed = this.GetRequestEmbed({
         Type: "Pending",
         NoticeDocument: DeniedRequest,
@@ -489,14 +539,16 @@ export class BaseUserActivityNoticeLogger {
           iconURL: Interaction.user.displayAvatarURL(this.ImgURLOpts),
         });
 
-      const RequestButtons = ActionRowBuilder.from<ButtonBuilder>(
-        RequestMessage.components[0] as any
+      const ReviewActionButtons = this.CreateManagementButtons(
+        false,
+        DeniedRequest.user,
+        DeniedRequest._id.toString(),
+        true
       );
 
-      RequestButtons.components.forEach((Button) => Button.setDisabled(true));
-      await RequestMessage.edit({ embeds: [RequestEmbed], components: [RequestButtons] }).catch(
-        () => null
-      );
+      await ReqMsgChannel.messages
+        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .catch(() => null);
     }
   }
 
@@ -511,7 +563,7 @@ export class BaseUserActivityNoticeLogger {
     Interaction: ButtonInteraction<"cached">,
     CancelledRequest: UserActivityNoticeDoc
   ) {
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members
       .fetch(CancelledRequest.user)
       .catch(() => null);
@@ -567,12 +619,13 @@ export class BaseUserActivityNoticeLogger {
     }
 
     if (CancelledRequest.request_msg) {
-      const [, ReqMsgId] = CancelledRequest.request_msg.split(":");
-      const RequestMessage = await this.GetLoggingChannel(Interaction.guild, "requests")
-        .then((Channel) => Channel?.messages.fetch(ReqMsgId))
-        .catch(() => null);
+      const [ReqMsgChannelId, ReqMsgId] = CancelledRequest.request_msg.split(":");
+      const ReqMsgChannel = await this.FetchValidRequestsChannelFromId(
+        Interaction.guild,
+        ReqMsgChannelId
+      );
 
-      if (!RequestMessage) return;
+      if (!ReqMsgChannel) return;
       const RequestEmbed = this.GetRequestEmbed({
         Type: "Cancelled",
         Guild: Interaction.guild,
@@ -580,14 +633,16 @@ export class BaseUserActivityNoticeLogger {
         CancellationDate: Interaction.createdAt,
       });
 
-      const RequestButtons = ActionRowBuilder.from<ButtonBuilder>(
-        RequestMessage.components[0] as any
+      const ReviewActionButtons = this.CreateManagementButtons(
+        false,
+        CancelledRequest.user,
+        CancelledRequest._id.toString(),
+        true
       );
 
-      RequestButtons.components.forEach((Button) => Button.setDisabled(true));
-      await RequestMessage.edit({ embeds: [RequestEmbed], components: [RequestButtons] }).catch(
-        () => null
-      );
+      await ReqMsgChannel.messages
+        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .catch(() => null);
     }
   }
 
@@ -630,7 +685,7 @@ export class BaseUserActivityNoticeLogger {
     }
 
     if (Guild) {
-      const LogChannel = await this.GetLoggingChannel(Guild, "log");
+      const LogChannel = await this.FetchLoggingChannel(Guild, "log");
       if (LogChannel) {
         const LogEmbed = new EmbedBuilder()
           .setTimestamp(NoticeDocument.end_date)
@@ -679,7 +734,7 @@ export class BaseUserActivityNoticeLogger {
     EndRequestBy: "Management" | "Requester"
   ) {
     if (!NoticeDocument.review_date) return;
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members.fetch(NoticeDocument.user).catch(() => null);
 
     if (Requester) {
@@ -785,7 +840,7 @@ export class BaseUserActivityNoticeLogger {
     RecordsStatus?: string,
     TargettedUser?: User
   ) {
-    const LoggingChannel = await this.GetLoggingChannel(MgmtInteract.guild, "log");
+    const LoggingChannel = await this.FetchLoggingChannel(MgmtInteract.guild, "log");
     const LogEmbed = new EmbedBuilder()
       .setColor(Colors.LOARequestCancelled)
       .setTitle(
@@ -840,7 +895,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
    * @returns A Promise resolving to the sent request message if successful.
    */
   async SendExtensionRequest(Interaction: ManagementInteraction, ActiveLOA: UserActivityNoticeDoc) {
-    const RequestsChannel = await this.GetLoggingChannel(Interaction.guild, "requests");
+    const RequestsChannel = await this.FetchLoggingChannel(Interaction.guild, "requests");
     const Requester = await Interaction.guild.members.fetch(ActiveLOA.user).catch(() => null);
 
     if (Requester && ActiveLOA.extension_request?.date) {
@@ -884,7 +939,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
    */
   async LogManualLeave(Interaction: ManagementInteraction, CreatedLOA: UserActivityNoticeDoc) {
     const Requester = await Interaction.guild.members.fetch(CreatedLOA.user).catch(() => null);
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
 
     if (Requester) {
       const DMNotice = new EmbedBuilder()
@@ -969,7 +1024,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     NoticeDocument: UserActivityNoticeDoc
   ) {
     if (!NoticeDocument.extension_request || !NoticeDocument.review_date) return;
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members.fetch(NoticeDocument.user).catch(() => null);
 
     if (Requester) {
@@ -1039,7 +1094,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     NoticeDocument: UserActivityNoticeDoc
   ) {
     if (!NoticeDocument.extension_request || !NoticeDocument.review_date) return;
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members.fetch(NoticeDocument.user).catch(() => null);
 
     if (Requester) {
@@ -1103,34 +1158,31 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
 
     if (NoticeDocument.extension_request.request_msg) {
       const [ReqChannelId, ReqMsgId] = NoticeDocument.extension_request.request_msg.split(":");
-      const RequestMessage = await Interaction.guild.channels
-        .fetch(ReqChannelId)
-        .then((Channel) => {
-          if (!Channel?.isTextBased()) return null;
-          return Channel as TextBasedChannel;
-        })
-        .then((Channel) => Channel?.messages.fetch(ReqMsgId))
+      const ReqMsgChannel = await this.FetchValidRequestsChannelFromId(
+        Interaction.guild,
+        ReqChannelId
+      );
+
+      if (!ReqMsgChannel) return;
+      const RequestEmbed = this.GetRequestEmbed({ Type: "Pending", NoticeDocument })
+        .setTimestamp(Interaction.createdAt)
+        .setColor(Colors.LOARequestApproved)
+        .setTitle("Approved Extension  |  Leave of Absence Request")
+        .setFooter({
+          text: `Reference ID: ${NoticeDocument._id}; approved by @${Interaction.user.username} on`,
+          iconURL: Interaction.user.displayAvatarURL(this.ImgURLOpts),
+        });
+
+      const ReviewActionButtons = this.CreateManagementButtons(
+        true,
+        NoticeDocument.user,
+        NoticeDocument._id.toString(),
+        true
+      );
+
+      await ReqMsgChannel.messages
+        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
         .catch(() => null);
-
-      if (RequestMessage) {
-        const RequestEmbed = this.GetRequestEmbed({ Type: "Pending", NoticeDocument })
-          .setTimestamp(Interaction.createdAt)
-          .setColor(Colors.LOARequestApproved)
-          .setTitle("Approved Extension  |  Leave of Absence Request")
-          .setFooter({
-            text: `Reference ID: ${NoticeDocument._id}; approved by @${Interaction.user.username} on`,
-            iconURL: Interaction.user.displayAvatarURL(this.ImgURLOpts),
-          });
-
-        const RequestButtons = ActionRowBuilder.from<ButtonBuilder>(
-          RequestMessage.components[0] as any
-        );
-
-        RequestButtons.components.forEach((Button) => Button.setDisabled(true));
-        await RequestMessage.edit({ embeds: [RequestEmbed], components: [RequestButtons] }).catch(
-          () => null
-        );
-      }
     }
   }
 
@@ -1146,7 +1198,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     NoticeDocument: UserActivityNoticeDoc
   ) {
     if (!NoticeDocument.extension_request || !NoticeDocument.review_date) return;
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members.fetch(NoticeDocument.user).catch(() => null);
 
     if (Requester) {
@@ -1212,16 +1264,12 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
 
     if (NoticeDocument.extension_request?.request_msg) {
       const [ReqChannelId, ReqMsgId] = NoticeDocument.extension_request.request_msg.split(":");
-      const RequestMessage = await Interaction.guild.channels
-        .fetch(ReqChannelId)
-        .then((Channel) => {
-          if (!Channel?.isTextBased()) return null;
-          return Channel as TextBasedChannel;
-        })
-        .then((Channel) => Channel?.messages.fetch(ReqMsgId))
-        .catch(() => null);
+      const ReqMsgChannel = await this.FetchValidRequestsChannelFromId(
+        Interaction.guild,
+        ReqChannelId
+      );
 
-      if (!RequestMessage) return;
+      if (!ReqMsgChannel) return;
       const RequestEmbed = this.GetRequestEmbed({
         NoticeDocument,
         Type: "Extension",
@@ -1236,14 +1284,16 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
           text: `Reference ID: ${NoticeDocument._id}; denied by @${Interaction.user.username} on`,
         });
 
-      const RequestButtons = ActionRowBuilder.from<ButtonBuilder>(
-        RequestMessage.components[0] as any
+      const ReviewActionButtons = this.CreateManagementButtons(
+        true,
+        NoticeDocument.user,
+        NoticeDocument._id.toString(),
+        true
       );
 
-      RequestButtons.components.forEach((Button) => Button.setDisabled(true));
-      await RequestMessage.edit({ embeds: [RequestEmbed], components: [RequestButtons] }).catch(
-        () => null
-      );
+      await ReqMsgChannel.messages
+        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .catch(() => null);
     }
   }
 
@@ -1259,7 +1309,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     NoticeDocument: UserActivityNoticeDoc
   ) {
     if (!NoticeDocument.extension_request || !NoticeDocument.review_date) return;
-    const LogChannel = await this.GetLoggingChannel(Interaction.guild, "log");
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members.fetch(NoticeDocument.user).catch(() => null);
 
     if (Requester && !NoticeDocument.extension_request.reviewed_by) {
@@ -1315,16 +1365,12 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
 
     if (NoticeDocument.extension_request?.request_msg) {
       const [ReqChannelId, ReqMsgId] = NoticeDocument.extension_request.request_msg.split(":");
-      const RequestMessage = await Interaction.guild.channels
-        .fetch(ReqChannelId)
-        .then((Channel) => {
-          if (!Channel?.isTextBased()) return null;
-          return Channel as TextBasedChannel;
-        })
-        .then((Channel) => Channel?.messages.fetch(ReqMsgId))
-        .catch(() => null);
+      const ReqMsgChannel = await this.FetchValidRequestsChannelFromId(
+        Interaction.guild,
+        ReqChannelId
+      );
 
-      if (!RequestMessage) return;
+      if (!ReqMsgChannel) return;
       const RequestEmbed = this.GetRequestEmbed({
         NoticeDocument,
         Type: "Extension",
@@ -1336,14 +1382,16 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}; cancelled by requester on` })
         .setTitle("Cancelled Extension  |  Leave of Absence Request");
 
-      const RequestButtons = ActionRowBuilder.from<ButtonBuilder>(
-        RequestMessage.components[0] as any
+      const ReviewActionButtons = this.CreateManagementButtons(
+        true,
+        NoticeDocument.user,
+        NoticeDocument._id.toString(),
+        true
       );
 
-      RequestButtons.components.forEach((Button) => Button.setDisabled(true));
-      await RequestMessage.edit({ embeds: [RequestEmbed], components: [RequestButtons] }).catch(
-        () => null
-      );
+      await ReqMsgChannel.messages
+        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .catch(() => null);
     }
   }
 
@@ -1401,7 +1449,8 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
 // ------------------------
 /**
  * Logger for Reduced Activity (RA) notices.
- * Shares methods from the base class but excludes LOA-specific methods.
+ * This class is intended for handling logging and notification logic specific to reduced activity requests,
+ * and shares all methods from the base class except for those that are LOA-specific (such as extension handling).
  */
 export class ReducedActivityEventLogger extends BaseUserActivityNoticeLogger {
   constructor() {
