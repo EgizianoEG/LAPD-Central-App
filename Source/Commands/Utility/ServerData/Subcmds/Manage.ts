@@ -398,7 +398,7 @@ async function SendReplyAndFetchMessage(
 
 async function AwaitDeleteConfirmation(
   RecBtnInteract: ButtonInteraction<"cached">,
-  ConfirmationMsg: Message<true> | InteractionResponse<true>,
+  ConfirmationMsg: Message<true>,
   ConfirmationFunc: (ConfirmInteract: ButtonInteraction<"cached">, ...args: any[]) => Promise<any>,
   ...AdditionalCFArgs: any[]
 ) {
@@ -420,7 +420,7 @@ async function AwaitDeleteConfirmation(
   } catch (Err: any) {
     if (Err?.message.match(/reason: time/)) {
       return RecBtnInteract.deleteReply()
-        .catch(() => ConfirmationMsg.fetch().then((Msg) => Msg.delete()))
+        .catch(() => ConfirmationMsg.delete())
         .catch(() => null);
     } else if (Err?.message.match(/reason: \w+Delete/)) {
       /* Ignore message/channel/guild deletion */

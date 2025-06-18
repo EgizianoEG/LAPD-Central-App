@@ -595,9 +595,7 @@ async function HandlePendingExtensionCancellation(
     (await HandleLeaveReviewValidation(ButtonInteract, ActiveLeave)) ||
     !ActiveLeave?.extension_request
   ) {
-    return ConfirmationMsg.delete()
-      .catch(() => Interaction.deleteReply())
-      .catch(() => null);
+    return Interaction.deleteReply(ConfirmationMsg).catch(() => null);
   }
 
   ActiveLeave.extension_request.status = "Cancelled";
