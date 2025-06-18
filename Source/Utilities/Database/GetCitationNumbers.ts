@@ -7,7 +7,7 @@ export default async function GetAllCitationNums(
   UseCache: boolean = false
 ): Promise<AggregateResults.GetCitationNumbers[]> {
   if (UseCache) {
-    const Cached = CitationAutocompletionCache.get<AggregateResults.GetCitationNumbers[]>(GuildId);
+    const Cached = CitationAutocompletionCache.get(GuildId);
     if (Cached) return Cached;
   }
 

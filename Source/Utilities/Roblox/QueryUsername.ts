@@ -12,9 +12,7 @@ import NobloxJs from "noblox.js";
  */
 export default async function QueryUsername(Typed: string, Limit: 10 | 25 | 50 | 100 = 10) {
   if (!IsValidRobloxUsername(Typed)) return [];
-  const CachedResults = RobloxAPICache.QueryUsernameResultsCache.get<
-    Awaited<ReturnType<typeof NobloxJs.searchUsers>>
-  >(`${Typed}:${Limit}`);
+  const CachedResults = RobloxAPICache.QueryUsernameResultsCache.get(`${Typed}:${Limit}`);
 
   if (CachedResults) return CachedResults;
   return NobloxJs.searchUsers(Typed, Limit, undefined as any).then((Res) => {

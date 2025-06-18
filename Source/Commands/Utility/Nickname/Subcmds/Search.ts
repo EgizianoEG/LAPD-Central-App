@@ -65,7 +65,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     await CmdInteract.deferReply({ flags: ReplyFlags });
 
     if (GuildMembersCache.has(CmdInteract.guildId)) {
-      GuildMembers = GuildMembersCache.get<Collection<string, GuildMember>>(CmdInteract.guildId)!;
+      GuildMembers = GuildMembersCache.get(CmdInteract.guildId)!;
     } else {
       GuildMembers = await CmdInteract.guild.members.fetch();
       GuildMembersCache.set(CmdInteract.guildId, GuildMembers);

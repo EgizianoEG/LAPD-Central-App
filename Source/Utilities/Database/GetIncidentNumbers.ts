@@ -8,7 +8,7 @@ export default async function GetAllIncidentNums(
   UseCache: boolean = false
 ): Promise<AggregateResults.GetIncidentNumbers[]> {
   if (UseCache) {
-    const Cached = IncidentAutocompletionCache.get<AggregateResults.GetIncidentNumbers[]>(GuildId);
+    const Cached = IncidentAutocompletionCache.get(GuildId);
     if (Cached) return Cached;
   }
 

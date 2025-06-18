@@ -13,7 +13,7 @@ const FileLabel = "Utilities:Roblox:GetRbxIdBloxLink";
 let GlobalRequestCount = 0;
 let LastResetDate = startOfToday();
 
-type UserLimitInfo = {
+export type BloxlinkUserLimitInfo = {
   count: number;
   last_request: Date;
 };
@@ -39,7 +39,7 @@ export default async function GetRobloxIdFromDiscordBloxlink(
     return null;
   }
 
-  const UserLimitInfo = BloxlinkDiscordToRobloxUsageChache.get<UserLimitInfo>(DiscordUserId);
+  const UserLimitInfo = BloxlinkDiscordToRobloxUsageChache.get(DiscordUserId);
   if (UserLimitInfo) {
     if (differenceInDays(CurrentTime, UserLimitInfo.last_request) < 1) {
       if (UserLimitInfo.count >= MaxUserRequestsPerDay) {

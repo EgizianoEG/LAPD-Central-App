@@ -26,10 +26,39 @@ import Dedent from "dedent";
 
 const BaseCommandCooldownTime = 3;
 const AllOtherCmdNamesPattern = /^\$all(?:_other)?$|^\$other(?:_cmds)?$/;
+
 type ChatContextCmdObject = SlashCommandObject | ContextMenuCommandObject;
 type ChatContextCmdInteraction<Cached extends CacheType = CacheType> =
   | ChatInputCommandInteraction<Cached>
   | ContextMenuCommandInteraction<Cached>;
+
+type CooldownExtractResult = {
+  /** User-specific cooldown value in seconds or null if not set. */
+  UserCooldown: Nullable<CommandCooldowns.CooldownValue>;
+
+  /** Guild-specific cooldown value in seconds or null if not set. */
+  GuildCooldown: Nullable<CommandCooldowns.CooldownValue>;
+
+  /**
+   * Base cooldown time in milliseconds.
+   * This is the default cooldown time applied to the command.
+   */
+  BaseCooldownMs: number;
+};
+
+export type ThrottleTracker = {
+  /**
+   * The number of times the command has been executed by the user
+   * or in the guild since the first execution.
+   */
+  count: number;
+
+  /**
+   * The timestamp of the first execution of
+   * the command by the user or in the guild (in milliseconds).
+   */
+  first_exec: number;
+};
 
 /**
  * Handles command cooldowns for both slash commands and context menu commands.
@@ -191,7 +220,12 @@ export async function HandleAppPermissions(
   Interaction: ChatContextCmdInteraction
 ) {
   if (Interaction.replied || !Interaction.inCachedGuild()) return;
-  if (!CommandObject.options?.app_perms || !Object.keys(CommandObject.options.app_perms).length) {
+  if (
+    !CommandObject.options?.app_perms ||
+    (Array.isArray(CommandObject.options.app_perms) && !CommandObject.options.app_perms.length) ||
+    (!Array.isArray(CommandObject.options.app_perms) &&
+      !Object.keys(CommandObject.options.app_perms).length)
+  ) {
     return;
   }
 
@@ -206,6 +240,8 @@ export async function HandleAppPermissions(
     return ValidateAppPermissionsArray(AppMember, CommandObject.options.app_perms, Interaction);
   }
 
+  // Subcommand-specific app permission checks are only supported for chat input (slash) commands.
+  // Context menu commands do not have subcommands, so we skip this logic for them.
   if (!(Interaction instanceof ChatInputCommandInteraction)) return;
   const SubCmdGroup = Interaction.options.getSubcommandGroup(false);
   const SubCommand = Interaction.options.getSubcommand(false);
@@ -307,14 +343,14 @@ export async function ValidateAppPermissionsArray(
 }
 
 /**
- * The function `HandleSubcommandUserPerms` checks if a user has the required permissions to use a
+ * The function `HandleCommandUserPerms` checks if a user has the required permissions to use a
  * command and returns an unauthorized embed if they do not.
- * @param {NonNullable<CommandObjectOptions["app_perms"]>} Perms - The permissions required for a member/user to execute a command. It could be an array of permissions or an object representing specific permissions.
+ * @param {NonNullable<CommandObjectOptions["user_perms"]>} Perms - The permissions required for a member/user to execute a command. It could be an array of permissions or an object representing specific permissions.
  * @param {ChatContextCmdInteraction<"cached">} Interaction - The slash command interaction object received.
  * @returns
  */
 export async function HandleCommandUserPerms(
-  Perms: NonNullable<CommandObjectOptions["app_perms"]>,
+  Perms: NonNullable<CommandObjectOptions["user_perms"]>,
   Interaction: ChatContextCmdInteraction<"cached">
 ) {
   if (Array.isArray(Perms)) {
@@ -364,17 +400,16 @@ export async function HandleCommandUserPerms(
  * Extracts the appropriate cooldown configuration based on command structure and interaction.
  * @param CommandObject - The command object containing cooldown configuration.
  * @param Interaction - The interaction to process.
- * @returns Object containing extracted cooldown configuration.
+ * @returns Object containing extracted cooldown configuration:
+ * - `UserCooldown`: User-specific cooldown value in seconds or null.
+ * - `GuildCooldown`: Guild-specific cooldown value in seconds or null.
+ * - `BaseCooldownMs`: Base cooldown time in milliseconds.
  */
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function ExtractCooldownConfig(
   CommandObject: ChatContextCmdObject,
   Interaction: ChatContextCmdInteraction
-): {
-  UserCooldown: Nullable<CommandCooldowns.CooldownValue>;
-  GuildCooldown: Nullable<CommandCooldowns.CooldownValue>;
-  BaseCooldownMs: number;
-} {
+): CooldownExtractResult {
   let BaseCooldownMs: number = BaseCommandCooldownTime * 1000;
   let UserCooldown: Nullable<CommandCooldowns.CooldownValue> = null;
   let GuildCooldown: Nullable<CommandCooldowns.CooldownValue> = null;
@@ -452,7 +487,7 @@ function ExtractCooldownConfig(
  * @param CommandName - The full name of the command.
  * @param UserCooldown - The user cooldown configuration.
  * @param CurrentTS - The current timestamp.
- * @returns The interaction reply if a cooldown is applied, otherwise null.
+ * @returns The interaction reply if a cooldown is applied, otherwise `null`.
  */
 async function ProcessUserCooldown(
   Interaction: ChatContextCmdInteraction,
@@ -466,13 +501,11 @@ async function ProcessUserCooldown(
 
     if (MaxExecutions && Timeframe) {
       const UserCmdKey = `${Interaction.user.id}:${CommandName}`;
-      let UserExecInfo = UserCommandExecutionsCache.get<{ count: number; first_exec: number }>(
-        UserCmdKey
-      );
+      let UserExecInfo = UserCommandExecutionsCache.get<ThrottleTracker>(UserCmdKey);
 
       if (!UserExecInfo) {
         UserExecInfo = { count: 1, first_exec: CurrentTS };
-        UserCommandExecutionsCache.set(UserCmdKey, UserExecInfo, Timeframe);
+        UserCommandExecutionsCache.set(UserCmdKey, UserExecInfo, { ttl: Timeframe * 1000 });
       } else {
         if (UserExecInfo.count >= MaxExecutions) {
           const TimeframeEnds = UserExecInfo.first_exec + Timeframe * 1000;
@@ -490,11 +523,9 @@ async function ProcessUserCooldown(
         }
 
         UserExecInfo.count++;
-        UserCommandExecutionsCache.set(
-          UserCmdKey,
-          UserExecInfo,
-          Math.floor((UserExecInfo.first_exec + Timeframe * 1000 - CurrentTS) / 1000)
-        );
+        UserCommandExecutionsCache.set(UserCmdKey, UserExecInfo, {
+          ttl: Math.floor(UserExecInfo.first_exec + Timeframe * 1000 - CurrentTS),
+        });
       }
     }
   }
@@ -508,7 +539,7 @@ async function ProcessUserCooldown(
  * @param CommandName - The full name of the command.
  * @param GuildCooldown - The guild cooldown configuration.
  * @param CurrentTS - The current timestamp.
- * @returns The interaction reply if a cooldown is applied, otherwise null.
+ * @returns The interaction reply if a cooldown is applied, otherwise `null`.
  */
 async function ProcessGuildCooldown(
   Interaction: ChatContextCmdInteraction,
@@ -555,13 +586,11 @@ async function ProcessGuildCooldown(
     // Process rate limiting (max executions within timeframe) after cooldown check passes.
     if (MaxExecutions && Timeframe) {
       const GuildCmdKey = `${GuildId}:${CommandName}`;
-      let GuildExecInfo = GuildCommandExecutionsCache.get<{ count: number; first_exec: number }>(
-        GuildCmdKey
-      );
+      let GuildExecInfo = GuildCommandExecutionsCache.get<ThrottleTracker>(GuildCmdKey);
 
       if (!GuildExecInfo) {
         GuildExecInfo = { count: 1, first_exec: CurrentTS };
-        GuildCommandExecutionsCache.set(GuildCmdKey, GuildExecInfo, Timeframe);
+        GuildCommandExecutionsCache.set(GuildCmdKey, GuildExecInfo, { ttl: Timeframe * 1000 });
       } else {
         if (GuildExecInfo.count >= MaxExecutions) {
           const TimeframeEnds = GuildExecInfo.first_exec + Timeframe * 1000;
@@ -579,11 +608,9 @@ async function ProcessGuildCooldown(
         }
 
         GuildExecInfo.count++;
-        GuildCommandExecutionsCache.set(
-          GuildCmdKey,
-          GuildExecInfo,
-          Math.floor((GuildExecInfo.first_exec + Timeframe * 1000 - CurrentTS) / 1000)
-        );
+        GuildCommandExecutionsCache.set(GuildCmdKey, GuildExecInfo, {
+          ttl: Math.floor(GuildExecInfo.first_exec + Timeframe * 1000 - CurrentTS),
+        });
       }
     }
   } else if (typeof GuildCooldown === "number") {
@@ -622,9 +649,9 @@ async function ProcessGuildCooldown(
  * @param CommandName - The name of the command being executed.
  * @param CooldownTimeMs - The cooldown duration in milliseconds.
  * @param CurrentTS - The current timestamp in milliseconds.
- * @returns The interaction reply if a cooldown is applied, undefined otherwise.
+ * @returns The interaction reply if a cooldown is applied, `null` otherwise.
  */
-function ProcessStandardCooldown(
+async function ProcessStandardCooldown(
   Interaction: ChatContextCmdInteraction,
   CommandName: string,
   CooldownTimeMs: number,
@@ -655,5 +682,6 @@ function ProcessStandardCooldown(
     }
   }
 
-  UserCommandExecutionsCache.set(UserCmdKey, CurrentTS, CooldownTimeMs / 1000);
+  UserCommandExecutionsCache.set(UserCmdKey, CurrentTS, { ttl: CooldownTimeMs });
+  return null;
 }

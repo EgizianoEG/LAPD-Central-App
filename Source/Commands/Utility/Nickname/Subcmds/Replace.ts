@@ -447,7 +447,7 @@ async function HandleReplacementConfirmation(
 
   setTimeout(
     () => {
-      OngoingServerMemberNicknamesReplaceCache.del(ButtonInteract.guildId);
+      OngoingServerMemberNicknamesReplaceCache.delete(ButtonInteract.guildId);
     },
     5 * 60 * 1000
   );
@@ -591,8 +591,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     }
 
     const GuildMembers =
-      GuildMembersCache.get<Collection<string, GuildMember>>(CmdInteract.guildId) ??
-      (await CmdInteract.guild.members.fetch());
+      GuildMembersCache.get(CmdInteract.guildId) ?? (await CmdInteract.guild.members.fetch());
 
     const MembersMatching = GuildMembers.filter((Member) => {
       return (

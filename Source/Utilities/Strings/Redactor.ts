@@ -308,10 +308,7 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
   }
 
   if (Options.guild_instance) {
-    const CachedAutoModerationRules = GuildAutomodRulesCache.get<
-      Collection<string, AutoModerationRule>
-    >(Options.guild_instance.id);
-
+    const CachedAutoModerationRules = GuildAutomodRulesCache.get(Options.guild_instance.id);
     const AutomoderationRules =
       CachedAutoModerationRules ??
       (await Options.guild_instance.autoModerationRules

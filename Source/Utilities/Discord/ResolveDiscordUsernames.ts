@@ -1,6 +1,6 @@
-import { Collection, Guild, GuildMember } from "discord.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import { Collection, Guild } from "discord.js";
 import { GuildMembersCache } from "../Helpers/Cache.js";
+import AppLogger from "@Utilities/Classes/AppLogger.js";
 const FileLabel = "Utilities:ResolveDiscordUsernames";
 
 /**
@@ -27,7 +27,7 @@ export default async function ResolveUsernamesToIds(
   MaxTimeMs: number = 5_000
 ): Promise<Collection<string, string>> {
   const UsernameToUserIdMap = new Collection<string, string>();
-  const MembersCached = GuildMembersCache.get<Collection<string, GuildMember>>(GuildInstance.id);
+  const MembersCached = GuildMembersCache.get(GuildInstance.id);
 
   try {
     if (Usernames.length === 0) {

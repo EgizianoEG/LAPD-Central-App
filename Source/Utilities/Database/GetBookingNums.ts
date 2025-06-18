@@ -7,7 +7,7 @@ export default async function GetAllBookingNums(
   UseCache: boolean = false
 ): Promise<AggregateResults.GetBookingNumbers[]> {
   if (UseCache) {
-    const Cached = BookingAutocompletionCache.get<AggregateResults.GetBookingNumbers[]>(GuildId);
+    const Cached = BookingAutocompletionCache.get(GuildId);
     if (Cached) return Cached;
   }
 
