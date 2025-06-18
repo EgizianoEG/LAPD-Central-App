@@ -981,6 +981,15 @@ export const ErrorMessages = {
     Description:
       "The expiry date you have entered is too soon. Kindly specify an expiry date that is at least 3 hours in the future.",
   },
+
+  /**
+   * @template {string} PermissionName - The name of the permission that is missing.
+   */
+  MemberMissingPermission: {
+    Title: "Missing Permission",
+    Description:
+      "You do not have the required %s permission to perform this action. Kindly check your permissions and try again.",
+  },
 };
 
 export const InfoMessages = {

@@ -18,6 +18,12 @@ async function HandlePersistanceRolesRemoval(
     TargetMember.roles.cache.has(role_id)
   );
 
+  if (!CmdInteract.member.permissions.has("ManageRoles")) {
+    return new ErrorEmbed()
+      .useErrTemplate("MemberMissingPermission", "`Manage Roles`")
+      .replyToInteract(CmdInteract, true);
+  }
+
   if (HasPersistentRoles) {
     const ConflictingRoleRecords = await RolePersistenceModel.find({
       guild: CmdInteract.guildId,

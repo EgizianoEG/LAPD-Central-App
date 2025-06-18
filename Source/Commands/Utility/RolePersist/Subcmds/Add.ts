@@ -34,6 +34,12 @@ async function CmdCallback(CmdInteract: SlashCommandInteraction<"cached">) {
   let RolesProvided = CmdInteract.options.getString("roles", true).trim().split(",");
   let ExpiryDate: Date | null = null;
 
+  if (!CmdInteract.member.permissions.has("ManageRoles")) {
+    return new ErrorEmbed()
+      .useErrTemplate("MemberMissingPermission", "`Manage Roles`")
+      .replyToInteract(CmdInteract, true);
+  }
+
   if (PersistExpiry) {
     ExpiryDate = Chrono.parseDate(PersistExpiry, CmdInteract.createdAt, {
       forwardDate: true,
