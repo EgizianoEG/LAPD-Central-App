@@ -1,5 +1,5 @@
-import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import GuildModel from "@Models/Guild.js";
+import type { ApplicationCommandOptionChoiceData } from "discord.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 
 const DefaultSuggestion = {
   name: "[Default Shift Type]",
@@ -20,14 +20,12 @@ export default async function AutocompleteShiftType(
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
   let Suggestions: (string | { name: string; value: string })[];
   const LowerCaseTyped = TypedValue.toLowerCase();
-  const ShiftTypes = await GuildModel.findById(GuildId)
-    .select("settings.shift_management.shift_types")
-    .then((GuildData) => {
-      if (!GuildData) return [];
-      return GuildData.settings.shift_management.shift_types
-        .map((ShiftType) => ShiftType.name)
-        .sort((a, b) => a.localeCompare(b));
-    });
+  const ShiftTypes = await GetGuildSettings(GuildId).then((Settings) => {
+    if (!Settings) return [];
+    return Settings.shift_management.shift_types
+      .map((ShiftType) => ShiftType.name)
+      .sort((a, b) => a.localeCompare(b));
+  });
 
   if (!ShiftTypes.length) {
     Suggestions = [];

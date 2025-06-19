@@ -4,7 +4,7 @@ import type { Shifts } from "@Typings/Utilities/Database.js";
 import type { FilterQuery } from "mongoose";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
-import Guild from "@Models/Guild.js";
+import GetGuildSettings from "./GetGuildSettings.js";
 
 export type UserMainShiftsData = {
   shift_count: number;
@@ -54,14 +54,8 @@ export default async function GetMainShiftsData(
     QueryFilter.end_timestamp = { $ne: null };
   }
 
-  const ServerSetShiftQuota = await Guild.findById(
-    QueryFilter.guild,
-    {
-      "settings.shift_management.default_quota": 1,
-    },
-    { lean: true }
-  )
-    .then((Doc) => Doc?.settings.shift_management.default_quota || 0)
+  const ServerSetShiftQuota = await GetGuildSettings(QueryFilter.guild)
+    .then((Settings) => Settings?.shift_management.default_quota || 0)
     .catch(() => 0);
 
   return ShiftModel.aggregate<UserMainShiftsData>([
