@@ -19,6 +19,7 @@ import {
 
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
+import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
 import { secondsInDay } from "date-fns/constants";
 import { ErrorMessages } from "@Resources/AppMessages.js";
 import { Colors, Emojis } from "@Config/Shared.js";
@@ -69,6 +70,7 @@ export default async function ShiftManagementHandlerWrapper(
 
     await ShiftManagementHandler(Interaction, ValidationResult.target_shift_type);
     const ButtonResponded = Interaction.deferred || Interaction.replied;
+
     if (!ButtonResponded) {
       await Interaction.deferUpdate().catch(() => null);
     }
@@ -103,8 +105,17 @@ async function ShiftManagementHandler(
   const ShiftAction = SplatDetails[0] as ShiftMgmtActions;
   const TargetShiftId = SplatDetails[3];
   const PromptMessageId = Interaction.message.id;
+  let TargetShift: Shifts.HydratedShiftDocument | null = null;
 
-  const TargetShift = await ShiftModel.findById(TargetShiftId).exec();
+  if (
+    MongoDBCache.StreamChangeConnected.ActiveShifts &&
+    MongoDBCache.ActiveShifts.has(TargetShiftId)
+  ) {
+    TargetShift = MongoDBCache.ActiveShifts.getHydrated(TargetShiftId)!;
+  } else if (TargetShiftId) {
+    TargetShift = await ShiftModel.findById(TargetShiftId).exec();
+  }
+
   const ActiveShift =
     TargetShift?.end_timestamp === null
       ? TargetShift
@@ -250,17 +261,30 @@ async function HandleShiftBreakToggleAction(
     });
   } catch (Err: any) {
     if (Err instanceof AppError && Err.is_showable) {
-      await Interaction.deferUpdate().catch(() => null);
-      return Promise.allSettled([
-        new ErrorEmbed().useErrClass(Err).replyToInteract(Interaction, true, false, "followUp"),
-        UpdateManagementPrompt(
-          Interaction,
-          ActiveShift.type,
-          PromptMsgId,
-          ActiveShift,
-          RecentShiftAction.BreakStart
-        ),
-      ]);
+      const CurrentActiveShift = await GetActiveShift({
+        UserOnly: true,
+        Interaction,
+      });
+
+      if (CurrentActiveShift?._id === ActiveShift._id) {
+        await Interaction.deferUpdate().catch(() => null);
+        return Promise.allSettled([
+          new ErrorEmbed()
+            .useErrTemplate("DSMStateChangedExternally")
+            .replyToInteract(Interaction, true, true, "followUp"),
+          UpdateManagementPrompt(
+            Interaction,
+            CurrentActiveShift.type,
+            PromptMsgId,
+            CurrentActiveShift,
+            CurrentActiveShift.hasBreakActive()
+              ? RecentShiftAction.BreakStart
+              : RecentShiftAction.BreakEnd
+          ),
+        ]);
+      } else {
+        return new ErrorEmbed().useErrClass(Err).replyToInteract(Interaction, true, true, "reply");
+      }
     } else {
       throw Err;
     }

@@ -1,6 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
-import { Client, Options, Collection, GatewayIntentBits } from "discord.js";
+import { Client, Options, Collection, GatewayIntentBits, Status } from "discord.js";
 import { Discord as DiscordSecrets } from "@Config/Secrets.js";
 import { GetDirName } from "@Utilities/Helpers/Paths.js";
 
@@ -17,7 +17,7 @@ AppLogger.info(Chalk.grey("=========================== New Run =================
 // -------------------------------------------------------------------------------------------
 // Discord Application:
 // --------------------
-export const App = new Client({
+export const App: Client = new Client({
   allowedMentions: {},
   makeCache: Options.cacheWithLimits({
     ...Options.DefaultMakeCacheSettings,
@@ -105,7 +105,8 @@ ExpressApp.get("/metrics", (_, Res) => {
         {
           message: "OK",
           client: {
-            online: App.isReady(),
+            ready: App.isReady(),
+            online: Status[App.ws.status],
             uptime: DurHumanizer(App.uptime ?? 0, {
               conjunction: " and ",
               largest: 4,

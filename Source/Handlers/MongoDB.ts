@@ -1,10 +1,13 @@
 import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
 import { Collection } from "discord.js";
 import { MongoDB } from "@Config/Secrets.js";
-import { Guilds } from "@Typings/Utilities/Database.js";
+import { Guilds, Shifts } from "@Typings/Utilities/Database.js";
+import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
+import ChangeStreamManager from "@Utilities/Classes/ChangeStreamManager.js";
 import GuildModel from "@Models/Guild.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Mongoose from "mongoose";
+import MongoDBDocumentCollection from "@Utilities/Classes/MongoDBDocCollection.js";
 
 const FileLabel = "Handlers:MongoDB";
 const BaseGuildDocument: Guilds.GuildDocument = new GuildModel().toObject();
@@ -27,18 +30,7 @@ export default async function MongoDBHandler() {
       username: MongoDB.Username,
     });
 
-    await ProcessMongoDBChangeStream().catch((Err: any) => {
-      AppLogger.error({
-        message: "An error occurred while handling MongoDB change streams.",
-        label: FileLabel,
-        db_name: MongoDB.DBName,
-        username: MongoDB.Username,
-        stack: Err.stack,
-        error: {
-          ...Err,
-        },
-      });
-    });
+    await ProcessMongoDBChangeStream();
   } catch (Err: any) {
     AppLogger.error({
       message: "An error occurred while connecting to MongoDB;",
@@ -46,101 +38,100 @@ export default async function MongoDBHandler() {
       db_name: MongoDB.DBName,
       username: MongoDB.Username,
       stack: Err.stack,
-      error: {
-        ...Err,
-      },
+      error: { ...Err },
     });
   }
 }
 
 async function ProcessMongoDBChangeStream() {
-  await SetupGuildCacheWithChangeStream();
+  return Promise.all([SetupGuildChangeStream(), SetupActiveShiftsChangeStream()]);
 }
 
-async function SetupGuildCacheWithChangeStream() {
+async function SetupGuildChangeStream() {
   await ReloadGuildCache();
-  let ChangeStream: Mongoose.mongo.ChangeStream<Guilds.GuildDocument> | null = null;
 
-  const StartChangeStream = () => {
-    ChangeStream = GuildModel.watch<
-      Guilds.GuildDocument,
-      Mongoose.mongo.ChangeStreamDocument<Guilds.GuildDocument>
-    >([], {
-      fullDocument: "updateLookup",
-    });
+  const GuildStream = new ChangeStreamManager<Guilds.GuildDocument>(
+    GuildModel as unknown as Mongoose.Model<Guilds.GuildDocument>,
+    {
+      LoggerLabel: `${FileLabel}:GuildStream`,
+      MaxReconnectAttempts: 8,
+    }
+  );
 
-    ChangeStream.on("change", (Change) => {
-      if (Change.operationType === "delete") {
-        MongoDBCache.Guilds.delete(Change.documentKey._id);
-        return;
-      }
+  GuildStream.OnChange(async (Change) => {
+    if (Change.operationType === "delete") {
+      MongoDBCache.Guilds.delete(Change.documentKey._id);
+      return;
+    }
 
-      if ("fullDocument" in Change && Change.fullDocument !== undefined) {
-        MongoDBCache.Guilds.set(Change.fullDocument._id, {
-          ...BaseGuildDocument,
-          ...Change.fullDocument,
-        });
-      }
-    });
-
-    ChangeStream.on("error", async (Err) => {
-      MongoDBCache.StreamChangeConnected.Guilds = false;
-      AppLogger.error({
-        message: "MongoDB Guild collection ChangeStream error. Attempting to reconnect...",
-        label: FileLabel,
-        stack: Err.stack,
-        error: { ...Err },
+    if ("fullDocument" in Change && Change.fullDocument !== undefined) {
+      MongoDBCache.Guilds.set(Change.fullDocument._id, {
+        ...BaseGuildDocument,
+        ...Change.fullDocument,
       });
+    }
+  });
 
-      if (ChangeStream) {
-        await ChangeStream.close().catch(() => null);
-        ChangeStream = null;
+  GuildStream.OnConnected(async (WasResumable) => {
+    if (WasResumable === false) {
+      await ReloadGuildCache();
+    }
+
+    MongoDBCache.StreamChangeConnected.Guilds = true;
+  });
+
+  GuildStream.OnDisconnected(() => {
+    MongoDBCache.StreamChangeConnected.Guilds = false;
+  });
+
+  await GuildStream.Start();
+  return GuildStream;
+}
+
+async function SetupActiveShiftsChangeStream() {
+  await ReloadActiveShiftsCache();
+  const ActiveShiftsStream = new ChangeStreamManager<Shifts.ShiftDocument>(ShiftModel, {
+    LoggerLabel: `${FileLabel}:ActiveShiftsStream`,
+    MaxReconnectAttempts: 8,
+  });
+
+  ActiveShiftsStream.OnChange(async (Change) => {
+    if (Change.operationType === "delete") {
+      MongoDBCache.ActiveShifts.delete(Change.documentKey._id);
+      return;
+    }
+
+    if ("fullDocument" in Change && Change.fullDocument !== undefined) {
+      if (Change.fullDocument.flag !== ShiftFlags.Standard) return;
+      if (Change.fullDocument.end_timestamp === null) {
+        MongoDBCache.ActiveShifts.set(Change.fullDocument._id, Change.fullDocument);
+      } else {
+        MongoDBCache.ActiveShifts.delete(Change.fullDocument._id);
       }
+    }
+  });
 
-      setTimeout(async () => {
-        await ReloadGuildCache();
-        StartChangeStream();
-      }, 3000);
-    });
+  ActiveShiftsStream.OnConnected(async (WasResumable) => {
+    if (WasResumable === false) {
+      await ReloadActiveShiftsCache();
+    }
 
-    ChangeStream.on("close", async () => {
-      MongoDBCache.StreamChangeConnected.Guilds = false;
-      AppLogger.debug({
-        message: "MongoDB Guild collection ChangeStream closed. Attempting to reconnect...",
-        label: FileLabel,
-      });
+    MongoDBCache.StreamChangeConnected.ActiveShifts = true;
+  });
 
-      if (ChangeStream) {
-        await ChangeStream.close().catch(() => null);
-        ChangeStream = null;
-      }
+  ActiveShiftsStream.OnDisconnected(() => {
+    MongoDBCache.StreamChangeConnected.ActiveShifts = false;
+  });
 
-      setTimeout(async () => {
-        await ReloadGuildCache();
-        StartChangeStream();
-      }, 3000);
-    });
+  await ActiveShiftsStream.Start([
+    {
+      $match: {
+        "fullDocument.flag": ShiftFlags.Standard,
+      },
+    },
+  ]);
 
-    ChangeStream.on("end", async () => {
-      MongoDBCache.StreamChangeConnected.Guilds = false;
-      AppLogger.debug({
-        message: "MongoDB Guild collection ChangeStream ended. Attempting to reconnect...",
-        label: FileLabel,
-      });
-
-      if (ChangeStream) {
-        await ChangeStream.close().catch(() => null);
-        ChangeStream = null;
-      }
-
-      setTimeout(async () => {
-        await ReloadGuildCache();
-        StartChangeStream();
-      }, 3000);
-    });
-  };
-
-  StartChangeStream();
+  return ActiveShiftsStream;
 }
 
 async function ReloadGuildCache() {
@@ -153,6 +144,29 @@ async function ReloadGuildCache() {
 
   AppLogger.debug({
     message: "Guild cache loaded from database.",
+    label: FileLabel,
+  });
+}
+
+async function ReloadActiveShiftsCache() {
+  const InitialRunShiftDocuments = await ShiftModel.find({
+    flag: ShiftFlags.Standard,
+    end_timestamp: null,
+  })
+    .lean()
+    .exec();
+
+  MongoDBCache.ActiveShifts = new MongoDBDocumentCollection<
+    string,
+    Shifts.ShiftDocument,
+    Shifts.HydratedShiftDocument
+  >(
+    ShiftModel,
+    InitialRunShiftDocuments.map((Doc) => [Doc._id, Doc] as [string, Shifts.ShiftDocument])
+  );
+
+  AppLogger.debug({
+    message: "Active shifts cache loaded from database.",
     label: FileLabel,
   });
 }

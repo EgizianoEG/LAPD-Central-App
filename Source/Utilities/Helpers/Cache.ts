@@ -5,9 +5,12 @@ import type { UserIdLookupResult } from "@Utilities/Roblox/GetIdByUsername.js";
 import type { ThrottleTracker } from "@Utilities/Discord/CommandExecutionGuards.js";
 import type NobloxJs from "noblox.js";
 
-import { hoursToMilliseconds } from "date-fns";
-import { millisecondsInDay } from "date-fns/constants";
 import { Collection } from "discord.js";
+import { millisecondsInDay } from "date-fns/constants";
+import { hoursToMilliseconds } from "date-fns";
+
+import MongoDBDocCollection from "@Utilities/Classes/MongoDBDocCollection.js";
+import ShiftModel from "@Models/Shift.js";
 import TTLCache from "@isaacs/ttlcache";
 
 export const RobloxAPICache = {
@@ -31,8 +34,13 @@ export const MongoDBCache = {
    * is connected and the data stored is up-to-date or not.
    *  @type {Map<string, Guilds.GuildDocument>}
    */
-  StreamChangeConnected: { Guilds: false },
+  StreamChangeConnected: { Guilds: false, ActiveShifts: false },
   Guilds: new Collection<string, Guilds.GuildDocument>(),
+  ActiveShifts: new MongoDBDocCollection<
+    string,
+    Shifts.ShiftDocument,
+    Shifts.HydratedShiftDocument
+  >(ShiftModel),
 };
 
 export const BloxlinkDiscordToRobloxUsageChache = new TTLCache<string, BloxlinkUserLimitInfo>({

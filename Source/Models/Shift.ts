@@ -142,6 +142,7 @@ ShiftSchema.virtual("on_duty_time").get(function () {
 });
 
 ShiftSchema.virtual("on_break_time").get(function () {
+  // Unpredictable behavior; may return `undefined` randomly out of nowhere.
   return ReadableDuration(this.durations.on_break, { largest: 3 });
 });
 

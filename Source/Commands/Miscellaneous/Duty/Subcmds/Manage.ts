@@ -25,6 +25,7 @@ import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
 import Dedent from "dedent";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 
 export enum RecentShiftAction {
   End = "Shift Ended",
@@ -344,7 +345,7 @@ async function HandleActiveShift(
           >>> **Status:** (${Emojis.Online}) On Duty
           **Shift Started:** ${FormatTime(ShiftActive.start_timestamp, "R")}
           **Break Count:** ${inlineCode(ShiftActive.events.breaks.length.toString())}
-          **Total Break Time:** ${ShiftActive.durations.on_break_time}
+          **Total Break Time:** ${ReadableDuration(ShiftActive.durations.on_break, { largest: 3 })}
         `),
       });
     } else {
