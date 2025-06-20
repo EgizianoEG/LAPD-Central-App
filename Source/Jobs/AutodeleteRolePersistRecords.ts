@@ -16,15 +16,19 @@ async function AutodeleteExpiredRolePersistRecords(
   Client: DiscordClient
 ) {
   const CurrentDate = Now instanceof Date ? Now : new Date();
-  const ExpiredRolePersistRecords = await RolePersistenceModel.find({
-    $and: [{ expiry: { $ne: null } }, { expiry: { $lte: CurrentDate } }],
-  })
-    .limit(200)
-    .lean()
-    .exec();
+  const ExpiredRolePersistRecords = await RolePersistenceModel.find(
+    {
+      $and: [{ expiry: { $ne: null } }, { expiry: { $lte: CurrentDate } }],
+    },
+    undefined,
+    {
+      sort: { expiry: 1 },
+      limit: 200,
+      lean: true,
+    }
+  );
 
   if (!ExpiredRolePersistRecords.length) return;
-
   const RecordsHandled: string[] = [];
   const RoleRemovalPromises: Promise<any>[] = [];
   const GuildCategorizedExpiredRecords = Object.groupBy(
