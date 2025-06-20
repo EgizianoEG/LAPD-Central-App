@@ -106,7 +106,10 @@ ExpressApp.get("/metrics", (_, Res) => {
           message: "OK",
           client: {
             ready: App.isReady(),
-            online: Status[App.ws.status],
+            websocket: {
+              ping: App.ws.ping,
+              status: Status[App.ws.status],
+            },
             uptime: DurHumanizer(App.uptime ?? 0, {
               conjunction: " and ",
               largest: 4,

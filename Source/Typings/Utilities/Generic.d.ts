@@ -28,6 +28,9 @@ export namespace OSMetrics {
     /** Process uptime in seconds or in a human-readable format if specified. */
     process_uptime: HR extends true ? string : number;
 
+    /** Package or application version. */
+    package_ver: string;
+
     system: {
       /** Running OS type. See {@link https://en.wikipedia.org/wiki/Uname#Examples}. */
       type: string;

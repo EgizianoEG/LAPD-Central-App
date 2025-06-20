@@ -12,6 +12,7 @@ export default async function GetOSMetrics<Readable extends boolean = false>(
   const PUptime = HumanReadable ? ReadableDuration(Process.uptime() * 1000) : Process.uptime();
   return {
     node_ver: Process.version.slice(1),
+    package_ver: process.env.version ?? process.env.npm_package_version ?? "N/A",
     process_uptime: PUptime as any,
 
     cpu: await GetCPUDetails(),
