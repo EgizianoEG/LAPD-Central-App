@@ -57,7 +57,7 @@ function GetRecordPages(
 
     RecordChunk.forEach((Record) => {
       const ExpiryText = Record.expiry
-        ? `**Expires:** ${time(Record.expiry, "f")}`
+        ? `**Expires:** ${time(Record.expiry, "f")} (${time(Record.expiry, "R")})`
         : "**Expires:** Never";
 
       const PersistedRolesText =

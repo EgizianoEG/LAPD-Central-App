@@ -183,6 +183,7 @@ async function ProcessUserRoleRemoval(
   );
 
   if (!RolesToRemove.length) {
+    RecordsHandled.push(...ExpiredRecords.map((R) => R._id.toString()));
     return;
   }
 
