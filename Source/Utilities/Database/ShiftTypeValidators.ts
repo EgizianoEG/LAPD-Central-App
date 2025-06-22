@@ -1,7 +1,7 @@
 import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
 import { RepliableInteraction } from "discord.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import GuildModel from "@Models/Guild.js";
+import GetGuildSettings from "./GetGuildSettings.js";
 
 /**
  * Checks if a given shift type exists for a specific guild.
@@ -15,20 +15,15 @@ import GuildModel from "@Models/Guild.js";
 export async function ShiftTypeExists(GuildId: string, ShiftType: string): Promise<boolean> {
   if (!IsValidDiscordId(GuildId)) throw new TypeError("Invalid Guild Id provided.");
   if (ShiftType.match(/^Default$/i)) return true;
-  return GuildModel.aggregate([
-    {
-      $match: {
-        _id: GuildId,
-      },
-    },
-    {
-      $project: {
-        exists: {
-          $in: [ShiftType, "$settings.shift_management.shift_types.name"],
-        },
-      },
-    },
-  ]).then((Result) => Result[0]?.exists ?? false);
+  return GetGuildSettings(GuildId).then((GuildSettings) => {
+    if (!GuildSettings?.shift_management.shift_types.length) {
+      return false;
+    }
+
+    return (
+      GuildSettings.shift_management.shift_types.findIndex((Type) => Type.name === ShiftType) !== -1
+    );
+  });
 }
 
 /**

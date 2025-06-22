@@ -1,5 +1,5 @@
-import GuildModel from "@Models/Guild.js";
 import { Guilds } from "@Typings/Utilities/Database.js";
+import GetGuildSettings from "./GetGuildSettings.js";
 
 /**
  * Checks if a module is enabled in a guild.
@@ -11,18 +11,8 @@ export default async function IsModuleEnabled(
   GuildId: string,
   ModuleName: keyof Omit<Guilds.GuildSettings, "require_authorization" | "role_perms">
 ) {
-  return GuildModel.aggregate([
-    { $match: { _id: GuildId } },
-    {
-      $set: {
-        is_enabled: `$settings.${ModuleName}.enabled`,
-      },
-    },
-    {
-      $project: {
-        _id: 0,
-        is_enabled: 1,
-      },
-    },
-  ]).then((Result: { is_enabled: boolean }[]) => Result[0].is_enabled);
+  return GetGuildSettings(GuildId).then((Settings) => {
+    if (!Settings) return false;
+    return (typeof Settings[ModuleName] === "object" && Settings[ModuleName].enabled) ?? false;
+  });
 }

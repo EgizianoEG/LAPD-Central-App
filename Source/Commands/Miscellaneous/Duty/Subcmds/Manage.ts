@@ -19,13 +19,13 @@ import {
 import { Guilds, Shifts } from "@Typings/Utilities/Database.js";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
 import Dedent from "dedent";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 
 export enum RecentShiftAction {
   End = "Shift Ended",

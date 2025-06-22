@@ -45,8 +45,8 @@ import IncidentModel, { GenerateNextIncidentNumber } from "@Models/Incident.js";
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
-import GuildModel from "@Models/Guild.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
 import Dedent from "dedent";
@@ -288,7 +288,7 @@ async function AwaitIncidentDetailsModalSubmission(
  * @param CmdInteract - The slash command interaction object.
  * @param CmdProvidedDetails - Partial incident record details provided by the command, including mandatory fields: type, location, and status.
  * @param ModalSubmission - The modal submission interaction object.
- * @param GuildDocument - The current list of incident records in the guild.
+ * @param GuildSettings - The current list of incident records in the guild.
  * @param ReportingOfficer - Information about the officer reporting the incident.
  * @returns A promise that resolves to the prepared incident data object or `null` if attachment validation fails.
  */
@@ -296,7 +296,7 @@ async function PrepareIncidentData(
   CmdInteract: SlashCommandInteraction<"cached">,
   CmdProvidedDetails: CmdProvidedDetailsType,
   ModalSubmission: ModalSubmitInteraction<"cached">,
-  GuildDocument: Guilds.GuildDocument,
+  GuildSettings: Guilds.GuildDocument["settings"],
   ReportingOfficer: ReporterInfo
 ): Promise<GuildIncidents.IncidentRecord> {
   const UTIFOpts: FilterUserInputOptions = {
@@ -304,7 +304,7 @@ async function PrepareIncidentData(
     guild_instance: CmdInteract.guild,
     replacement_type: "Character",
     filter_links_emails: true,
-    utif_setting_enabled: GuildDocument.settings.utif_enabled,
+    utif_setting_enabled: GuildSettings.utif_enabled,
   };
 
   const InputNotes = ModalSubmission.fields.getTextInputValue("notes").replace(/\s+/g, " ") || null;
@@ -650,16 +650,8 @@ async function IncidentLogCallback(
   if (!IDModalSubmission) return;
   await IDModalSubmission.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const GuildDocument = await GuildModel.findById(
-    CmdInteract.guildId,
-    {
-      "settings.utif_enabled": 1,
-      "settings.duty_activities.log_channels.incidents": 1,
-    },
-    { lean: true }
-  ).exec();
-
-  if (!GuildDocument) {
+  const GuildSettings = await GetGuildSettings(CmdInteract.guildId);
+  if (!GuildSettings) {
     return new ErrorEmbed()
       .useErrTemplate("DBGuildDocumentNotFound")
       .replyToInteract(IDModalSubmission, true, true, "editReply");
@@ -669,7 +661,7 @@ async function IncidentLogCallback(
     CmdInteract,
     CmdProvidedDetails,
     IDModalSubmission,
-    GuildDocument as unknown as Guilds.GuildDocument,
+    GuildSettings,
     ReportingOfficer
   );
 
@@ -677,7 +669,7 @@ async function IncidentLogCallback(
     CmdInteract,
     IDModalSubmission,
     CmdModalProvidedData,
-    GuildDocument.settings.duty_activities
+    GuildSettings.duty_activities
   );
 }
 
