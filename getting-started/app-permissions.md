@@ -110,6 +110,7 @@ Permits the app to assign or remove roles from members.
 * Assign or remove LOA/RA roles.
 * Restore roles from backups.
 * Manage shift roles for members.
+* Utility commands `role-persist add` and `remove`
 
 </details>
 

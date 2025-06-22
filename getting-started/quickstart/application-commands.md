@@ -28,7 +28,7 @@ Commands are marked with a colored or uncolored asterisk (\*) to indicate the re
 
 <summary><strong>Server Staff Members </strong><mark style="color:blue;"><strong>(*)</strong></mark></summary>
 
-Members considered part of the management staff, either by having the `Server Manage` permission via an assigned server role, or by having any role specifically set for management in the application's configuration.
+Members considered part of the regular staff, either by having any permission of the mentioned below, or by having any role specifically set for staff in the application's configuration.
 
 </details>
 
@@ -85,10 +85,12 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Command:** `/weather [units: "metric" or "imperial"] [private:Boolean]` \
   **Ephemeral:** Optional\
   **Description:** Provides weather information for the city of Los Angeles at the time of execution, sourcing data from [OpenWeather](https://openweathermap.org/).
-* **MDT Lookup&#x20;**<mark style="color:blue;">**(\*)**</mark>\
-  **Command:** `/mdt lookup <name:Text>` \
-  **Ephemeral:** No\
-  **Description:** Provides recent violations or arrests to the target person by their Roblox username. TODO: provide warrant status, recently owned vehicle, and last known location.
+*   **MDT Lookup&#x20;**<mark style="color:blue;">**(\*)**</mark>\
+    **Command:** `/mdt lookup <name:Text>` \
+    **Ephemeral:** No\
+    **Description:** Provides recent violations or arrests to the target person by their Roblox username.
+
+    (_TODO: integration of a new warrant system and module to provide warrant status, recently owned vehicle, and last known location.)_
 * **MDT Incident Search&#x20;**<mark style="color:blue;">**(\*)**</mark>\
   **Command:** `/mdt search incident <incident-num:Number>` \
   **Ephemeral:** Yes\
@@ -129,7 +131,7 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Ephemeral:** Yes\
   **Description:** Voids and deletes the currently active shift for the one who is executing the command. It would log a shift void execution and will not delete any logs for that shift but only delete it from database records.
 * **Duty Leaderboard&#x20;**<mark style="color:blue;">**(\*)**</mark>\
-  **Command:** `/duty leaderboard [type:Text]` \
+  **Command:** `/duty leaderboard [type:Text] [since:DateTimeExpression]` \
   **Ephemeral:** No\
   **Description:** Lists all staff members who have shift time for exact shif type or for all shift types with their time in descending order. Members who are considered staff but do not have shift time are disregarded from the list.
 * **Duty End All&#x20;**<mark style="color:green;">**(\*)**</mark>\
@@ -277,16 +279,18 @@ Below is a categorized list of all commands available through the LAPD Central a
     **Ephemeral:** No\
     **Permissions:** User required permissions are `Manage Server` and `Manage Roles`.\
     **Description:** Assigns previously saved roles to a member. This command would not remove any unsaved roles and will keep it assigned.
-* **Role Persistence**
-  * **Add**\
+* **Role Persistence** (New in v1.3.0)
+  * **Add&#x20;**<mark style="color:yellow;">**(\*)**</mark>\
     **Command:** `/role-persist add <user:User> <roles:Text> [expiry:DateTimeExpression] [reason:Text]` \
     **Ephemeral:** No\
+    **Permissions:** Required permissions are `Manage Server`  or `Application Management` and `Manage Roles`.\
     **Description:** Creates a database record and persist the specified mentioned roles for a target person and reassign them on rejoin.
-  * **Remove**\
+  * **Remove** <mark style="color:yellow;">**(\*)**</mark>\
     **Command:** `/role-persist remove <user:User> <id:HexText>`\
     **Ephemeral:** No\
+    **Permissions:** Required permissions are `Manage Server`  or `Application Management` and `Manage Roles`.\
     **Description:** Removes a role persistence record from the database and removes the roles from the target person if applicable.
-  * **List**\
+  * **List&#x20;**<mark style="color:green;">**(\*)**</mark>\
     **Command:** `/role-persist list [user:User]`\
     **Ephemeral:** Optional\
     **Description:** Shows persistence records in effect (active) either for everyone or for a target person.

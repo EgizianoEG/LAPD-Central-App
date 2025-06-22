@@ -43,7 +43,7 @@ All changes and improvements contributions must be submitted as regular pull req
   * Pascal case for functions, arguments, and variables (with cetain exceptions)
   * Self-explanatory and well-documented names
   * Include relative tests to the changes/additions if possible
-  * Passing linting and style checks (see `.eslintrc` and `.prettierrc`)
+    * Passing linting and style checks (see `eslint.config.mjs` and `.prettierrc.json`)
 * Write clear and concise commit messages.
 * Reference the relevant issue(s) in your pull request.
 

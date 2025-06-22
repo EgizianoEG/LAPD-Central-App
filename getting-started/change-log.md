@@ -18,7 +18,46 @@ layout:
 
 # Change Log
 
-## [Version 1.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.1.0) (Latest) —  June &#x36;**, 2025**
+## [Version 1.3](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.0) (Latest) — June 2&#x32;**, 2025**
+
+### **Enhancements**
+
+* **Full Date Range Filtering for Shift Reports and Officer Activity:**\
+  Commands like `/activity officer` and `/activity report` now support both `since` and `to` (until) parameters, allowing you to view activity and generate reports for any custom date range, not just "since" a single point. Autocompletion is provided for common ranges like "today", "yesterday", "30 days ago", etc., for both fields.
+* **Role Persistence System:**\
+  A new `/role-persist` command lets management persist specific member roles so they are automatically restored if a user rejoins the server. Roles can have an optional expiry and are protected against risky (admin-level) roles. Includes add, remove, and list subcommands, and a scheduled job for auto-removal of expired records.
+* **Live MongoDB Change Streams & Performance Caching:**\
+  Major refactor for live cache of Discord guild and shift data, using MongoDB change streams and new in-memory cache collections for performance.
+* **Shift Reports and Activity Data Sorting:**\
+  Shift activity and report exports are now sorted by total shift time, then by role hierarchy, then alphabetically, making it easier to review top performers and accurately track quotas.
+* **Improved Error Handling & Validation:**\
+  Date and duration fields now enforce non-negative values and stricter validity checks, with clearer error messages for role persistence, duration, and date range issues.
+* **Cleaner Autocompletion, Faster Lookups:**\
+  Autocomplete for shift types, saved/persisted roles, booking/citation/incident numbers now uses a new caching backend for faster, more accurate suggestions.
+* **Improved Logging and Debugging:**\
+  Application and database logging is now color-coded and more detailed in the console.
+* **Dependency Updates:**
+  * `discord.js` updated to v14.20.0
+  * `noblox.js`, `undici`, `@discordjs/rest/ws`
+
+### **Fixes**
+
+* **Negative/Invalid Duration Handling:**\
+  All duration fields (shifts, LOA/RA requests, etc.) now properly reject negative values and invalid input, preventing issues with accidental copy-pastes or typos.
+* **Role Mention/Autocomplete and Member Role Save:**\
+  Bugfixes for role mention, member role backup/restore, and autocomplete now handle missing, deleted, or renamed roles more gracefully.
+* **Cleaner Button/Component State Management:**\
+  Improved interaction component state (disabling, updating, error fallback) in paginated lists, management prompts, and UAN/LOA/RA approval workflows.
+
+
+
+Overall, this release adds a powerful new role persistence system, expands activity reporting options, improves performance and reliability, and addresses long-standing issues with data consistency, command validation, and member management.
+
+[**Full diff: v1.2.0...v1.3.0**](https://github.com/EgizianoEG/LAPD-Central-App/compare/v1.2.0...v1.3.0)
+
+***
+
+## [Version 1.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.2.0) <sub>—  June 6</sub><sub>**, 2025**</sub>
 
 ### Enhancements
 
@@ -111,6 +150,6 @@ layout:
 
 ***
 
-## [Version 1.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.0.0) — **May 26, 2025**
+## [Version 1.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.0.0)  —  **May 26, 2025**
 
 The first official and stable version of LAPD Central Discord application.

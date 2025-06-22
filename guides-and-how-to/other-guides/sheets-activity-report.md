@@ -56,7 +56,20 @@ To generate a report, simply run the `/activity report` slash command and fill i
 {% endstep %}
 
 {% step %}
-#### Done! All you have to do now is to click (or press) the `View Activity Report` button to open the report on Google sheets.
+#### Done! All you have to do now is click (or tap) the **"View Activity Report"** button to open the generated report in **Google Sheets**.
+
+Unlike many alternatives, the report created by LAPD Central comes with **built-in features** designed to improve readability and usability. These include:
+
+* A **clean, thoughtful design and theme** for easy review.
+* Interactive highlighting options using checkboxes, allowing you to:
+  * Highlight personnel with activity notices.
+  * Highlight those who haven’t met the quota — with consideration for any active notices.
+* **Smart sorting** of records based on:\
+  _(you may also sort records based on any other criteria using regular sheets features)_
+  1. Total shift time recorded.
+  2. Discord role hierarchy.
+  3. Alphabetical order of usernames or nicknames.
+* A **separate sheet for report statistics**, summarizing the data within the selected timeframe. You can also use this sheet to create your own charts and visualizations as needed.
 
 Sample report: [https://docs.google.com/spreadsheets/d/1RS\_Szv3eesVk-QzB8aV3Uio6hzaE8fS6FCWqH0GjUnM](https://docs.google.com/spreadsheets/d/1RS_Szv3eesVk-QzB8aV3Uio6hzaE8fS6FCWqH0GjUnM/edit?usp=sharing)
 
