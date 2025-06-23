@@ -4,6 +4,7 @@ import { GoogleAPI } from "@Config/Secrets.js";
 import { format } from "date-fns";
 
 import Util from "node:util";
+import AppError from "@Utilities/Classes/AppError.js";
 import GetActivityReportData from "@Utilities/Database/GetActivityReportData.js";
 
 export default async function CreateShiftReport(
@@ -27,6 +28,19 @@ export default async function CreateShiftReport(
     spreadsheetId: Copy.data.id!,
   });
 
+  const RecordsSheetId = CSpreadsheet.data.sheets?.[0]?.properties?.sheetId;
+  const StatisticsSheetId = CSpreadsheet.data.sheets?.[1]?.properties?.sheetId;
+
+  if (!RecordsSheetId || !StatisticsSheetId) {
+    throw new AppError({
+      title: "Sheet ID Retrieval Error",
+      stack: new Error().stack,
+      message: "Failed to retrieve sheet IDs from the copied spreadsheet.",
+      showable: false,
+      code: 2,
+    });
+  }
+
   await SheetsAPI.spreadsheets.batchUpdate({
     spreadsheetId: Copy.data.id!,
     requestBody: {
@@ -37,7 +51,7 @@ export default async function CreateShiftReport(
           updateCells: {
             fields: "userEnteredValue",
             range: {
-              sheetId: CSpreadsheet.data.sheets![0].properties!.sheetId,
+              sheetId: RecordsSheetId,
               startRowIndex: 1, // Refers to row 2
               endRowIndex: 2, // Up to row 3
               startColumnIndex: 2, // Column 'C'
@@ -62,7 +76,7 @@ export default async function CreateShiftReport(
           updateDimensionProperties: {
             fields: "pixelSize",
             range: {
-              sheetId: CSpreadsheet.data.sheets![0].properties!.sheetId,
+              sheetId: RecordsSheetId,
               dimension: "COLUMNS",
               startIndex: 2,
               endIndex: 3,
@@ -78,7 +92,7 @@ export default async function CreateShiftReport(
           insertDimension: {
             inheritFromBefore: true,
             range: {
-              sheetId: CSpreadsheet.data.sheets![0].properties!.sheetId,
+              sheetId: RecordsSheetId,
               dimension: "ROWS",
               startIndex: 11, // Insert after the 11th row (0-based index)
               endIndex: RowEndIndex,
@@ -92,7 +106,7 @@ export default async function CreateShiftReport(
             rows: ReportData.records,
             fields: "userEnteredValue,note",
             start: {
-              sheetId: CSpreadsheet.data.sheets![0].properties!.sheetId,
+              sheetId: RecordsSheetId,
               rowIndex: 10,
               columnIndex: 1,
             },
@@ -104,7 +118,7 @@ export default async function CreateShiftReport(
           updateCells: {
             fields: "userEnteredValue",
             range: {
-              sheetId: CSpreadsheet.data.sheets![0].properties!.sheetId,
+              sheetId: RecordsSheetId,
               startRowIndex: 7, // Refers to row 8
               endRowIndex: 8, // Up to row 9
               startColumnIndex: 12, // Column 'L'
@@ -129,7 +143,7 @@ export default async function CreateShiftReport(
           updateSheetProperties: {
             fields: "title",
             properties: {
-              sheetId: CSpreadsheet.data.sheets![0].properties!.sheetId,
+              sheetId: RecordsSheetId,
               title: FirstSheetName,
             },
           },
@@ -151,7 +165,7 @@ export default async function CreateShiftReport(
           updateCells: {
             fields: "userEnteredValue",
             range: {
-              sheetId: CSpreadsheet.data.sheets![1].properties!.sheetId,
+              sheetId: StatisticsSheetId,
               startRowIndex: 3, // Refers to row 4
               endRowIndex: 5, // Up to row 6
               startColumnIndex: 2, // Column 'C'
@@ -176,7 +190,7 @@ export default async function CreateShiftReport(
           updateCells: {
             fields: "userEnteredValue",
             range: {
-              sheetId: CSpreadsheet.data.sheets![1].properties!.sheetId,
+              sheetId: StatisticsSheetId,
               startRowIndex: 3, // Refers to row 4
               endRowIndex: 5, // Refers to up to row 6
               startColumnIndex: 1, // Refers to column B
@@ -188,6 +202,31 @@ export default async function CreateShiftReport(
                   {
                     userEnteredValue: {
                       numberValue: ReportData.statistics.total_shifts,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+
+        // 3. Set the average time field:
+        {
+          updateCells: {
+            fields: "userEnteredValue",
+            range: {
+              sheetId: StatisticsSheetId,
+              startRowIndex: 6, // Refers to row 7
+              endRowIndex: 7, // Refers to up to row 8
+              startColumnIndex: 3, // Refers to column D
+              endColumnIndex: 6, // Up to column G
+            },
+            rows: [
+              {
+                values: [
+                  {
+                    userEnteredValue: {
+                      stringValue: ReportData.statistics.average_time,
                     },
                   },
                 ],

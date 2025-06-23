@@ -1,5 +1,5 @@
+import { add, sub, isAfter, differenceInHours, milliseconds } from "date-fns";
 import { Collection, Guild, GuildMember, Role } from "discord.js";
-import { add, sub, isAfter, differenceInHours } from "date-fns";
 import { AggregateResults } from "@Typings/Utilities/Database.js";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import GetGuildSettings from "./GetGuildSettings.js";
@@ -141,9 +141,14 @@ export default async function GetActivityReportData(
     });
   }
 
+  const TotalShiftTimeCombined = RecordsBaseData.reduce((Acc, Curr) => Acc + Curr.total_time, 0);
   const ReportStatistics: AggregateResults.ActivityReportStatistics<string> = {
-    total_time: ReadableDuration(RecordsBaseData.reduce((Acc, Curr) => Acc + Curr.total_time, 0)),
+    total_time: ReadableDuration(TotalShiftTimeCombined),
     total_shifts: RecordsBaseData.reduce((Acc, Curr) => Acc + Curr.total_shifts, 0),
+    average_time:
+      RecordsBaseData.length > 2 && TotalShiftTimeCombined > milliseconds({ minutes: 30 })
+        ? ReadableDuration(TotalShiftTimeCombined / RecordsBaseData.length)
+        : "Insufficient Data",
   };
 
   const ProcessedMemberIds = new Set<string>();

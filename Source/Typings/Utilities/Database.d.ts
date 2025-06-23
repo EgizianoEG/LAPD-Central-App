@@ -1357,8 +1357,9 @@ export namespace AggregateResults {
   }
 
   interface ActivityReportStatistics<T extends number | string = number> {
-    /** Total on duty time compined. */
+    /** Total on duty time combined. */
     total_time: T;
+    average_time: T;
 
     /** Total shifts recorded. */
     total_shifts: number;
