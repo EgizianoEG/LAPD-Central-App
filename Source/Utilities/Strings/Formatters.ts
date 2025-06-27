@@ -87,7 +87,7 @@ export function AddStatutes(this: any, Charges: Array<string>): Array<string> {
   }
 
   for (let i = 0; i < Charges.length; i++) {
-    const AddChargeStatute = FormatStr.bind(this, "%s\n  - Statute: § %s %s");
+    const AddChargeStatute = FormatStr.bind(this, "%s\n  Statute: § %s %s");
     const Charge = Charges[i];
 
     // Assault/Stabbing charge statute codes
