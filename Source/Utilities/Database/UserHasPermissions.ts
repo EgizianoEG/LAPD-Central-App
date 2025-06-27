@@ -76,18 +76,18 @@ export async function UserHasPermsV2<UType extends string | string[]>(
     const Result = CheckPerms(await GetDBRolePerms(GuildId), Permissions, GuildMember);
     return Result[0] as UHPV2Return<UType>;
   } else if (Array.isArray(User)) {
-    const Result = {};
+    const Results: Record<string, boolean> = {};
     for (const UserId of User) {
       const GuildMember = Guild?.members.cache.get(UserId);
       if (!GuildMember) {
-        Result[UserId] = false;
+        Results[UserId] = false;
         continue;
       }
 
-      Result[UserId] = CheckPerms(await GetDBRolePerms(GuildId), Permissions, GuildMember);
+      Results[UserId] = CheckPerms(await GetDBRolePerms(GuildId), Permissions, GuildMember)[0];
     }
 
-    return Result[0] as UHPV2Return<UType>;
+    return Results as UHPV2Return<UType>;
   } else {
     return false as UHPV2Return<UType>;
   }
