@@ -1847,7 +1847,7 @@ async function HandleAdditionalConfigPageInteracts(
         .replyToInteract(ButtonInteract, true, true, "reply");
     }
 
-    if (!ButtonInteract.deferred) {
+    if (!ButtonInteract.deferred && !ButtonInteract.replied) {
       await ButtonInteract.deferReply({ flags: MessageFlags.Ephemeral });
     }
 
