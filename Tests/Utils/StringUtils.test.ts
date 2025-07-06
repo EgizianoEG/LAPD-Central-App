@@ -509,9 +509,9 @@ describe("String Formatting Utilities", () => {
 
       const ExpectedOutput = Dedent`\
       1. Resisting a Peace Officer
-        - Statute: § 69(A)/148(A) PC
+        Statute: § 69(A)/148(A) PC
       2. Evading a Peace Officer: Disregarding Safety
-        - Statute: § 2800.2(A) VC\
+        Statute: § 2800.2(A) VC\
       `;
 
       const Result = FormatCharges(Input).join("\n");
@@ -590,7 +590,7 @@ describe("String Formatting Utilities", () => {
 
       Inputs.forEach((CAlias) => {
         const Result = AddStatutes([CAlias]);
-        expect(Result.toString()).toMatch(/\n\s*- Statute:.*?(?:242|243\(\w\))/i);
+        expect(Result.toString()).toMatch(/\n\s*Statute:.*?(?:242|243\(\w\))/i);
       });
     });
 
@@ -611,7 +611,7 @@ describe("String Formatting Utilities", () => {
       Inputs.forEach((CAlias) => {
         const Result = AddStatutes([CAlias]);
         expect(Result.toString()).toMatch(
-          /\n\s*- Statute:.*?(?:240|245\(\w\)|245\(\w\)\(1\)|240\/241\(\w\))/i
+          /\n\s*Statute:.*?(?:240|245\(\w\)|245\(\w\)\(1\)|240\/241\(\w\))/i
         );
       });
     });
@@ -632,7 +632,7 @@ describe("String Formatting Utilities", () => {
 
       Inputs.forEach((CAlias) => {
         const Result = AddStatutes(Array.isArray(CAlias) ? CAlias : [CAlias]);
-        expect(Result.toString()).toMatch(/\n\s*- Statute:.*?(?:2800.2\(A\)|2800)/i);
+        expect(Result.toString()).toMatch(/\n\s*Statute:.*?(?:2800.2\(A\)|2800)/i);
       });
     });
 
@@ -647,7 +647,7 @@ describe("String Formatting Utilities", () => {
 
       Inputs.forEach((CAlias) => {
         const Result = AddStatutes(Array.isArray(CAlias) ? CAlias : [CAlias]);
-        expect(Result.toString()).toMatch(/\n\s*- Statute:.*?(?:451)/i);
+        expect(Result.toString()).toMatch(/\n\s*Statute:.*?(?:451)/i);
       });
     });
 
@@ -673,7 +673,7 @@ describe("String Formatting Utilities", () => {
 
         // eslint-disable-next-line sonarjs/no-nested-functions
         Result.forEach((Charge, i) =>
-          expect(Charge).toMatch(new RegExp(`^${Org[i]}\\n\\s*- Statute:`))
+          expect(Charge).toMatch(new RegExp(`^${Org[i]}\\n\\s*Statute:`))
         );
       });
     });
