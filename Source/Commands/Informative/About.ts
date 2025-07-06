@@ -32,6 +32,7 @@ async function Callback(Client: DiscordClient, Interaction: SlashCommandInteract
       "AttachFiles",
       "ManageRoles",
       "ViewChannel",
+      "ManageGuild",
       "SendMessages",
       "AddReactions",
       "ManageNicknames",

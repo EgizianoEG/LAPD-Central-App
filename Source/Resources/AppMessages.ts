@@ -60,12 +60,20 @@ export const ErrorMessages = {
   },
 
   /**
-   * If the app/bot couldn't be found in the guild (when validating it's permissions).
+   * If the app/bot could not be located in the guild when checking its permissions.
+   * This case should not ever happen...
    */
   AppNotFoundInGuildForPerms: {
-    Title: "Error",
+    Title: "Unexpected Error",
     Description:
-      "Something went wrong, and the application could not be found on this server to validate its permissions.",
+      "The application could not be located on this server to verify its permissions. Please ensure the application is present and try again.",
+  },
+
+  InsufficientUTIFManageGuildPerm: {
+    Title: "Insufficient Permissions",
+    Description:
+      "Enabling user text input filtering requires the application to have the `Manage Server` permission in order to access the server's automoderation rules. " +
+      "Currently, the application does not have this permission and cannot enforce automoderation rules.",
   },
 
   /**

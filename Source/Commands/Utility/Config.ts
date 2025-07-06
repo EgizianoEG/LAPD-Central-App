@@ -44,6 +44,7 @@ import {
   SuccessContainer,
   ErrorContainer,
   InfoContainer,
+  WarnContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
 import { Dedent } from "@Utilities/Strings/Formatters.js";
@@ -1811,13 +1812,14 @@ async function HandleBasicConfigPageInteracts(
 
 async function HandleAdditionalConfigPageInteracts(
   SelectInteract: StringSelectMenuInteraction<"cached">,
-  AddConfigPrompt: Message<true> | InteractionResponse<true>,
+  AddConfigPrompt: Message<true>,
   CurrConfiguration: GuildSettings
 ) {
   let LogDeletionInterval = CurrConfiguration.duty_activities.log_deletion_interval;
   let DefaultShiftQuota = CurrConfiguration.shift_management.default_quota;
   let UTIFEnabled = !!CurrConfiguration.utif_enabled;
 
+  const AppMember = await SelectInteract.guild.members.fetchMe().catch(() => null);
   const BCCompActionCollector = AddConfigPrompt.createMessageComponentCollector<
     ComponentType.Button | ComponentType.StringSelect
   >({
@@ -1836,8 +1838,18 @@ async function HandleAdditionalConfigPageInteracts(
         .replyToInteract(ButtonInteract, true);
     }
 
-    if (!ButtonInteract.deferred)
+    if (
+      UTIFEnabled === true &&
+      AppMember?.permissions.has(PermissionFlagsBits.ManageGuild) === false
+    ) {
+      await new WarnContainer()
+        .useErrTemplate("InsufficientUTIFManageGuildPerm")
+        .replyToInteract(ButtonInteract, true, true, "reply");
+    }
+
+    if (!ButtonInteract.deferred) {
       await ButtonInteract.deferReply({ flags: MessageFlags.Ephemeral });
+    }
 
     const UpdatedConfig = await GuildModel.findByIdAndUpdate(
       SelectInteract.guildId,
@@ -1873,6 +1885,13 @@ async function HandleAdditionalConfigPageInteracts(
         - **Input Filtering Enabled:** ${CurrConfiguration.utif_enabled ? "Yes" : "No"}
         - **Server Default Shift Quota:** ${DefaultQuota ? FormatDuration(DefaultQuota) : "None"}
       `);
+
+      if (ButtonInteract.replied) {
+        return ButtonInteract.followUp({
+          components: [new SuccessContainer().setDescription(FormattedDesc)],
+          flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+        }).catch(() => null);
+      }
 
       return new SuccessContainer().setDescription(FormattedDesc).replyToInteract(ButtonInteract);
     } else {

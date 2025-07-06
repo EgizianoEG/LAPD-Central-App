@@ -10,6 +10,7 @@ import {
   Guild,
   Collection,
   AutoModerationRule,
+  PermissionFlagsBits,
   AutoModerationActionType,
   AutoModerationRuleEventType,
   AutoModerationRuleTriggerType,
@@ -308,7 +309,14 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
   }
 
   if (Options.guild_instance) {
+    const AppMember =
+      Options.guild_instance.members.me ?? (await Options.guild_instance.members.fetchMe());
+
     const CachedAutoModerationRules = GuildAutomodRulesCache.get(Options.guild_instance.id);
+    if (!CachedAutoModerationRules && !AppMember.permissions.has(PermissionFlagsBits.ManageGuild)) {
+      return ModifiedInput;
+    }
+
     const AutomoderationRules =
       CachedAutoModerationRules ??
       (await Options.guild_instance.autoModerationRules
