@@ -138,9 +138,10 @@ export class BaseExtraContainer extends ContainerBuilder {
    * updates the internal footer property, and adds separator and text display components
    * to the container. If `null` is provided, it removes the footer and associated components.
    * @param footer - The footer text to set, or `null` to remove the footer.
+   * @param divider - Whether to include a visible divider line in the footer separator.
    * @returns The current instance for method chaining.
    */
-  public setFooter(footer: string | null): this {
+  public setFooter(footer: string | null, divider: boolean = true): this {
     const FooterIndex = this.components.findLastIndex(
       (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
     );
@@ -177,13 +178,13 @@ export class BaseExtraContainer extends ContainerBuilder {
       );
 
       const ActionRows = this.components.slice(-TotalARsExisting) as MessageActionRowComponent[];
-      return this.addSeparatorComponents(new SeparatorBuilder().setDivider())
+      return this.addSeparatorComponents(new SeparatorBuilder().setDivider(divider))
         .addTextDisplayComponents(FooterComponent)
         .addActionRowComponents(...ActionRows);
     }
 
     return this.addSeparatorComponents(
-      new SeparatorBuilder().setDivider()
+      new SeparatorBuilder().setDivider(divider)
     ).addTextDisplayComponents(FooterComponent);
   }
 
@@ -439,6 +440,20 @@ export class WarnContainer extends BaseExtraContainer {
 
     this.setColor(this._accentColor).setTitle(this._title).setDescription(this._description);
   }
+
+  /**
+   * Uses the specified warning template and arguments to set the title and description.
+   * @param templateName - The name of the warning template to use.
+   * @param args - Additional arguments to be used in formatting the warning description.
+   * @returns The modified instance of the warning container.
+   */
+  useErrTemplate(templateName: keyof typeof ErrorMessages, ...args: any[]): WarnContainer {
+    return ApplyContainerTemplate.call<
+      WarnContainer,
+      ["Error", keyof typeof ErrorMessages, ...any[]],
+      WarnContainer
+    >(this, "Error", templateName, ...args);
+  }
 }
 
 export class ErrorContainer extends BaseExtraContainer {
@@ -454,10 +469,11 @@ export class ErrorContainer extends BaseExtraContainer {
   /**
    * Sets the footer of the error embed with the provided error Id.
    * @param ErrorId - The error Id to display in the footer.
+   * @param Divider - Whether to include a visible divider line in the footer separator.
    * @returns The modified instance of the error embed.
    */
-  setErrorId(ErrorId: string): this {
-    return this.setFooter(`Error ID: \`${ErrorId}\``);
+  setErrorId(ErrorId: string, Divider: boolean = true): this {
+    return this.setFooter(`Error ID: \`${ErrorId}\``, Divider);
   }
 
   /**
