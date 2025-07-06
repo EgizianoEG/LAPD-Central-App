@@ -3,17 +3,6 @@ description: >-
   Understand the necessary permissions for LAPD Central and how they ensure
   optimal functionality.
 icon: ballot-check
-layout:
-  title:
-    visible: true
-  description:
-    visible: true
-  tableOfContents:
-    visible: true
-  outline:
-    visible: true
-  pagination:
-    visible: true
 ---
 
 # App Permissions
@@ -28,12 +17,10 @@ Below, you'll find a detailed explanation of each required permission and its co
 
 <summary>View Channel</summary>
 
-**Purpose**
-
+**Purpose**\
 Almost required by every Discord application and became a standard. This permission allows LAPD Central to access text, thread, and voice channels (though voice is not used) within your server, enabling the app to read necessary channel information and messages. We only read and process messages that mention the client user for application configuration, specifically to select channels or threads as logging destinations.
 
-**Use Cases**
-
+**Use Cases**\
 The primary use of this permission is to designate _and_ utilize text channels or threads for logging activities, including but not limited to:
 
 * [**UAN Modules**](#user-content-fn-1)[^1]**:** Log and post user activity notices and events.
@@ -100,12 +87,24 @@ Adding reactions for interactive prompts, confirmations, or pagination controls.
 
 <details>
 
+<summary>Manage Server</summary>
+
+**Purpose**\
+Grants the application access to server settings, including automoderation rules.
+
+**Use Cases**\
+Used solely to access automoderation rules for enforcing them on user-inputted text via application forms. You may and are totally free to revoke this permission, but doing so will prevent the application from enforcing the server's automoderation rules.
+
+</details>
+
+<details>
+
 <summary>Manage Roles</summary>
 
 **Purpose:**\
 Permits the app to assign or remove roles from members.
 
-**Use Cases:**
+**Use Case:**
 
 * Assign or remove LOA/RA roles.
 * Restore roles from backups.
