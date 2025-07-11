@@ -554,7 +554,7 @@ async function OnChargesModalSubmission(
 
 async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Reporter: ReporterInfo) {
   const CmdOptions = {
-    PrimaryOfficer: Interaction.options.getMember("primary-officer"),
+    PrimaryOfficer: Interaction.options.getMember("primary-officer") ?? Interaction.member,
     Arrestee: Interaction.options.getString("name", true),
     Gender: Interaction.options.getString("gender", true),
     Height: FormatHeight(Interaction.options.getString("height", true)),
