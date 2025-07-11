@@ -4,27 +4,17 @@ noRobotsIndex: true
 icon: bullseye-arrow
 cover: .gitbook/assets/la-header.png
 coverY: 0
-layout:
-  cover:
-    visible: true
-    size: full
-  title:
-    visible: true
-  description:
-    visible: false
-  tableOfContents:
-    visible: true
-  outline:
-    visible: true
-  pagination:
-    visible: false
 ---
 
 # Overview
 
-Welcome to the documentation page for the Discord application, <mark style="color:blue;">**LAPD Central**</mark>!
+Welcome to the documentation site for the Discord application, <mark style="color:blue;">**LAPD Central**</mark>!
 
-This application is a semi-advanced application designed to control, operate, and manage role-playing LAPD servers.
+This application is an advanced Discord one, built to support and streamline the management of LAPD-themed Roblox roleplay communities. Designed with flexibility and immersive realism in mind, it provides tools for structured shift tracking, activity and reports management, and community moderation — all while maintaining a smooth and intuitive user experience.
+
+While the application currently focuses on **Los Angeles city-based roleplay (California, U.S.)**, it is adaptable for broader use. Developers are welcome to **modify or fork** the project to suit different themes or operational needs.
+
+Whether you're here to learn, deploy, or contribute — this documentation will guide you through everything you need (we hope).
 
 {% hint style="info" %}
 _Please be aware that this documentation site may not cover all aspects of the LAPD Central application project and may not always be up-to-date, as <mark style="background-color:yellow;">it is still a work in progress.</mark>_
