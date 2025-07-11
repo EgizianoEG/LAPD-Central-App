@@ -46,6 +46,9 @@ export default async function GetIdByUsername<Input extends string | string[]>(
       {
         usernames: RequestArray,
         excludeBannedUsers: ExcludeBanned,
+      },
+      {
+        timeout: 8_000,
       }
     );
 
@@ -67,6 +70,7 @@ export default async function GetIdByUsername<Input extends string | string[]>(
       message: Err.message,
       details: { ...Err },
     });
+
     return (Array.isArray(Usernames) ? [] : [0, "", false]) as any;
   }
 }

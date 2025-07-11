@@ -181,7 +181,7 @@ export const ErrorMessages = {
   NonexistentRobloxUsername: {
     Title: "Hold Up!",
     Description:
-      "The input user, `%s`, cannot be found on Roblox. Please double-check the username and try again.",
+      "The input user `%s` could not be found on Roblox. Please verify the username and try again. If the issue persists, there may have been a network or Roblox API error during validation.",
   },
 
   /**
