@@ -535,6 +535,12 @@ export const ErrorMessages = {
     Description: "There is no citation found with the specified number.",
   },
 
+  InvalidIncidentNum: {
+    Title: "Malformed Incident Number",
+    Description:
+      "The incident number you have entered is invalid. Please ensure it follows the correct format of `YY-XXXXX[X]`.",
+  },
+
   IncidentRecordNotFound: {
     Title: "Record Not Found",
     Description: "There is no incident report found with the specified number.",

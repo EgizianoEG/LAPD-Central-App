@@ -1,4 +1,5 @@
 import { model, Model, Schema } from "mongoose";
+import { IsValidIncidentNum } from "@Utilities/Helpers/Validators.js";
 import { GuildIncidents } from "@Typings/Utilities/Database.js";
 import {
   IncidentTypes,
@@ -24,7 +25,7 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
     index: true,
     required: true,
     validate: {
-      validator: (num: string) => /^\d{2}-\d{5,6}$/.test(num),
+      validator: IsValidIncidentNum,
       message: "The incident number must be in the format 'YY-XXXXX[X]'.",
     },
   },

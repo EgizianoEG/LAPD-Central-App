@@ -1,4 +1,5 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from "discord.js";
+import { IsValidIncidentNum } from "@Utilities/Helpers/Validators.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import GetIncidentRecord from "@Utilities/Database/GetIncidentRecord.js";
 import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
@@ -8,7 +9,16 @@ import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.
 // ----------
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const IncidentNum = CmdInteraction.options.getString("incident-num", true);
-  const IncidentRecord = await GetIncidentRecord(CmdInteraction.guildId, IncidentNum);
+  const IncNumIsValid = IsValidIncidentNum(IncidentNum);
+  const IncidentRecord = IncNumIsValid
+    ? await GetIncidentRecord(CmdInteraction.guildId, IncidentNum)
+    : null;
+
+  if (!IncNumIsValid) {
+    return new ErrorEmbed()
+      .useErrTemplate("InvalidIncidentNum")
+      .replyToInteract(CmdInteraction, true);
+  }
 
   if (IncidentRecord) {
     await CmdInteraction.deferReply({ flags: MessageFlags.Ephemeral });
