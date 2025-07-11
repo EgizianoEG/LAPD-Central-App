@@ -428,7 +428,7 @@ async function HandleCmdOptsValidation(
     CitationInfo.violator.name,
     true
   );
-  
+
   if (!WasUserFound) {
     return new ErrorEmbed()
       .useErrTemplate("NonexistentRobloxUsername", CitationInfo.violator.name)
