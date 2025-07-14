@@ -26,7 +26,7 @@ export const App: Client = new Client({
   sweepers: {
     messages: {
       interval: 60,
-      filter: () => (Msg) => Msg.author.id !== App.user?.id,
+      filter: () => (Msg) => Msg.partial || (Msg.author !== null && Msg.author.id !== App.user?.id),
     },
   },
   intents: [
