@@ -10,6 +10,7 @@ import {
   ButtonBuilder,
   BaseInteraction,
   ImageURLOptions,
+  DiscordAPIError,
   ActionRowBuilder,
   TextBasedChannel,
   ButtonInteraction,
@@ -24,6 +25,7 @@ import { ReadableDuration, Dedent } from "@Utilities/Strings/Formatters.js";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { addMilliseconds } from "date-fns";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import GuildModel from "@Models/Guild.js";
 
 type UserActivityNoticeDoc = UserActivityNotice.ActivityNoticeHydratedDocument;
 type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">;
@@ -89,7 +91,18 @@ export class BaseUserActivityNoticeLogger {
     });
 
     if (!LoggingChannelId) return null;
-    const LoggingChannel = await Guild.channels.fetch(LoggingChannelId).catch(() => null);
+    const LoggingChannel = await Guild.channels.fetch(LoggingChannelId).catch((Err) => {
+      if (Err instanceof DiscordAPIError && Err.code === 10003) {
+        // Channel does not exist anymore, return 'null' and make sure to remove it from the database too.
+        GuildModel.updateOne(
+          { id: Guild.id },
+          { $set: { [`settings.${this.module_setting}.${Type}_channel`]: null } }
+        ).catch(() => null);
+        return null;
+      }
+      throw Err;
+    });
+
     const AbleToSendMsgs =
       LoggingChannel && (await this.LoggingChannelHasPerms(Guild, LoggingChannel, AdditionalPerms));
 

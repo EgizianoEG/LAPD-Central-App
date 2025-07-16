@@ -14,6 +14,7 @@ import {
   ComponentType,
   BaseInteraction,
   ImageURLOptions,
+  DiscordAPIError,
   SendableChannels,
   AttachmentBuilder,
   time as FormatTime,
@@ -27,6 +28,7 @@ import { Colors } from "@Config/Shared.js";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { App as DiscordApp } from "@DiscordApp";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import GuildModel from "@Models/Guild.js";
 import Dedent from "dedent";
 
 const BluewishText = (Text: string | number, ChannelId: string) => {
@@ -77,7 +79,18 @@ export default class ShiftActionLogger {
     });
 
     if (!LoggingChannelId) return null;
-    const ChannelExists = await Guild.channels.fetch(LoggingChannelId);
+    const ChannelExists = await Guild.channels.fetch(LoggingChannelId).catch((Err) => {
+      if (Err instanceof DiscordAPIError && Err.code === 10003) {
+        // Channel does not exist anymore, return 'null' and make sure to remove it from the database too.
+        GuildModel.updateOne(
+          { id: Guild.id },
+          { $set: { "settings.shift_management.log_channel": null } }
+        ).catch(() => null);
+        return null;
+      }
+      throw Err;
+    });
+
     const AbleToSendMsgs =
       ChannelExists?.isSendable() &&
       ChannelExists.isTextBased() &&
