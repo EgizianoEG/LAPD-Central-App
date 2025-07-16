@@ -4,6 +4,7 @@ import type {
   MessageFlagsResolvable,
   APIActionRowComponent,
   APIThumbnailComponent,
+  APISeparatorComponent,
   RepliableInteraction,
   InteractionResponse,
   ColorResolvable,
@@ -41,6 +42,7 @@ type ThumbnailAccessory =
 
 export class BaseExtraContainer extends ContainerBuilder {
   protected _title: string | null = null;
+  protected _title_sep_opts: (Partial<APISeparatorComponent> & { no_sep?: boolean }) | null = null;
   protected _description: string | null = null;
   protected _accentColor: ColorResolvable | null = null;
   protected _thumbnail: string | null = null;
@@ -96,10 +98,19 @@ export class BaseExtraContainer extends ContainerBuilder {
    * Sets the title for the container, trimming any leading or trailing whitespace.
    * Updates the content of the first TextDisplayBuilder component to reflect the new title, formatted as a Markdown heading.
    * @param title - The new title to set. If `null` or `undefined`, an empty string is used.
+   * @param sep_opts - Optional configuration for the separator component after the title.
    * @returns The current instance for method chaining.
    */
-  public setTitle(title?: string | null): this {
+  public setTitle(
+    title?: string | null,
+    sep_opts?: Partial<APISeparatorComponent> & { no_sep?: boolean }
+  ): this {
     this._title = title?.trim() ?? "";
+
+    if (sep_opts) this._title_sep_opts = sep_opts;
+    if (sep_opts && !sep_opts.no_sep) this.components[1] = new SeparatorBuilder(sep_opts);
+    else if (sep_opts?.no_sep) this.components.splice(1, 1);
+
     if (this.components[0] instanceof SectionBuilder) {
       return (
         (this.components[0].components[0] as TextDisplayBuilder).setContent(`### ${this._title}`) &&
@@ -121,13 +132,23 @@ export class BaseExtraContainer extends ContainerBuilder {
   setDescription(...description: any[]): this {
     const Formatted = FormatString(...description).trim();
     this._description = Formatted.match(/^(?:\s*|NaN|null|undefined)$/) ? " " : Formatted;
+
     if (this.components.length > 0 && this.components[0] instanceof SectionBuilder) {
-      return (
-        (this.components[0].components[1] as TextDisplayBuilder).setContent(this._description) &&
-        this
+      const DescriptionComponent = this.components[0].components.find(
+        (c, index) => c instanceof TextDisplayBuilder && index > 0
+      ) as TextDisplayBuilder;
+
+      if (DescriptionComponent) {
+        DescriptionComponent.setContent(this._description);
+      }
+    } else {
+      const DescriptionIndex = this.components.findIndex(
+        (c, index) => c instanceof TextDisplayBuilder && index > 0
       );
-    } else if (this.components.length > 1 && this.components[2] instanceof TextDisplayBuilder) {
-      return this.components[2].setContent(this._description) && this;
+
+      if (DescriptionIndex !== -1) {
+        (this.components[DescriptionIndex] as TextDisplayBuilder).setContent(this._description);
+      }
     }
 
     return this;
@@ -208,9 +229,18 @@ export class BaseExtraContainer extends ContainerBuilder {
       const Section = this.components[0] as SectionBuilder;
       const TitleDisplay = Section.components[0] as TextDisplayBuilder;
       const DescDisplay = Section.components[1] as TextDisplayBuilder;
-      const Divider = new SeparatorBuilder().setDivider();
+      const Divider =
+        this._title_sep_opts?.no_sep !== true
+          ? new SeparatorBuilder(this._title_sep_opts ?? { divider: true })
+          : null;
 
-      this.spliceComponents(0, 1, TitleDisplay, Divider, DescDisplay);
+      if (Divider) {
+        const Divider = new SeparatorBuilder().setDivider();
+        this.spliceComponents(0, 1, TitleDisplay, Divider, DescDisplay);
+      } else {
+        this.spliceComponents(0, 1, TitleDisplay, DescDisplay);
+      }
+
       this._thumbnail = null;
       return this;
     }
@@ -238,16 +268,21 @@ export class BaseExtraContainer extends ContainerBuilder {
       return this;
     }
 
-    if (
-      this.components.length >= 3 &&
-      this.components[0] instanceof TextDisplayBuilder &&
-      this.components[2] instanceof TextDisplayBuilder
-    ) {
+    const TitleIndex = this.components.findIndex((c) => c instanceof TextDisplayBuilder);
+    const DescriptionIndex = this.components.findIndex(
+      (c, index) => c instanceof TextDisplayBuilder && index > TitleIndex
+    );
+
+    if (TitleIndex !== -1 && DescriptionIndex !== -1) {
+      const TitleComponent = this.components[TitleIndex] as TextDisplayBuilder;
+      const DescriptionComponent = this.components[DescriptionIndex] as TextDisplayBuilder;
+      const ComponentsToReplace = DescriptionIndex - TitleIndex + 1;
+
       this.spliceComponents(
-        0,
-        3,
+        TitleIndex,
+        ComponentsToReplace,
         new SectionBuilder()
-          .addTextDisplayComponents(this.components[0], this.components[2])
+          .addTextDisplayComponents(TitleComponent, DescriptionComponent)
           .setThumbnailAccessory(Thumb)
       );
 
