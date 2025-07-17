@@ -1,13 +1,14 @@
-/* eslint-disable sonarjs/no-duplicate-string */
 // Dependencies:
 // -------------
 
 import {
   inlineCode,
-  EmbedBuilder,
+  MessageFlags,
+  ComponentType,
   BaseInteraction,
   ButtonInteraction,
   time as FormatTime,
+  TextDisplayBuilder,
 } from "discord.js";
 
 import {
@@ -24,6 +25,7 @@ import { secondsInDay } from "date-fns/constants";
 import { ErrorMessages } from "@Resources/AppMessages.js";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { BaseExtraContainer } from "@Utilities/Classes/ExtraContainers.js";
 import { differenceInSeconds } from "date-fns";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { DutyManagementBtnCustomIdRegex } from "@Resources/RegularExpressions.js";
@@ -494,21 +496,25 @@ async function UpdateManagementPrompt(
     !!ActiveShift
   );
 
-  const MgmtEmbedTitle = `Shift Management: \`${ShiftType}\` Type`;
+  let ShiftOverviewDesc = "";
+  const MgmtEmbedTitle = `### Shift Management: \`${ShiftType}\` type`;
   const MgmtPromptMainDesc = Dedent(`
-    >>> **Shift Count:** \`${MemberShiftsData.shift_count}\`
-    **Total On-Duty Time:** ${MemberShiftsData.total_onduty}
-    **Average On-Duty Time:** ${MemberShiftsData.avg_onduty}
+    > **Shift Count:** \`${MemberShiftsData.shift_count}\`
+    > **Total On-Duty Time:** ${MemberShiftsData.total_onduty}
+    > **Average On-Duty Time:** ${MemberShiftsData.avg_onduty}
   `);
 
-  const PromptEmbed = new EmbedBuilder().setColor(Colors.ShiftNatural).setTitle(MgmtEmbedTitle);
+  const PromptContainer = new BaseExtraContainer()
+    .setColor(Colors.ShiftNatural)
+    .setTitle(MgmtEmbedTitle, { no_sep: true });
 
   if (PreviousAction) {
-    if (PreviousAction === RecentShiftAction.End) {
-      PromptEmbed.setColor(Colors.ShiftOff);
-      PromptEmbed.setTitle(PreviousAction);
-      PromptEmbed.setFooter({ text: `Shift Type: ${ShiftType}` });
+    PromptContainer.setTitle(`${PreviousAction}`, {
+      no_sep: true,
+    });
 
+    if (PreviousAction === RecentShiftAction.End) {
+      PromptContainer.setColor(Colors.ShiftOff);
       const MostRecentFinishedShift = await ShiftModel.findOne({
         user: Interaction.user.id,
         guild: Interaction.guildId,
@@ -521,113 +527,97 @@ async function UpdateManagementPrompt(
             ? `**Break Time:** ${MostRecentFinishedShift.on_break_time}`
             : "";
 
-        PromptEmbed.addFields(
-          {
-            inline: true,
-            name: "Shift Overview",
-            value: Dedent(`
-              >>> **Status:** (${Emojis.Offline}) Off-Duty
-              **Shift Time:** ${MostRecentFinishedShift.on_duty_time}
-              ${BreakTimeText}
-            `),
-          },
-          {
-            inline: true,
-            name: "Shift Activity",
-            value: Dedent(`
-              >>> **Arrests Made:** \`${MostRecentFinishedShift.events.arrests}\`
-              **Citations Issued:** \`${MostRecentFinishedShift.events.citations}\`
-              **Incidents Reported:** \`${MostRecentFinishedShift.events.incidents}\`
-            `),
-          },
-          {
-            inline: false,
-            name: "Statistics Summary",
-            value: MgmtPromptMainDesc,
-          }
-        );
+        ShiftOverviewDesc = Dedent(`
+          **Shift Overview:**
+          >>> **Status:** (${Emojis.Offline}) Off-Duty
+          **Shift Type:** \`${MostRecentFinishedShift.type}\`
+          **Shift Time:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}
+        `);
       }
     } else if (PreviousAction === RecentShiftAction.BreakEnd && ActiveShift?.hasBreaks()) {
+      PromptContainer.setColor(Colors.ShiftOn);
       const EndedBreak = ActiveShift.events.breaks.findLast((v) => v[0] && v[1])!;
       const BreaksTakenLine =
         ActiveShift.events.breaks.length > 1
           ? `**Breaks Taken:** ${ActiveShift.events.breaks.length}\n`
           : "";
 
-      PromptEmbed.setColor(Colors.ShiftOn);
-      PromptEmbed.setFooter({ text: `Shift Type: ${ShiftType}` });
-      PromptEmbed.setTitle(PreviousAction);
-      PromptEmbed.setFields({
-        inline: true,
-        name: "Current Shift",
-        value:
-          `>>> **Status:** (${Emojis.Online}) On Duty\n` +
-          `**Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}\n` +
-          BreaksTakenLine +
-          `**Ended Break Time:** ${EndedBreak[1] ? ReadableDuration(EndedBreak[1] - EndedBreak[0]) : "N/A"}\n` +
-          `**Total Break Time:** ${ActiveShift.on_break_time}`,
-      });
+      ShiftOverviewDesc =
+        "**Current Shift**\n" +
+        `>>> **Status:** (${Emojis.Online}) On Duty\n` +
+        `**Shift Type:** \`${ActiveShift.type}\`\n` +
+        `**Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}\n` +
+        BreaksTakenLine +
+        `**Ended Break Time:** ${EndedBreak[1] ? ReadableDuration(EndedBreak[1] - EndedBreak[0]) : "N/A"}\n` +
+        `**Total Break Time:** ${ActiveShift.on_break_time}`;
     } else if (PreviousAction === RecentShiftAction.BreakStart && ActiveShift?.hasBreakActive()) {
+      PromptContainer.setColor(Colors.ShiftBreak);
       const StartedBreak = ActiveShift.events.breaks.findLast((v) => !v[1])!;
-      PromptEmbed.setColor(Colors.ShiftBreak);
-      PromptEmbed.setFooter({ text: `Shift Type: ${ShiftType}` });
-      PromptEmbed.setTitle(PreviousAction);
-      PromptEmbed.setFields({
-        inline: true,
-        name: "Current Shift",
-        value: Dedent(`
-          >>> **Status:** (${Emojis.Idle}) On Break
-          **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-          **Break Started:** ${FormatTime(Math.round(StartedBreak[0] / 1000), "R")}
-          **On-Duty Time:** ${ActiveShift.on_duty_time}
-          ${ActiveShift.events.breaks.length > 1 ? `**Total Break Time:** ${ActiveShift.on_break_time}` : ""}
-        `),
-      });
+      ShiftOverviewDesc = Dedent(`
+        **Current Shift**
+        >>> **Status:** (${Emojis.Idle}) On Break
+        **Shift Type:** \`${ActiveShift.type}\`
+        **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
+        **Break Started:** ${FormatTime(Math.round(StartedBreak[0] / 1000), "R")}
+        **On-Duty Time:** ${ActiveShift.on_duty_time}
+        ${ActiveShift.events.breaks.length > 1 ? `**Total Break Time:** ${ActiveShift.on_break_time}` : ""}
+      `);
     } else if (ActiveShift) {
-      PromptEmbed.setColor(Colors.ShiftOn);
-      if (!PromptEmbed.data.fields?.find((Field) => Field.name === "Current Shift")) {
-        if (ActiveShift.durations.on_break > 500) {
-          PromptEmbed.addFields({
-            name: "Current Shift",
-            value: Dedent(`
-              >>> **Status:** (${Emojis.Online}) On Duty
-              **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-              **Break Count:** ${inlineCode(ActiveShift.events.breaks.length.toString())}
-              **Total Break Time:** ${ActiveShift.on_break_time}
-            `),
-          });
-        } else {
-          PromptEmbed.addFields({
-            name: "Current Shift",
-            value: Dedent(`
-              >>> **Status:** (${Emojis.Online}) On Duty
-              **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-            `),
-          });
-        }
+      PromptContainer.setColor(Colors.ShiftOn);
+      if (ActiveShift.durations.on_break > 500) {
+        ShiftOverviewDesc = Dedent(`
+          **Current Shift**
+          >>> **Status:** (${Emojis.Online}) On Duty
+          **Shift Type:** \`${ActiveShift.type}\`
+          **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
+          **Break Count:** ${inlineCode(ActiveShift.events.breaks.length.toString())}
+          **T. Break Time:** ${ActiveShift.on_break_time}
+        `);
+      } else {
+        ShiftOverviewDesc = Dedent(`
+          **Current Shift**
+          >>> **Status:** (${Emojis.Online}) On Duty
+          **Shift Type:** \`${ActiveShift.type}\`
+          **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
+        `);
       }
     }
   }
 
-  if (!PreviousAction || PreviousAction === RecentShiftAction.Start) {
-    PromptEmbed.addFields({
-      inline: true,
-      name: "Statistics Summary",
-      value: MgmtPromptMainDesc,
-    });
+  const DescTDIndex = PromptContainer.components.findIndex(
+    (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+  );
+
+  const ShouldUseSplice =
+    DescTDIndex !== -1 &&
+    ShiftOverviewDesc &&
+    (!PreviousAction || PreviousAction === RecentShiftAction.End);
+
+  if (ShouldUseSplice) {
+    PromptContainer.components.splice(
+      DescTDIndex,
+      1,
+      new TextDisplayBuilder().setContent(ShiftOverviewDesc),
+      new TextDisplayBuilder().setContent(`**Statistics Summary**\n${MgmtPromptMainDesc}`)
+    );
+  } else if (ShiftOverviewDesc) {
+    PromptContainer.setDescription(ShiftOverviewDesc);
+  } else if (!PreviousAction) {
+    PromptContainer.setDescription(`**Statistics Summary**\n${MgmtPromptMainDesc}`);
   }
 
+  PromptContainer.attachPromptActionRows(ManagementComponents);
   if (Interaction.deferred || Interaction.replied) {
     return Interaction.editReply({
+      flags: MessageFlags.IsComponentsV2,
       message: PromptMsgId,
-      embeds: [PromptEmbed],
-      components: [ManagementComponents],
+      components: [PromptContainer],
     });
   }
 
   return Interaction.update({
-    embeds: [PromptEmbed],
-    components: [ManagementComponents],
+    flags: MessageFlags.IsComponentsV2,
+    components: [PromptContainer],
   });
 }
 
@@ -685,22 +675,6 @@ function ExtractShiftTypeFromPrompt<TiNF extends boolean | undefined = true>(
     return ShiftTypeFromCustomId.toLowerCase() === "default" ? "Default" : ShiftTypeFromCustomId;
   }
 
-  const Embed = Interaction.message.embeds[0];
-  if (!Embed) {
-    if (!ThrowIfNotFound) return null as any;
-    throw new AppError({ template: "DSMEmbedNotFound", showable: true });
-  }
-
-  const ShiftTypeTitle = Embed.title
-    ?.match(/(?:Shift|Duty)\s+?Manage(?:ment)?: `?([\w\s]+)`?/i)?.[1]
-    ?.trim();
-
-  if (ShiftTypeTitle) return ShiftTypeTitle;
-  const ShiftTypeFooter = Embed.footer?.text
-    .match(/(?:Shift|Duty)\s+?Type: `?([\w\s]+)`?/i)?.[1]
-    ?.trim();
-
-  if (ShiftTypeFooter) return ShiftTypeFooter;
   if (!ThrowIfNotFound) return null as any;
   throw new AppError({ template: "DSMContinueNoShiftTypeFound", showable: true });
 }
