@@ -75,14 +75,12 @@ function ListShifts(ActiveShifts: Array<Shifts.HydratedShiftDocument>, StartInde
 function CreateActiveShiftEmbed(
   Description: string,
   Fields: APIEmbedField[],
-  HasBreakAnnotation: boolean,
-  Timestamp: number
+  HasBreakAnnotation: boolean
 ): EmbedBuilder {
   return new EmbedBuilder()
     .setTitle(PageTitle)
     .setColor(Colors.Info)
     .setFields(Fields)
-    .setTimestamp(Timestamp)
     .setDescription(Description)
     .setFooter(HasBreakAnnotation ? { text: ActiveBreakNotification } : null);
 }
@@ -96,8 +94,7 @@ function CreateActiveShiftEmbed(
  */
 function CreateSingleTypeEmbeds(
   ShiftData: Array<Shifts.HydratedShiftDocument>,
-  ShiftType: string,
-  Timestamp: number
+  ShiftType: string
 ): [EmbedBuilder[], boolean] {
   const Pages: EmbedBuilder[] = [];
   let HasBreakAnnotation = false;
@@ -123,8 +120,7 @@ function CreateSingleTypeEmbeds(
         CreateActiveShiftEmbed(
           Description,
           [{ name: FieldName, value: ListedShifts.join("\n") }],
-          HasBreakAnnotation,
-          Timestamp
+          HasBreakAnnotation
         )
       );
     }
@@ -135,8 +131,7 @@ function CreateSingleTypeEmbeds(
       CreateActiveShiftEmbed(
         Description,
         [{ name: `Shifts - ${TotalShifts}`, value: ListedShifts.join("\n") }],
-        HasBreakAnnotation,
-        Timestamp
+        HasBreakAnnotation
       )
     );
   }
@@ -153,8 +148,7 @@ function CreateSingleTypeEmbeds(
  */
 function ProcessMultiTypeShifts(
   GroupedShifts: Record<string, Array<Shifts.HydratedShiftDocument>>,
-  Description: string,
-  Timestamp: number
+  Description: string
 ): EmbedBuilder[] {
   const Pages: EmbedBuilder[] = [];
   let HasBreakAnnotation = false;
@@ -179,7 +173,7 @@ function ProcessMultiTypeShifts(
       });
     }
 
-    Pages.push(CreateActiveShiftEmbed(Description, Fields, HasBreakAnnotation, Timestamp));
+    Pages.push(CreateActiveShiftEmbed(Description, Fields, HasBreakAnnotation));
     return Pages;
   }
 
@@ -245,12 +239,7 @@ function ProcessMultiTypeShifts(
     // Create page with current fields
     if (CurrentPageFields.length > 0) {
       Pages.push(
-        CreateActiveShiftEmbed(
-          Description,
-          CurrentPageFields,
-          CurrentPageHasBreakAnnotation,
-          Timestamp
-        )
+        CreateActiveShiftEmbed(Description, CurrentPageFields, CurrentPageHasBreakAnnotation)
       );
     }
   }
@@ -267,22 +256,20 @@ function ProcessMultiTypeShifts(
  */
 function BuildActiveShiftEmbedPages(
   ActiveGroupedShifts: Record<string, Array<Shifts.HydratedShiftDocument>>,
-  SelectedShiftTypes: string[],
-  CurrentTimestamp: number = Date.now()
+  SelectedShiftTypes: string[]
 ): EmbedBuilder[] {
   let Pages: EmbedBuilder[] = [];
 
   if (SelectedShiftTypes.length === 1) {
     const [TypePages] = CreateSingleTypeEmbeds(
       ActiveGroupedShifts[SelectedShiftTypes[0]],
-      SelectedShiftTypes[0],
-      CurrentTimestamp
+      SelectedShiftTypes[0]
     );
 
     Pages = TypePages;
   } else {
     const Description = GetDescriptionText(SelectedShiftTypes);
-    Pages = ProcessMultiTypeShifts(ActiveGroupedShifts, Description, CurrentTimestamp);
+    Pages = ProcessMultiTypeShifts(ActiveGroupedShifts, Description);
   }
 
   return Pages;
@@ -319,7 +306,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     return HandlePagePagination({
       interact: Interaction,
       context: "Commands:Miscellaneous:Duty:Active",
-      pages: BuildActiveShiftEmbedPages(ASOrdered, ValidShiftTypes, Interaction.createdTimestamp),
+      pages: BuildActiveShiftEmbedPages(ASOrdered, ValidShiftTypes),
     });
   } else {
     const PluralSTT = ValidShiftTypes.length > 1 ? "types" : "type";
