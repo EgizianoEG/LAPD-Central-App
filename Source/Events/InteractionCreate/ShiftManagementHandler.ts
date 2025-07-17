@@ -424,10 +424,12 @@ async function HandleInvalidShiftAction(
   ShiftAction: ShiftMgmtActions,
   TargetShift?: ShiftDocument | null
 ) {
+  const IsUsingComponentsV2 = Interaction.message.flags.has(MessageFlags.IsComponentsV2);
   const PromptMessageLastEditedTimestamp =
     Interaction.message.editedTimestamp || Interaction.message.createdTimestamp;
 
   if (
+    !IsUsingComponentsV2 ||
     differenceInSeconds(Interaction.createdAt, PromptMessageLastEditedTimestamp) >= secondsInDay
   ) {
     await DisablePromptComponents(Interaction, TargetShift?.type);
