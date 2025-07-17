@@ -73,12 +73,14 @@ export class BaseExtraContainer extends ContainerBuilder {
     this.addTextDisplayComponents(
       new TextDisplayBuilder({
         content: this._title ?? "### [Title]",
+        id: 1,
       })
     )
-      .addSeparatorComponents(new SeparatorBuilder().setDivider())
+      .addSeparatorComponents(new SeparatorBuilder().setDivider().setId(2))
       .addTextDisplayComponents(
         new TextDisplayBuilder({
           content: this._description ?? "[Description]",
+          id: 3,
         })
       );
   }
@@ -108,8 +110,14 @@ export class BaseExtraContainer extends ContainerBuilder {
     this._title = title?.trim() ?? "";
 
     if (sep_opts) this._title_sep_opts = sep_opts;
-    if (sep_opts && !sep_opts.no_sep) this.components[1] = new SeparatorBuilder(sep_opts);
-    else if (sep_opts?.no_sep) this.components.splice(1, 1);
+    if (sep_opts && !sep_opts.no_sep && !(this.components[0] instanceof SectionBuilder)) {
+      this.components[1] = new SeparatorBuilder(sep_opts);
+    } else if (
+      sep_opts?.no_sep &&
+      this.components.findIndex((c) => c instanceof SeparatorBuilder && c.data.id === 2) !== -1
+    ) {
+      this.components.splice(1, 1);
+    }
 
     if (this.components[0] instanceof SectionBuilder) {
       return (
@@ -164,7 +172,7 @@ export class BaseExtraContainer extends ContainerBuilder {
    */
   public setFooter(footer: string | null, divider: boolean = true): this {
     const FooterIndex = this.components.findLastIndex(
-      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
     );
 
     const HasLastActionRow =
@@ -189,7 +197,7 @@ export class BaseExtraContainer extends ContainerBuilder {
     this._footer = footer.trim();
     const FooterComponent = new TextDisplayBuilder({
       content: this._footer?.startsWith("-# ") ? this._footer : `-# ${this._footer}`,
-      id: 3,
+      id: 4,
     });
 
     if (HasLastActionRow) {
@@ -235,7 +243,7 @@ export class BaseExtraContainer extends ContainerBuilder {
           : null;
 
       if (Divider) {
-        const Divider = new SeparatorBuilder().setDivider();
+        const Divider = new SeparatorBuilder().setDivider().setId(2);
         this.spliceComponents(0, 1, TitleDisplay, Divider, DescDisplay);
       } else {
         this.spliceComponents(0, 1, TitleDisplay, DescDisplay);
@@ -294,9 +302,11 @@ export class BaseExtraContainer extends ContainerBuilder {
       .addTextDisplayComponents(
         new TextDisplayBuilder({
           content: `### ${this._title || "[Title]"}`,
+          id: 1,
         }),
         new TextDisplayBuilder({
           content: this._description || "[Description]",
+          id: 3,
         })
       )
       .setThumbnailAccessory(Thumb);
@@ -361,7 +371,7 @@ export class BaseExtraContainer extends ContainerBuilder {
 
     if (this._footer) {
       const FooterIndex = this.components.findLastIndex(
-        (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+        (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
       );
 
       if (FooterIndex !== -1) {

@@ -152,7 +152,7 @@ describe("BaseExtraContainer", () => {
   test("setFooter should add and remove footer components", () => {
     Container.setFooter("Test footer");
     const FooterIndex_1 = Container.components.findLastIndex(
-      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
     );
 
     expect(Container.footer).toBe("Test footer");
@@ -165,7 +165,7 @@ describe("BaseExtraContainer", () => {
     expect(Container.footer).toBeNull();
     expect(
       Container.components.findLastIndex(
-        (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+        (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
       )
     ).toBe(-1);
 
@@ -284,7 +284,7 @@ describe("BaseExtraContainer", () => {
     NewContainer.attachPromptActionRows(ActionRow1);
 
     const FooterIndex = NewContainer.components.findIndex(
-      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
     );
 
     expect(FooterIndex).toBeGreaterThan(0);
@@ -303,7 +303,7 @@ describe("BaseExtraContainer", () => {
 
     const Separator = new SeparatorBuilder();
     const FooterIndex = ContainerWithFooter.components.findLastIndex(
-      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
     );
 
     ContainerWithFooter.spliceComponents(FooterIndex + 1, 0, Separator);
@@ -388,7 +388,7 @@ describe("BaseExtraContainer", () => {
 
     // Verify the footer is still present
     const FooterIndex = Container.components.findIndex(
-      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+      (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
     );
 
     expect(FooterIndex).toBeGreaterThan(0);
