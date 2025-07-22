@@ -158,7 +158,6 @@ export function CamelCase(Str: string): string {
 
 /**
  * Uppers the first character of a string and lowers the rest of its length by default.
- * @notice This does not behave the same as lodash's upperFirst function implementation and converts the rest of the string to lowercase.
  * @param Str - The string to process
  * @param [LowerRest=true] - Whether to lower the rest of the string or not.
  * @returns
