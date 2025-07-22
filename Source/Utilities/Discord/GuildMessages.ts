@@ -47,10 +47,10 @@ export async function SendGuildMessages(
     }
 
     try {
-      const Guild = Interact.client.guilds.cache.get(GuildId);
+      const Guild = await Interact.client.guilds.fetch(GuildId).catch(() => null);
       if (!Guild) return null;
 
-      const ChannelOrThread = Guild.channels.cache.get(ChanneOrThreadlId);
+      const ChannelOrThread = await Guild.channels.fetch(ChanneOrThreadlId).catch(() => null);
       if (!ChannelOrThread) return null;
 
       const IsAbleToSendMsgs =
