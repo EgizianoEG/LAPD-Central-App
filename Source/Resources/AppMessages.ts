@@ -21,7 +21,7 @@ import Dedent from "dedent";
 export const ErrorMessages = {
   UnknownError: {
     Title: "Unknown Error",
-    Description: "An unknown error has occurred while processing your request.",
+    Description: "An unexpected error occurred while processing your request.",
   },
 
   /**
@@ -39,7 +39,7 @@ export const ErrorMessages = {
   DatabaseError: {
     Title: "Database Error",
     Description:
-      "An error occurred while accessing the database. Please try again later or contact support.",
+      "A database error occurred while accessing it. Please try again later or contact support if the issue persists.",
   },
 
   UnauthorizedAccessDev: {
@@ -66,14 +66,13 @@ export const ErrorMessages = {
   AppNotFoundInGuildForPerms: {
     Title: "Unexpected Error",
     Description:
-      "The application could not be located on this server to verify its permissions. Please ensure the application is present and try again.",
+      "The application could not be found on this server to verify its permissions. Please ensure the application is present and try again.",
   },
 
   InsufficientUTIFManageGuildPerm: {
     Title: "Insufficient Permissions",
     Description:
-      "Enabling user text input filtering requires the application to have the `Manage Server` permission in order to access the server's automoderation rules. " +
-      "Currently, the application does not have this permission and cannot enforce automoderation rules.",
+      "Enabling user text input filtering requires the application to have the `Manage Server` permission to access automoderation rules. The application currently lacks this permission and cannot enforce automoderation as expected.",
   },
 
   /**
@@ -82,7 +81,7 @@ export const ErrorMessages = {
   MalformedShiftTypeName: {
     Title: "Malformed Shift Type Name",
     Description:
-      "The name of a shift type may only consist of letters, numerals, spaces, underscores, dashes, and periods.",
+      "A shift type name may only include letters, numbers, spaces, underscores, dashes, and periods.",
   },
 
   /**
@@ -98,8 +97,7 @@ export const ErrorMessages = {
    */
   PreservedShiftTypeCreation: {
     Title: "Preserved Shift Type Name",
-    Description:
-      "The name of the `Default` shift type is preserved and cannot be overridden, deleted, or created.",
+    Description: "The name `Default` is reserved and cannot be overridden, deleted, or created.",
   },
 
   /**
@@ -118,7 +116,7 @@ export const ErrorMessages = {
   NonexistentShiftTypeUsage: {
     Title: "Nonexistent Shift Type",
     Description:
-      "A shift type with the provided name does not exist. Please ensure the entered type or use the default one.",
+      "No shift type with the provided name exists. Please check the name or use the default type.",
   },
 
   /**
@@ -127,7 +125,7 @@ export const ErrorMessages = {
    */
   NonexistentShiftTypeDeletion: {
     Title: "Shift Type Not Found",
-    Description: "The shift type `%s` does not exist in the server and cannot be deleted.",
+    Description: "The shift type `%s` does not exist on this server and cannot be deleted.",
   },
 
   /**
@@ -144,7 +142,8 @@ export const ErrorMessages = {
    */
   UnauthorizedShiftTypeUsage: {
     Title: "Unauthorized",
-    Description: "You do not have the necessary permission or role to use this shift type.",
+    Description:
+      "You do not have the necessary permission or the required role to use this shift type.",
   },
 
   /**
@@ -181,7 +180,7 @@ export const ErrorMessages = {
   NonexistentRobloxUsername: {
     Title: "Hold Up!",
     Description:
-      "The input user `%s` could not be found on Roblox. Please verify the username and try again. If the issue persists, there may have been a network or Roblox API error during validation.",
+      "The input user `%s` could not be found on Roblox. Please verify the username and try again. If the issue continues, there may be a network or Roblox API error.",
   },
 
   /**
@@ -190,7 +189,9 @@ export const ErrorMessages = {
    */
   RobloxUserAlreadyLinked: {
     Title: "Hold Up!",
-    Description: "You are already logged in as `%s`.\nDid you mean to log out instead?",
+    get Description() {
+      return `You are already logged in as \`%s\`.\nDid you mean to ${MentionCmdByName("log-out")} instead?`;
+    },
   },
 
   /**
@@ -219,7 +220,7 @@ export const ErrorMessages = {
   BloxlinkLinkingFailed: {
     Title: "Account Linking Failed",
     Description:
-      "There was a problem linking your Roblox account using the Bloxlink integration. Please try again later, or attempt to log in manually.",
+      "There was a problem linking your Roblox account using Bloxlink. Please try again later or log in manually.",
   },
 
   /**
@@ -227,8 +228,7 @@ export const ErrorMessages = {
    */
   LORobloxUserNotLinked: {
     Title: "Hold On!",
-    Description:
-      "To log out of the application, you must be logged in and have linked your Roblox account already.",
+    Description: "To log out, you must already be logged in and have linked your Roblox account.",
   },
 
   /**
@@ -236,7 +236,7 @@ export const ErrorMessages = {
    */
   SMRobloxUserNotLinked: {
     Title: "Hold On!",
-    Description: "To manage shifts using the application, you must first link your Roblox account.",
+    Description: "To manage shifts, you must first link your Roblox account.",
   },
 
   /**
@@ -244,8 +244,9 @@ export const ErrorMessages = {
    */
   RobloxUserNotLinked: {
     Title: "Hold On!",
-    Description:
-      "You must first link your Roblox account using the `login` slash command to be able to use this command.",
+    get Description() {
+      return `You must link your Roblox account using the ${MentionCmdByName("log-in")} command before using this command.`;
+    },
   },
 
   /**
@@ -264,7 +265,7 @@ export const ErrorMessages = {
   ShiftAlreadyActive: {
     Title: "A Shift Is Already Active",
     Description:
-      "You cannot begin a new shift while you have an active one, even if the shift type is different. You currently have an active shift of the `%s` type.",
+      "You cannot begin a new shift while another is active, even if the shift type is different. You currently have an active shift of the `%s` type.",
   },
 
   /**
@@ -290,36 +291,44 @@ export const ErrorMessages = {
 
   ACUnknownVehicle: {
     Title: "Unknown Vehicle",
-    Description:
-      "Please choose and input a valid vehicle model from the autocomplete list provided.",
+    Description: "Please select a valid vehicle model from the autocomplete list.",
   },
 
   MalformedPersonHeight: {
     Title: "Malformed Person Height",
-    Description: "Please input a valid height in feet and inches (e.g., `5'7\"`).",
+    Description: "Please enter a valid height in feet and inches (e.g., `5'7\"`).",
   },
 
   InvalidLicensePlate: {
     Title: "Invalid License Plate",
     Description:
-      "A vehicle license plate must be 3 to 7 characters long and may consist of only letters, numerals, and a single hyphen in between.",
+      "A license plate must be 3–7 characters long and may only contain letters, numerals, and a single hyphen in between.",
   },
 
   SelfArrestAttempt: {
     Title: "Hold On!",
     Description:
-      "It appears like you're attempting to file an arrest report or report yourself. Please provide a valid suspect name and try again.",
+      "It looks like you're trying to file an arrest report on yourself. Please provide a valid suspect name and try again.",
   },
 
   SelfCitationAttempt: {
     Title: "Hang On!",
     Description:
-      "The violator name must be someone other than the officer issuing the citation. Please double-check and input the correct violator's name to proceed.",
+      "The violator must be someone other than the issuing officer. Please double-check and enter the correct violator's name.",
   },
 
   UnknownConfigTopic: {
     Title: "Error",
     Description: "An unknown configuration topic was received.",
+  },
+
+  /**
+   * @template {string} ConfigTopic - The configuration topic that was attempted to be saved.
+   */
+  ConfigSaveFailedNCM: {
+    Title: "Save Failed",
+    Description:
+      "An error occurred while saving the %s. No updates were made. Please try again later.",
   },
 
   GuildConfigNotFound: {
@@ -338,12 +347,12 @@ export const ErrorMessages = {
   NotJoinedInGuild: {
     Title: "Not Joined In Server",
     Description:
-      "You cannot set up an external logging channel on a server on which you are not joined.",
+      "You cannot set up an external logging channel on a server you are not a member of.",
   },
 
   /** For specifying citations/arrests external/outside log channels */
   InsufficientAdminPerms: {
-    Title: "Insufficient Admin Perms",
+    Title: "Insufficient Admin Permissions",
     Description:
       "You lack administrative access to that server to configure one of its channels as an external logging channel. You must be an administrator on that server to proceed.",
   },
@@ -355,7 +364,7 @@ export const ErrorMessages = {
   DiscordGuildNotFound: {
     Title: "Server Not Found",
     Description:
-      "The server with the ID `%s` is either not found, or the application does not have access to it.",
+      "The server with ID `%s` was not found, or the application does not have access to it.",
   },
 
   /**
@@ -365,13 +374,13 @@ export const ErrorMessages = {
   DiscordChannelNotFound: {
     Title: "Channel Not Found",
     Description:
-      "The channel with the `%s` ID couldn't be found on the specified server, or the channel is inaccessible by the application.",
+      "The channel with ID `%s` could not be found on the specified server, or is inaccessible to the application.",
   },
 
   MemberNotFound: {
     Title: "Member Not Found",
     Description:
-      "The specified member could not be discovered on the server. Make sure you're entering a valid member.",
+      "The specified member could not be found on the server. Make sure you're entering a valid member.",
   },
 
   DBGuildDocumentNotFound: {
@@ -388,7 +397,7 @@ export const ErrorMessages = {
   UnknownDateFormat: {
     Title: "Unknown Date Format",
     Description:
-      "The date format entered is incorrect and/or unsupported. Please provide another relevant format.",
+      "The date format entered is incorrect or unsupported. Please provide another relevant format.",
   },
 
   DateInFuture: {
@@ -412,7 +421,7 @@ export const ErrorMessages = {
   ShiftVoidMismatch: {
     Title: "Shift Mismatch",
     Description:
-      "The currently active shift does not match the shift you requested to void. You might want to contact a management person for assistance.",
+      "The active shift does not match the shift you requested to void. You might want to contact a management person for assistance.",
   },
 
   InvalidRolesSaveId: {
@@ -431,13 +440,13 @@ export const ErrorMessages = {
    */
   RolesSaveNotFoundFSM: {
     Title: "Save Not Found",
-    Description: "There was no save found with the provided identifier for the selected member.",
+    Description: "No save was found with the provided identifier for the selected member.",
   },
 
   NoAssignableRolesToLoad: {
     Title: "No Assignable Roles",
     Description:
-      "No roles could be assigned from the save. They may be managed, admin-only, or above the bot's highest role.",
+      "No roles could be assigned from the save. They may be managed, admin-only, or above the application's highest role.",
   },
 
   /**
@@ -446,7 +455,7 @@ export const ErrorMessages = {
   DBFailedToDeleteRolesSave: {
     Title: "Database Error",
     Description:
-      "There was an error deleting this record. Please try again later or contact support.",
+      "An error occurred while deleting this record. Please try again later or contact support.",
   },
 
   /**
@@ -459,32 +468,31 @@ export const ErrorMessages = {
 
   InvalidShiftId: {
     Title: "Invalid Shift ID",
-    Description:
-      "The shift ID inputted is invalid. Please ensure that the provided ID is a valid 15-digit sequence.",
+    Description: "The shift ID inputted is invalid. Please ensure it is a valid 15-digit sequence.",
   },
 
   UnknownDurationExp: {
     Title: "Unknown Time",
     Description:
-      "The format of the duration you have entered is either incorrect or not supported. Kindly attempt again using a different format.",
+      "The duration format entered is either incorrect or unsupported. Kindly attempt again using a different format.",
   },
 
   SinceUntilDatesOutOfOrder: {
     Title: "Invalid Date Range",
     Description:
-      "The date range you have entered is invalid. Kindly provide an earlier date for the `since` field and a later date for the `to` field.",
+      "The date range entered is invalid. Kindly provide an earlier date for `since` and a later date for `to` field.",
   },
 
   NotEnoughTimePassedAR: {
     Title: "Insufficient Time",
     Description:
-      "The time that has passed since the date you entered is insufficient to complete this action. Please provide a date that is at least one day earlier than today.",
+      "Not enough time has passed since the date you entered. Please provide a date at least one day earlier than today.",
   },
 
   InvalidDateRangeAR: {
     Title: "Date Range Too Short",
     Description:
-      "The duration between the two dates you have entered is too short. Kindly specify a duration of at least 1 day.",
+      "The duration between the two dates is too short. Kindly specify a duration of at least 1 day.",
   },
 
   /**
@@ -493,7 +501,7 @@ export const ErrorMessages = {
   ShortTypedDuration: {
     Title: "Short Duration",
     Description:
-      "The duration you have entered is too short. Kindly specify a duration of at least 30 seconds.",
+      "The duration entered is too short. Kindly specify a duration of at least 30 seconds.",
   },
 
   /**
@@ -517,7 +525,7 @@ export const ErrorMessages = {
 
   InvalidPageNumber: {
     Title: "Invalid Page Number",
-    Description: "The value you have entered is not valid for a page number.",
+    Description: "The value entered is not valid for a page number.",
   },
 
   PageNotFoundWN: {
@@ -532,13 +540,13 @@ export const ErrorMessages = {
 
   CitRecordNotFound: {
     Title: "Record Not Found",
-    Description: "There is no citation found with the specified number.",
+    Description: "The citation corresponding to the specified number is non-existent.",
   },
 
   InvalidIncidentNum: {
     Title: "Malformed Incident Number",
     Description:
-      "The incident number you have entered is invalid. Please ensure it follows the correct format of `YY-XXXXX[X]`.",
+      "The incident number entered is invalid. Please ensure it follows the format `YY-XXXXX[X]`.",
   },
 
   IncidentRecordNotFound: {
@@ -553,7 +561,7 @@ export const ErrorMessages = {
     Title: "Invalid Regex Syntax",
     Description: Dedent(`
       The regular expression provided is either invalid or unsupported. \
-      Please ensure that it follows the correct syntax and try again.
+      Please ensure it follows the correct syntax and try again.
 
       For more information on regular expressions, please refer to the [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions).
     `),
@@ -562,24 +570,23 @@ export const ErrorMessages = {
   ProvidedUnsafeRegex: {
     Title: "Potentially Unsafe Regex",
     Description:
-      "The regular expression you provided may be unsafe for execution.\n" +
-      "To improve its safety, please consider the following recommendations:\n" +
-      "- Simplify overly complex patterns.\n" +
-      "- Avoid using nested repetition quantifiers, such as `(a+)+`.\n" +
-      "- Prefer bounded repetition, like `a{1,10}`, instead of unbounded repetition, such as `a+`.\n",
+      "The regular expression provided may be unsafe. Please consider:\n" +
+      "- Simplifying complex patterns.\n" +
+      "- Avoiding nested repetition quantifiers, such as `(a+)+`.\n" +
+      "- Using bounded repetition, like `a{1,10}`, instead of unbounded repetition, such as `a+`.\n",
   },
 
   NicknameReplacementAlreadyInProgress: {
     Title: "Replacement Cooldown",
     Description:
       "There's a 5-minute waiting period between nickname replacements. " +
-      "One is either in progress or recently completed - please try again later.",
+      "One is either in progress or recently completed, please try again later.",
   },
 
   NicknameReplaceNoEligibleMembers: {
     Title: "No Eligible Members",
     Description:
-      "There are no members on the server the application has permission to modify nicknames for. " +
+      "There are no members whose nicknames can be modified by the application. " +
       "Make sure that the application has a role above the members you want to modify.",
   },
 
@@ -619,7 +626,7 @@ export const ErrorMessages = {
   RARequestLOANoticeIsPendingOrActive: {
     Title: "Leave of Absence Conflict",
     Description:
-      "You cannot request a reduced activity while a leave still pending or active. Please submit an RA request only when no leave is active or awaiting approval.",
+      "You cannot request reduced activity while a leave is pending or active. Submit an RA request only when no leave is active or awaiting approval.",
   },
 
   LOARequestNoticeAlreadyExists: {
@@ -635,36 +642,37 @@ export const ErrorMessages = {
   LOARequestRANoticeIsPending: {
     Title: "Reduced Activity Conflict",
     Description:
-      "You cannot request a leave of absence while a reduced activity request is still pending. Please cancel the RA request before submitting a leave request.",
+      "You cannot request a leave of absence while a reduced activity request is pending. Please cancel the RA request before submitting a leave request.",
   },
 
   LOAAlreadyExistsManagement: {
     Title: "Notice Already Exists",
-    Description: "You cannot place a new leave on person who already has an active or pending one.",
+    Description:
+      "You cannot place a new leave on a person who already has an active or pending one.",
   },
 
   LOADurationTooLong: {
     Title: "Duration Too Long",
     Description:
-      "The leave duration you have entered is too long. Kindly specify a duration of at most 90 days (3 months).",
+      "The leave duration entered is too long. Kindly specify a duration of at most 90 days (3 months).",
   },
 
   LOADurationTooShort: {
     Title: "Duration Too Short",
     Description:
-      "The length of the leave you have entered is too short. Kindly specify a duration of at least 1 day long.",
+      "The leave duration entered is too short. Kindly specify a duration of at least 1 day long.",
   },
 
   LOAExtDurationTooLong: {
     Title: "Extension Too Long",
     Description:
-      "The extension duration you have entered is too long. Kindly specify a duration of at most 30 days (~1 month).",
+      "The extension duration entered is too long. Kindly specify a duration of at most 30 days (~1 month).",
   },
 
   LOATotalDurationTooLong: {
     Title: "Leave Duration Too Long",
     Description:
-      "The total duration of your leave of absence would be too long. Please specify an extension that ensures the total duration of your leave is less than or equal to 120 days (~4 months).",
+      "The total leave duration would be too long. Please specify an extension so the total leave is less than or equal to 120 days (~4 months).",
   },
 
   LOAExtDurationTooShort: {
@@ -688,19 +696,19 @@ export const ErrorMessages = {
   LOAPreviouslyDenied: {
     Title: "Notice Previously Denied",
     Description:
-      "You cannot request a leave of absence while there was a previous notice that was denied less than 3 hours ago.",
+      "You cannot request a leave of absence if a previous notice was denied less than 3 hours ago.",
   },
 
   LOAPreviouslyCancelled: {
     Title: "A Notice Previously Cancelled",
     Description:
-      "You cannot request a leave of absence while there was a previous notice that was cancelled less than 1 hour ago.",
+      "You cannot request a leave of absence if a previous notice was cancelled less than 1 hour ago.",
   },
 
   LOARecentlyEnded: {
     Title: "A Notice Recently Ended",
     Description:
-      "You cannot request a new leave of absence while there was a previous notice that was ended or terminated less than 1 hour ago.",
+      "You cannot request a new leave of absence if a previous notice ended or was ended or terminated less than 1 hour ago.",
   },
 
   LOAAlreadyEnded: {
@@ -715,7 +723,7 @@ export const ErrorMessages = {
 
   NoPendingLOAToCancel: {
     Title: "No Pending Request",
-    Description: "You don't have any pending leave of absence to cancel at the moment.",
+    Description: "You have no pending leave of absence to cancel at the moment.",
   },
 
   LOAIsOverForExtension: {
@@ -727,31 +735,31 @@ export const ErrorMessages = {
   LOAExtensionLimitReached: {
     Title: "Extension Limit Reached",
     Description:
-      "You cannot request an extension of your current leave of absence. Only one extension request is allowed per leave, regardless of whether it was approved, denied, or cancelled.",
+      "You cannot request another extension for your current leave of absence. Only one extension is allowed per leave, regardless of whether it was approved, denied, or cancelled.",
   },
 
   LOAAdminExistingExtension: {
     Title: "Extension Limit Reached",
     Description:
-      "You cannot extend this leave of absence further more. Only one extension is allowed per leave, regardless of whether it was approved, denied, or cancelled.",
+      "You cannot extend this leave of absence further. Only one extension is allowed per leave, regardless of whether it was approved, denied, or cancelled.",
   },
 
   UANUnauthorizedManagement: {
     Title: "Unauthorized Management",
     Description:
-      "You are not authorized to take action or view information on this activity notice unless you are a management or administrator member.",
+      "You are not authorized to view additional information or take action on this activity notice unless you are a management or administrator member.",
   },
 
   LOAModuleDisabled: {
     Title: "Module Disabled",
     Description:
-      "The leave of absence module is currently disabled. You cannot request, manage, or administrate a leave without it being enabled.",
+      "The leave of absence module is currently disabled. You cannot request, manage, or administer leaves without it being enabled.",
   },
 
   DutyActivitiesModuleDisabled: {
     Title: "Module Disabled",
     Description:
-      "The duty activities module is currently disabled. You cannot log any citations or arrests without it being enabled.",
+      "The duty activities module is currently disabled. You cannot log incidents, citations, or arrests without it being enabled.",
   },
 
   ShiftManagementModuleDisabled: {
@@ -763,7 +771,7 @@ export const ErrorMessages = {
   ReducedActivityModuleDisabled: {
     Title: "Module Disabled",
     Description:
-      "The reduced activity module is currently disabled. You cannot request, manage, or administrate reduced activity notices without it being enabled.",
+      "The reduced activity module is currently disabled. You cannot request, manage, or administer reduced activity notices without it being enabled.",
   },
 
   SANoShiftsToModify: {
@@ -784,20 +792,19 @@ export const ErrorMessages = {
   LogIncidentInvalidAttachments: {
     Title: "Invalid Attachment(s)",
     Description:
-      "One or more of the provided attachments are invalid. Please provide valid static image attachments. " +
-      "You can provide up to 10 attachments with the extensions `.png`, `.jpg`, and `.jpeg`.",
+      "One or more of the provided attachments are invalid. Please provide up to 10 static image attachments with `.png`, `.jpg`, or `.jpeg` extensions.",
   },
 
   LogIncidentInvalidType: {
     Title: "Invalid Incident Type",
     Description:
-      "The incident type you provided is invalid. Please choose a valid incident type from the autocomplete list.",
+      "The incident type provided is invalid. Please choose a valid incident type or category from the autocomplete list.",
   },
 
   LogIncidentDatabaseInsertFailed: {
     Title: "Database Insert Failed",
     Description:
-      "An error occurred while attempting to insert the incident report into the application database. Please try again later.",
+      "An error occurred while inserting the incident report into the database. Please try again later or contact support if the issue persists.",
   },
 
   /**
@@ -827,19 +834,19 @@ export const ErrorMessages = {
   UpdateIncidentReportIncNotFound: {
     Title: "Incident Not Found",
     Description:
-      "The incident report you are trying to update doesn't seem to exist anymore in the application database. Kindly verify that the report was not deleted before attempting to update it.",
+      "The incident report you are trying to update doesn't seem to exist anymore in the database. Kindly verify that it was not deleted before attempting to update.",
   },
 
   UpdateIncidentReportDBFailed: {
     Title: "Database Update Failed",
     Description:
-      "An error occurred while attempting to update the incident report in the application database. Please try again later.",
+      "An error occurred while updating the incident report in the database. Please try again later or contact support if the issue persists.",
   },
 
   UpdateIncidentReportNoMgmtPerms: {
     Title: "Insufficient Permission",
     Description:
-      "You do not have permission to update or take action on this incident report. Only the report submitter or staff with management permissions can perform this action.",
+      "You do not have permission to update or take action on this incident report. Only the report submitter or staff with management permissions can do so.",
   },
 
   AttachmentMustBeTextFile: {
@@ -849,13 +856,13 @@ export const ErrorMessages = {
 
   ActivityReportNoRecordsFound: {
     Title: "No Records Found",
-    Description: "There were no enough records on the database to generate the requested report.",
+    Description: "There are not enough records in the database to generate the requested report.",
   },
 
   ActivityReportNoIdentifiedStaff: {
     Title: "Staff Identification Required",
     Description:
-      "The current configuration lacks defined staff roles or management roles necessary to identify staff members. Please ensure that at least one staff or management role is configured for the application to generate activity reports.",
+      "The current configuration lacks defined staff roles or management roles necessary to identify staff members. Please ensure that at least one staff or management role is set up to generate activity reports.",
   },
 
   AOTargetMemberMustBeStaff: {
@@ -866,7 +873,7 @@ export const ErrorMessages = {
   RADurationTooLong: {
     Title: "Duration Too Long",
     Description:
-      "The reduced activity duration you have entered is too long. Kindly specify a duration of at most 30 days (1 month).",
+      "The reduced activity duration entered is too long. Kindly specify a duration of at most 30 days (1 month).",
   },
 
   RADurationTooShort: {
@@ -878,24 +885,24 @@ export const ErrorMessages = {
   RAPreviouslyDenied: {
     Title: "Notice Previously Denied",
     Description:
-      "You cannot request reduced activity while there is a previous notice that was denied less than 3 hours ago.",
+      "You cannot request reduced activity if a previous notice was denied less than 3 hours ago.",
   },
 
   RAPreviouslyCancelled: {
     Title: "Notice Previously Cancelled",
     Description:
-      "You cannot request reduced activity while there is a previous notice that was cancelled less than 1 hour ago.",
+      "You cannot request reduced activity if a previous notice was cancelled less than 1 hour ago.",
   },
 
   RARecentlyEnded: {
     Title: "Notice Recently Ended",
     Description:
-      "You cannot request a new reduced activity while there was a previous notice that was ended or terminated less than 1 hour ago.",
+      "You cannot request a new reduced activity if a previous notice ended or was terminated less than 1 hour ago.",
   },
 
   NoPendingRAToCancel: {
     Title: "No Pending Request",
-    Description: "You don't have any pending reduced activity request to cancel at the moment.",
+    Description: "You have no pending reduced activity request to cancel at the moment.",
   },
 
   RANotActive: {
@@ -932,7 +939,7 @@ export const ErrorMessages = {
   DSMInconsistentShiftActionShiftEnded: {
     Title: "Inconsistent Shift Action",
     Description:
-      "The shift you are trying to take action on has already ended, voided, or deleted and no further modifications can be made.",
+      "The shift you are trying to modify has already ended, been voided, or deleted. No further changes can be made.",
   },
 
   DSMStateChangedExternally: {
@@ -944,19 +951,19 @@ export const ErrorMessages = {
   DutyImportNoEntries: {
     Title: "No Entries Found",
     Description:
-      "The duty import file included no valid entries that could be processed. Make sure the entries in the file are formatted correctly, then try again.",
+      "The duty import file contained no valid entries that could be processed. Make sure the entries in the file are correctly formatted and try again.",
   },
 
   ActionRequiresMemberPresence: {
-    Title: "User Must Be Present Member",
+    Title: "Must Be a Present Member",
     Description:
-      "You cannot take this action on a person who is not currently a member of the server.",
+      "You cannot perform this action on someone who is not currently a member of the server.",
   },
 
   UANRequesterNoLongerAMember: {
     Title: "Requester No Longer A Member",
     Description:
-      "The requester of this notice is no longer a member of this server. You cannot take approval action on this request at this time.",
+      "The requester of this notice is no longer a member of this server. You cannot approve this request at this time.",
   },
 
   RolePersistNoValidRolesProvided: {
@@ -968,10 +975,10 @@ export const ErrorMessages = {
   RolePersistCannotPersistProvidedRoles: {
     Title: "Role Persistence Failed",
     Description:
-      "**The selected role(s) cannot be saved and persisted due to permission constraints**.\n\n" +
+      "**Selected role(s) cannot be saved and presisted due to permission constraints**.\n\n" +
       "**Please ensure all roles:**\n" +
       "- Are not managed by integrations or bots\n" +
-      "- Lack administrative permissions (like 'Manage Roles')\n" +
+      "- Do not have administrative permissions (like 'Manage Roles')\n" +
       "- Are hierarchically below the application's highest role position",
   },
 
@@ -981,7 +988,7 @@ export const ErrorMessages = {
       "**One or more of the selected roles cannot be saved and persisted due to permission constraints**.\n\n" +
       "**Please ensure all roles:**\n" +
       "- Are not managed by integrations or bots\n" +
-      "- Lack administrative permissions (like 'Manage Roles')\n" +
+      "- Do not have administrative permissions (like 'Manage Roles')\n" +
       "- Are hierarchically below the application's highest role position",
   },
 
@@ -993,7 +1000,7 @@ export const ErrorMessages = {
   RolePersistExpiryTooSoon: {
     Title: "Expiry Too Soon",
     Description:
-      "The expiry date you have entered is too soon. Kindly specify an expiry date that is at least 3 hours in the future.",
+      "The expiry date entered is too soon. Kindly specify an expiry date that is at least 3 hours in the future.",
   },
 
   /**
@@ -1055,8 +1062,9 @@ export const InfoMessages = {
    * @template {String} ConfigurationTopic
    */
   ConfigTopicNoChangesMade: {
-    Title: "No Changes Made",
-    Description: "There have been no alterations to the %s module configuration of the app.",
+    Title: "No Updates Applied",
+    Description:
+      "There were no changes made to the %s module configuration of the application as the current settings already match the database.",
   },
 
   NicknameRegexNoMatchingMembers: {
