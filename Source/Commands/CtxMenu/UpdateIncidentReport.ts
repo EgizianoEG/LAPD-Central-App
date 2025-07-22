@@ -37,6 +37,7 @@ import {
 } from "@Utilities/Classes/ExtraContainers.js";
 
 import { Emojis } from "@Config/Shared.js";
+import { isDeepEqual } from "remeda";
 import { GuildIncidents } from "@Typings/Utilities/Database.js";
 import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
@@ -45,7 +46,6 @@ import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js
 import { SanitizeDiscordAttachmentLink } from "@Utilities/Strings/OtherUtils.js";
 import { IncidentReportNumberLineRegex, ListSplitRegex } from "@Resources/RegularExpressions.js";
 
-import IsEqual from "lodash/isEqual.js";
 import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 import IncidentModel from "@Models/Incident.js";
 import GetIncidentRecord from "@Utilities/Database/GetIncidentRecord.js";
@@ -236,7 +236,7 @@ function GetUpdatePromptContainer(
     "**Please select an option from the drop-down menu below to modify or update the incident report.**",
   ];
 
-  if (UpdatedIncRecord && !IsEqual(DatabaseIncRecord, UpdatedIncRecord)) {
+  if (UpdatedIncRecord && !isDeepEqual(DatabaseIncRecord, UpdatedIncRecord)) {
     UpdatedPromptMsgDesc.push("\n\n**Updated Fields:**");
     PromptContainer.setFooter(
       "To confirm the changes, click the 'Confirm and Update' button, or click the 'Cancel Modifications' button to cancel them."
@@ -330,7 +330,7 @@ export async function HandleCommandValidationAndPossiblyGetIncident(
   }
 
   if (ReportNumber) {
-    IncidentReport = await GetIncidentRecord(RecInteract.guildId, ReportNumber);
+    IncidentReport = await GetIncidentRecord(RecInteract.guildId, ReportNumber, true);
   }
 
   if (RecInteract.targetMessage.author.id !== RecInteract.client.user.id) {
@@ -426,7 +426,8 @@ async function HandleIncidentRecordEditWithHandler<
 
   ComponentCollector.stop("PromptUpdated");
   DatabaseIncRecord =
-    (await GetIncidentRecord(RecInteract.guildId, DatabaseIncRecord._id)) ?? DatabaseIncRecord;
+    (await GetIncidentRecord(RecInteract.guildId, DatabaseIncRecord._id, true)) ??
+    DatabaseIncRecord;
 
   return HandlePromptUpdateBasedOnModifiedRecord(
     PromptMessage,
@@ -586,10 +587,11 @@ async function HandleIncidentRecordUpdateConfirm(
     },
     {
       new: true,
+      lean: true,
+      strict: true,
+      runValidators: true,
     }
-  )
-    .lean()
-    .exec();
+  );
 
   if (!UpdatedDatabaseIncRecord) {
     return new ErrorContainer()
