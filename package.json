@@ -47,6 +47,7 @@
     "convert-units": "^2.3.4",
     "date-fns": "^4.0.0",
     "dedent": "^1.5.3",
+    "default-composer": "^0.6.0",
     "didyoumean2": "^7.0.4",
     "discord.js": "^14.20.0",
     "express": "^5.1.0",

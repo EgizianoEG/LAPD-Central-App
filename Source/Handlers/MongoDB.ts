@@ -1,13 +1,15 @@
+import { defaultComposer } from "default-composer";
+import { Guilds, Shifts } from "@Typings/Utilities/Database.js";
 import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
 import { Collection } from "discord.js";
 import { MongoDB } from "@Config/Secrets.js";
-import { Guilds, Shifts } from "@Typings/Utilities/Database.js";
+
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
+import MongoDBDocumentCollection from "@Utilities/Classes/MongoDBDocCollection.js";
 import ChangeStreamManager from "@Utilities/Classes/ChangeStreamManager.js";
 import GuildModel from "@Models/Guild.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Mongoose from "mongoose";
-import MongoDBDocumentCollection from "@Utilities/Classes/MongoDBDocCollection.js";
 
 const FileLabel = "Handlers:MongoDB";
 const BaseGuildDocument: Guilds.GuildDocument = new GuildModel().toObject();
@@ -65,10 +67,10 @@ async function SetupGuildChangeStream() {
     }
 
     if ("fullDocument" in Change && Change.fullDocument !== undefined) {
-      MongoDBCache.Guilds.set(Change.fullDocument._id, {
-        ...BaseGuildDocument,
-        ...Change.fullDocument,
-      });
+      MongoDBCache.Guilds.set(
+        Change.fullDocument._id,
+        defaultComposer<Guilds.GuildDocument>(BaseGuildDocument, Change.fullDocument)
+      );
     }
   });
 
@@ -137,9 +139,10 @@ async function SetupActiveShiftsChangeStream() {
 async function ReloadGuildCache() {
   const InitialRunGuildDocuments = await GuildModel.find().lean().exec();
   MongoDBCache.Guilds = new Collection<string, Guilds.GuildDocument>(
-    InitialRunGuildDocuments.map(
-      (Doc) => [Doc._id, { ...BaseGuildDocument, ...Doc }] as [string, Guilds.GuildDocument]
-    )
+    InitialRunGuildDocuments.map((Doc) => [
+      Doc._id,
+      defaultComposer<Guilds.GuildDocument>(BaseGuildDocument, Doc as Guilds.GuildDocument),
+    ])
   );
 
   AppLogger.debug({
