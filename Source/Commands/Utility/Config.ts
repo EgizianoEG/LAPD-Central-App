@@ -1649,20 +1649,26 @@ function GetCSShiftModuleContent(GuildSettings: GuildSettings): string {
 }
 
 function GetCSLeaveNoticesContent(GuildSettings: GuildSettings): string {
+  const MSettings = GuildSettings.leave_notices;
   return Dedent(`
-    >>> **Module Enabled:** ${GuildSettings.leave_notices.enabled ? "Yes" : "No"}
-    **On-Leave Role:** ${GuildSettings.leave_notices.leave_role ? roleMention(GuildSettings.leave_notices.leave_role) : "None"}
-    **Requests Channel:** ${GuildSettings.leave_notices.requests_channel ? channelMention(GuildSettings.leave_notices.requests_channel) : "None"}
-    **Leave Log Channel:** ${GuildSettings.leave_notices.log_channel ? channelMention(GuildSettings.leave_notices.log_channel) : "None"}
+    >>> **Module Enabled:** ${MSettings.enabled ? "Yes" : "No"}
+    **On-Leave Role:** ${MSettings.leave_role ? roleMention(MSettings.leave_role) : "None"}
+    **Active Prefix:** ${MSettings.active_prefix?.length ? `\`${MSettings.active_prefix}\`` : "None"}
+    **Alert Roles:** ${MSettings.alert_roles.length ? ListFormatter.format(MSettings.alert_roles.map(roleMention)) : "None"}
+    **Requests Channel:** ${MSettings.requests_channel ? channelMention(MSettings.requests_channel) : "None"}
+    **Leave Log Channel:** ${MSettings.log_channel ? channelMention(MSettings.log_channel) : "None"}
   `);
 }
 
 function GetCSReducedActivityContent(GuildSettings: GuildSettings): string {
+  const MSettings = GuildSettings.reduced_activity;
   return Dedent(`
-    >>> **Module Enabled:** ${GuildSettings.reduced_activity.enabled ? "Yes" : "No"}
-    **Reduced Activity Role:** ${GuildSettings.reduced_activity.ra_role ? roleMention(GuildSettings.reduced_activity.ra_role) : "None"}
-    **Requests Channel:** ${GuildSettings.reduced_activity.requests_channel ? channelMention(GuildSettings.reduced_activity.requests_channel) : "None"}
-    **Log Channel:** ${GuildSettings.reduced_activity.log_channel ? channelMention(GuildSettings.reduced_activity.log_channel) : "None"}
+    >>> **Module Enabled:** ${MSettings.enabled ? "Yes" : "No"}
+    **RA Active Role:** ${MSettings.ra_role ? roleMention(MSettings.ra_role) : "None"}
+    **Active Prefix:** ${MSettings.active_prefix?.length ? `\`${MSettings.active_prefix}\`` : "None"}
+    **Alert Roles:** ${MSettings.alert_roles.length ? ListFormatter.format(MSettings.alert_roles.map(roleMention)) : "None"}
+    **Requests Channel:** ${MSettings.requests_channel ? channelMention(MSettings.requests_channel) : "None"}
+    **Log Channel:** ${MSettings.log_channel ? channelMention(MSettings.log_channel) : "None"}
   `);
 }
 
