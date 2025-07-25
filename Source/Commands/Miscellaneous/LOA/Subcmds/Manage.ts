@@ -31,7 +31,7 @@ import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
 import { milliseconds, addMilliseconds } from "date-fns";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
+import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
@@ -443,12 +443,7 @@ async function HandleLeaveEarlyEnd(
     CompCollector.stop("Updated"),
     Callback(ButtonInteract, MainPromptMsgId),
     LOAEventLogger.LogEarlyUANEnd(ButtonInteract, ActiveLeave, "Requester"),
-    HandleUserActivityNoticeRoleAssignment(
-      ActiveLeave.user,
-      ButtonInteract.guild,
-      "LeaveOfAbsence",
-      false
-    ),
+    HandleUserActivityNoticeUpdate(ActiveLeave.user, ButtonInteract.guild, "LeaveOfAbsence", false),
   ]);
 }
 

@@ -2,11 +2,14 @@
 import {
   User,
   Guild,
+  spoiler,
   codeBlock,
+  roleMention,
   userMention,
   GuildMember,
   ButtonStyle,
   EmbedBuilder,
+  MessageFlags,
   ButtonBuilder,
   BaseInteraction,
   ImageURLOptions,
@@ -217,13 +220,16 @@ export class BaseUserActivityNoticeLogger {
     CancellationDate?: Date;
   }) {
     Opts.Type = Opts.Type ?? "Pending";
+    const IsExtension = Opts.Type === "Extension";
     const RequesterId = Opts.NoticeDocument.user;
     const Strikethrough = Opts.Type === "Cancelled" ? "~~" : "";
     const Embed = new EmbedBuilder()
       .setImage(Images.FooterDivider)
       .setFooter({ text: `Reference ID: ${Opts.NoticeDocument._id}` })
-      .setTitle(`${Opts.Type}  |  ${this.title} Request`)
-      .setColor(Opts.Type === "Cancelled" ? Colors.LOARequestDenied : Colors.LOARequestPending);
+      .setColor(Opts.Type === "Cancelled" ? Colors.LOARequestDenied : Colors.LOARequestPending)
+      .setTitle(
+        `${Opts.Type}${IsExtension ? " Request" : ""} |  ${this.title}${IsExtension ? "" : " Request"}`
+      );
 
     if (Opts.Type === "Pending" || Opts.Type === "Cancelled") {
       Embed.setDescription(
@@ -272,8 +278,12 @@ export class BaseUserActivityNoticeLogger {
     Interaction: SlashCommandInteraction<"cached">,
     PendingNotice: UserActivityNoticeDoc
   ) {
-    const RequestsChannel = await this.FetchLoggingChannel(Interaction.guild, "requests");
+    const ModuleName = this.is_leave ? "leave_notices" : "reduced_activity";
     const Requester = await Interaction.guild.members.fetch(PendingNotice.user).catch(() => null);
+    const RequestsChannel = await this.FetchLoggingChannel(Interaction.guild, "requests");
+    const ModuleSettings = await GetGuildSettings(PendingNotice.guild).then(
+      (Settings) => Settings?.[ModuleName]
+    );
 
     // Send a DM notice to the requester.
     if (Requester) {
@@ -300,13 +310,25 @@ export class BaseUserActivityNoticeLogger {
     // Send the request message if a requests channel is set.
     if (!RequestsChannel) return;
     const RequestEmbed = this.GetRequestEmbed({ Type: "Pending", NoticeDocument: PendingNotice });
+    const AlertRolesMentioned = (
+      ModuleSettings?.alert_roles?.map((RoleID) => roleMention(RoleID)) ?? []
+    ).join(", ");
+
     const ManagementComponents = this.CreateManagementButtons(
       false,
       Interaction.user.id,
       PendingNotice._id.toString()
     );
 
-    return RequestsChannel.send({ embeds: [RequestEmbed], components: [ManagementComponents] });
+    return RequestsChannel.send({
+      content: AlertRolesMentioned ? `-# *${spoiler(AlertRolesMentioned)}*` : undefined,
+      components: [ManagementComponents],
+      embeds: [RequestEmbed],
+      flags: ModuleSettings?.alert_roles.length ? MessageFlags.SuppressNotifications : undefined,
+      allowedMentions: {
+        roles: ModuleSettings?.alert_roles ?? [],
+      },
+    });
   }
 
   /**
@@ -461,7 +483,11 @@ export class BaseUserActivityNoticeLogger {
       );
 
       await ReqMsgChannel.messages
-        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .edit(ReqMsgId, {
+          content: null,
+          embeds: [RequestEmbed],
+          components: [ReviewActionButtons],
+        })
         .catch(() => null);
     }
   }
@@ -560,7 +586,11 @@ export class BaseUserActivityNoticeLogger {
       );
 
       await ReqMsgChannel.messages
-        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .edit(ReqMsgId, {
+          content: null,
+          embeds: [RequestEmbed],
+          components: [ReviewActionButtons],
+        })
         .catch(() => null);
     }
   }
@@ -654,7 +684,11 @@ export class BaseUserActivityNoticeLogger {
       );
 
       await ReqMsgChannel.messages
-        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .edit(ReqMsgId, {
+          content: null,
+          embeds: [RequestEmbed],
+          components: [ReviewActionButtons],
+        })
         .catch(() => null);
     }
   }
@@ -908,8 +942,11 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
    * @returns A Promise resolving to the sent request message if successful.
    */
   async SendExtensionRequest(Interaction: ManagementInteraction, ActiveLOA: UserActivityNoticeDoc) {
-    const RequestsChannel = await this.FetchLoggingChannel(Interaction.guild, "requests");
     const Requester = await Interaction.guild.members.fetch(ActiveLOA.user).catch(() => null);
+    const RequestsChannel = await this.FetchLoggingChannel(Interaction.guild, "requests");
+    const ModuleSettings = await GetGuildSettings(ActiveLOA.guild).then(
+      (Settings) => Settings?.leave_notices
+    );
 
     if (Requester && ActiveLOA.extension_request?.date) {
       const DMNotice = new EmbedBuilder()
@@ -934,13 +971,25 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
 
     if (!RequestsChannel) return;
     const RequestEmbed = this.GetRequestEmbed({ Type: "Extension", NoticeDocument: ActiveLOA });
+    const AlertRolesMentioned = (
+      ModuleSettings?.alert_roles?.map((RoleID) => roleMention(RoleID)) ?? []
+    ).join(", ");
+
     const ManagementComponents = this.CreateManagementButtons(
       true,
       Interaction.user.id,
       ActiveLOA._id.toString()
     );
 
-    return RequestsChannel.send({ embeds: [RequestEmbed], components: [ManagementComponents] });
+    return RequestsChannel.send({
+      content: AlertRolesMentioned.length ? `-# *${spoiler(AlertRolesMentioned)}*` : undefined,
+      components: [ManagementComponents],
+      embeds: [RequestEmbed],
+      flags: ModuleSettings?.alert_roles.length ? MessageFlags.SuppressNotifications : undefined,
+      allowedMentions: {
+        roles: ModuleSettings?.alert_roles ?? [],
+      },
+    });
   }
 
   /**
@@ -1180,7 +1229,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
       const RequestEmbed = this.GetRequestEmbed({ Type: "Pending", NoticeDocument })
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.LOARequestApproved)
-        .setTitle("Approved Extension  |  Leave of Absence Request")
+        .setTitle("Approved Extension  |  Leave of Absence")
         .setFooter({
           text: `Reference ID: ${NoticeDocument._id}; approved by @${Interaction.user.username} on`,
           iconURL: Interaction.user.displayAvatarURL(this.ImgURLOpts),
@@ -1194,7 +1243,11 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
       );
 
       await ReqMsgChannel.messages
-        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .edit(ReqMsgId, {
+          content: null,
+          embeds: [RequestEmbed],
+          components: [ReviewActionButtons],
+        })
         .catch(() => null);
     }
   }
@@ -1291,7 +1344,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
       })
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.LOARequestDenied)
-        .setTitle("Denied Extension  |  Leave of Absence Request")
+        .setTitle("Denied Extension  |  Leave of Absence")
         .setFooter({
           iconURL: Interaction.user.displayAvatarURL(this.ImgURLOpts),
           text: `Reference ID: ${NoticeDocument._id}; denied by @${Interaction.user.username} on`,
@@ -1305,7 +1358,11 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
       );
 
       await ReqMsgChannel.messages
-        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .edit(ReqMsgId, {
+          content: null,
+          embeds: [RequestEmbed],
+          components: [ReviewActionButtons],
+        })
         .catch(() => null);
     }
   }
@@ -1368,7 +1425,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
             value: Dedent(`
               **Duration:** ${NoticeDocument.duration_hr}
               **Started On:** ${FormatTime(NoticeDocument.review_date, "F")}
-              **Ends On:** ${FormatTime(NoticeDocument.end_date, "D")} (not modified)
+              **Ends On:** ${FormatTime(NoticeDocument.end_date, "D")} *(not modified)*
             `),
           }
         );
@@ -1393,7 +1450,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.LOARequestDenied)
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}; cancelled by requester on` })
-        .setTitle("Cancelled Extension  |  Leave of Absence Request");
+        .setTitle("Cancelled Extension  |  Leave of Absence");
 
       const ReviewActionButtons = this.CreateManagementButtons(
         true,
@@ -1403,7 +1460,11 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
       );
 
       await ReqMsgChannel.messages
-        .edit(ReqMsgId, { embeds: [RequestEmbed], components: [ReviewActionButtons] })
+        .edit(ReqMsgId, {
+          content: null,
+          embeds: [RequestEmbed],
+          components: [ReviewActionButtons],
+        })
         .catch(() => null);
     }
   }
@@ -1428,7 +1489,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (RequestStatus === "Approved") {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, LeaveDocument.reviewed_by!.id);
       RequestEmbed.setColor(Colors.LOARequestApproved)
-        .setTitle("Approved Extension  |  Leave of Absence Request")
+        .setTitle("Approved Extension  |  Leave of Absence")
         .setFooter({
           iconURL: AvatarURL,
           text: `Reference ID: ${LeaveDocument._id}; approved by @${LeaveDocument.reviewed_by!.username} on`,
@@ -1436,7 +1497,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     } else if (RequestStatus === "Denied") {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, LeaveDocument.reviewed_by!.id);
       RequestEmbed.setColor(Colors.LOARequestDenied)
-        .setTitle("Denied Extension  |  Leave of Absence Request")
+        .setTitle("Denied Extension  |  Leave of Absence")
         .setFooter({
           iconURL: AvatarURL,
           text: `Reference ID: ${LeaveDocument._id}; denied by @${LeaveDocument.reviewed_by!.username} on`,
@@ -1444,13 +1505,13 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     } else if (RequestStatus === "Cancelled") {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, LeaveDocument.user);
       RequestEmbed.setColor(Colors.LOARequestDenied)
-        .setTitle("Cancelled Extension  |  Leave of Absence Request")
+        .setTitle("Cancelled Extension  |  Leave of Absence")
         .setFooter({
           iconURL: AvatarURL,
           text: `Reference ID: ${LeaveDocument._id}; cancelled by requester on`,
         });
     } else {
-      RequestEmbed.setTitle("Pending Extension  |  Leave of Absence Request");
+      RequestEmbed.setTitle("Pending Extension  |  Leave of Absence");
     }
 
     return RequestEmbed;

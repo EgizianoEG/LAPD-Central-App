@@ -56,8 +56,8 @@ import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import HandleShiftRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
 import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
 
 // ---------------------------------------------------------------------------------------
 // File Constants, Types, & Enums:
@@ -1061,7 +1061,7 @@ async function HandleUANDataWipeAllConfirm(
 
   return Promise.allSettled([
     Logger.LogUserActivityNoticesWipe(ConfirmInteract, DeleteResponse),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       FoundNotices.filter((N) => N.is_active).map((N) => N.user),
       ConfirmInteract.guild,
       NoticeType,

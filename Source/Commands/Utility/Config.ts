@@ -1,5 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import {
+  Guild,
   Message,
   CacheType,
   ButtonStyle,
@@ -54,6 +55,8 @@ import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { isDeepEqual } from "remeda";
 import { milliseconds } from "date-fns/milliseconds";
 import { Colors, Emojis } from "@Config/Shared.js";
+import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
+import { RiskyRolePermissions } from "@Config/Constants.js";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
@@ -154,6 +157,8 @@ const CTAIds = {
     RequestsChannel: `${ConfigTopics.LeaveConfiguration}-rc`,
     LogChannel: `${ConfigTopics.LeaveConfiguration}-lc`,
     OnLeaveRole: `${ConfigTopics.LeaveConfiguration}-olr`,
+    AlertRoles: `${ConfigTopics.LeaveConfiguration}-ar`,
+    ActivePrefix: `${ConfigTopics.LeaveConfiguration}-ap`,
   },
 
   [ConfigTopics.DutyActivitiesConfiguration]: {
@@ -177,6 +182,8 @@ const CTAIds = {
     RequestsChannel: `${ConfigTopics.ReducedActivityConfiguration}-rc`,
     LogChannel: `${ConfigTopics.ReducedActivityConfiguration}-lc`,
     RARole: `${ConfigTopics.ReducedActivityConfiguration}-rar`,
+    AlertRoles: `${ConfigTopics.ReducedActivityConfiguration}-ar`,
+    ActivePrefix: `${ConfigTopics.ReducedActivityConfiguration}-ap`,
   },
 } as const;
 
@@ -240,9 +247,20 @@ const ConfigTopicsExplanations = {
           "The role that will be assigned to members when their leave of absence starts, and will be removed when their leave ends.",
       },
       {
+        Name: "Alert Roles",
+        Description:
+          "The roles that will receive alerts, i.e. notifications, when a new leave or extension request is made and posted in the requests channel.",
+      },
+      {
+        Name: "Active Prefix",
+        Description:
+          "The text prefix added to nicknames during active leaves. If the nickname is too long, it will be truncated from the end to fit the prefix within Discord's length limit. " +
+          "The prefix is automatically removed when the leave ends.",
+      },
+      {
         Name: "Leave Requests Destination",
         Description:
-          "The channel or thread used to send leave requests submitted by members. Setting this channel is optional, but if not set, management " +
+          "The channel or thread used to send leave requests submitted by members. Setting this destination is optional, but if not set, management " +
           "staff will need to use the `/loa admin` command to review members' pending requests.",
       },
       {
@@ -321,9 +339,20 @@ const ConfigTopicsExplanations = {
           "This role will be automatically applied when reduced activity begins and removed when it concludes.",
       },
       {
-        Name: "Request Submission Destination",
+        Name: "Alert Roles",
         Description:
-          "Designated channel or thread for member reduced activity notices. If not configured, staff must process requests via the `ra admin` command.",
+          "The roles that will receive alerts, i.e. notifications, when a new request is made and posted in the requests destination.",
+      },
+      {
+        Name: "Active Prefix",
+        Description:
+          "The text prefix added to nicknames during active reduced activity. If the nickname is too long, it will be truncated from the end to fit the prefix within Discord's length limit. " +
+          "The prefix is automatically removed when the notice ends.",
+      },
+      {
+        Name: "Requests Destination",
+        Description:
+          "Designated channel or thread to post reduced activity requests in. If not configured, management staff will have to process requests via the `ra admin` command.",
       },
       {
         Name: "Activity Log Destination",
@@ -343,7 +372,7 @@ const ConfigTopicsExplanations = {
  * @returns A string representing the interval in days (e.g., "2 Days", "One Day", or "Never" if less than one day).
  */
 function GetHumanReadableLogDeletionInterval(Interval: number) {
-  const IntervalInDays = Interval / MillisInDay;
+  const IntervalInDays = Math.round(Interval / MillisInDay);
   if (IntervalInDays > 1) {
     return `${IntervalInDays} Days`;
   } else if (IntervalInDays === 1) {
@@ -381,6 +410,20 @@ function AttachNavMgmtCompsToContainer(Params: {
   return Container.addSeparatorComponents(
     new SeparatorBuilder().setDivider().setSpacing(2)
   ).addActionRowComponents(...NavigationRows);
+}
+
+/**
+ * Filters out roles that are managed by an application or which have
+ * specific unsafe permissions such as Manage Server or Administrator.
+ * @param GuildId - The Id of the guild to check against.
+ * @param RoleIds - An array of role Ids to filter.
+ * @returns An array of role Ids that are safe to use in the context of role assignment.
+ */
+async function FilterUnsafeRoles(GuildInst: Guild, RoleIds: string[]) {
+  const ResolvedRoles = RoleIds.map((Id) => GuildInst.roles.cache.get(Id)).filter((R) => !!R);
+  return ResolvedRoles.filter(
+    (Role) => !Role.managed && !Role.permissions.any(RiskyRolePermissions)
+  ).map((R) => R.id);
 }
 
 /**
@@ -736,11 +779,24 @@ function GetLeaveModuleConfigComponents(
       .setMaxValues(1)
   );
 
-  if (LeaveNoticesConfig.leave_role) {
-    OnLeaveRoleAR.components[0].setDefaultRoles(LeaveNoticesConfig.leave_role);
+  const AlertRolesAR = new ActionRowBuilder<RoleSelectMenuBuilder>().setComponents(
+    new RoleSelectMenuBuilder()
+      .setCustomId(`${CTAIds[ConfigTopics.LeaveConfiguration].AlertRoles}:${Interaction.user.id}`)
+      .setPlaceholder("Alert Roles")
+      .setMinValues(0)
+      .setMaxValues(3)
+  );
+
+  if (LeaveNoticesConfig.alert_roles.length) {
+    AlertRolesAR.components[0].setDefaultRoles(LeaveNoticesConfig.alert_roles);
   }
 
-  const RequestsDestAccessoryButton = new ButtonBuilder()
+  const ActivePrefixAccessoryBtn = new ButtonBuilder()
+    .setLabel("Set Active Prefix")
+    .setStyle(ButtonStyle.Secondary)
+    .setCustomId(`${CTAIds[ConfigTopics.LeaveConfiguration].ActivePrefix}:${Interaction.user.id}`);
+
+  const RequestsDestAccessoryBtn = new ButtonBuilder()
     .setLabel("Set Requests Destination")
     .setStyle(ButtonStyle.Secondary)
     .setCustomId(
@@ -755,7 +811,9 @@ function GetLeaveModuleConfigComponents(
   return [
     ModuleEnabledAR,
     OnLeaveRoleAR,
-    RequestsDestAccessoryButton,
+    AlertRolesAR,
+    ActivePrefixAccessoryBtn,
+    RequestsDestAccessoryBtn,
     LogDestAccessoryCAButton,
   ] as const;
 }
@@ -952,7 +1010,28 @@ function GetReducedActivityModuleConfigComponents(
       .setMaxValues(1)
   );
 
-  const RequestsDestButton = new ButtonBuilder()
+  const AlertRolesAR = new ActionRowBuilder<RoleSelectMenuBuilder>().setComponents(
+    new RoleSelectMenuBuilder()
+      .setCustomId(
+        `${CTAIds[ConfigTopics.ReducedActivityConfiguration].AlertRoles}:${Interaction.user.id}`
+      )
+      .setPlaceholder("Alert Roles")
+      .setMinValues(0)
+      .setMaxValues(3)
+  );
+
+  if (ReducedActivityConfig.alert_roles.length) {
+    AlertRolesAR.components[0].setDefaultRoles(ReducedActivityConfig.alert_roles);
+  }
+
+  const ActivePrefixAccessoryBtn = new ButtonBuilder()
+    .setLabel("Set Active Prefix")
+    .setStyle(ButtonStyle.Secondary)
+    .setCustomId(
+      `${CTAIds[ConfigTopics.ReducedActivityConfiguration].ActivePrefix}:${Interaction.user.id}`
+    );
+
+  const RequestsDestinationButton = new ButtonBuilder()
     .setLabel("Set Requests Destination")
     .setStyle(ButtonStyle.Secondary)
     .setCustomId(
@@ -966,7 +1045,14 @@ function GetReducedActivityModuleConfigComponents(
       `${CTAIds[ConfigTopics.ReducedActivityConfiguration].LogChannel}:${Interaction.user.id}`
     );
 
-  return [ModuleEnabledAR, RARoleAR, RequestsDestButton, LogDestAccessoryButton] as const;
+  return [
+    ModuleEnabledAR,
+    RARoleAR,
+    AlertRolesAR,
+    ActivePrefixAccessoryBtn,
+    RequestsDestinationButton,
+    LogDestAccessoryButton,
+  ] as const;
 }
 
 function GetShowConfigurationsPageComponents(
@@ -1220,6 +1306,10 @@ function GetLeaveModuleConfigContainers(
     LeaveModuleConfig
   );
 
+  const ActivePrefixConfigured = LeaveModuleConfig.active_prefix?.length
+    ? `\`${LeaveModuleConfig.active_prefix}\``
+    : "None";
+
   const CurrentlyConfiguredChannels = {
     Log: LeaveModuleConfig.log_channel ? `<#${LeaveModuleConfig.log_channel}>` : "None",
     Requests: LeaveModuleConfig.requests_channel
@@ -1227,13 +1317,15 @@ function GetLeaveModuleConfigContainers(
       : "None",
   };
 
+  const ModuleTitleText = new TextDisplayBuilder().setContent(
+    `### ${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Title}`
+  );
+
   const Page_1 = new ContainerBuilder()
     .setId(4)
     .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ModuleTitleText)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `### ${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Title}`
-      ),
       new TextDisplayBuilder().setContent(
         Dedent(`
           1. **${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[0].Name}**
@@ -1253,19 +1345,20 @@ function GetLeaveModuleConfigContainers(
     )
     .addActionRowComponents(LeaveModuleInteractComponents[1])
     .addSeparatorComponents(new SeparatorBuilder().setDivider())
-    .addSectionComponents(
-      new SectionBuilder()
-        .setButtonAccessory(LeaveModuleInteractComponents[2])
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            Dedent(`
-              3. **${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[2].Name}**
-              **Currently Configured:** ${CurrentlyConfiguredChannels.Requests}
-              ${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[2].Description}
-            `)
-          )
-        )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          3. **${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[2].Name}**
+          ${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[2].Description}
+        `)
+      )
     )
+    .addActionRowComponents(LeaveModuleInteractComponents[2]);
+
+  const Page_2 = new ContainerBuilder()
+    .setId(4)
+    .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ModuleTitleText)
     .addSeparatorComponents(new SeparatorBuilder().setDivider())
     .addSectionComponents(
       new SectionBuilder()
@@ -1274,14 +1367,42 @@ function GetLeaveModuleConfigContainers(
           new TextDisplayBuilder().setContent(
             Dedent(`
               4. **${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[3].Name}**
-              **Currently Configured:** ${CurrentlyConfiguredChannels.Log}
+              **Currently Configured:** ${ActivePrefixConfigured}
               ${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[3].Description}
+            `)
+          )
+        )
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(LeaveModuleInteractComponents[4])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              5. **${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[4].Name}**
+              **Currently Configured:** ${CurrentlyConfiguredChannels.Requests}
+              ${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[4].Description}
+            `)
+          )
+        )
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(LeaveModuleInteractComponents[5])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              6. **${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[5].Name}**
+              **Currently Configured:** ${CurrentlyConfiguredChannels.Log}
+              ${ConfigTopicsExplanations[ConfigTopics.LeaveConfiguration].Settings[5].Description}
             `)
           )
         )
     );
 
-  return [Page_1];
+  return [Page_1, Page_2] as const;
 }
 
 function GetReducedActivityModuleConfigContainers(
@@ -1293,6 +1414,10 @@ function GetReducedActivityModuleConfigContainers(
     RAModuleConfig
   );
 
+  const ActivePrefixConfigured = RAModuleConfig.active_prefix?.length
+    ? `\`${RAModuleConfig.active_prefix}\``
+    : "None";
+
   const CurrentlyConfiguredChannels = {
     Log: RAModuleConfig.log_channel ? `<#${RAModuleConfig.log_channel}>` : "None",
     Requests: RAModuleConfig.requests_channel ? `<#${RAModuleConfig.requests_channel}>` : "None",
@@ -1303,10 +1428,10 @@ function GetReducedActivityModuleConfigContainers(
   );
 
   const Page_1 = new ContainerBuilder()
-    .setId(5)
+    .setId(4)
     .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ModuleTitleText)
     .addTextDisplayComponents(
-      ModuleTitleText,
       new TextDisplayBuilder().setContent(
         Dedent(`
           1. **${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[0].Name}**
@@ -1324,25 +1449,22 @@ function GetReducedActivityModuleConfigContainers(
         `)
       )
     )
-    .addActionRowComponents(ReducedActivityInteractComponents[1]);
+    .addActionRowComponents(ReducedActivityInteractComponents[1])
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          3. **${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[2].Name}**
+          ${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[2].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(ReducedActivityInteractComponents[2]);
 
   const Page_2 = new ContainerBuilder()
-    .setId(5)
+    .setId(4)
     .setAccentColor(AccentColor)
     .addTextDisplayComponents(ModuleTitleText)
-    .addSectionComponents(
-      new SectionBuilder()
-        .setButtonAccessory(ReducedActivityInteractComponents[2])
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            Dedent(`
-              3. **${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[2].Name}**
-              **Currently Configured:** ${CurrentlyConfiguredChannels.Requests}
-              ${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[2].Description}
-            `)
-          )
-        )
-    )
     .addSeparatorComponents(new SeparatorBuilder().setDivider())
     .addSectionComponents(
       new SectionBuilder()
@@ -1351,8 +1473,37 @@ function GetReducedActivityModuleConfigContainers(
           new TextDisplayBuilder().setContent(
             Dedent(`
               4. **${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[3].Name}**
-              **Currently Configured:** ${CurrentlyConfiguredChannels.Log}
+              **Currently Configured:** ${ActivePrefixConfigured}
               ${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[3].Description}
+            `)
+          )
+        )
+    )
+
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(ReducedActivityInteractComponents[4])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              5. **${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[4].Name}**
+              **Currently Configured:** ${CurrentlyConfiguredChannels.Requests}
+              ${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[4].Description}
+            `)
+          )
+        )
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(ReducedActivityInteractComponents[5])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              6. **${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[5].Name}**
+              **Currently Configured:** ${CurrentlyConfiguredChannels.Log}
+              ${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[5].Description}
             `)
           )
         )
@@ -1773,6 +1924,8 @@ async function HandleLeaveModuleDBSave(
         "settings.leave_notices.leave_role": MState.ModuleConfig.leave_role,
         "settings.leave_notices.requests_channel": MState.ModuleConfig.requests_channel,
         "settings.leave_notices.log_channel": MState.ModuleConfig.log_channel,
+        "settings.leave_notices.active_prefix": MState.ModuleConfig.active_prefix,
+        "settings.leave_notices.alert_roles": MState.ModuleConfig.alert_roles,
       },
     },
     {
@@ -1800,12 +1953,18 @@ async function HandleLeaveModuleDBSave(
       ? channelMention(UpdatedSettings.log_channel)
       : "`None`";
 
+    const SetAlertRoles = UpdatedSettings.alert_roles.length
+      ? ListFormatter.format(UpdatedSettings.alert_roles.map(roleMention))
+      : "`None`";
+
     return Dedent(`
       Successfully set/updated the app's leave notices module configuration.
-      
+        
       **Current Configuration:**
       - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
       - **On-Leave Role:** ${SetLeaveRole}
+      - **Alert Roles:** ${SetAlertRoles}
+      - **Active Prefix:** \`${UpdatedSettings.active_prefix || "None"}\`
       - **Requests Channel:** ${SetRequestsChannel}
       - **Leave Logs Channel:** ${SetLogChannel}
     `);
@@ -1826,6 +1985,8 @@ async function HandleReducedActivityModuleDBSave(
         "settings.reduced_activity.ra_role": MState.ModuleConfig.ra_role,
         "settings.reduced_activity.requests_channel": MState.ModuleConfig.requests_channel,
         "settings.reduced_activity.log_channel": MState.ModuleConfig.log_channel,
+        "settings.reduced_activity.active_prefix": MState.ModuleConfig.active_prefix,
+        "settings.reduced_activity.alert_roles": MState.ModuleConfig.alert_roles,
       },
     },
     {
@@ -1851,12 +2012,18 @@ async function HandleReducedActivityModuleDBSave(
       ? channelMention(UpdatedSettings.log_channel)
       : "`None`";
 
+    const SetAlertRoles = UpdatedSettings.alert_roles.length
+      ? ListFormatter.format(UpdatedSettings.alert_roles.map(roleMention))
+      : "`None`";
+
     return Dedent(`
       Successfully set/updated the app's reduced activity module configuration.
       
       **Current Configuration:**
       - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
       - **Reduced Activity Role:** ${SetRaRole}
+      - **Alert Roles:** ${SetAlertRoles}
+      - **Active Prefix:** \`${UpdatedSettings.active_prefix || "None"}\`
       - **Requests Channel:** ${SetRequestsChannel}
       - **Log Channel:** ${SetLogChannel}
     `);
@@ -2120,12 +2287,14 @@ async function HandleShiftConfigSpecificInteracts(
     MState.ModuleConfig.enabled = RecInteract.values[0].toLowerCase() === "true";
   } else if (RecInteract.isRoleSelectMenu()) {
     if (ActionId.startsWith(CTAIds[ConfigTopics.ShiftConfiguration].OnDutyRoles)) {
-      MState.ModuleConfig.role_assignment.on_duty = RecInteract.values.filter(
-        (Id) => !RecInteract.guild.roles.cache.get(Id)?.managed
+      MState.ModuleConfig.role_assignment.on_duty = await FilterUnsafeRoles(
+        RecInteract.guild,
+        RecInteract.values
       );
     } else if (ActionId.startsWith(CTAIds[ConfigTopics.ShiftConfiguration].OnBreakRoles)) {
-      MState.ModuleConfig.role_assignment.on_break = RecInteract.values.filter(
-        (Id) => !RecInteract.guild.roles.cache.get(Id)?.managed
+      MState.ModuleConfig.role_assignment.on_break = await FilterUnsafeRoles(
+        RecInteract.guild,
+        RecInteract.values
       );
     }
 
@@ -2165,6 +2334,8 @@ async function HandleLeaveConfigSpecificInteracts(
         MState.ModuleConfig.requests_channel = SelectedChannel;
         return true;
       }
+    } else if (ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].ActivePrefix)) {
+      return HandleUANActivePrefixBtnInteract(RecInteract, MState);
     }
   }
 
@@ -2177,7 +2348,14 @@ async function HandleLeaveConfigSpecificInteracts(
     RecInteract.isRoleSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].OnLeaveRole)
   ) {
-    MState.ModuleConfig.leave_role = RecInteract.values[0] || null;
+    const LeaveRole = await FilterUnsafeRoles(RecInteract.guild, [RecInteract.values[0]]);
+    MState.ModuleConfig.leave_role = LeaveRole[0] || null;
+    if (RecInteract.values[0]?.length) return true;
+  } else if (
+    RecInteract.isRoleSelectMenu() &&
+    ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].AlertRoles)
+  ) {
+    MState.ModuleConfig.alert_roles = RecInteract.values;
   }
 
   return false;
@@ -2215,6 +2393,10 @@ async function HandleReducedActivityConfigPageInteracts(
         MState.ModuleConfig.requests_channel = SelectedChannel;
         return true;
       }
+    } else if (
+      ActionId.startsWith(CTAIds[ConfigTopics.ReducedActivityConfiguration].ActivePrefix)
+    ) {
+      return HandleUANActivePrefixBtnInteract(RecInteract, MState);
     }
   }
 
@@ -2227,8 +2409,14 @@ async function HandleReducedActivityConfigPageInteracts(
     RecInteract.isRoleSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.ReducedActivityConfiguration].RARole)
   ) {
-    MState.ModuleConfig.ra_role = RecInteract.values[0] || null;
-    return true;
+    const RARole = await FilterUnsafeRoles(RecInteract.guild, [RecInteract.values[0]]);
+    MState.ModuleConfig.ra_role = RARole[0] || null;
+    if (RecInteract.values[0]?.length) return true;
+  } else if (
+    RecInteract.isRoleSelectMenu() &&
+    ActionId.startsWith(CTAIds[ConfigTopics.ReducedActivityConfiguration].AlertRoles)
+  ) {
+    MState.ModuleConfig.alert_roles = RecInteract.values;
   }
 
   return false;
@@ -2374,6 +2562,66 @@ async function HandleDutyActivitiesConfigPageInteracts(
 // ---------------------------------------------------------------------------------------
 // Configuration Handlers:
 // -----------------------
+async function HandleUANActivePrefixBtnInteract(
+  RecInteract: ButtonInteraction<"cached">,
+  MState: ModuleState<GuildSettings["leave_notices"] | GuildSettings["reduced_activity"]>
+): Promise<boolean> {
+  const ModuleId = MState.ConfigTopic as
+    | ConfigTopics.LeaveConfiguration
+    | ConfigTopics.ReducedActivityConfiguration;
+
+  const ModuleTitle =
+    ModuleId === ConfigTopics.LeaveConfiguration ? "Leave of Absence" : "Reduced Activity";
+
+  const InputModal = new ModalBuilder()
+    .setTitle("Set Active Prefix")
+    .setCustomId(`${CTAIds[ModuleId].ActivePrefix}-input:${RecInteract.user.id}:${RandomString(4)}`)
+    .addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(
+        new TextInputBuilder()
+          .setCustomId("prefix")
+          .setLabel(`Active ${ModuleTitle} Prefix`)
+          .setPlaceholder("Enter prefix here, use '%s' for trailing space...")
+          .setStyle(TextInputStyle.Short)
+          .setRequired(false)
+          .setMaxLength(10)
+          .setMinLength(2)
+      )
+    );
+
+  if (MState.ModuleConfig.active_prefix) {
+    InputModal.components[0].components[0].setValue(
+      MState.ModuleConfig.active_prefix.replace(/ $/, "%s")
+    );
+  }
+
+  const Submission = await ShowModalAndAwaitSubmission(RecInteract, InputModal);
+  let InputPrefix = Submission?.fields.getTextInputValue("prefix") || null;
+  InputPrefix =
+    InputPrefix?.replace(/(?<!\\)%s/g, " ")
+      .trimStart()
+      .slice(0, 8) ?? null;
+
+  if (!Submission) return false;
+  if (InputPrefix === null || InputPrefix.length < 2) {
+    MState.ModuleConfig.active_prefix = null;
+    Submission.deferUpdate().catch(() => null);
+    return true;
+  }
+
+  const GuildSettings = await GetGuildSettings(RecInteract.guildId);
+  const FilteredPrefix = await FilterUserInput(InputPrefix, {
+    guild_instance: RecInteract.guild,
+    filter_links_emails: true,
+    utif_setting_enabled: GuildSettings?.utif_enabled,
+  });
+
+  MState.ModuleConfig.active_prefix = FilteredPrefix;
+  Submission?.deferUpdate().catch(() => null);
+
+  return true;
+}
+
 async function PromptChannelOrThreadSelection(
   RecInteract: MessageComponentInteraction<"cached">,
   TargetConfig: ConfigTopicsCompIds,

@@ -25,7 +25,7 @@ import { addMilliseconds } from "date-fns";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
+import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import GetUANData from "@Utilities/Database/GetUANData.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -207,7 +207,7 @@ async function HandleApprovalOrDenial(
     RefreshedRA.save(),
     RAEventLogger[`Log${ActionType}`](NotesSubmission, RefreshedRA),
     NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       RefreshedRA.user,
       NotesSubmission.guild,
       "ReducedActivity",
@@ -255,7 +255,7 @@ async function HandleEarlyTermination(
   await Promise.all([
     RAEventLogger.LogEarlyUANEnd(NotesSubmission, RefreshedActiveRA, "Management"),
     NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       RefreshedActiveRA.user,
       NotesSubmission.guild,
       "ReducedActivity",

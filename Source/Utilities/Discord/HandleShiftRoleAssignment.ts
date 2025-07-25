@@ -1,5 +1,6 @@
 import type { Guilds } from "@Typings/Utilities/Database.js";
 import { Guild, GuildMember, PermissionFlagsBits, Role } from "discord.js";
+import { RiskyRolePermissions } from "@Config/Constants.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 
@@ -108,13 +109,13 @@ async function HandleSingleUserRoleAssignment(
  * Validates whether the bot application member and target member have the necessary
  * permissions to assign a specific role to a target member within a guild.
  * @param AppMember - The client in guild performing the role assignment.
- * @param Member - The target guild member to whom the role is being assigned.
+ * @param TargetMember - The target guild member to whom the role is being assigned.
  * @param TargetRole - The role being assigned.
  * @returns `true` if the app and member have the required permissions and conditions are met; otherwise, `false`.
  */
 export function HasSufficientPermissions(
   AppMember: GuildMember,
-  Member: GuildMember,
+  TargetMember: GuildMember,
   TargetRole?: Role | string
 ) {
   TargetRole =
@@ -127,7 +128,10 @@ export function HasSufficientPermissions(
   const HasGreaterRoleThanTarget = AppMember.roles.highest.comparePositionTo(TargetRole) > 0;
   if (!HasGreaterRoleThanTarget) return false;
 
-  const RoleHasAdminPerm = TargetRole.permissions.has(PermissionFlagsBits.Administrator);
-  const MemberIsAdmin = Member.permissions.has(PermissionFlagsBits.Administrator);
-  return !(RoleHasAdminPerm && !MemberIsAdmin);
+  const RoleRiskyPerms = TargetRole.permissions
+    .toArray()
+    .filter((Perm) => RiskyRolePermissions.includes(PermissionFlagsBits[Perm]));
+
+  // Return true if the role has risky permissions and the member has those permissions already.
+  return RoleRiskyPerms.every((Perm) => TargetMember.permissions.has(PermissionFlagsBits[Perm]));
 }

@@ -24,7 +24,7 @@ import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { UserActivityNoticeMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
+import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
@@ -180,6 +180,7 @@ async function HandleNoticeReviewValidation(
       Tasks.push(
         Interaction.followUp({ embeds: [ReplyEmbed] }),
         InitialInteraction.editReply({
+          content: null,
           embeds: [UpdatedReqEmbed],
           message: RequestDocument?.request_msg?.split(":")[1],
           components: DisableMessageComponents(
@@ -326,7 +327,7 @@ async function HandleUANApproval(
     UpdatedDocument.save(),
     NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
     EventLogger.LogApproval(NotesSubmission, UpdatedDocument),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       UpdatedDocument.user,
       NotesSubmission.guild,
       IsLOA ? "LeaveOfAbsence" : "ReducedActivity",

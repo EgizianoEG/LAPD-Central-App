@@ -156,6 +156,17 @@ export namespace Guilds {
        * This could be left `null` if no role should be assigned.
        */
       leave_role?: string | null;
+
+      /**
+       * The prefix added to nicknames of members with an active LOA.
+       * Set to `null` or `undefined` for no prefix.
+       */
+      active_prefix?: string | null;
+
+      /**
+       * The role(s) that will be mentioned and notified when a new LOA request is posted.
+       */
+      alert_roles: string[];
     };
 
     reduced_activity: {
@@ -183,6 +194,17 @@ export namespace Guilds {
        * This role will be removed once the reduced activity period ends. Can be left `null` if no role is needed.
        */
       ra_role?: string | null;
+
+      /**
+       * The prefix added to nicknames of members with an active RA.
+       * Set to `null` or `undefined` for no prefix.
+       */
+      active_prefix?: string | null;
+
+      /**
+       * The role(s) that will be mentioned and notified when a new RA request is posted.
+       */
+      alert_roles: string[];
     };
   }
 

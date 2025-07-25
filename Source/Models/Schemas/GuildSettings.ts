@@ -1,23 +1,24 @@
-import ShiftTypeSchema from "./ShiftType.js";
 import { Schema } from "mongoose";
+import ShiftTypeSchema from "./ShiftType.js";
 
-const SnowflakeIDValidationN1: [RegExp, string] = [
+const SnowflakeIdValidationN1: [RegExp, string] = [
   /^\d{15,22}$/,
   "Received an invalid snowflake Id; received '{VALUE}'.",
 ];
 
-const SnowflakeIDValidationN2: [RegExp, string] = [
+const SnowflakeIdValidationN2: [RegExp, string] = [
   /^\d{15,22}$|^\d{15,22}:\d{15,22}$/,
   "Received an invalid snowflake Id.",
 ];
 
-const RolePermsValidator = {
+const ArrayOfSnowflakesValidator = {
   validator: (Arr: string[]) => Arr.every((id: string) => /^\d{15,22}$/.test(id)),
   message:
     "Invalid role Id found in the provided snowflake Id array; ensure that all roles are valid.",
 };
 
 /**
+ * Represents the schema for guild settings in the database.
  * @see @Typings/Utilities/Database.js for schema documentation.
  */
 const GuildSettings = new Schema({
@@ -40,11 +41,11 @@ const GuildSettings = new Schema({
     type: {
       staff: {
         type: [String],
-        validate: RolePermsValidator,
+        validate: ArrayOfSnowflakesValidator,
       },
       management: {
         type: [String],
-        validate: RolePermsValidator,
+        validate: ArrayOfSnowflakesValidator,
       },
     },
   },
@@ -77,14 +78,14 @@ const GuildSettings = new Schema({
             {
               _id: false,
               type: String,
-              match: SnowflakeIDValidationN1,
+              match: SnowflakeIdValidationN1,
             },
           ],
           on_break: [
             {
               _id: false,
               type: String,
-              match: SnowflakeIDValidationN1,
+              match: SnowflakeIdValidationN1,
             },
           ],
         },
@@ -94,7 +95,7 @@ const GuildSettings = new Schema({
         type: String,
         default: null,
         required: false,
-        match: SnowflakeIDValidationN1,
+        match: SnowflakeIdValidationN1,
       },
     },
   },
@@ -127,7 +128,7 @@ const GuildSettings = new Schema({
               {
                 type: String,
                 _id: false,
-                match: SnowflakeIDValidationN2,
+                match: SnowflakeIdValidationN2,
               },
             ],
           },
@@ -138,7 +139,7 @@ const GuildSettings = new Schema({
               {
                 type: String,
                 _id: false,
-                match: SnowflakeIDValidationN2,
+                match: SnowflakeIdValidationN2,
               },
             ],
           },
@@ -147,7 +148,7 @@ const GuildSettings = new Schema({
             type: String,
             default: null,
             required: false,
-            match: SnowflakeIDValidationN1,
+            match: SnowflakeIdValidationN1,
           },
         },
       },
@@ -169,21 +170,40 @@ const GuildSettings = new Schema({
         type: String,
         default: null,
         required: false,
-        match: SnowflakeIDValidationN1,
+        match: SnowflakeIdValidationN1,
       },
 
       log_channel: {
         type: String,
         default: null,
         required: false,
-        match: SnowflakeIDValidationN1,
+        match: SnowflakeIdValidationN1,
       },
 
       leave_role: {
         type: String,
         default: null,
         required: false,
-        match: SnowflakeIDValidationN1,
+        match: SnowflakeIdValidationN1,
+      },
+
+      active_prefix: {
+        type: String,
+        default: null,
+        required: false,
+        minLength: 1,
+        maxLength: 8,
+      },
+
+      alert_roles: {
+        type: [String],
+        default: [],
+        required: true,
+        match: {
+          message: "Expected an array of valid snowflake Ids of length 0-3.",
+          validator: (arr: string[]) =>
+            ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 3,
+        },
       },
     },
   },
@@ -203,21 +223,40 @@ const GuildSettings = new Schema({
         type: String,
         default: null,
         required: false,
-        match: SnowflakeIDValidationN1,
+        match: SnowflakeIdValidationN1,
       },
 
       log_channel: {
         type: String,
         default: null,
         required: false,
-        match: SnowflakeIDValidationN1,
+        match: SnowflakeIdValidationN1,
       },
 
       ra_role: {
         type: String,
         default: null,
         required: false,
-        match: SnowflakeIDValidationN1,
+        match: SnowflakeIdValidationN1,
+      },
+
+      active_prefix: {
+        type: String,
+        default: null,
+        required: false,
+        minLength: 1,
+        maxLength: 8,
+      },
+
+      alert_roles: {
+        type: [String],
+        default: [],
+        required: true,
+        match: {
+          message: "Expected an array of valid snowflake Ids of length 0-3.",
+          validator: (arr: string[]) =>
+            ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 3,
+        },
       },
     },
   },

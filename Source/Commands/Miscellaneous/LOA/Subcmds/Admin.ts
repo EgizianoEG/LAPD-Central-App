@@ -28,7 +28,7 @@ import { HandleDurationValidation } from "./Request.js";
 import { ValidateExtendedDuration } from "./Manage.js";
 import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Discord/HandleUANRoleAssignment.js";
+import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
 import ParseDuration from "parse-duration";
@@ -513,7 +513,7 @@ async function HandleLeaveStart(
     Callback(InitialCmdInteract),
     ModalSubmission.editReply({ embeds: [ReplyEmbed] }),
     LOAEventLogger.LogManualLeave(ModalSubmission, CreatedLeave),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       CreatedLeave.user,
       ModalSubmission.guild,
       "LeaveOfAbsence",
@@ -702,7 +702,7 @@ async function HandleLeaveEnd(
     Callback(ButtonInteract),
     ModalSubmission.editReply({ embeds: [ReplyEmbed] }),
     LOAEventLogger.LogEarlyUANEnd(ModalSubmission, ActiveLeave, "Management"),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       ActiveLeave.user,
       ModalSubmission.guild,
       "LeaveOfAbsence",
