@@ -130,7 +130,29 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
       },
       {
         name: "Charger R/T",
-        alias: "Prancer Classic",
+        alias: "Prancer",
+        style: "Coupe",
+        class: "Car",
+        category: "Classic",
+        model_year: {
+          org: "1969",
+          alt: "1969",
+        },
+      },
+      {
+        name: "Charger Daytona",
+        alias: "Prancer Talladega",
+        style: "Coupe",
+        class: "Car",
+        category: "Classic",
+        model_year: {
+          org: "1969",
+          alt: "1969",
+        },
+      },
+      {
+        name: "Charger General Lee",
+        alias: "Prancer Colonel Fields",
         style: "Coupe",
         class: "Car",
         category: "Classic",
@@ -213,6 +235,17 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         },
       },
       {
+        name: "RS6 Avant C8",
+        alias: "Bremen VS Garde",
+        style: "Wagon",
+        class: "SUV",
+        category: "Regular",
+        model_year: {
+          org: "2023",
+          alt: "2023",
+        },
+      },
+      {
         name: "R8 Coupé",
         alias: "RS3",
         style: "Sedan",
@@ -232,6 +265,39 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         model_year: {
           org: "2010",
           alt: "2010",
+        },
+      },
+      {
+        name: "Impala SS",
+        alias: "Captain Antelope SS",
+        style: "Sedan",
+        class: "Car",
+        category: "Regular",
+        model_year: {
+          org: "1994",
+          alt: "1994",
+        },
+      },
+      {
+        name: "Caprice",
+        alias: "Captain",
+        style: "Sedan",
+        class: "Car",
+        category: "Regular",
+        model_year: {
+          org: "1992",
+          alt: "1992",
+        },
+      },
+      {
+        name: "Caprice Classic",
+        alias: "Captain LTZ",
+        style: "Sedan",
+        class: "Car",
+        category: "Regular",
+        model_year: {
+          org: "1995",
+          alt: "1994",
         },
       },
     ],
@@ -261,6 +327,24 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         model_year: {
           org: "2020",
           alt: "2020",
+        },
+      },
+    ],
+  },
+
+  {
+    brand: "Rimac",
+    counterpart: "Kovac",
+    models: [
+      {
+        name: "Nevera",
+        alias: "Heladera",
+        style: "Coupe",
+        class: "Car",
+        category: "Electric",
+        model_year: {
+          org: "2022",
+          alt: "2023",
         },
       },
     ],
@@ -374,7 +458,7 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
       },
       {
         name: "Impala SS",
-        alias: "Antelope",
+        alias: "Antelope SS",
         style: "Sedan",
         class: "Car",
         category: "Regular",
@@ -622,36 +706,36 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         },
       },
       {
-        name: "F-150",
-        alias: "Advance",
+        name: "F150",
+        alias: "Advance 450",
         style: "Pickup",
         class: "Truck",
         category: "Regular",
         model_year: {
           org: "2018",
-          alt: "2018",
+          alt: "2020",
         },
       },
       {
-        name: "F-150",
-        alias: "Advance",
+        name: "F350 SD   King Ranch",
+        alias: "Advance 450 Royal Ranch",
         style: "Pickup",
         class: "Truck",
         category: "Regular",
         model_year: {
-          org: "2022",
-          alt: "2022",
+          org: "2020",
+          alt: "2020",
         },
       },
       {
-        name: "F-150 Raptor",
-        alias: "Advance Beast",
+        name: "F100",
+        alias: "Advance 100 Holiday",
         style: "Pickup",
         class: "Truck",
-        category: "Regular",
+        category: "Classic",
         model_year: {
-          org: "2017",
-          alt: "2017",
+          org: "1956",
+          alt: "1956",
         },
       },
       {
@@ -666,7 +750,7 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         },
       },
       {
-        name: "GT",
+        name: "GT Carbon",
         alias: "Heritage",
         style: "Coupe",
         class: "Car",
@@ -674,6 +758,17 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         model_year: {
           org: "2020",
           alt: "2021",
+        },
+      },
+      {
+        name: "GT Mk II",
+        alias: "Heritage",
+        style: "Coupe",
+        class: "Car",
+        category: "Prestige",
+        model_year: {
+          org: "2019",
+          alt: "2022",
         },
       },
       {
@@ -795,17 +890,6 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         model_year: {
           org: "1997",
           alt: "",
-        },
-      },
-      {
-        name: "F100",
-        alias: "Advance 100 Holiday",
-        style: "Pickup",
-        class: "Truck",
-        category: "Classic",
-        model_year: {
-          org: "1956",
-          alt: "1956",
         },
       },
       {
@@ -1247,14 +1331,14 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         category: "Regular",
         model_year: {
           org: "2006",
-          alt: "2006",
+          alt: "2009",
         },
       },
     ],
   },
 
   {
-    brand: "Hummer",
+    brand: "GM",
     counterpart: "Chevlon",
     models: [
       {
@@ -1266,6 +1350,24 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         model_year: {
           org: "2005",
           alt: "2005",
+        },
+      },
+    ],
+  },
+
+  {
+    brand: "Toyota",
+    counterpart: "Sumo",
+    models: [
+      {
+        name: "bZ4X",
+        alias: "Reflexion",
+        style: "SUV",
+        class: "SUV",
+        category: "Electric",
+        model_year: {
+          org: "2022",
+          alt: "2022",
         },
       },
     ],
