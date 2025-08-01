@@ -150,6 +150,7 @@ const CTAIds = {
     LogChannel: `${ConfigTopics.ShiftConfiguration}-lc`,
     OnDutyRoles: `${ConfigTopics.ShiftConfiguration}-odr`,
     OnBreakRoles: `${ConfigTopics.ShiftConfiguration}-obr`,
+    ServerDefaultShiftQuota: `${ConfigTopics.ShiftConfiguration}-darq`,
   },
 
   [ConfigTopics.LeaveConfiguration]: {
@@ -172,9 +173,9 @@ const CTAIds = {
   },
 
   [ConfigTopics.AdditionalConfiguration]: {
-    ServerDefaultShiftQuota: `${ConfigTopics.AdditionalConfiguration}-darq`,
     DActivitiesDeletionInterval: `${ConfigTopics.AdditionalConfiguration}-dadi`,
     UserTextInputFilteringEnabled: `${ConfigTopics.AdditionalConfiguration}-utfe`,
+    DutyActivitiesSignatureType: `${ConfigTopics.AdditionalConfiguration}-dast`,
   },
 
   [ConfigTopics.ReducedActivityConfiguration]: {
@@ -736,12 +737,25 @@ function GetShiftModuleConfigComponents(
       .setCustomId(`${CTAIds[ConfigTopics.ShiftConfiguration].OnBreakRoles}:${Interaction.user.id}`)
   );
 
-  const LogChannelButtonAccessory = new ButtonBuilder()
+  const LogChannelBtnAccessory = new ButtonBuilder()
     .setCustomId(`${CTAIds[ConfigTopics.ShiftConfiguration].LogChannel}:${Interaction.user.id}`)
     .setLabel("Set Logs Destination")
     .setStyle(ButtonStyle.Secondary);
 
-  return [ModuleEnabledAR, OnDutyRolesAR, OnBreakRolesAR, LogChannelButtonAccessory] as const;
+  const SetDefaultShiftQuotaBtnAccessory = new ButtonBuilder()
+    .setLabel("Set Default Shift Quota")
+    .setStyle(ButtonStyle.Secondary)
+    .setCustomId(
+      `${CTAIds[ConfigTopics.ShiftConfiguration].ServerDefaultShiftQuota}:${Interaction.user.id}`
+    );
+
+  return [
+    ModuleEnabledAR,
+    OnDutyRolesAR,
+    OnBreakRolesAR,
+    LogChannelBtnAccessory,
+    SetDefaultShiftQuotaBtnAccessory,
+  ] as const;
 }
 
 function GetLeaveModuleConfigComponents(
@@ -954,15 +968,6 @@ function GetAdditionalConfigComponents(
       )
   );
 
-  const SetDefaultShiftQuotaAR = new ActionRowBuilder<ButtonBuilder>().setComponents(
-    new ButtonBuilder()
-      .setLabel("Set Default Shift Quota")
-      .setStyle(ButtonStyle.Secondary)
-      .setCustomId(
-        `${CTAIds[ConfigTopics.AdditionalConfiguration].ServerDefaultShiftQuota}:${Interaction.user.id}`
-      )
-  );
-
   for (const Option of LogDelIntervalSMAR.components[0].options) {
     if (Option.data.value === `${SetIntervalInDays}d`) {
       Option.setDefault(true);
@@ -970,7 +975,7 @@ function GetAdditionalConfigComponents(
     }
   }
 
-  return [LogDelIntervalSMAR, UTIFilteringEnabledAR, SetDefaultShiftQuotaAR] as const;
+  return [LogDelIntervalSMAR, UTIFilteringEnabledAR] as const;
 }
 
 function GetReducedActivityModuleConfigComponents(
@@ -1149,6 +1154,14 @@ function GetShiftModuleConfigContainers(
     ShiftModuleConfig
   );
 
+  const ModuleTitleText = new TextDisplayBuilder().setContent(
+    `### ${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Title}`
+  );
+
+  const ConfiguredDefaultServerQuota = ShiftModuleConfig.default_quota
+    ? FormatDuration(ShiftModuleConfig.default_quota)
+    : "None";
+
   const CurrentlyConfiguredLogChannel = ShiftModuleConfig.log_channel
     ? `<#${ShiftModuleConfig.log_channel}>`
     : "None";
@@ -1157,9 +1170,7 @@ function GetShiftModuleConfigContainers(
     .setId(2)
     .setAccentColor(AccentColor)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `### ${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Title}`
-      ),
+      ModuleTitleText,
       new TextDisplayBuilder().setContent(
         Dedent(`
           1. **${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[0].Name}**
@@ -1172,29 +1183,47 @@ function GetShiftModuleConfigContainers(
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         Dedent(`
-          3. **${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[1].Name}**
+          2. **${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[1].Name}**
           ${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[1].Description}
         `)
       )
     )
     .addActionRowComponents(ShiftModuleInteractComponents[1])
-    .addActionRowComponents(ShiftModuleInteractComponents[2])
-    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addActionRowComponents(ShiftModuleInteractComponents[2]);
+
+  const Page_2 = new ContainerBuilder()
+    .setId(2)
+    .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ModuleTitleText)
     .addSectionComponents(
       new SectionBuilder()
         .setButtonAccessory(ShiftModuleInteractComponents[3])
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             Dedent(`
-              2. **${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[2].Name}**
+              3. **${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[2].Name}**
               **Currently Configured:** ${CurrentlyConfiguredLogChannel}
               ${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[2].Description}
             `)
           )
         )
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+            3. **${ConfigTopicsExplanations[ConfigTopics.AdditionalConfiguration].Settings[2].Name}**
+            **Currently Set:** ${ConfiguredDefaultServerQuota}
+            ${ConfigTopicsExplanations[ConfigTopics.AdditionalConfiguration].Settings[2].Description}
+          `)
+          )
+        )
+        .setButtonAccessory(ShiftModuleInteractComponents[4])
     );
 
-  return [Page_1] as const;
+  return [Page_1, Page_2] as const;
 }
 
 function GetDutyActivitiesModuleConfigContainers(
@@ -1545,21 +1574,7 @@ function GetAdditionalConfigContainers(
         `)
       )
     )
-    .addActionRowComponents(AdditionalConfigInteractComponents[1])
-    .addSeparatorComponents(new SeparatorBuilder().setDivider())
-    .addSectionComponents(
-      new SectionBuilder()
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            Dedent(`
-            3. **${ConfigTopicsExplanations[ConfigTopics.AdditionalConfiguration].Settings[2].Name}**
-            ${ConfigTopicsExplanations[ConfigTopics.AdditionalConfiguration].Settings[2].Description}
-          `)
-          )
-        )
-        .setButtonAccessory(AdditionalConfigInteractComponents[2].components[0])
-    );
-
+    .addActionRowComponents(AdditionalConfigInteractComponents[1]);
   return [Page_1] as const;
 }
 
@@ -1642,6 +1657,7 @@ function GetCSShiftModuleContent(GuildSettings: GuildSettings): string {
   return Dedent(`
     >>> **Module Enabled:** ${GuildSettings.shift_management.enabled ? "Yes" : "No"}
     **Shift Log Channel:** ${ShiftLogChannel}
+    **Server Default Quota:** ${GuildSettings.shift_management.default_quota === 0 ? "None" : FormatDuration(GuildSettings.shift_management.default_quota)}
     **Role Assignment:**
     - **On-Duty Role${SMOnDutyRoles.length > 1 ? "s" : ""}:** ${SMOnDutyRoles.length ? "\n" + ListFormatter.format(SMOnDutyRoles) : "None"}
     - **On-Break Role${SMOnBreakRoles.length > 1 ? "s" : ""}:** ${SMOnBreakRoles.length ? "\n" + ListFormatter.format(SMOnBreakRoles) : "None"}
@@ -1699,7 +1715,6 @@ function GetCSAdditionalConfigContent(GuildSettings: GuildSettings): string {
   return Dedent(`
     >>> **Log Deletion Interval:** ${GetHumanReadableLogDeletionInterval(GuildSettings.duty_activities.log_deletion_interval)}
     **User Text Input Filtering:** ${GuildSettings.utif_enabled ? "Enabled" : "Disabled"}
-    **Default Shift Quota:** ${GuildSettings.shift_management.default_quota > 500 ? FormatDuration(GuildSettings.shift_management.default_quota) : "*None*"}
   `);
 }
 
@@ -1876,6 +1891,7 @@ async function HandleShiftModuleDBSave(
       $set: {
         "settings.shift_management.enabled": MState.ModuleConfig.enabled,
         "settings.shift_management.log_channel": MState.ModuleConfig.log_channel,
+        "settings.shift_management.default_quota": MState.ModuleConfig.default_quota,
         "settings.shift_management.role_assignment.on_duty":
           MState.ModuleConfig.role_assignment.on_duty,
         "settings.shift_management.role_assignment.on_break":
@@ -1908,6 +1924,7 @@ async function HandleShiftModuleDBSave(
       **Current Configuration:**
       - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
       - **Shift Log Channel:** ${SetLogChannel}
+      - **Server Default Shift Quota:** ${UpdatedSettings.default_quota ? FormatDuration(UpdatedSettings.default_quota) : "*None*"}
       - **On-Duty Role(s):**
         > ${SetOnDutyRoles.length ? ListFormatter.format(SetOnDutyRoles) : "*None*"}
       - **On-Break Role(s):**
@@ -2102,8 +2119,6 @@ async function HandleAdditionalConfigDBSave(
     {
       $set: {
         "settings.utif_enabled": MState.ModuleConfig.utif_enabled,
-        "settings.shift_management.default_quota":
-          MState.ModuleConfig.shift_management.default_quota,
         "settings.duty_activities.log_deletion_interval":
           MState.ModuleConfig.duty_activities.log_deletion_interval,
       },
@@ -2121,7 +2136,6 @@ async function HandleAdditionalConfigDBSave(
 
   if (UpdatedSettings) {
     MState.OriginalConfig = { ...(UpdatedSettings as GuildSettings) };
-    const DefaultQuota = UpdatedSettings.shift_management.default_quota;
     const LDIFormatted = GetHumanReadableLogDeletionInterval(
       UpdatedSettings.duty_activities.log_deletion_interval
     );
@@ -2132,7 +2146,6 @@ async function HandleAdditionalConfigDBSave(
       **Current Configuration:**
       - **Log Deletion Interval:** ${LDIFormatted}
       - **User Text Input Filtering:** ${UpdatedSettings.utif_enabled ? "Enabled" : "Disabled"}
-      - **Server Default Shift Quota:** ${DefaultQuota ? FormatDuration(DefaultQuota) : "*None*"}
     `);
   } else {
     return null;
@@ -2232,16 +2245,6 @@ async function HandleAdditionalConfigSpecificInteracts(
   const CustomId = RecInteract.customId;
 
   if (
-    RecInteract.isButton() &&
-    CustomId.startsWith(CTAIds[ConfigTopics.AdditionalConfiguration].ServerDefaultShiftQuota)
-  ) {
-    MState.ModuleConfig.shift_management.default_quota = await HandleDefaultShiftQuotaBtnInteract(
-      RecInteract,
-      MState.ModuleConfig.shift_management.default_quota
-    );
-  }
-
-  if (
     RecInteract.isStringSelectMenu() &&
     CustomId.startsWith(CTAIds[ConfigTopics.AdditionalConfiguration].DActivitiesDeletionInterval)
   ) {
@@ -2282,6 +2285,21 @@ async function HandleShiftConfigSpecificInteracts(
 
     if (SelectedChannel !== undefined) {
       MState.ModuleConfig.log_channel = SelectedChannel;
+      return true;
+    }
+  }
+
+  if (
+    RecInteract.isButton() &&
+    ActionId.startsWith(CTAIds[ConfigTopics.ShiftConfiguration].ServerDefaultShiftQuota)
+  ) {
+    const ResolvedQuotaMs = await HandleDefaultShiftQuotaBtnInteract(
+      RecInteract,
+      MState.ModuleConfig.default_quota
+    );
+
+    if (ResolvedQuotaMs !== MState.ModuleConfig.default_quota) {
+      MState.ModuleConfig.default_quota = ResolvedQuotaMs;
       return true;
     }
   }
@@ -2773,7 +2791,7 @@ async function HandleOutsideLogChannelBtnInteracts(
     .setComponents(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
         new TextInputBuilder()
-          .setLabel("Channel in The Format: [ServerID:ServerID]")
+          .setLabel("Channel in The Format: [ServerID:ChannelID]")
           .setPlaceholder("ServerID:ChannelID")
           .setCustomId("channel_id")
           .setStyle(TextInputStyle.Short)
@@ -2842,9 +2860,7 @@ async function HandleDefaultShiftQuotaBtnInteract(
 ): Promise<number> {
   const InputModal = new ModalBuilder()
     .setTitle("Default Shift Quota Duration")
-    .setCustomId(
-      CTAIds[ConfigTopics.AdditionalConfiguration].ServerDefaultShiftQuota + RandomString(4)
-    )
+    .setCustomId(CTAIds[ConfigTopics.ShiftConfiguration].ServerDefaultShiftQuota + RandomString(4))
     .setComponents(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
         new TextInputBuilder()
