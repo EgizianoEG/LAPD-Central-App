@@ -10,6 +10,7 @@ import {
 
 import DutyTypesSubcommandGroup from "./Duty Types/Main.js";
 import AutocompleteShiftType from "@Utilities/Autocompletion/ShiftType.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import HasRobloxLinked from "@Utilities/Database/IsUserLoggedIn.js";
 import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
 
@@ -42,7 +43,8 @@ async function IsAuthorizedCmdUsage(Interaction: SlashCommandInteraction<"cached
       .then(() => false);
   }
 
-  if (SubcmdName === "manage") {
+  const GuildSettings = await GetGuildSettings(Interaction.guildId);
+  if (SubcmdName === "manage" && GuildSettings?.require_authorization === true) {
     const LinkedRobloxUser = await HasRobloxLinked(Interaction);
     if (!LinkedRobloxUser) {
       return new ErrorEmbed()
