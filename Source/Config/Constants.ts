@@ -19,3 +19,23 @@ export const RiskyRolePermissions = [
   PermissionFlagsBits.ManageNicknames,
   PermissionFlagsBits.ManageGuildExpressions,
 ];
+
+export const DASignatureFormat = {
+  DiscordNickname: 0,
+  DiscordUsername: 0,
+  RobloxUsername: 0,
+  RobloxDisplayName: 0,
+  DiscordNicknameRobloxUsername: 0,
+  DiscordNicknameDiscordUsername: 0,
+  RobloxDisplayNameRobloxUsername: 0,
+};
+
+export const SignatureFormatResolved = {
+  [DASignatureFormat.DiscordNickname]: "Discord Nickname",
+  [DASignatureFormat.DiscordUsername]: "Discord Username",
+  [DASignatureFormat.RobloxUsername]: "Roblox Username",
+  [DASignatureFormat.RobloxDisplayName]: "Roblox Display Name",
+  [DASignatureFormat.DiscordNicknameRobloxUsername]: "Discord Nickname + Roblox Username",
+  [DASignatureFormat.DiscordNicknameDiscordUsername]: "Discord Nickname + Discord Username",
+  [DASignatureFormat.RobloxDisplayNameRobloxUsername]: "Roblox Display Name + Roblox Username",
+};

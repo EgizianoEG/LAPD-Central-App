@@ -1,4 +1,5 @@
 import { Schema } from "mongoose";
+import { DASignatureFormat } from "@Config/Constants.js";
 import ShiftTypeSchema from "./ShiftType.js";
 
 const SnowflakeIdValidationN1: [RegExp, string] = [
@@ -109,6 +110,13 @@ const GuildSettings = new Schema({
         type: Boolean,
         default: false,
         required: true,
+      },
+
+      signature_format: {
+        type: Number,
+        required: true,
+        default: DASignatureFormat.DiscordNickname,
+        enum: Object.values(DASignatureFormat).filter((v) => typeof v === "number"),
       },
 
       log_deletion_interval: {

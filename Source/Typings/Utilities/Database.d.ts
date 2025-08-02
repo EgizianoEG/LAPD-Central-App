@@ -1,6 +1,7 @@
 import type { IncidentTypes, IncidentStatusesFlattened } from "@Resources/IncidentConstants.ts";
 import type { Types, HydratedDocument, Model } from "mongoose";
 import type { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.ts";
+import type { DASignatureFormat } from "@Config/Constants.ts";
 import type { ShiftFlags } from "@Models/Shift.ts";
 import type { Overwrite } from "utility-types";
 import type {
@@ -45,7 +46,6 @@ export namespace Guilds {
   interface GuildSettings {
     /**
      * Whether or not staff members are required to link their Roblox account in order to execute specific set of commands.
-     * By default, this is `true` and linking account is always required to use certain commands.
      */
     require_authorization: boolean;
 
@@ -105,6 +105,12 @@ export namespace Guilds {
        * Disabling this module will prevent staff members from using the `log arrest`, `log citation`, and `log incident` commands.
        */
       enabled: boolean;
+
+      /**
+       * The signature format to use for duty activity logs as a footer or such.
+       * @default DASignatureFormat.DiscordNickname
+       */
+      signature_format: DASignatureFormat;
 
       /* 
         The interval in milliseconds that the application will delete logged records of citations, arrests, and incidents
@@ -892,6 +898,8 @@ export namespace GuildCitations {
     name: string;
     /** Roblox display name */
     display_name: string;
+    /** @since 1.5.0 */
+    signature: string;
   }
 
   /** The comments provided by the officer who issued the citation. */
@@ -1061,6 +1069,13 @@ export namespace GuildArrests {
     roblox_id: number;
     discord_id: string;
 
+    /**
+     * @since 1.5.0
+     *
+     * The fictional signature of the officer.
+     */
+    signature: string;
+
     /** The formatted Roblox name of the officer. */
     formatted_name: string;
   }
@@ -1085,6 +1100,11 @@ export namespace GuildIncidents {
 
     /** The Discord username. */
     discord_username: string;
+
+    /**
+     * @since 1.5.0
+     */
+    signature: string;
   }
 
   interface IncidentRecord {
@@ -1128,7 +1148,7 @@ export namespace GuildIncidents {
     attachments: string[];
 
     last_updated: Date;
-    last_updated_by?: Pick<OfficerInvolved, "discord_id" | "discord_username"> | null;
+    last_updated_by?: Pick<OfficerInvolved, "discord_id" | "discord_username" | "signature"> | null;
   }
 }
 
