@@ -22,6 +22,7 @@ import {
   FormatUsername,
   FormatVehicleName,
   FormatCitViolations,
+  FormatDutyActivitiesLogSignature,
 } from "@Utilities/Strings/Formatters.js";
 
 import {
@@ -570,6 +571,11 @@ async function OnModalSubmission(
         roblox_id: CitingOfficer.RobloxUserId,
         name: OfficerRobloxInfo.name,
         display_name: OfficerRobloxInfo.displayName,
+        signature: FormatDutyActivitiesLogSignature(
+          CmdInteract.member,
+          OfficerRobloxInfo,
+          GuildSettings.duty_activities.signature_format
+        ),
       },
     };
 

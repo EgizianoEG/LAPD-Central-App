@@ -36,7 +36,10 @@ import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { ListSplitRegex } from "@Resources/RegularExpressions.js";
 import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
 import { GuildIncidents, Guilds } from "@Typings/Utilities/Database.js";
-import { FormatSortRDInputNames } from "@Utilities/Strings/Formatters.js";
+import {
+  FormatDutyActivitiesLogSignature,
+  FormatSortRDInputNames,
+} from "@Utilities/Strings/Formatters.js";
 import { GetDiscordAttachmentExtension } from "@Utilities/Strings/OtherUtils.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
@@ -353,6 +356,11 @@ async function PrepareIncidentData(
       roblox_id: ReportingOfficer.RobloxUserId,
       roblox_display_name: ReporterRobloxInfo?.displayName || "[Unknown]",
       roblox_username: ReporterRobloxInfo?.name || "[Unknown]",
+      signature: FormatDutyActivitiesLogSignature(
+        CmdInteract.member,
+        ReporterRobloxInfo,
+        GuildSettings.duty_activities.signature_format
+      ),
     },
   };
 

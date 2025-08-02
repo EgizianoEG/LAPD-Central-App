@@ -1,7 +1,7 @@
 import { ButtonInteraction } from "discord.js";
 import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
 import { CmdOptionsType } from "@Cmds/Miscellaneous/Log/Deps/Arrest.js";
-import { FormatUsername } from "@Utilities/Strings/Formatters.js";
+import { FormatDutyActivitiesLogSignature, FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { Images } from "@Config/Shared.js";
 
@@ -59,8 +59,12 @@ export default async function LogArrestReport(
 ) {
   ReportInfo.report_date = ReportInfo.report_date ?? CachedInteract.createdAt;
   ReportInfo.asst_officers = ReportInfo.asst_officers ?? [];
+
   const FArresteeName = FormatUsername(ArresteeInfo.roblox_user);
   const GuildSettings = await GetGuildSettings(CachedInteract.guildId);
+  const ArrOfficerMember = await CachedInteract.guild.members.fetch(
+    ReportInfo.arresting_officer.discord_id
+  );
 
   if (!GuildSettings) {
     throw new AppError({ template: "GuildConfigNotFound", showable: true });
@@ -88,6 +92,11 @@ export default async function LogArrestReport(
       formatted_name: FormatUsername(ReportInfo.arresting_officer.roblox_user),
       discord_id: ReportInfo.arresting_officer.discord_id,
       roblox_id: Number(ReportInfo.arresting_officer.roblox_user.id),
+      signature: FormatDutyActivitiesLogSignature(
+        ArrOfficerMember,
+        ReportInfo.arresting_officer.roblox_user,
+        GuildSettings.duty_activities.signature_format
+      ),
     },
 
     reporting_officer: ReportInfo.reporting_officer

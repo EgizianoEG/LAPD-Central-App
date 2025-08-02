@@ -41,16 +41,23 @@ import { isDeepEqual } from "remeda";
 import { GuildIncidents } from "@Typings/Utilities/Database.js";
 import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
-import { FormatSortRDInputNames } from "@Utilities/Strings/Formatters.js";
+import { DASignatureFormat } from "@Config/Constants.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { SanitizeDiscordAttachmentLink } from "@Utilities/Strings/OtherUtils.js";
 import { IncidentReportNumberLineRegex, ListSplitRegex } from "@Resources/RegularExpressions.js";
+import {
+  FormatSortRDInputNames,
+  FormatDutyActivitiesLogSignature,
+} from "@Utilities/Strings/Formatters.js";
 
+import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 import IncidentModel from "@Models/Incident.js";
 import GetIncidentRecord from "@Utilities/Database/GetIncidentRecord.js";
+import GetRobloxUserLinked from "@Utilities/Database/IsUserLoggedIn.js";
 import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import GetGuildSettings, { GetGuildSettingsSync } from "@Utilities/Database/GetGuildSettings.js";
 
 const ListFormatter = new Intl.ListFormat("en");
 const NoneProvidedPlaceholder = "`[None Provided]`";
@@ -358,6 +365,19 @@ export async function HandleCommandValidationAndPossiblyGetIncident(
     }
   }
 
+  const GuildSettings = await GetGuildSettings(RecInteract.guildId);
+  if (
+    (GuildSettings?.require_authorization === true ||
+      GuildSettings?.duty_activities.signature_format & DASignatureFormat.RobloxDisplayName ||
+      GuildSettings?.duty_activities.signature_format & DASignatureFormat.RobloxUsername) &&
+    !(await GetRobloxUserLinked(RecInteract))
+  ) {
+    return new ErrorEmbed()
+      .useErrTemplate("RobloxUserNotLinked")
+      .replyToInteract(RecInteract, true, true)
+      .then(() => HandledValResult);
+  }
+
   return { handled: false, incident: IncidentReport };
 }
 
@@ -538,6 +558,7 @@ async function HandleIncidentRecordUpdateConfirm(
   UpdatedIncRecord: GuildIncidents.IncidentRecord
 ) {
   const RecordSetMap: { [key: string]: any } = {};
+  const GuildSettings = GetGuildSettingsSync(BtnInteract.guildId);
   await BtnInteract.deferUpdate().catch(() => null);
 
   if (DatabaseIncRecord.status !== UpdatedIncRecord.status) {
@@ -570,6 +591,19 @@ async function HandleIncidentRecordUpdateConfirm(
     });
   }
 
+  let UpdaterSignature: string = `@${BtnInteract.user.username}`;
+  try {
+    const UpdaterLinkedRAId = await GetRobloxUserLinked(BtnInteract);
+    const UpdaterLRAInfo = await GetUserInfo(UpdaterLinkedRAId);
+    UpdaterSignature = FormatDutyActivitiesLogSignature(
+      BtnInteract.member,
+      UpdaterLRAInfo,
+      GuildSettings!.duty_activities.signature_format
+    );
+  } catch {
+    // Ignored.
+  }
+
   const UpdatedDatabaseIncRecord = await IncidentModel.findOneAndUpdate(
     {
       guild: BtnInteract.guildId,
@@ -580,6 +614,7 @@ async function HandleIncidentRecordUpdateConfirm(
         ...RecordSetMap,
         last_updated: BtnInteract.createdAt,
         last_updated_by: {
+          signature: UpdaterSignature,
           discord_id: BtnInteract.user.id,
           discord_username: BtnInteract.user.username,
         },
