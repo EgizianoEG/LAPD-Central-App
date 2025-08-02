@@ -1,5 +1,6 @@
 import { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.js";
 import { model, Model, Schema } from "mongoose";
+import { FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
 import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 
@@ -256,6 +257,15 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
       display_name: {
         type: String,
         required: true,
+      },
+      signature: {
+        type: String,
+        requited: true,
+        minLength: 3,
+        maxLength: 100,
+        default(this: CitationPlainDoc) {
+          return FormatUsername(this.citing_officer, false, false);
+        },
       },
     },
   },

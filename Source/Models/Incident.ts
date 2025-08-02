@@ -122,6 +122,16 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
         required: true,
         match: /^\d{15,22}$/,
       },
+
+      signature: {
+        type: String,
+        required: true,
+        minLength: 3,
+        maxLength: 100,
+        default(this: IncidentPlainDoc) {
+          return `@${this.reporter.discord_username}`;
+        },
+      },
     },
   },
 
@@ -183,6 +193,16 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
         required: true,
         minlength: 2,
         maxlength: 32,
+      },
+
+      signature: {
+        type: String,
+        required: true,
+        minLength: 3,
+        maxLength: 100,
+        default(this: IncidentPlainDoc) {
+          return `@${this.last_updated_by!.discord_username}`;
+        },
       },
     },
   },

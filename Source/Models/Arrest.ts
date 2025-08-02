@@ -123,10 +123,19 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
         required: true,
       },
 
-      // Last known name (to use as a fallback when getting the username from id fails).
       formatted_name: {
         type: String,
         required: true,
+      },
+
+      signature: {
+        type: String,
+        required: true,
+        minLength: 3,
+        maxLength: 100,
+        default(this: ArrestPlainDoc) {
+          return this.arresting_officer.formatted_name;
+        },
       },
 
       discord_id: {
