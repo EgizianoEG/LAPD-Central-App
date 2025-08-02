@@ -568,7 +568,7 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
 
   // Citing Officer
   CTX.fillText(
-    `${CitData.citing_officer.display_name} (@${CitData.citing_officer.name})`,
+    CitData.citing_officer.signature,
     RCoords.cit_officer.x * TWidth,
     RCoords.cit_officer.y * THeight,
     0.9067 * TWidth

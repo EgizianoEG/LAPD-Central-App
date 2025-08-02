@@ -13,14 +13,9 @@ export default async function GetFormattedArrestReportEmbed(
   RefetchUsernames: boolean = true
 ) {
   let FArresteeName = ArrestInfo.arrestee.formatted_name;
-  let FOfficerName =
-    ArrestInfo.reporting_officer?.formatted_name ?? ArrestInfo.arresting_officer.formatted_name;
-
   if (RefetchUsernames) {
     const ArresteeUserInfo = await GetUserInfo(ArrestInfo.arrestee.roblox_id);
-    const OfficerRobloxInfo = await GetUserInfo(ArrestInfo.arresting_officer.roblox_id);
     FArresteeName = FormatUsername(ArresteeUserInfo, false, true);
-    FOfficerName = FormatUsername(OfficerRobloxInfo);
   }
 
   const FAsstOfficers = ArrestInfo.assisting_officers.length
@@ -55,7 +50,7 @@ export default async function GetFormattedArrestReportEmbed(
     .setColor(Colors.DarkBlue)
     .setFooter({
       iconURL: Icons.Signature,
-      text: `Report signed by: ${FOfficerName}`,
+      text: `Report signed by ${ArrestInfo.arresting_officer.signature}`,
     })
     .setFields([
       {
