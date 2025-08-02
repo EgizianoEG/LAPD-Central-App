@@ -50,13 +50,18 @@ import {
   WarnContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
+import {
+  DASignatureFormat,
+  RiskyRolePermissions,
+  SignatureFormatResolved,
+} from "@Config/Constants.js";
+
 import { Dedent } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { isDeepEqual } from "remeda";
 import { milliseconds } from "date-fns/milliseconds";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
-import { RiskyRolePermissions } from "@Config/Constants.js";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
@@ -168,6 +173,7 @@ const CTAIds = {
     CitationLogLocalChannel: `${ConfigTopics.DutyActivitiesConfiguration}-clc`,
     IncidentLogLocalChannel: `${ConfigTopics.DutyActivitiesConfiguration}-ilc`,
 
+    SignatureFormatType: `${ConfigTopics.AdditionalConfiguration}-dasf`,
     OutsideArrestLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oalc`,
     OutsideCitationLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oclc`,
   },
@@ -175,7 +181,6 @@ const CTAIds = {
   [ConfigTopics.AdditionalConfiguration]: {
     DActivitiesDeletionInterval: `${ConfigTopics.AdditionalConfiguration}-dadi`,
     UserTextInputFilteringEnabled: `${ConfigTopics.AdditionalConfiguration}-utfe`,
-    DutyActivitiesSignatureType: `${ConfigTopics.AdditionalConfiguration}-dast`,
   },
 
   [ConfigTopics.ReducedActivityConfiguration]: {
@@ -196,9 +201,9 @@ const ConfigTopicsExplanations = {
     Title: "App Basic Configuration",
     Settings: [
       {
-        Name: "Roblox Authorization Required",
+        Name: "Roblox Account Link Required",
         Description:
-          "Enable or disable the app's Roblox authorization requirement. If enabled, the app requires users to have their Roblox account linked before " +
+          "Enable or disable the app's Roblox authorization requirement. If enabled, the app requires members to have their Roblox account linked before " +
           "they can use specific staff commands, such as `log` and `duty` commands. This option is enabled and cannot be changed at the moment by default.",
       },
       {
@@ -232,6 +237,12 @@ const ConfigTopicsExplanations = {
         Name: "Shift Log Destination",
         Description:
           "The channel or thread where notices will be sent when a shift starts, pauses, ends, is voided, or when a shift data wipe or modification occurs.",
+      },
+      {
+        Name: "Server Default Shift Quota",
+        Description:
+          "Set the default shift quota for all staff in here to a specific duration of time. This will be taken " +
+          "into account, for example, when generating activity reports where a quota was not provided.",
       },
     ],
   },
@@ -298,8 +309,14 @@ const ConfigTopicsExplanations = {
       {
         Name: "Cross-Server Log Sharing",
         Description:
-          "Add channels from other servers to mirror your citation and arrest logs. " +
+          "Add additional channels from other servers to mirror your citation and arrest logs. " +
           "These will receive identical log messages alongside your primary local channels.",
+      },
+      {
+        Name: "Signature Format",
+        Description:
+          "Select the format used for signatures when logging duty activities such as reports and citations. " +
+          "If you choose a format that includes Roblox usernames or display names, members must have their Roblox account linked for logging to work.",
       },
     ],
   },
@@ -318,12 +335,6 @@ const ConfigTopicsExplanations = {
           "Enable or disable filtering of member text input in certain commands to help prevent abuse within the application. " +
           "This setting is enabled by default and uses the server's auto-moderation rules to attempt to redact profane words " +
           "and offensive language, in addition to the link filtering provided by the application.",
-      },
-      {
-        Name: "Server Default Shift Quota",
-        Description:
-          "Set the default shift quota for all staff in here to a specific duration of time. This will be taken " +
-          "into account, for example, when generating activity reports where a quota was not provided.",
       },
     ],
   },
@@ -894,12 +905,66 @@ function GetDutyActModuleConfigComponents(
       )
   );
 
+  const SignatureFormatAR = new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+    new StringSelectMenuBuilder()
+      .setPlaceholder("Signature Format")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .setCustomId(
+        `${CTAIds[ConfigTopics.DutyActivitiesConfiguration].SignatureFormatType}:${Interaction.user.id}`
+      )
+      .setOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Discord Nickname")
+          .setDescription("[DiscordNickname]")
+          .setValue(DASignatureFormat.DiscordNickname.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.DiscordNickname),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Discord Username")
+          .setDescription("@[DiscordUsername]")
+          .setValue(DASignatureFormat.DiscordUsername.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.DiscordUsername),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Discord Nickname and Username")
+          .setDescription("[DiscordNickname] (@[DiscordUsername])")
+          .setValue(DASignatureFormat.DiscordNicknameDiscordUsername.toString())
+          .setDefault(
+            DActivitiesConfig.signature_format === DASignatureFormat.DiscordNicknameDiscordUsername
+          ),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Roblox Display Name")
+          .setDescription("[RobloxDisplayName]")
+          .setValue(DASignatureFormat.RobloxDisplayName.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.RobloxDisplayName),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Roblox Username")
+          .setDescription("@[RobloxUsername]")
+          .setValue(DASignatureFormat.RobloxUsername.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.RobloxUsername),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Roblox Display Name and Username")
+          .setDescription("[RobloxDisplayName] (@[RobloxUsername])")
+          .setValue(DASignatureFormat.RobloxDisplayNameRobloxUsername.toString())
+          .setDefault(
+            DActivitiesConfig.signature_format === DASignatureFormat.RobloxDisplayNameRobloxUsername
+          ),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Discord Nickname and Roblox Username")
+          .setDescription("[DiscordNickname] (@[RobloxUsername])")
+          .setValue(DASignatureFormat.DiscordNicknameRobloxUsername.toString())
+          .setDefault(
+            DActivitiesConfig.signature_format === DASignatureFormat.DiscordNicknameRobloxUsername
+          )
+      )
+  );
+
   return [
     ModuleEnabledAR,
     LocalCitsLogChannelBtn,
     LocalArrestsLogChannelBtn,
     IncidentLogChannelBtn,
     SetOutsideLogChannelBtns,
+    SignatureFormatAR,
   ] as const;
 }
 
@@ -1214,9 +1279,9 @@ function GetShiftModuleConfigContainers(
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             Dedent(`
-            3. **${ConfigTopicsExplanations[ConfigTopics.AdditionalConfiguration].Settings[2].Name}**
+            4. **${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[3].Name}**
             **Currently Set:** ${ConfiguredDefaultServerQuota}
-            ${ConfigTopicsExplanations[ConfigTopics.AdditionalConfiguration].Settings[2].Description}
+            ${ConfigTopicsExplanations[ConfigTopics.ShiftConfiguration].Settings[3].Description}
           `)
           )
         )
@@ -1243,6 +1308,10 @@ function GetDutyActivitiesModuleConfigContainers(
     (LC) => !LC.includes(":")
   );
 
+  const ContainerTitleComp = new TextDisplayBuilder().setContent(
+    `### ${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Title}`
+  );
+
   const CurrentlyConfiguredLocalChannels = {
     ArrestLog: CurrConfiguredArrestLogLocalChannel
       ? `<#${CurrConfiguredArrestLogLocalChannel}>`
@@ -1259,9 +1328,7 @@ function GetDutyActivitiesModuleConfigContainers(
     .setId(3)
     .setAccentColor(AccentColor)
     .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        `### ${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Title}`
-      ),
+      ContainerTitleComp,
       new TextDisplayBuilder().setContent(
         Dedent(`
           1. **${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[0].Name}**
@@ -1311,8 +1378,12 @@ function GetDutyActivitiesModuleConfigContainers(
             `)
           )
         )
-    )
-    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    );
+
+  const Page_2 = new ContainerBuilder()
+    .setId(3)
+    .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ContainerTitleComp)
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         Dedent(`
@@ -1321,9 +1392,19 @@ function GetDutyActivitiesModuleConfigContainers(
         `)
       )
     )
-    .addActionRowComponents(DutyActivitiesInteractComponents[4]);
+    .addActionRowComponents(DutyActivitiesInteractComponents[4])
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          6. **${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[5].Name}**
+          ${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[5].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(DutyActivitiesInteractComponents[5]);
 
-  return [Page_1] as const;
+  return [Page_1, Page_2] as const;
 }
 
 function GetLeaveModuleConfigContainers(
@@ -1575,6 +1656,7 @@ function GetAdditionalConfigContainers(
       )
     )
     .addActionRowComponents(AdditionalConfigInteractComponents[1]);
+
   return [Page_1] as const;
 }
 
@@ -1703,6 +1785,7 @@ function GetCSDutyActivitiesContent(GuildSettings: GuildSettings): string {
 
   return Dedent(`
     >>> **Module Enabled:** ${GuildSettings.duty_activities.enabled ? "Yes" : "No"}
+    **Signature Format:** \`${SignatureFormatResolved[GuildSettings.duty_activities.signature_format]}\`
     **Incident Log Channel:** ${IncidentLogChannel}
     **Citation Log Channel${CitationLogChannels.length > 1 ? "s" : ""}:** 
     ${CitationLogChannels.length ? ListFormatter.format(CitationLogChannels) : "*None*"}
@@ -2572,12 +2655,24 @@ async function HandleDutyActivitiesConfigPageInteracts(
     }
 
     return false;
-  } else if (
-    RecInteract.isStringSelectMenu() &&
-    RecInteract.customId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].ModuleEnabled)
-  ) {
-    MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
-    RecInteract.deferUpdate().catch(() => null);
+  }
+
+  if (RecInteract.isStringSelectMenu()) {
+    if (
+      RecInteract.customId.startsWith(
+        CTAIds[ConfigTopics.DutyActivitiesConfiguration].ModuleEnabled
+      )
+    ) {
+      MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
+      RecInteract.deferUpdate().catch(() => null);
+    } else if (
+      RecInteract.customId.startsWith(
+        CTAIds[ConfigTopics.DutyActivitiesConfiguration].SignatureFormatType
+      )
+    ) {
+      MState.ModuleConfig.signature_format = parseInt(RecInteract.values[0]);
+      RecInteract.deferUpdate().catch(() => null);
+    }
   }
 
   return false;
