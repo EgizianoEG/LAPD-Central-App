@@ -1,9 +1,10 @@
 /* eslint-disable sonarjs/cognitive-complexity */
 import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 import { AddStatutesRegexes, ATVCodesRegexes } from "@Resources/RegularExpressions.js";
+import { GuildMember, userMention } from "discord.js";
 import { format as FormatStr } from "node:util";
+import { DASignatureFormat } from "@Config/Constants.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
-import { userMention } from "discord.js";
 import { TitleCase } from "./Converters.js";
 import { Vehicles } from "@Typings/Resources.js";
 import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
@@ -671,7 +672,44 @@ export function FormatUsername(
       return Formatted;
     }
   }
-  return "[Invalid]";
+  return "[invalid]";
+}
+
+/**
+ * Formats a signature string for duty activities logs based on the specified format and provided details.
+ * @param LoggerMember - The GuildMember object representing the person who logged the activity.
+ * @param RobloxDetails - An object containing Roblox user details, including name, display name, and ID.
+ * @param SignatureFormat - The key of the desired signature format from the `DASignatureFormat` enum.
+ * @returns A formatted signature string based on the selected format.
+ */
+export function FormatDutyActivitiesLogSignature(
+  LoggerMember: GuildMember,
+  RobloxDetails: {
+    name: string;
+    display_name?: string;
+    displayName?: string;
+    id?: string | number;
+  },
+  SignatureFormat: keyof typeof DASignatureFormat
+): string {
+  const Formatters = {
+    [DASignatureFormat.DiscordUsername]: () => LoggerMember.user.username,
+    [DASignatureFormat.DiscordNickname]: () => LoggerMember.nickname ?? LoggerMember.displayName,
+    [DASignatureFormat.RobloxUsername]: () => RobloxDetails.name,
+    [DASignatureFormat.RobloxDisplayName]: () =>
+      RobloxDetails.display_name ?? RobloxDetails.displayName ?? RobloxDetails.name,
+
+    [DASignatureFormat.DiscordNicknameRobloxUsername]: () =>
+      `${LoggerMember.nickname ?? LoggerMember.displayName} (@${RobloxDetails.name})`,
+    [DASignatureFormat.DiscordNicknameDiscordUsername]: () =>
+      `${LoggerMember.nickname ?? LoggerMember.displayName} (@${LoggerMember.user.username})`,
+    [DASignatureFormat.RobloxDisplayNameRobloxUsername]: () => {
+      const RDisplay = RobloxDetails.display_name ?? RobloxDetails.displayName;
+      return RDisplay ? `${RDisplay} (@${RobloxDetails.name})` : `@${RobloxDetails.name}`;
+    },
+  };
+
+  return Formatters[SignatureFormat]();
 }
 
 /**

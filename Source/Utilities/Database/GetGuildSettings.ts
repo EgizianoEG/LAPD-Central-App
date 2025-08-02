@@ -28,3 +28,13 @@ export default async function GetGuildSettings(
 
   return GuildDocument ? GuildDocument.settings : null;
 }
+
+/**
+ * Retrieves the guild settings synchronously from the MongoDB cache.
+ * @param GuildId - The ID of the guild to retrieve settings for.
+ * @returns The guild settings if found in the cache, otherwise `null`.
+ */
+export function GetGuildSettingsSync(GuildId: string): Guilds.GuildSettings | null {
+  const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
+  return GuildDocumentCacheRef ? structuredClone(GuildDocumentCacheRef.settings) : null;
+}
