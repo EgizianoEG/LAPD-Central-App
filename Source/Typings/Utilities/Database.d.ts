@@ -13,6 +13,7 @@ import type {
   RoadSurfaceConditions,
 } from "@Models/Citation.ts";
 
+import type UserActivityNoticeModel from "@Models/UserActivityNotice.ts";
 import type ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.ts";
 import type AppError from "@Utilities/Classes/AppError.ts";
 
@@ -563,6 +564,7 @@ export namespace UserActivityNotice {
   type NoticeType = "LeaveOfAbsence" | "ReducedActivity";
   type NoticeStatus = "Pending" | "Approved" | "Denied" | "Cancelled";
   type NoticeModel = Model<UserActivityNoticeDocument, {}, DocumentMethods, DocumentVirtuals>;
+  type ANHDwInst = InstanceType<typeof UserActivityNoticeModel>;
   type ActivityNoticeHydratedDocument = HydratedDocument<
     UserActivityNotice.UserActivityNoticeDocument,
     DocumentVirtuals & DocumentMethods
@@ -585,11 +587,7 @@ export namespace UserActivityNotice {
      */
     getUpToDate<OldFallback extends boolean = false>(
       old_fallback: OldFallback = false
-    ): Promise<
-      OldFallback extends true
-        ? ActivityNoticeHydratedDocument
-        : ActivityNoticeHydratedDocument | null
-    >;
+    ): Promise<OldFallback extends true ? ANHDwInst : ANHDwInst | null>;
   }
 
   interface DocumentVirtuals {

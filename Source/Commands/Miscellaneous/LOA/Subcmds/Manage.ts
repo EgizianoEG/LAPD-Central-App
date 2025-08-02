@@ -586,6 +586,7 @@ async function HandlePendingExtensionCancellation(
 
   ActiveLeave = await ActiveLeave.getUpToDate();
   await ButtonInteract.deferUpdate();
+
   if (
     (await HandleLeaveReviewValidation(ButtonInteract, ActiveLeave)) ||
     !ActiveLeave?.extension_request

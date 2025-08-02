@@ -7,10 +7,7 @@ import GetGuildSettings from "./GetGuildSettings.js";
  *
  * @param Name - The name of the shift type to delete.
  * @param GuildId - The ID of the guild where the shift type is to be deleted.
- * @returns Promise<AppError|import("mongoose").HydratedDocument<typeof GuildModel>>
- * - Returns the saved guild document after deletion if succeeded or an `AppError`
- * if an error occurred while executing.
- *
+ * @returns A promise that resolves to the result of the deletion operation.
  * @example
  * // Example usage:
  * try {
@@ -50,8 +47,8 @@ export default async function DeleteShiftType(Name: string, GuildId: string) {
       { _id: GuildId },
       { $pull: { "shift_management.shift_types": { name: Name } } },
       {
-        new: true,
         upsert: true,
+        runValidators: true,
         setDefaultsOnInsert: true,
       }
     );
