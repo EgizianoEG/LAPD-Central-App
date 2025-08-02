@@ -388,8 +388,8 @@ describe("String Formatting Utilities", () => {
       expect(FormatUsername(InputUserData, undefined)).toBe("Builderman (@builderman_spec)");
     });
 
-    it("Should return the string '[Invalid]' if there was no name field in the input object or if it was an empty string", () => {
-      expect(FormatUsername({ name: "", display_name: "Builder" })).toBe("[Invalid]");
+    it("Should return the string '[invalid]' if there was no name field in the input object or if it was an empty string", () => {
+      expect(FormatUsername({ name: "", display_name: "Builder" })).toBe("[invalid]");
     });
 
     it("Should return the formatted string without ID if the ID field is not specified or a falsy value even if the IncludeID is `true`", () => {
