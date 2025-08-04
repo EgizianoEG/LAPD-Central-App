@@ -2150,6 +2150,7 @@ async function HandleDutyActivitiesModuleDBSave(
     {
       $set: {
         "settings.duty_activities.enabled": MState.ModuleConfig.enabled,
+        "settings.duty_activities.signature_format": MState.ModuleConfig.signature_format,
         "settings.duty_activities.log_channels.incidents":
           MState.ModuleConfig.log_channels.incidents,
         "settings.duty_activities.log_channels.citations":
@@ -2169,7 +2170,9 @@ async function HandleDutyActivitiesModuleDBSave(
   ).then((GuildDoc) => GuildDoc?.settings.duty_activities);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = { ...UpdatedSettings };
+    MState.OriginalConfig = clone(UpdatedSettings);
+    MState.ModuleConfig = clone(UpdatedSettings);
+
     const ARSetChannels = UpdatedSettings.log_channels.arrests.map((CI) =>
       channelMention(CI.match(/:?(\d+)$/)?.[1] || "0")
     );
@@ -2187,6 +2190,7 @@ async function HandleDutyActivitiesModuleDBSave(
       
       **Current Configuration:**
       - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
+      - **Signature Format:** \`${SignatureFormatResolved[UpdatedSettings.signature_format]}\`
       - **Incident Log Channel:** ${ILSetChannel}
       - **Citation Log Channel${CLSetChannels.length > 1 ? "s" : ""}:** ${CLSetChannels.length ? ListFormatter.format(CLSetChannels) : "*None*"}
       - **Arrest Log Channel${ARSetChannels.length > 1 ? "s" : ""}:** ${ARSetChannels.length ? ListFormatter.format(ARSetChannels) : "*None*"}

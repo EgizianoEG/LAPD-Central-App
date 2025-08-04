@@ -1064,7 +1064,7 @@ export const InfoMessages = {
   ConfigTopicNoChangesMade: {
     Title: "No Updates Applied",
     Description:
-      "There were no changes made to the %s module configuration of the application as the current settings already match the database.",
+      "There were no changes made to the %s of the application as the current settings already match the database.",
   },
 
   NicknameRegexNoMatchingMembers: {
