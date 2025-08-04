@@ -41,7 +41,7 @@ import { isDeepEqual } from "remeda";
 import { GuildIncidents } from "@Typings/Utilities/Database.js";
 import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
-import { DASignatureFormat } from "@Config/Constants.js";
+import { DASignatureFormats } from "@Config/Constants.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { SanitizeDiscordAttachmentLink } from "@Utilities/Strings/OtherUtils.js";
 import { IncidentReportNumberLineRegex, ListSplitRegex } from "@Resources/RegularExpressions.js";
@@ -368,8 +368,8 @@ export async function HandleCommandValidationAndPossiblyGetIncident(
   const GuildSettings = await GetGuildSettings(RecInteract.guildId);
   if (
     (GuildSettings?.require_authorization === true ||
-      GuildSettings?.duty_activities.signature_format & DASignatureFormat.RobloxDisplayName ||
-      GuildSettings?.duty_activities.signature_format & DASignatureFormat.RobloxUsername) &&
+      !!(GuildSettings?.duty_activities.signature_format & DASignatureFormats.RobloxDisplayName) ||
+      !!(GuildSettings?.duty_activities.signature_format & DASignatureFormats.RobloxUsername)) &&
     !(await GetRobloxUserLinked(RecInteract))
   ) {
     return new ErrorEmbed()

@@ -1,6 +1,6 @@
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { DASignatureFormat } from "@Config/Constants.js";
+import { DASignatureFormats } from "@Config/Constants.js";
 import {
   SlashCommandBuilder,
   InteractionContextType,
@@ -51,8 +51,8 @@ async function HandleInteractValidation(Interaction: SlashCommandInteraction<"ca
   const GuildSettings = await GetGuildSettings(Interaction.guildId);
   if (
     GuildSettings?.require_authorization === true ||
-    GuildSettings?.duty_activities.signature_format & DASignatureFormat.RobloxDisplayName ||
-    GuildSettings?.duty_activities.signature_format & DASignatureFormat.RobloxUsername
+    !!(GuildSettings?.duty_activities.signature_format & DASignatureFormats.RobloxDisplayName) ||
+    !!(GuildSettings?.duty_activities.signature_format & DASignatureFormats.RobloxUsername)
   ) {
     LinkedRAId = await GetRobloxUserLinked(Interaction);
     if (!LinkedRAId) {

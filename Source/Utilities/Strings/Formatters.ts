@@ -3,7 +3,7 @@ import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Helpers/Vali
 import { AddStatutesRegexes, ATVCodesRegexes } from "@Resources/RegularExpressions.js";
 import { GuildMember, userMention } from "discord.js";
 import { format as FormatStr } from "node:util";
-import { DASignatureFormat } from "@Config/Constants.js";
+import { DASignatureFormats } from "@Config/Constants.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
 import { TitleCase } from "./Converters.js";
 import { Vehicles } from "@Typings/Resources.js";
@@ -690,20 +690,20 @@ export function FormatDutyActivitiesLogSignature(
     displayName?: string;
     id?: string | number;
   },
-  SignatureFormat: keyof typeof DASignatureFormat
+  SignatureFormat: keyof typeof DASignatureFormats
 ): string {
   const Formatters = {
-    [DASignatureFormat.DiscordUsername]: () => LoggerMember.user.username,
-    [DASignatureFormat.DiscordNickname]: () => LoggerMember.nickname ?? LoggerMember.displayName,
-    [DASignatureFormat.RobloxUsername]: () => RobloxDetails.name,
-    [DASignatureFormat.RobloxDisplayName]: () =>
+    [DASignatureFormats.DiscordUsername]: () => LoggerMember.user.username,
+    [DASignatureFormats.DiscordNickname]: () => LoggerMember.nickname ?? LoggerMember.displayName,
+    [DASignatureFormats.RobloxUsername]: () => RobloxDetails.name,
+    [DASignatureFormats.RobloxDisplayName]: () =>
       RobloxDetails.display_name ?? RobloxDetails.displayName ?? RobloxDetails.name,
 
-    [DASignatureFormat.DiscordNicknameRobloxUsername]: () =>
+    [DASignatureFormats.DiscordNicknameRobloxUsername]: () =>
       `${LoggerMember.nickname ?? LoggerMember.displayName} (@${RobloxDetails.name})`,
-    [DASignatureFormat.DiscordNicknameDiscordUsername]: () =>
+    [DASignatureFormats.DiscordNicknameDiscordUsername]: () =>
       `${LoggerMember.nickname ?? LoggerMember.displayName} (@${LoggerMember.user.username})`,
-    [DASignatureFormat.RobloxDisplayNameRobloxUsername]: () => {
+    [DASignatureFormats.RobloxDisplayNameRobloxUsername]: () => {
       const RDisplay = RobloxDetails.display_name ?? RobloxDetails.displayName;
       return RDisplay ? `${RDisplay} (@${RobloxDetails.name})` : `@${RobloxDetails.name}`;
     },

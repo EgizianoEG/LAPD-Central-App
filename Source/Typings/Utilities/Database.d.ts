@@ -1,7 +1,7 @@
 import type { IncidentTypes, IncidentStatusesFlattened } from "@Resources/IncidentConstants.ts";
 import type { Types, HydratedDocument, Model } from "mongoose";
 import type { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.ts";
-import type { DASignatureFormat } from "@Config/Constants.ts";
+import type { DASignatureFormats } from "@Config/Constants.ts";
 import type { ShiftFlags } from "@Models/Shift.ts";
 import type { Overwrite } from "utility-types";
 import type {

@@ -51,7 +51,7 @@ import {
 } from "@Utilities/Classes/ExtraContainers.js";
 
 import {
-  DASignatureFormat,
+  DASignatureFormats,
   RiskyRolePermissions,
   SignatureFormatResolved,
 } from "@Config/Constants.js";
@@ -917,43 +917,44 @@ function GetDutyActModuleConfigComponents(
         new StringSelectMenuOptionBuilder()
           .setLabel("Discord Nickname")
           .setDescription("[DiscordNickname]")
-          .setValue(DASignatureFormat.DiscordNickname.toString())
-          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.DiscordNickname),
+          .setValue(DASignatureFormats.DiscordNickname.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormats.DiscordNickname),
         new StringSelectMenuOptionBuilder()
           .setLabel("Discord Username")
           .setDescription("@[DiscordUsername]")
-          .setValue(DASignatureFormat.DiscordUsername.toString())
-          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.DiscordUsername),
+          .setValue(DASignatureFormats.DiscordUsername.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormats.DiscordUsername),
         new StringSelectMenuOptionBuilder()
           .setLabel("Discord Nickname and Username")
           .setDescription("[DiscordNickname] (@[DiscordUsername])")
-          .setValue(DASignatureFormat.DiscordNicknameDiscordUsername.toString())
+          .setValue(DASignatureFormats.DiscordNicknameDiscordUsername.toString())
           .setDefault(
-            DActivitiesConfig.signature_format === DASignatureFormat.DiscordNicknameDiscordUsername
+            DActivitiesConfig.signature_format === DASignatureFormats.DiscordNicknameDiscordUsername
           ),
         new StringSelectMenuOptionBuilder()
           .setLabel("Roblox Display Name")
           .setDescription("[RobloxDisplayName]")
-          .setValue(DASignatureFormat.RobloxDisplayName.toString())
-          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.RobloxDisplayName),
+          .setValue(DASignatureFormats.RobloxDisplayName.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormats.RobloxDisplayName),
         new StringSelectMenuOptionBuilder()
           .setLabel("Roblox Username")
           .setDescription("@[RobloxUsername]")
-          .setValue(DASignatureFormat.RobloxUsername.toString())
-          .setDefault(DActivitiesConfig.signature_format === DASignatureFormat.RobloxUsername),
+          .setValue(DASignatureFormats.RobloxUsername.toString())
+          .setDefault(DActivitiesConfig.signature_format === DASignatureFormats.RobloxUsername),
         new StringSelectMenuOptionBuilder()
           .setLabel("Roblox Display Name and Username")
           .setDescription("[RobloxDisplayName] (@[RobloxUsername])")
-          .setValue(DASignatureFormat.RobloxDisplayNameRobloxUsername.toString())
+          .setValue(DASignatureFormats.RobloxDisplayNameRobloxUsername.toString())
           .setDefault(
-            DActivitiesConfig.signature_format === DASignatureFormat.RobloxDisplayNameRobloxUsername
+            DActivitiesConfig.signature_format ===
+              DASignatureFormats.RobloxDisplayNameRobloxUsername
           ),
         new StringSelectMenuOptionBuilder()
           .setLabel("Discord Nickname and Roblox Username")
           .setDescription("[DiscordNickname] (@[RobloxUsername])")
-          .setValue(DASignatureFormat.DiscordNicknameRobloxUsername.toString())
+          .setValue(DASignatureFormats.DiscordNicknameRobloxUsername.toString())
           .setDefault(
-            DActivitiesConfig.signature_format === DASignatureFormat.DiscordNicknameRobloxUsername
+            DActivitiesConfig.signature_format === DASignatureFormats.DiscordNicknameRobloxUsername
           )
       )
   );

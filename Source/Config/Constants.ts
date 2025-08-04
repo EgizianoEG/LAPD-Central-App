@@ -20,22 +20,22 @@ export const RiskyRolePermissions = [
   PermissionFlagsBits.ManageGuildExpressions,
 ];
 
-export const DASignatureFormat = {
-  DiscordNickname: 0,
-  DiscordUsername: 0,
-  RobloxUsername: 0,
-  RobloxDisplayName: 0,
-  DiscordNicknameRobloxUsername: 0,
-  DiscordNicknameDiscordUsername: 0,
-  RobloxDisplayNameRobloxUsername: 0,
+export const DASignatureFormats = {
+  DiscordNickname: 1 << 0,
+  DiscordUsername: 1 << 1,
+  RobloxUsername: 1 << 2,
+  RobloxDisplayName: 1 << 3,
+  DiscordNicknameRobloxUsername: (1 << 0) | (1 << 2),
+  DiscordNicknameDiscordUsername: (1 << 0) | (1 << 1),
+  RobloxDisplayNameRobloxUsername: (1 << 3) | (1 << 2),
 };
 
 export const SignatureFormatResolved = {
-  [DASignatureFormat.DiscordNickname]: "Discord Nickname",
-  [DASignatureFormat.DiscordUsername]: "Discord Username",
-  [DASignatureFormat.RobloxUsername]: "Roblox Username",
-  [DASignatureFormat.RobloxDisplayName]: "Roblox Display Name",
-  [DASignatureFormat.DiscordNicknameRobloxUsername]: "Discord Nickname + Roblox Username",
-  [DASignatureFormat.DiscordNicknameDiscordUsername]: "Discord Nickname + Discord Username",
-  [DASignatureFormat.RobloxDisplayNameRobloxUsername]: "Roblox Display Name + Roblox Username",
+  [DASignatureFormats.DiscordNickname]: "Discord Nickname",
+  [DASignatureFormats.DiscordUsername]: "Discord Username",
+  [DASignatureFormats.RobloxUsername]: "Roblox Username",
+  [DASignatureFormats.RobloxDisplayName]: "Roblox Display Name",
+  [DASignatureFormats.DiscordNicknameRobloxUsername]: "Discord Nickname + Roblox Username",
+  [DASignatureFormats.DiscordNicknameDiscordUsername]: "Discord Nickname + Discord Username",
+  [DASignatureFormats.RobloxDisplayNameRobloxUsername]: "Roblox Display Name + Roblox Username",
 };
