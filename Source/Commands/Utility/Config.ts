@@ -58,10 +58,10 @@ import {
 
 import { Dedent } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { isDeepEqual } from "remeda";
 import { milliseconds } from "date-fns/milliseconds";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
+import { clone, isDeepEqual } from "remeda";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
@@ -113,8 +113,8 @@ interface ModuleState<T extends SettingsResolvable> {
   /** The current page as an index; i.e. `0` = first page. */
   CurrentPage: number;
 
-  /** A getter for indicating whether the module settings has been modified (OriginalConfig ≠ ModuleConfig). */
-  Modified: boolean;
+  /** Indicates whether the module settings has been modified (OriginalConfig ≠ ModuleConfig). */
+  IsModified: () => boolean;
 
   /** The current configuration state; i.e. the modified settings (if modified). */
   ModuleConfig: T;
@@ -1808,7 +1808,7 @@ async function HandleConfigSave<T extends SettingsResolvable>(
   Interaction: ModulePromptUpdateSupportedInteraction<"cached">,
   MState: ModuleState<T>
 ): Promise<boolean> {
-  if (!MState.Modified) {
+  if (MState.IsModified() === false) {
     return new InfoContainer()
       .useInfoTemplate(
         "ConfigTopicNoChangesMade",
@@ -1945,7 +1945,9 @@ async function HandleBasicConfigDBSave(
   ).then((GuildDoc) => GuildDoc?.settings);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = { ...(UpdatedSettings as GuildSettings) };
+    MState.OriginalConfig = clone(UpdatedSettings) as GuildSettings;
+    MState.ModuleConfig = clone(UpdatedSettings) as GuildSettings;
+
     const SetStaffRoles = UpdatedSettings.role_perms.staff.map((R) => roleMention(R));
     const SetMgmtRoles = UpdatedSettings.role_perms.management.map((R) => roleMention(R));
 
@@ -2218,7 +2220,9 @@ async function HandleAdditionalConfigDBSave(
   ).then((GuildDoc) => GuildDoc?.settings);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = { ...(UpdatedSettings as GuildSettings) };
+    MState.OriginalConfig = clone(UpdatedSettings) as GuildSettings;
+    MState.ModuleConfig = clone(UpdatedSettings) as GuildSettings;
+
     const LDIFormatted = GetHumanReadableLogDeletionInterval(
       UpdatedSettings.duty_activities.log_deletion_interval
     );
@@ -3188,7 +3192,7 @@ async function HandleReducedActivityModuleSelection(
 async function HandleModuleConfigInteractions<SR extends SettingsResolvable>(
   SelectInteract: StringSelectMenuInteraction<"cached">,
   ConfigPrompt: Message<true>,
-  OriginalConfig: SR,
+  DatabaseConfig: SR,
   ConfigTopic: ConfigTopics,
   GetContainersFn: (
     Interact: ModulePromptUpdateSupportedInteraction,
@@ -3196,17 +3200,14 @@ async function HandleModuleConfigInteractions<SR extends SettingsResolvable>(
   ) => readonly ContainerBuilder[] | ContainerBuilder[]
 ): Promise<void> {
   const State: ModuleState<SR> = {
-    OriginalConfig,
+    TotalPages: GetContainersFn(SelectInteract, DatabaseConfig).length,
+    OriginalConfig: clone(DatabaseConfig),
+    ModuleConfig: clone(DatabaseConfig),
     ConfigTopic,
     CurrentPage: 0,
-    ModuleConfig: { ...OriginalConfig },
-    TotalPages: GetContainersFn(SelectInteract, OriginalConfig).length,
-    get Modified() {
-      return isDeepEqual(this.OriginalConfig, this.ModuleConfig) === false;
-    },
 
-    set Modified(_) {
-      return;
+    IsModified() {
+      return isDeepEqual(this.OriginalConfig, this.ModuleConfig) === false;
     },
   };
 
