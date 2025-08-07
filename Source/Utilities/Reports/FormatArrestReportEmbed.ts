@@ -1,6 +1,5 @@
 import { FormatSortRDInputNames, FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { Colors, EmbedBuilder, userMention } from "discord.js";
-import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
 import { GuildArrests } from "@Typings/Utilities/Database.js";
 import { Icons } from "@Config/Shared.js";
 
@@ -19,16 +18,7 @@ export default async function GetFormattedArrestReportEmbed(
   }
 
   const FAsstOfficers = ArrestInfo.assisting_officers.length
-    ? ListFormatter.format(
-        FormatSortRDInputNames(
-          ArrestInfo.assisting_officers.filter((ID) =>
-            IsValidDiscordId(ID) && ArrestInfo.reporting_officer
-              ? ID !== ArrestInfo.reporting_officer.discord_id
-              : true
-          ),
-          true
-        )
-      )
+    ? ListFormatter.format(FormatSortRDInputNames(ArrestInfo.assisting_officers, true))
     : "N/A";
 
   const ReportSubmittingAndArresstingOfficerText = ArrestInfo.reporting_officer

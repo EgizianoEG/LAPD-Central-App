@@ -338,7 +338,7 @@ async function OnChargesModalSubmission(
   const BookingMugshotURL = await GetBookingMugshot<true>({
     thumb_is_bust: true,
     return_url: true,
-    head_position: 25,
+    head_position: 18,
     height: CmdOptions.Height,
     thumb_img: ArresteeThumbURL,
     booking_num: BookingNumber,
