@@ -31,7 +31,7 @@ export default async function CreateShiftReport(
   const RecordsSheetId = CSpreadsheet.data.sheets?.[0]?.properties?.sheetId;
   const StatisticsSheetId = CSpreadsheet.data.sheets?.[1]?.properties?.sheetId;
 
-  if (!RecordsSheetId || !StatisticsSheetId) {
+  if (RecordsSheetId == null || StatisticsSheetId == null) {
     throw new AppError({
       title: "Sheet ID Retrieval Error",
       stack: new Error().stack,
