@@ -85,7 +85,9 @@ export default async function GetActivityReportData(
     ...(GuildConfig?.role_perms.management ?? []),
   ];
 
-  const ShiftStatusRoles = [
+  const ShiftOrUANStatusRoles = [
+    ...[GuildConfig?.leave_notices.leave_role].filter((R): R is string => !!R),
+    ...[GuildConfig?.reduced_activity.ra_role].filter((R): R is string => !!R),
     ...(GuildConfig?.shift_management.role_assignment.on_duty ?? []),
     ...(GuildConfig?.shift_management.role_assignment.on_break ?? []),
   ];
@@ -254,7 +256,10 @@ export default async function GetActivityReportData(
         },
         {
           userEnteredValue: {
-            stringValue: GetHighestHoistedRole(Member, ShiftStatusRoles) as Role | string | null,
+            stringValue: GetHighestHoistedRole(Member, ShiftOrUANStatusRoles) as
+              | Role
+              | string
+              | null,
           },
         },
         { userEnteredValue: { stringValue: ReadableDuration(Record.total_time) } },
@@ -283,7 +288,9 @@ export default async function GetActivityReportData(
           { userEnteredValue: { numberValue: 0, member: Member } },
           { userEnteredValue: { numberValue: 0 } },
           { userEnteredValue: { stringValue: FormatName(Member, Opts.include_member_nicknames) } },
-          { userEnteredValue: { stringValue: GetHighestHoistedRole(Member, ShiftStatusRoles) } },
+          {
+            userEnteredValue: { stringValue: GetHighestHoistedRole(Member, ShiftOrUANStatusRoles) },
+          },
           { userEnteredValue: { stringValue: ReadableDuration(0) } },
           { userEnteredValue: { numberValue: 0 } },
           { userEnteredValue: { numberValue: 0 } },
