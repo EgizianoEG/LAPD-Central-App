@@ -19,7 +19,7 @@ import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import ShiftModel from "@Models/Shift.js";
 import ParseDuration from "parse-duration";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import CreateShiftReport from "@Utilities/Reports/CreateShiftReport.js";
+import CreateActivityReport from "@Utilities/Reports/CreateActivityReport.js";
 import GetValidTargetShiftTypes from "@Utilities/Helpers/GetTargetShiftType.js";
 
 // ---------------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const GuildSettings = await GetGuildSettings(CmdInteraction.guildId);
   const FetchedGuildMembers = await CmdInteraction.guild.members.fetch();
   const ServerDefaultQuota = GuildSettings?.shift_management.default_quota ?? 0;
-  const ReportSpredsheetURL = await CreateShiftReport({
+  const ReportSpredsheetURL = await CreateActivityReport({
     guild: CmdInteraction.guild,
     after: DateRangeFilters.since,
     until: DateRangeFilters.until,

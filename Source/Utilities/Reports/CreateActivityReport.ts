@@ -7,7 +7,7 @@ import Util from "node:util";
 import AppError from "@Utilities/Classes/AppError.js";
 import GetActivityReportData from "@Utilities/Database/GetActivityReportData.js";
 
-export default async function CreateShiftReport(
+export default async function CreateActivityReport(
   Opts: Parameters<typeof GetActivityReportData>[0]
 ): Promise<string> {
   const ReportData = await GetActivityReportData(Opts);
