@@ -31,6 +31,7 @@ import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js
 import { DutyManagementBtnCustomIdRegex } from "@Resources/RegularExpressions.js";
 import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
 
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import HandleRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
@@ -432,7 +433,7 @@ async function HandleInvalidShiftAction(
     !IsUsingComponentsV2 ||
     differenceInSeconds(Interaction.createdAt, PromptMessageLastEditedTimestamp) >= secondsInDay
   ) {
-    await DisablePromptComponents(Interaction, TargetShift?.type);
+    await DisablePromptComponents(Interaction);
     return new ErrorEmbed()
       .useErrTemplate("DSMContinueExpired")
       .replyToInteract(Interaction, true, true, "followUp")
@@ -627,29 +628,25 @@ async function UpdateManagementPrompt(
  * Disables the interactive components (buttons) of a shift management prompt.
  * This function updates the buttons to a disabled state and edits or updates the interaction reply accordingly.
  * @param Interaction - The button interaction object.
- * @param TargetShiftType - (Optional) The specific shift type to target when updating the buttons.
  * @param SafeDisable - (Optional) If true, the function will not throw an error if the prompt cannot be updated. Defaults to true.
  * @returns A promise that resolves when the interaction is updated or edited.
  */
 async function DisablePromptComponents(
   Interaction: ButtonInteraction<"cached">,
-  TargetShiftType?: string,
   SafeDisable: boolean = true
 ) {
-  const DisabledMgmtComponents = GetShiftManagementButtons(
-    Interaction,
-    TargetShiftType
-  ).updateButtons({ start: false, end: false, break: false });
+  const PromptComps = Interaction.message.components.map((Comp) => Comp.toJSON());
+  const DisabledPrompt = DisableMessageComponents(PromptComps);
 
   try {
     if (Interaction.deferred || Interaction.replied) {
       await Interaction.editReply({
         message: Interaction.message.id,
-        components: [DisabledMgmtComponents],
+        components: DisabledPrompt,
       });
     } else {
       await Interaction.update({
-        components: [DisabledMgmtComponents],
+        components: DisabledPrompt,
       });
     }
   } catch (Err) {
