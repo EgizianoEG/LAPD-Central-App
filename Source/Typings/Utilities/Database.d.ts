@@ -122,6 +122,25 @@ export namespace Guilds {
       log_deletion_interval: number;
 
       /**
+       * Certain settings only for incident reports.
+       */
+      incident_reports: {
+        /**
+         * Automatically open and close threads on incident report messages on creation and on closed statuses if applicable.
+         * Only works in non-forum channels.
+         */
+        auto_thread_management: boolean;
+      };
+
+      /**
+       * Certain settings only for arrest reports.
+       */
+      arrest_reports: {
+        /** Should the "to protect and to server" header image be used in the output arrest report embeds? */
+        show_header_img: boolean;
+      };
+
+      /**
        * The logging channels for citations, arrests, and incidents.
        * For citations and arrests, it is possible to add a maximum of two channels (one local, one outside of the guild).
        * The following formats must be followed for these channels:

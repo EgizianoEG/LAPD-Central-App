@@ -18,6 +18,8 @@ import {
   time as FormatTime,
   ModalSubmitInteraction,
   SlashCommandSubcommandBuilder,
+  ThreadAutoArchiveDuration,
+  PermissionFlagsBits,
 } from "discord.js";
 
 import {
@@ -435,6 +437,7 @@ async function OnReportConfirmation(
   `);
 
   if (ReportSentMessage) {
+    HandleIncThreadCreation(ReportSentMessage, IncidentReport).catch(() => null);
     const MsgAttachmentURLs = ReportSentMessage.embeds
       .map((Embed) => Embed.data.image?.url)
       .filter((URL) => URL !== undefined);
@@ -521,6 +524,30 @@ async function OnReportInvolvedOfficersOrWitnessesAddition(
   }
 
   return Promise.all([ModalSubmission.deferUpdate(), BtnInteract.editReply({ embeds: IREmbeds })]);
+}
+
+async function HandleIncThreadCreation(
+  ReportMessage: Message<true>,
+  IncidentReport: GuildIncidents.IncidentRecord
+) {
+  const GuildSettings = await GetGuildSettings(ReportMessage.guildId);
+  if (!GuildSettings?.duty_activities.incident_reports.auto_thread_management) return;
+  if (ReportMessage.channel.isThread() || ReportMessage.channel.isThreadOnly()) return;
+  if (IncidentReport.status.match(/cleared|closed|referred|inactivated|unfounded/i)) return;
+  if (
+    !ReportMessage.channel
+      .permissionsFor(await ReportMessage.guild.members.fetchMe())
+      .has(PermissionFlagsBits.CreatePublicThreads, true)
+  ) {
+    return;
+  }
+
+  const ThreadName = `Incident Report #${IncidentReport.num} - ${IncidentReport.type}`;
+  return ReportMessage.startThread({
+    autoArchiveDuration: ThreadAutoArchiveDuration.OneDay,
+    reason: `Incident report #${IncidentReport.num} logged; a new thread has been created for it.`,
+    name: ThreadName,
+  });
 }
 
 async function HandleIRAdditionalDetailsAndConfirmation(

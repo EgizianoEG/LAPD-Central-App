@@ -112,6 +112,32 @@ const GuildSettings = new Schema({
         required: true,
       },
 
+      incident_reports: {
+        _id: false,
+        default: {},
+        required: true,
+        type: {
+          auto_thread_management: {
+            type: Boolean,
+            default: false,
+            required: true,
+          },
+        },
+      },
+
+      arrest_reports: {
+        _id: false,
+        default: {},
+        required: true,
+        type: {
+          show_header_img: {
+            type: Boolean,
+            default: false,
+            required: true,
+          },
+        },
+      },
+
       signature_format: {
         type: Number,
         required: true,

@@ -174,6 +174,9 @@ const CTAIds = {
     IncidentLogLocalChannel: `${ConfigTopics.DutyActivitiesConfiguration}-ilc`,
 
     SignatureFormatType: `${ConfigTopics.AdditionalConfiguration}-dasf`,
+    ArrestReportsImgHeaderEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-ar-hdr`,
+    IncReportsAutoThreadsMgmtEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-ir-atm`,
+
     OutsideArrestLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oalc`,
     OutsideCitationLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oclc`,
   },
@@ -317,6 +320,18 @@ const ConfigTopicsExplanations = {
         Description:
           "Select the format used for signatures when logging duty activities such as reports and citations. " +
           "If you choose a format that includes Roblox usernames or display names, members must have their Roblox account linked for logging to work.",
+      },
+      {
+        Name: "Arrest Reports Gap Image Header",
+        Description:
+          "Choose whether to display the 'to protect & to serve' image header at the bottom of each arrest report embed. Disabling this keeps reports more compact and focused on essential details.",
+      },
+      {
+        Name: "Incident Reports Auto Thread Management",
+        Description:
+          "When enabled, the app will automatically create a thread for each incident report message in the destination channel. " +
+          "This allows discussing and investigating incidents in a dedicated space. The thread will be closed automatically when the incident status is updated to a closed category.\n\n" +
+          "Note: Requires `Create Public Threads` permission and only works in non-forum channels.",
       },
     ],
   },
@@ -959,6 +974,52 @@ function GetDutyActModuleConfigComponents(
       )
   );
 
+  const ArrestReportsImgHeaderEnabledAR =
+    new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+      new StringSelectMenuBuilder()
+        .setPlaceholder("Arrest Reports Image Header Enabled/Disabled")
+        .setMinValues(1)
+        .setMaxValues(1)
+        .setCustomId(
+          `${CTAIds[ConfigTopics.DutyActivitiesConfiguration].ArrestReportsImgHeaderEnabled}:${Interaction.user.id}`
+        )
+        .setOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Enabled")
+            .setValue("true")
+            .setDescription("Include the image header in posted arrest reports.")
+            .setDefault(DActivitiesConfig.arrest_reports.show_header_img),
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Disabled")
+            .setValue("false")
+            .setDescription("Do not include the image header in arrest reports.")
+            .setDefault(!DActivitiesConfig.arrest_reports.show_header_img)
+        )
+    );
+
+  const IncidentReportsAutoThreadsMgmtEnabledAR =
+    new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+      new StringSelectMenuBuilder()
+        .setPlaceholder("Incident Reports Auto Threads Management Enabled/Disabled")
+        .setMinValues(1)
+        .setMaxValues(1)
+        .setCustomId(
+          `${CTAIds[ConfigTopics.DutyActivitiesConfiguration].IncReportsAutoThreadsMgmtEnabled}:${Interaction.user.id}`
+        )
+        .setOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Enabled")
+            .setValue("true")
+            .setDescription("Enable automatic thread management for incident reports.")
+            .setDefault(DActivitiesConfig.incident_reports.auto_thread_management),
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Disabled")
+            .setValue("false")
+            .setDescription("Disable automatic thread management for incident reports.")
+            .setDefault(!DActivitiesConfig.incident_reports.auto_thread_management)
+        )
+    );
+
   return [
     ModuleEnabledAR,
     LocalCitsLogChannelBtn,
@@ -966,6 +1027,8 @@ function GetDutyActModuleConfigComponents(
     IncidentLogChannelBtn,
     SetOutsideLogChannelBtns,
     SignatureFormatAR,
+    ArrestReportsImgHeaderEnabledAR,
+    IncidentReportsAutoThreadsMgmtEnabledAR,
   ] as const;
 }
 
@@ -1403,9 +1466,33 @@ function GetDutyActivitiesModuleConfigContainers(
         `)
       )
     )
-    .addActionRowComponents(DutyActivitiesInteractComponents[5]);
+    .addActionRowComponents(DutyActivitiesInteractComponents[5])
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          7. **${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[6].Name}**
+          ${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[6].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(DutyActivitiesInteractComponents[6]);
 
-  return [Page_1, Page_2] as const;
+  const Page_3 = new ContainerBuilder()
+    .setId(3)
+    .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ContainerTitleComp)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          8. **${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[7].Name}**
+          ${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[7].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(DutyActivitiesInteractComponents[7]);
+
+  return [Page_1, Page_2, Page_3] as const;
 }
 
 function GetLeaveModuleConfigContainers(
@@ -2156,6 +2243,10 @@ async function HandleDutyActivitiesModuleDBSave(
         "settings.duty_activities.log_channels.citations":
           MState.ModuleConfig.log_channels.citations,
         "settings.duty_activities.log_channels.arrests": MState.ModuleConfig.log_channels.arrests,
+        "settings.duty_activities.incident_reports.auto_thread_management":
+          MState.ModuleConfig.incident_reports.auto_thread_management,
+        "settings.duty_activities.arrest_reports.show_header_img":
+          MState.ModuleConfig.arrest_reports.show_header_img,
       },
     },
     {
@@ -2189,11 +2280,16 @@ async function HandleDutyActivitiesModuleDBSave(
       Successfully set/updated the app's duty activities module configuration.
       
       **Current Configuration:**
-      - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
-      - **Signature Format:** \`${SignatureFormatResolved[UpdatedSettings.signature_format]}\`
-      - **Incident Log Channel:** ${ILSetChannel}
-      - **Citation Log Channel${CLSetChannels.length > 1 ? "s" : ""}:** ${CLSetChannels.length ? ListFormatter.format(CLSetChannels) : "*None*"}
-      - **Arrest Log Channel${ARSetChannels.length > 1 ? "s" : ""}:** ${ARSetChannels.length ? ListFormatter.format(ARSetChannels) : "*None*"}
+      **General:**
+      > - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
+      > - **Signature Format:** \`${SignatureFormatResolved[UpdatedSettings.signature_format]}\`
+      > - **Inc. Reports Auto Thread Management:** ${UpdatedSettings.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
+      > - **Arrest Reports P&S Header Image:** ${UpdatedSettings.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
+
+      **Log Destinations:**
+      > - **Incident Log:** ${ILSetChannel}
+      > - **Citation Log:** ${CLSetChannels.length ? ListFormatter.format(CLSetChannels) : "*None*"}
+      > - **Arrest Log:** ${ARSetChannels.length ? ListFormatter.format(ARSetChannels) : "*None*"}
     `);
   } else {
     return null;
@@ -2666,24 +2762,28 @@ async function HandleDutyActivitiesConfigPageInteracts(
     return false;
   }
 
-  if (RecInteract.isStringSelectMenu()) {
-    if (
-      RecInteract.customId.startsWith(
-        CTAIds[ConfigTopics.DutyActivitiesConfiguration].ModuleEnabled
-      )
-    ) {
-      MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
-      RecInteract.deferUpdate().catch(() => null);
-    } else if (
-      RecInteract.customId.startsWith(
-        CTAIds[ConfigTopics.DutyActivitiesConfiguration].SignatureFormatType
-      )
-    ) {
-      MState.ModuleConfig.signature_format = parseInt(RecInteract.values[0]);
-      RecInteract.deferUpdate().catch(() => null);
-    }
+  if (!RecInteract.isStringSelectMenu()) return false;
+  if (CustomId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].ModuleEnabled)) {
+    MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
+  } else if (
+    CustomId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].SignatureFormatType)
+  ) {
+    MState.ModuleConfig.signature_format = parseInt(RecInteract.values[0]);
+  } else if (
+    CustomId.startsWith(
+      CTAIds[ConfigTopics.DutyActivitiesConfiguration].ArrestReportsImgHeaderEnabled
+    )
+  ) {
+    MState.ModuleConfig.arrest_reports.show_header_img = RecInteract.values[0] === "true";
+  } else if (
+    CustomId.startsWith(
+      CTAIds[ConfigTopics.DutyActivitiesConfiguration].IncReportsAutoThreadsMgmtEnabled
+    )
+  ) {
+    MState.ModuleConfig.incident_reports.auto_thread_management = RecInteract.values[0] === "true";
   }
 
+  RecInteract.deferUpdate().catch(() => null);
   return false;
 }
 

@@ -22,6 +22,7 @@ import {
   ButtonStyle,
   Message,
   Colors,
+  PermissionFlagsBits,
 } from "discord.js";
 
 import {
@@ -300,7 +301,8 @@ async function EditIncidentReportLogMessageBasedOnRecordAndInteraction(
   const Channel = await ReceivedInteract.client.channels.fetch(ChannelId);
   if (!Channel?.isTextBased()) return;
 
-  const Message = await Channel.messages.fetch(MessageId);
+  const Message = (await Channel.messages.fetch(MessageId)) as Message<true>;
+  HandleIncidentReportThreadReopeningOrClosure(Message, IncidentRecord).catch(() => null);
   if (!Message?.editable) return;
 
   const UpdatedAttachmentURLs = Message.embeds.flatMap((Embed) =>
@@ -319,6 +321,41 @@ async function EditIncidentReportLogMessageBasedOnRecordAndInteraction(
     embeds: IncidentReportEmbeds,
     files: [],
   });
+}
+
+async function HandleIncidentReportThreadReopeningOrClosure(
+  IncReportMsg: Message<true>,
+  IncidentReport: GuildIncidents.IncidentRecord
+) {
+  if (
+    !IncReportMsg.hasThread ||
+    !IncReportMsg.thread?.editable ||
+    !IncReportMsg.channel
+      .permissionsFor(await IncReportMsg.guild.members.fetchMe(), true)
+      .has(PermissionFlagsBits.ManageThreads)
+  ) {
+    return;
+  }
+
+  const IsClosedStatus = IncidentReport.status.match(
+    /cleared|closed|referred|inactivated|unfounded/i
+  );
+
+  if (IsClosedStatus) {
+    if (!IncReportMsg.thread.locked) {
+      return IncReportMsg.thread.edit({
+        reason: `Incident report #${IncidentReport.num} has been updated to a resolved or closed status; the thread has been locked and archived.`,
+        archived: true,
+        locked: true,
+      });
+    }
+  } else if (IncReportMsg.thread.archived || IncReportMsg.thread.locked) {
+    return IncReportMsg.thread.edit({
+      reason: `Incident report #${IncidentReport.num} has been updated to an active status; the thread has been unlocked and unarchived.`,
+      archived: false,
+      locked: false,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------------------

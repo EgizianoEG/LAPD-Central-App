@@ -116,9 +116,10 @@ export default async function LogArrestReport(
     () => null
   );
 
-  const FormattedReport = (await GetFormattedArrestReportEmbed(ArrestRecord, false)).setImage(
-    Images.LAPD_Header
-  );
+  const FormattedReport = await GetFormattedArrestReportEmbed(ArrestRecord, false);
+  if (GuildSettings.duty_activities.arrest_reports.show_header_img) {
+    FormattedReport.setImage(Images.LAPD_Header);
+  }
 
   const MainMsgLink = await SendGuildMessages(
     CachedInteract,
