@@ -40,7 +40,7 @@ export default async function GetFormattedArrestReportEmbed(
     .setColor(Colors.DarkBlue)
     .setFooter({
       iconURL: Icons.Signature,
-      text: `Report signed by ${ArrestInfo.arresting_officer.signature}`,
+      text: `Report signed by ${ArrestInfo.arresting_officer.signature || ArrestInfo.arresting_officer.formatted_name}`,
     })
     .setFields([
       {

@@ -58,8 +58,8 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     type: {
       formatted_name: {
         type: String,
-        trim: true,
-        required: true,
+        default: null,
+        required: false,
       },
 
       roblox_id: {
@@ -125,7 +125,8 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
 
       formatted_name: {
         type: String,
-        required: true,
+        default: null,
+        required: false,
       },
 
       signature: {
@@ -158,7 +159,8 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
 
       formatted_name: {
         type: String,
-        required: true,
+        default: null,
+        required: false,
       },
 
       discord_id: {
