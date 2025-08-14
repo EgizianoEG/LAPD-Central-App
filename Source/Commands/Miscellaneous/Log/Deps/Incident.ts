@@ -16,10 +16,10 @@ import {
   AttachmentBuilder,
   ButtonInteraction,
   time as FormatTime,
-  ModalSubmitInteraction,
-  SlashCommandSubcommandBuilder,
-  ThreadAutoArchiveDuration,
   PermissionFlagsBits,
+  ModalSubmitInteraction,
+  ThreadAutoArchiveDuration,
+  SlashCommandSubcommandBuilder,
 } from "discord.js";
 
 import {
@@ -30,6 +30,11 @@ import {
   IncidentDescriptionLength,
 } from "@Resources/IncidentConstants.js";
 
+import {
+  FormatSortRDInputNames,
+  FormatDutyActivitiesLogSignature,
+} from "@Utilities/Strings/Formatters.js";
+
 import { Types } from "mongoose";
 import { TitleCase } from "@Utilities/Strings/Converters.js";
 import { ReporterInfo } from "../Log.js";
@@ -38,20 +43,18 @@ import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { ListSplitRegex } from "@Resources/RegularExpressions.js";
 import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
 import { GuildIncidents, Guilds } from "@Typings/Utilities/Database.js";
-import {
-  FormatDutyActivitiesLogSignature,
-  FormatSortRDInputNames,
-} from "@Utilities/Strings/Formatters.js";
 import { GetDiscordAttachmentExtension } from "@Utilities/Strings/OtherUtils.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
-import IncidentModel, { GenerateNextIncidentNumber } from "@Models/Incident.js";
 
+import GenerateNextSequentialIncidentNumber from "@Utilities/Database/GenerateNextSequenceIncNum.js";
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import IncidentModel from "@Models/Incident.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
+import GuildModel from "@Models/Guild.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
 import Dedent from "dedent";
@@ -314,7 +317,7 @@ async function PrepareIncidentData(
 
   const InputNotes = ModalSubmission.fields.getTextInputValue("notes").replace(/\s+/g, " ") || null;
   const ReporterRobloxInfo = await GetUserInfo(ReportingOfficer.RobloxUserId);
-  const IncidentNumber = await GenerateNextIncidentNumber(CmdInteract.guild.id);
+  const IncidentNumber = await GenerateNextSequentialIncidentNumber(CmdInteract.guild.id);
 
   const IncidentNotes = InputNotes ? await FilterUserInput(InputNotes, UTIFOpts) : null;
   const IncidentLoc = await FilterUserInput(CmdProvidedDetails.location, UTIFOpts);
@@ -373,8 +376,37 @@ async function InsertIncidentRecord(
   Interact: ButtonInteraction<"cached"> | SlashCommandInteraction<"cached">,
   IncidentRecord: GuildIncidents.IncidentRecord
 ) {
-  IncidentRecord = { ...IncidentRecord, num: await GenerateNextIncidentNumber(Interact.guild.id) };
-  return IncidentModel.create(IncidentRecord);
+  IncidentRecord = {
+    ...IncidentRecord,
+    num: await GenerateNextSequentialIncidentNumber(Interact.guild.id),
+  };
+  const Session = await IncidentModel.startSession();
+  let InsertedDocument: GuildIncidents.IncidentRecord | null = null;
+
+  try {
+    await Session.withTransaction(async () => {
+      const CreatedDocuments = await IncidentModel.create([IncidentRecord], { session: Session });
+      if (CreatedDocuments?.[0]) {
+        await GuildModel.updateOne(
+          {
+            guild: Interact.guild.id,
+          },
+          {
+            $set: {
+              "logs.incidents.most_recent_num": CreatedDocuments[0].num,
+            },
+          },
+          { session: Session }
+        );
+
+        InsertedDocument = CreatedDocuments[0];
+      }
+    });
+  } finally {
+    await Session.endSession();
+  }
+
+  return InsertedDocument;
 }
 
 // ---------------------------------------------------------------------------------------

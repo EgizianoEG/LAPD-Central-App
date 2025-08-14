@@ -211,26 +211,3 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
 IncidentReportSchema.set("optimisticConcurrency", true);
 const IncidentModel = model<IncidentPlainDoc, IncidentModelType>("Incident", IncidentReportSchema);
 export default IncidentModel;
-
-/**
- * Generates a new sequential incident number for a guild in the format `YY-NNNNNN`.
- * @param GuildId - The ID of the guild to generate the number for.
- * @returns A formatted incident number string (e.g., "25-00007").
- */
-export async function GenerateNextIncidentNumber(GuildId: string): Promise<string> {
-  const CurrentYearSuffix = new Date().getFullYear().toString().slice(-2);
-  const LatestIncident = await IncidentModel.findOne(
-    { guild: GuildId },
-    { num: 1 },
-    { sort: { num: -1 }, lean: true }
-  ).exec();
-
-  let NextSequence = 1;
-  if (LatestIncident?.num) {
-    const LastNum = parseInt(LatestIncident.num.split("-")[1], 10);
-    NextSequence = LastNum + 1;
-  }
-
-  const PaddedSequence = NextSequence.toString().padStart(5, "0");
-  return `${CurrentYearSuffix}-${PaddedSequence}`;
-}

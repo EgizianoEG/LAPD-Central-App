@@ -39,9 +39,21 @@ export namespace Guilds {
   }
 
   interface GuildLogs {
-    arrests: string[];
-    citations: string[];
-    incidents: string[];
+    arrests: {
+      /** Booking numbers that have been used in the guild during the current year. */
+      used_bookings: string[];
+      logged: string[];
+    };
+    citations: {
+      /** Citation numbers that have been used in the guild during the current year. */
+      used_nums: string[];
+      logged: string[];
+    };
+    incidents: {
+      /** The most recent incident number for the guild. Used to prevent duplicate incident number creation. */
+      most_recent_num: string;
+      logged: string[];
+    };
   }
 
   interface GuildSettings {
