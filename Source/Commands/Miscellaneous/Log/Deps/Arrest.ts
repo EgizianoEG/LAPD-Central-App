@@ -321,7 +321,8 @@ async function OnChargesModalSubmission(
   );
 
   const FCharges = FormatCharges(RInputCharges);
-  const BookingNumber = parseInt(RandomString(4, /\d/, ExistingBookingNums));
+  const YearSuffix = new Date().getFullYear().toString().slice(-2);
+  const BookingNumber = parseInt(`${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`);
   const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
 
   const ArrestingOfficerRobloxId = PrimaryIsReporter
