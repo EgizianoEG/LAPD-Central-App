@@ -1064,7 +1064,7 @@ export const ERLCVehiclesData: Vehicles.VehicleData[] = [
         },
       },
       {
-        name: "Jeep Cherokee (XJ)",
+        name: "Cherokee (XJ)",
         alias: "Apache",
         style: "SUV",
         class: "SUV",
