@@ -89,259 +89,270 @@ export function AddStatutes(this: any, Charges: Array<string>): Array<string> {
 
   for (let i = 0; i < Charges.length; i++) {
     const AddChargeStatute = FormatStr.bind(this, "%s\n  Statute: § %s %s");
-    const Charge = Charges[i];
+    const RawCharge = (Charges[i] ?? "").toString();
+    const SanitizedCharge = RawCharge.replace(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
 
     // Assault/Stabbing charge statute codes
-    if (AddStatutesRegexes.Assault.test(Charge)) {
-      if (AddStatutesRegexes.DWeaponRegex.test(Charge)) {
-        if (Charge.match(/(?:Not|Other than) (?:a )?(?:Firearm|(?:Hand )?Gun|F\/ARM)/i)) {
-          if (AddStatutesRegexes.LERegex.test(Charge)) {
-            Charges[i] = AddChargeStatute(Charge, "245(C)", "PC");
+    if (AddStatutesRegexes.Assault.test(SanitizedCharge)) {
+      if (AddStatutesRegexes.DWeaponRegex.test(SanitizedCharge)) {
+        if (SanitizedCharge.match(/(?:Not|Other than) (?:a )?(?:Firearm|(?:Hand )?Gun|F\/ARM)/i)) {
+          if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+            Charges[i] = AddChargeStatute(RawCharge, "245(C)", "PC");
           } else {
-            Charges[i] = AddChargeStatute(Charge, "245(A)(1)", "PC");
+            Charges[i] = AddChargeStatute(RawCharge, "245(A)(1)", "PC");
           }
-        } else if (AddStatutesRegexes.LERegex.test(Charge)) {
-          Charges[i] = AddChargeStatute(Charge, "245(D)", "PC");
+        } else if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+          Charges[i] = AddChargeStatute(RawCharge, "245(D)", "PC");
         } else {
-          Charges[i] = AddChargeStatute(Charge, "245(B)", "PC");
+          Charges[i] = AddChargeStatute(RawCharge, "245(B)", "PC");
         }
-      } else if (AddStatutesRegexes.LERegex.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "240/241(C)", "PC");
+      } else if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+        Charges[i] = AddChargeStatute(RawCharge, "240/241(C)", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "240", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "240", "PC");
       }
       continue;
     }
 
     // Battery
-    if (AddStatutesRegexes.Battery.test(Charge)) {
-      if (AddStatutesRegexes.LERegex.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "243(B)", "PC");
+    if (AddStatutesRegexes.Battery.test(SanitizedCharge)) {
+      if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+        Charges[i] = AddChargeStatute(RawCharge, "243(B)", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "242", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "242", "PC");
       }
       continue;
     }
 
     // Evasion and Fleeing
-    if (AddStatutesRegexes.Evasion.test(Charge)) {
+    if (AddStatutesRegexes.Evasion.test(SanitizedCharge)) {
       let Continue = false;
-      if (AddStatutesRegexes.RecklessDriving.test(Charge) || /Felony/i.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "2800.2(A)", "VC");
+
+      if (
+        AddStatutesRegexes.RecklessDriving.test(SanitizedCharge) ||
+        /Felony/i.test(SanitizedCharge)
+      ) {
+        Charges[i] = AddChargeStatute(RawCharge, "2800.2(A)", "VC");
         Continue = true;
       } else {
         for (const RCharge of Charges) {
-          if (AddStatutesRegexes.RecklessDriving.test(RCharge)) {
-            Charges[i] = AddChargeStatute(Charge, "2800.2(A)", "VC");
+          const Sanitized = RCharge.replace(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
+          if (AddStatutesRegexes.RecklessDriving.test(Sanitized)) {
+            Charges[i] = AddChargeStatute(RawCharge, "2800.2(A)", "VC");
             Continue = true;
             break;
           }
         }
       }
+
       if (!Continue) {
-        Charges[i] = AddChargeStatute(Charge, "2800", "VC");
+        Charges[i] = AddChargeStatute(RawCharge, "2800", "VC");
       }
+
       continue;
     }
 
     // Resisting a Peace Officer
-    if (AddStatutesRegexes.Resisting.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "69(A)/148(A)", "PC");
+    if (AddStatutesRegexes.Resisting.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "69(A)/148(A)", "PC");
       continue;
     }
 
     // Reckless Driving
-    if (AddStatutesRegexes.RecklessDriving.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "23103", "VC");
+    if (AddStatutesRegexes.RecklessDriving.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "23103", "VC");
       continue;
     }
 
     // Drawing a Firearm in Threatening Manner
-    if (AddStatutesRegexes.BrandishingFirearm.test(Charge)) {
-      if (AddStatutesRegexes.LERegex.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "417(C)", "PC");
+    if (AddStatutesRegexes.BrandishingFirearm.test(SanitizedCharge)) {
+      if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+        Charges[i] = AddChargeStatute(RawCharge, "417(C)", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "417(A)(1)", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "417(A)(1)", "PC");
       }
       continue;
     }
 
     // Threatening Charge
-    if (AddStatutesRegexes.Threatening.test(Charge)) {
-      if (AddStatutesRegexes.LERegex.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "71", "PC");
+    if (AddStatutesRegexes.Threatening.test(SanitizedCharge)) {
+      if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+        Charges[i] = AddChargeStatute(RawCharge, "71", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "422(A)", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "422(A)", "PC");
       }
       continue;
     }
 
     // Accessory After the Fact; Unlawfully Helping a Criminal
-    if (AddStatutesRegexes.AAF.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "32", "PC");
+    if (AddStatutesRegexes.AAF.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "32", "PC");
       continue;
     }
 
     // Arson; Setting a Building/Property on Fire With the Intent
-    if (AddStatutesRegexes.Arson.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "451", "PC");
+    if (AddStatutesRegexes.Arson.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "451", "PC");
       continue;
     }
 
     // Bribery Charge
-    if (AddStatutesRegexes.Bribery.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "67", "PC");
+    if (AddStatutesRegexes.Bribery.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "67", "PC");
       continue;
     }
 
     // Any robbery charge
-    if (AddStatutesRegexes.AnyRobbery.test(Charge)) {
+    if (AddStatutesRegexes.AnyRobbery.test(SanitizedCharge)) {
       if (
-        Charge.match(/Robberies/i) ||
-        Charge.match(/Bank|\bATM\b/i) ||
-        Charge.match(/x[2-9]\d?/i)
+        SanitizedCharge.match(/Robberies/i) ||
+        SanitizedCharge.match(/Bank|\bATM\b/i) ||
+        SanitizedCharge.match(/x[2-9]\d?/i)
       ) {
-        Charges[i] = AddChargeStatute(Charge, "487", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "487", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "211", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "211", "PC");
       }
       continue;
     }
 
     // Grand theft; Jewelry Store, Bank, and ATM Robberies
-    if (AddStatutesRegexes.GrandTheft.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "487", "PC");
+    if (AddStatutesRegexes.GrandTheft.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "487", "PC");
       continue;
     }
 
     // Driving Without a Valid License
-    if (AddStatutesRegexes.InvalidLicense.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "12500", "VC");
+    if (AddStatutesRegexes.InvalidLicense.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "12500", "VC");
       continue;
     }
 
     // Possession of Burglary Tools
-    if (AddStatutesRegexes.PBTools.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "466", "PC");
+    if (AddStatutesRegexes.PBTools.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "466", "PC");
       continue;
     }
 
     // House/Residential Burglary Charge
-    if (AddStatutesRegexes.Burglary.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "459/460(A)", "PC");
+    if (AddStatutesRegexes.Burglary.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "459/460(A)", "PC");
       continue;
     }
 
     // Illegal Possession of Weapon(s)
-    if (AddStatutesRegexes.PIFirearms.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "12020", "PC");
+    if (AddStatutesRegexes.PIFirearms.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "12020", "PC");
       continue;
     }
 
     // Attempt Murder Charges
-    if (AddStatutesRegexes.AttemptMurder.test(Charge)) {
-      if (AddStatutesRegexes.LERegex.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "664(E)/187(A)", "PC");
+    if (AddStatutesRegexes.AttemptMurder.test(SanitizedCharge)) {
+      if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+        Charges[i] = AddChargeStatute(RawCharge, "664(E)/187(A)", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "664/187(A)", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "664/187(A)", "PC");
       }
       continue;
     }
 
     // Shooting on Vehicles/Buildings
-    if (AddStatutesRegexes.ShootingVB.test(Charge)) {
-      if (Charge.match(/Occupied|Inhabited/i) || AddStatutesRegexes.LERegex.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "246", "PC");
+    if (AddStatutesRegexes.ShootingVB.test(SanitizedCharge)) {
+      if (
+        SanitizedCharge.match(/Occupied|Inhabited/i) ||
+        AddStatutesRegexes.LERegex.test(SanitizedCharge)
+      ) {
+        Charges[i] = AddChargeStatute(RawCharge, "246", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "247(B)", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "247(B)", "PC");
       }
       continue;
     }
 
     // Murder Charge
-    if (AddStatutesRegexes.Murder.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "187(A)", "PC");
+    if (AddStatutesRegexes.Murder.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "187(A)", "PC");
       continue;
     }
 
     // Kidnapping Charge
-    if (AddStatutesRegexes.Kidnapping.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "209", "PC");
+    if (AddStatutesRegexes.Kidnapping.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "209", "PC");
       continue;
     }
 
     // False Imprisonment
-    if (AddStatutesRegexes.FImprisonment.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "210.5", "PC");
+    if (AddStatutesRegexes.FImprisonment.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "210.5", "PC");
       continue;
     }
 
     // Impersonation of someone
-    if (AddStatutesRegexes.Impersonation.test(Charge)) {
-      if (AddStatutesRegexes.LERegex.test(Charge)) {
-        Charges[i] = AddChargeStatute(Charge, "538(D)", "PC");
+    if (AddStatutesRegexes.Impersonation.test(SanitizedCharge)) {
+      if (AddStatutesRegexes.LERegex.test(SanitizedCharge)) {
+        Charges[i] = AddChargeStatute(RawCharge, "538(D)", "PC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "529(A)", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "529(A)", "PC");
       }
       continue;
     }
 
     // Controlled Substances
-    if (AddStatutesRegexes.CSubstances.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "11350(A)", "HS");
+    if (AddStatutesRegexes.CSubstances.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "11350(A)", "HS");
       continue;
     }
 
     // Hit and Run Charge
-    if (AddStatutesRegexes.HitAndRun.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "20001/20002", "VC");
+    if (AddStatutesRegexes.HitAndRun.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "20001/20002", "VC");
       continue;
     }
 
     // Tamper With Vehicles With Intent
-    if (AddStatutesRegexes.Tampering.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "10852", "VC");
+    if (AddStatutesRegexes.Tampering.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "10852", "VC");
       continue;
     }
 
     // Vandalism; Damaging Public/Others' Properties
-    if (AddStatutesRegexes.Vandalism.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "594", "PC");
+    if (AddStatutesRegexes.Vandalism.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "594", "PC");
       continue;
     }
 
     // Giving False Information to a Peace Officer
     if (
-      AddStatutesRegexes.FInformation_NTC.test(Charge) ||
-      AddStatutesRegexes.FInformation_TC.test(Charge)
+      AddStatutesRegexes.FInformation_NTC.test(SanitizedCharge) ||
+      AddStatutesRegexes.FInformation_TC.test(SanitizedCharge)
     ) {
       if (
-        Charge.match(/Pulled Over|Traffic Stop/i) &&
-        AddStatutesRegexes.FInformation_TC.test(Charge)
+        SanitizedCharge.match(/Pulled Over|Traffic Stop/i) &&
+        AddStatutesRegexes.FInformation_TC.test(SanitizedCharge)
       ) {
-        Charges[i] = AddChargeStatute(Charge, "31", "VC");
+        Charges[i] = AddChargeStatute(RawCharge, "31", "VC");
       } else {
-        Charges[i] = AddChargeStatute(Charge, "148.9", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "148.9", "PC");
       }
       continue;
     }
 
     // Trespassing in a Private Property or at an Illegal Location
-    if (AddStatutesRegexes.Trespassing.test(Charge)) {
-      Charges[i] = AddChargeStatute(Charge, "602", "PC");
+    if (AddStatutesRegexes.Trespassing.test(SanitizedCharge)) {
+      Charges[i] = AddChargeStatute(RawCharge, "602", "PC");
       continue;
     }
 
     // Carrying a Firearm in Public Without a CCW (California Concealed Carry) Permit
-    if (AddStatutesRegexes.FirearmInPublic.test(Charge)) {
-      if (Charge.match(/Conceal(?:ed|ing)?|Hidden|Covered|Invisible/i)) {
-        if (Charge.match(/Loaded/i)) {
-          Charges[i] = AddChargeStatute(Charge, "25850(A)", "PC");
+    if (AddStatutesRegexes.FirearmInPublic.test(SanitizedCharge)) {
+      if (SanitizedCharge.match(/Conceal(?:ed|ing)?|Hidden|Covered|Invisible/i)) {
+        if (SanitizedCharge.match(/Loaded/i)) {
+          Charges[i] = AddChargeStatute(RawCharge, "25850(A)", "PC");
         } else {
-          Charges[i] = AddChargeStatute(Charge, "25400(A)", "PC");
+          Charges[i] = AddChargeStatute(RawCharge, "25400(A)", "PC");
         }
       } else {
-        Charges[i] = AddChargeStatute(Charge, "25850(A)", "PC");
+        Charges[i] = AddChargeStatute(RawCharge, "25850(A)", "PC");
       }
     }
   }
@@ -363,9 +374,10 @@ export function AddTrafficViolationCodes(
 
   for (let i = 0; i < Violations.length; i++) {
     const Violation = Violations[i];
+    const SanitizedViolation = Violation.replace(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
 
     // Speeding or going over the speed limit.
-    if (ATVCodesRegexes.Speeding.test(Violation)) {
+    if (ATVCodesRegexes.Speeding.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("2235[012]", Violation),
         correctable: false,
@@ -375,7 +387,7 @@ export function AddTrafficViolationCodes(
     }
 
     // Minimum speed laws.
-    if (ATVCodesRegexes.MSLViolation.test(Violation)) {
+    if (ATVCodesRegexes.MSLViolation.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("22400", Violation),
         correctable: false,
@@ -385,7 +397,7 @@ export function AddTrafficViolationCodes(
     }
 
     // Running a red signal (red light).
-    if (ATVCodesRegexes.FTSARedSignal.test(Violation)) {
+    if (ATVCodesRegexes.FTSARedSignal.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("21453", Violation),
         correctable: false,
@@ -395,49 +407,49 @@ export function AddTrafficViolationCodes(
     }
 
     // Not using a turn signal.
-    if (ATVCodesRegexes.NoTurningSignal.test(Violation)) {
+    if (ATVCodesRegexes.NoTurningSignal.test(SanitizedViolation)) {
       ModifiedViolations[i] = { violation: AddVehCode("22108", Violation), type: "I" };
       continue;
     }
 
     // ...
-    if (ATVCodesRegexes.NoHazardSignals.test(Violation)) {
+    if (ATVCodesRegexes.NoHazardSignals.test(SanitizedViolation)) {
       ModifiedViolations[i] = { violation: AddVehCode("22109", Violation), type: "I" };
       continue;
     }
 
     // ...
-    if (ATVCodesRegexes.NoHeadlights.test(Violation)) {
+    if (ATVCodesRegexes.NoHeadlights.test(SanitizedViolation)) {
       ModifiedViolations[i] = { violation: AddVehCode("24250", Violation), type: "I" };
       continue;
     }
 
     // ...
-    if (ATVCodesRegexes.SidewalkDriving.test(Violation)) {
+    if (ATVCodesRegexes.SidewalkDriving.test(SanitizedViolation)) {
       ModifiedViolations[i] = { violation: AddVehCode("21663", Violation), type: "I" };
       continue;
     }
 
     // ...
-    if (ATVCodesRegexes.UnsafePassing.test(Violation)) {
+    if (ATVCodesRegexes.UnsafePassing.test(SanitizedViolation)) {
       ModifiedViolations[i] = { violation: AddVehCode("21750-21759", Violation), type: "I" };
       continue;
     }
 
     // ...
-    if (ATVCodesRegexes.SpeedContest.test(Violation)) {
+    if (ATVCodesRegexes.SpeedContest.test(SanitizedViolation)) {
       ModifiedViolations[i] = { violation: AddVehCode("23109", Violation), type: "M" };
       continue;
     }
 
     // ...
-    if (ATVCodesRegexes.UnsafeLaneChange.test(Violation)) {
+    if (ATVCodesRegexes.UnsafeLaneChange.test(SanitizedViolation)) {
       ModifiedViolations[i] = { violation: AddVehCode("22107", Violation), type: "I" };
       continue;
     }
 
     // ...
-    if (ATVCodesRegexes.IllegalParking.test(Violation)) {
+    if (ATVCodesRegexes.IllegalParking.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("22500", Violation),
         correctable: true,
@@ -447,7 +459,7 @@ export function AddTrafficViolationCodes(
     }
 
     // Failure to Yield - At a stop sign or yield sign.
-    if (ATVCodesRegexes.FTSAStopSign.test(Violation)) {
+    if (ATVCodesRegexes.FTSAStopSign.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("22450(a)", Violation),
         correctable: false,
@@ -457,7 +469,7 @@ export function AddTrafficViolationCodes(
     }
 
     // ...
-    if (ATVCodesRegexes.Tailgating.test(Violation)) {
+    if (ATVCodesRegexes.Tailgating.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("21703", Violation),
         correctable: true,
@@ -467,7 +479,7 @@ export function AddTrafficViolationCodes(
     }
 
     // ...
-    if (ATVCodesRegexes.DefectiveEquipment.test(Violation)) {
+    if (ATVCodesRegexes.DefectiveEquipment.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("24002", Violation),
         correctable: true,
@@ -477,7 +489,7 @@ export function AddTrafficViolationCodes(
     }
 
     // ...
-    if (ATVCodesRegexes.Jaywalking.test(Violation)) {
+    if (ATVCodesRegexes.Jaywalking.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("21955", Violation),
         correctable: false,
@@ -487,7 +499,7 @@ export function AddTrafficViolationCodes(
     }
 
     // Unlicensed driver or no driver's license present.
-    if (ATVCodesRegexes.UnlicensedDriver.test(Violation)) {
+    if (ATVCodesRegexes.UnlicensedDriver.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("12500(a)", Violation),
         correctable: false,
@@ -497,7 +509,7 @@ export function AddTrafficViolationCodes(
     }
 
     // Failing to Present or Display or Give a Driving License to a Peace Officer.
-    if (ATVCodesRegexes.FTPDrivingLicense.test(Violation)) {
+    if (ATVCodesRegexes.FTPDrivingLicense.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("12951(b)", Violation),
         correctable: true,
@@ -507,7 +519,7 @@ export function AddTrafficViolationCodes(
     }
 
     // ...
-    if (ATVCodesRegexes.SuspendedDL.test(Violation)) {
+    if (ATVCodesRegexes.SuspendedDL.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("14601.1(a)", Violation),
         correctable: false,
@@ -517,7 +529,7 @@ export function AddTrafficViolationCodes(
     }
 
     // ...
-    if (ATVCodesRegexes.NoRegistration.test(Violation)) {
+    if (ATVCodesRegexes.NoRegistration.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("4000(a)", Violation),
         correctable: true,
@@ -527,7 +539,7 @@ export function AddTrafficViolationCodes(
     }
 
     // ...
-    if (ATVCodesRegexes.DUI.test(Violation)) {
+    if (ATVCodesRegexes.DUI.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("23152(a)", Violation),
         correctable: false,
@@ -537,7 +549,7 @@ export function AddTrafficViolationCodes(
     }
 
     // Misdemeanor reckless driving.
-    if (AddStatutesRegexes.RecklessDriving.test(Violation)) {
+    if (AddStatutesRegexes.RecklessDriving.test(SanitizedViolation)) {
       ModifiedViolations[i] = {
         violation: AddVehCode("23103", Violation),
         correctable: false,
