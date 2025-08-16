@@ -10,7 +10,7 @@ const ListFormatter = new Intl.ListFormat("en");
 export default async function GetFormattedArrestReportEmbed(
   ArrestInfo: GuildArrests.ArrestRecord,
   RefetchUsernames: boolean = true
-) {
+): Promise<EmbedBuilder> {
   let FArresteeName = ArrestInfo.arrestee.formatted_name;
   if (RefetchUsernames) {
     const ArresteeUserInfo = await GetUserInfo(ArrestInfo.arrestee.roblox_id);
@@ -32,7 +32,7 @@ export default async function GetFormattedArrestReportEmbed(
     Booking number: \`${ArrestInfo.booking_num.toString().padStart(4, "0")}\`
   `).trim();
 
-  return new EmbedBuilder()
+  const AREmbed = new EmbedBuilder()
     .setTitle("LAPD — Arrest Report")
     .setDescription(ReportDescription)
     .setTimestamp(ArrestInfo.made_on)
@@ -74,4 +74,30 @@ export default async function GetFormattedArrestReportEmbed(
         inline: false,
       },
     ]);
+
+  if (ArrestInfo.arrest_loc?.length) {
+    AREmbed.spliceFields(-1, 0, {
+      name: "Loc. of Arrest",
+      value: ArrestInfo.arrest_loc,
+      inline: true,
+    });
+  }
+
+  if (ArrestInfo.detail_arresting?.length) {
+    AREmbed.spliceFields(-1, 0, {
+      name: "Detail/Div. Arresting",
+      value: ArrestInfo.detail_arresting,
+      inline: false,
+    });
+  }
+
+  if (ArrestInfo.evidence?.length) {
+    AREmbed.spliceFields(-1, 0, {
+      name: "Evidence",
+      value: ArrestInfo.evidence,
+      inline: false,
+    });
+  }
+
+  return AREmbed;
 }

@@ -29,6 +29,24 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     index: true,
   },
 
+  arrest_loc: {
+    type: String,
+    default: null,
+    required: false,
+  },
+
+  evidence: {
+    type: String,
+    default: null,
+    required: false,
+  },
+
+  detail_arresting: {
+    type: String,
+    default: null,
+    required: false,
+  },
+
   made_on: {
     type: Date,
     index: true,

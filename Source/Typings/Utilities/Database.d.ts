@@ -1047,6 +1047,15 @@ export namespace GuildArrests {
     /** The booking number. */
     booking_num: number;
 
+    /** The location where the arrest took place. */
+    arrest_loc: string | null;
+
+    /** Any evidence collected during the arrest. */
+    evidence: string | null;
+
+    /** The detail or division which made the arrest. For example, GED (Gang Enforcement Detail). */
+    detail_arresting: string | null;
+
     /** The arrest report message link as [ChannelId]:[MessageId] */
     report_msg?: string | null;
 

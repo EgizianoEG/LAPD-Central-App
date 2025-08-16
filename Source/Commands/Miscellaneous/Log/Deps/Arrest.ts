@@ -61,6 +61,8 @@ import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 const ListFormatter = new Intl.ListFormat("en");
 export type CmdOptionsType<IsPrimaryOfficerNullable extends boolean = false> = {
   PrimaryOfficer: IsPrimaryOfficerNullable extends true ? GuildMember | null : GuildMember;
+  ArrestLocation: string | null;
+  DetailArresting: string | null;
   Arrestee: string;
   AgeGroup: (typeof ERLCAgeGroups)[number]["name"];
   Gender: "Male" | "Female";
@@ -71,7 +73,7 @@ export type CmdOptionsType<IsPrimaryOfficerNullable extends boolean = false> = {
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
-function GetAdditionalInformationModal(CmdInteract: SlashCommandInteraction<"cached">) {
+function GetAdditionalArrestDetailsModal(CmdInteract: SlashCommandInteraction<"cached">) {
   return new ModalBuilder()
     .setTitle("Arrest Report - Additional Information")
     .setCustomId(`arrest-report:${CmdInteract.user.id}:${RandomString(4)}`)
@@ -84,10 +86,21 @@ function GetAdditionalInformationModal(CmdInteract: SlashCommandInteraction<"cac
           .setPlaceholder("1. [Charge #1]\n2. [Charge #2]\n3. ...")
           .setMinLength(6)
           .setMaxLength(650)
+          .setRequired(true)
       ),
       new ActionRowBuilder<TextInputBuilder>().setComponents(
         new TextInputBuilder()
-          .setLabel("Arrest Notes")
+          .setLabel("Evidence")
+          .setStyle(TextInputStyle.Paragraph)
+          .setCustomId("evidence-text")
+          .setPlaceholder("A list of any evidence related to the arrest...")
+          .setMinLength(6)
+          .setMaxLength(160)
+          .setRequired(false)
+      ),
+      new ActionRowBuilder<TextInputBuilder>().setComponents(
+        new TextInputBuilder()
+          .setLabel("Arrest Notes (shown on explicit DB queries)")
           .setStyle(TextInputStyle.Short)
           .setCustomId("arrest-notes")
           .setPlaceholder("e.g., known to be in a gang.")
@@ -279,7 +292,7 @@ async function OnReportConfirmation(
  * @param ModalInteraction
  * @param CmdInteraction
  */
-async function OnChargesModalSubmission(
+async function OnChargesAndDetailsModalSubmission(
   CmdInteract: SlashCommandInteraction<"cached">,
   CmdOptions: CmdOptionsType,
   ReporterMainInfo: ReporterInfo,
@@ -310,17 +323,22 @@ async function OnChargesModalSubmission(
     utif_setting_enabled: UTIFEnabled,
   };
 
-  const RInputCharges = await FilterUserInput(
-    ModalInteraction.fields.getTextInputValue("charges-text"),
-    UTIFOpts
-  );
+  const [FilteredArrestLocation, FilteredDetailArresting, InputCharges, ArrestNotes, EvidenceText] =
+    await FilterUserInput(
+      [
+        CmdOptions.ArrestLocation ?? "",
+        CmdOptions.DetailArresting ?? "",
+        ModalInteraction.fields.getTextInputValue("charges-text"),
+        ModalInteraction.fields.getTextInputValue("arrest-notes"),
+        ModalInteraction.fields.getTextInputValue("evidence-text"),
+      ],
+      UTIFOpts
+    );
 
-  const ArrestNotes = await FilterUserInput(
-    ModalInteraction.fields.getTextInputValue("arrest-notes"),
-    UTIFOpts
-  );
+  CmdOptions.ArrestLocation = FilteredArrestLocation.length ? FilteredArrestLocation : null;
+  CmdOptions.DetailArresting = FilteredDetailArresting.length ? FilteredDetailArresting : null;
 
-  const FCharges = FormatCharges(RInputCharges);
+  const FCharges = FormatCharges(InputCharges);
   const YearSuffix = new Date().getFullYear().toString().slice(-2);
   const BookingNumber = parseInt(`${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`);
   const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
@@ -392,9 +410,33 @@ async function OnChargesModalSubmission(
       },
     ]);
 
-  if (ArrestNotes?.length) {
+  if (CmdOptions.ArrestLocation?.length) {
+    ConfirmationEmbed.spliceFields(-1, 0, {
+      name: "Loc. of Arrest",
+      value: CmdOptions.ArrestLocation,
+      inline: true,
+    });
+  }
+
+  if (CmdOptions.DetailArresting?.length) {
+    ConfirmationEmbed.spliceFields(-1, 0, {
+      name: "Detail/Div. Arresting",
+      value: CmdOptions.DetailArresting,
+      inline: false,
+    });
+  }
+
+  if (EvidenceText.length) {
+    ConfirmationEmbed.spliceFields(-1, 0, {
+      name: "Evidence",
+      value: EvidenceText,
+      inline: false,
+    });
+  }
+
+  if (ArrestNotes.length) {
     ConfirmationEmbed.addFields({
-      name: "Arrest Notes",
+      name: "Arrest Notes (shown on explicit DB queries)",
       value: codeBlock("fix", ArrestNotes),
       inline: false,
     });
@@ -463,8 +505,12 @@ async function OnChargesModalSubmission(
             ) || "N/A";
 
           await ModalSubmission.editReply({
-            embeds: [ConfirmationEmbed.setDescription(`Assisting Officers: ${FormattedMentions}`)],
             components: [AsstOfficersMenu, AddUsernamesConfirmationComponents],
+            embeds: [
+              ConfirmationEmbed.setDescription(
+                `Arresting Officer: <@${CmdOptions.PrimaryOfficer.user.id}>\nAssisting Officers: ${FormattedMentions}`
+              ),
+            ],
           }).catch(() => null);
         }
       }
@@ -487,10 +533,14 @@ async function OnChargesModalSubmission(
       if (!LastInteraction?.isButton()) return;
       if (EndReason === "Report Confirmation") {
         const ReporterRobloxUserInfo = await GetUserInfo(ReporterMainInfo.RobloxUserId);
-        const ReporterInfo: ReportInfoType = {
+        const ReportInfo: ReportInfoType = {
           shift_active: ReporterMainInfo.ActiveShift,
           report_date: CmdInteract.createdAt,
           asst_officers: [...AsstOfficersDisIds, ...AsstOfficersUsernames],
+
+          detail_arresting: CmdOptions.DetailArresting,
+          arrest_loc: CmdOptions.ArrestLocation,
+          evidence: EvidenceText.length ? EvidenceText : null,
 
           reporting_officer: PrimaryIsReporter
             ? null
@@ -530,7 +580,7 @@ async function OnChargesModalSubmission(
           },
         };
 
-        await OnReportConfirmation(LastInteraction, ReporterInfo, ArresteeInfo);
+        await OnReportConfirmation(LastInteraction, ReportInfo, ArresteeInfo);
       } else {
         await OnReportCancellation(LastInteraction);
       }
@@ -556,6 +606,8 @@ async function OnChargesModalSubmission(
 async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Reporter: ReporterInfo) {
   const CmdOptions = {
     PrimaryOfficer: Interaction.options.getMember("primary-officer") ?? Interaction.member,
+    DetailArresting: Interaction.options.getString("arresting-detail", false),
+    ArrestLocation: Interaction.options.getString("arrest-location", false),
     Arrestee: Interaction.options.getString("name", true),
     Gender: Interaction.options.getString("gender", true),
     Height: FormatHeight(Interaction.options.getString("height", true)),
@@ -565,22 +617,22 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Repor
 
   const ResponseHandled = await HandleCmdOptsValidation(Interaction, CmdOptions, Reporter);
   if (ResponseHandled) return;
-  const AdditionalDataModal = GetAdditionalInformationModal(Interaction);
+  const AdditionalDetailsModal = GetAdditionalArrestDetailsModal(Interaction);
 
   try {
-    const AdditionalDataSubmission = await ShowModalAndAwaitSubmission(
+    const AdditionalDetailsSubmission = await ShowModalAndAwaitSubmission(
       Interaction,
-      AdditionalDataModal,
+      AdditionalDetailsModal,
       8 * 60 * 1000,
       true
     );
 
-    if (!AdditionalDataSubmission) return;
-    await OnChargesModalSubmission(
+    if (!AdditionalDetailsSubmission) return;
+    await OnChargesAndDetailsModalSubmission(
       Interaction,
       CmdOptions as unknown as CmdOptionsType,
       Reporter,
-      AdditionalDataSubmission
+      AdditionalDetailsSubmission
     );
   } catch (Err: unknown) {
     if (Err instanceof Error && !Err.message.match(/reason: (?:\w+Delete|time)/)) {
@@ -590,7 +642,7 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Repor
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: CmdCallback,
@@ -640,6 +692,20 @@ const CommandObject = {
         .setDescription(
           "The officer who conducted the arrest and has primary responsibility for this case. Defaults to you."
         )
+        .setRequired(false)
+    )
+    .addStringOption((Option) =>
+      Option.setName("arrest-location")
+        .setDescription("The location where the arrest took place.")
+        .setMinLength(3)
+        .setMaxLength(24)
+        .setRequired(false)
+    )
+    .addStringOption((Option) =>
+      Option.setName("arresting-detail")
+        .setDescription("The division, sub-division, or detail responsible for the arrest.")
+        .setMinLength(3)
+        .setMaxLength(36)
         .setRequired(false)
     ),
 };

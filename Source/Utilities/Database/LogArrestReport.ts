@@ -15,6 +15,10 @@ export type ReportInfoType = {
   /** Shift currently active for the reporting officer. */
   shift_active: Shifts.HydratedShiftDocument | null;
 
+  evidence: string | null;
+  detail_arresting: string | null;
+  arrest_loc: string | null;
+
   arresting_officer: {
     discord_id: string;
     roblox_user: {
@@ -40,7 +44,10 @@ export type ReportInfoType = {
   report_date?: Date;
 };
 
-export type ArresteeInfoType = Omit<CmdOptionsType, "Arrestee" | "PrimaryOfficer"> & {
+export type ArresteeInfoType = Omit<
+  CmdOptionsType,
+  "ArrestLocation" | "DetailArresting" | "Arrestee" | "PrimaryOfficer"
+> & {
   notes?: string | null;
   formatted_charges: string[];
   booking_mugshot: string;
@@ -74,8 +81,11 @@ export default async function LogArrestReport(
     guild: CachedInteract.guildId,
     made_on: ReportInfo.report_date,
     notes: ArresteeInfo.notes ?? null,
+    evidence: ReportInfo.evidence,
     booking_num: ArresteeInfo.booking_num,
     assisting_officers: ReportInfo.asst_officers,
+    detail_arresting: ReportInfo.detail_arresting,
+    arrest_loc: ReportInfo.arrest_loc,
 
     arrestee: {
       roblox_id: Number(ArresteeInfo.roblox_user.id),
