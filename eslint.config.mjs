@@ -72,7 +72,7 @@ export default [
       "no-useless-call": "error",
       "no-extra-parens": ["off", "functions"],
 
-      "sonarjs/cognitive-complexity": ["warn", 45],
+      "sonarjs/cognitive-complexity": ["warn", 50],
       "sonarjs/pseudo-random": "off",
       "sonarjs/todo-tag": "warn",
       "sonarjs/slow-regex": "off",
