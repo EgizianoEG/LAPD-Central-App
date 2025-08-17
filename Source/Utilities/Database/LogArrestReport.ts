@@ -134,7 +134,7 @@ export default async function LogArrestReport(
   const MainMsgLink = await SendGuildMessages(
     CachedInteract,
     GuildSettings.duty_activities.log_channels.arrests,
-    { embeds: [FormattedReport] }
+    { embeds: [FormattedReport], nonce: ArrestRecord._id.toString() }
   ).then((SentMessage) => SentMessage?.url ?? null);
 
   if (MainMsgLink) {

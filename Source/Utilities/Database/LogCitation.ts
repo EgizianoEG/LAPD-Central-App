@@ -66,6 +66,7 @@ export default async function LogTrafficCitation(
     return SendGuildMessages(CachedInteract, GuildSettings.duty_activities.log_channels.citations, {
       components: [NTAContainer],
       flags: MessageFlags.IsComponentsV2,
+      nonce: RecordedCitation._id.toString(),
     }).then((SentMessage) => SentMessage?.url ?? null);
   }
 

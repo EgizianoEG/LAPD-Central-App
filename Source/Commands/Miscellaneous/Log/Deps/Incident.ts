@@ -455,6 +455,7 @@ async function OnReportConfirmation(
   if (IRChannelIds) {
     ReportSentMessage = await SendGuildMessages(BtnInteract, IRChannelIds, {
       files: Attachments.values().toArray(),
+      nonce: IncidentReport._id.toString(),
       embeds: GetIncidentReportEmbeds(IncidentReport, {
         channel_id: Array.isArray(IRChannelIds) ? IRChannelIds[0] : IRChannelIds,
         attachments_override: Attachments,
