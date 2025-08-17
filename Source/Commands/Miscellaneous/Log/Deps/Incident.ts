@@ -375,11 +375,12 @@ async function PrepareIncidentData(
 async function InsertIncidentRecord(
   Interact: ButtonInteraction<"cached"> | SlashCommandInteraction<"cached">,
   IncidentRecord: GuildIncidents.IncidentRecord
-) {
+): Promise<GuildIncidents.IncidentRecord | null> {
   IncidentRecord = {
     ...IncidentRecord,
     num: await GenerateNextSequentialIncidentNumber(Interact.guild.id),
   };
+
   const Session = await IncidentModel.startSession();
   let InsertedDocument: GuildIncidents.IncidentRecord | null = null;
 
@@ -387,20 +388,24 @@ async function InsertIncidentRecord(
     await Session.withTransaction(async () => {
       const CreatedDocuments = await IncidentModel.create([IncidentRecord], { session: Session });
       if (CreatedDocuments?.[0]) {
+        InsertedDocument = CreatedDocuments[0];
         await GuildModel.updateOne(
-          {
-            guild: Interact.guild.id,
-          },
+          { _id: Interact.guildId },
           {
             $set: {
-              "logs.incidents.most_recent_num": CreatedDocuments[0].num,
+              "logs.incidents.most_recent_num": InsertedDocument.num,
             },
           },
           { session: Session }
         );
-
-        InsertedDocument = CreatedDocuments[0];
       }
+    });
+  } catch (Err: any) {
+    AppLogger.error({
+      message: Err.message,
+      label: CmdFileLabel,
+      stack: Err.stack,
+      error: Err,
     });
   } finally {
     await Session.endSession();
@@ -458,6 +463,7 @@ async function OnReportConfirmation(
       nonce: IncidentReport._id.toString(),
       embeds: GetIncidentReportEmbeds(IncidentReport, {
         channel_id: Array.isArray(IRChannelIds) ? IRChannelIds[0] : IRChannelIds,
+        guild_id: BtnInteract.guildId,
         attachments_override: Attachments,
       }),
     });
@@ -470,7 +476,7 @@ async function OnReportConfirmation(
   `);
 
   if (ReportSentMessage) {
-    HandleIncThreadCreation(ReportSentMessage, IncidentReport).catch(() => null);
+    HandleIncThreadCreation(ReportSentMessage, IncidentReport);
     const MsgAttachmentURLs = ReportSentMessage.embeds
       .map((Embed) => Embed.data.image?.url)
       .filter((URL) => URL !== undefined);
@@ -566,7 +572,7 @@ async function HandleIncThreadCreation(
   const GuildSettings = await GetGuildSettings(ReportMessage.guildId);
   if (!GuildSettings?.duty_activities.incident_reports.auto_thread_management) return;
   if (ReportMessage.channel.isThread() || ReportMessage.channel.isThreadOnly()) return;
-  if (IncidentReport.status.match(/cleared|closed|referred|inactivated|unfounded/i)) return;
+  if (IncidentReport.status.match(/cleared|closed|referred|inactivated|unfounded|cold/i)) return;
   if (
     !ReportMessage.channel
       .permissionsFor(await ReportMessage.guild.members.fetchMe())
@@ -576,11 +582,17 @@ async function HandleIncThreadCreation(
   }
 
   const ThreadName = `Incident Report #${IncidentReport.num} - ${IncidentReport.type}`;
-  return ReportMessage.startThread({
+  const CreatedThread = await ReportMessage.startThread({
     autoArchiveDuration: ThreadAutoArchiveDuration.OneDay,
     reason: `Incident report #${IncidentReport.num} logged; a new thread has been created for it.`,
     name: ThreadName,
   });
+
+  if (CreatedThread.ownerId === ReportMessage.author.id) {
+    CreatedThread.members.add(IncidentReport.reporter.discord_id).catch(() => null);
+  }
+
+  return CreatedThread;
 }
 
 async function HandleIRAdditionalDetailsAndConfirmation(
@@ -591,6 +603,7 @@ async function HandleIRAdditionalDetailsAndConfirmation(
 ) {
   const IncidentReportEmbeds = GetIncidentReportEmbeds(CmdModalProvidedData, {
     channel_id: CmdInteract.channelId,
+    guild_id: CmdInteract.guildId,
   });
 
   const ConfirmationMsgComponents = [
@@ -600,7 +613,7 @@ async function HandleIRAdditionalDetailsAndConfirmation(
 
   IncidentReportEmbeds[0].setColor(Colors.Gold).setTitle("Incident Report Confirmation");
   const ConfirmationMessage = await ModalSubmission.editReply({
-    content: `${userMention(CmdInteract.user.id)} - Are you sure you want to submit this incident? Revise the incident details and add involved officers or witnesses if necessary.`,
+    content: `${userMention(CmdInteract.user.id)} - Are you sure you want to submit this incident?\nRevise the incident details and add involved officers or witnesses if necessary.`,
     allowedMentions: { users: [CmdInteract.user.id] },
     components: ConfirmationMsgComponents,
     embeds: IncidentReportEmbeds,

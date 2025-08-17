@@ -11,6 +11,7 @@ import {
   ModalSubmitInteraction,
   InteractionCollector,
   RepliableInteraction,
+  PermissionFlagsBits,
   ButtonInteraction,
   ActionRowBuilder,
   TextInputBuilder,
@@ -22,7 +23,6 @@ import {
   ButtonStyle,
   Message,
   Colors,
-  PermissionFlagsBits,
 } from "discord.js";
 
 import {
@@ -37,6 +37,7 @@ import {
   BaseExtraContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
+import { Types } from "mongoose";
 import { Emojis } from "@Config/Shared.js";
 import { isDeepEqual } from "remeda";
 import { GuildIncidents } from "@Typings/Utilities/Database.js";
@@ -45,12 +46,19 @@ import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import { DASignatureFormats } from "@Config/Constants.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { SanitizeDiscordAttachmentLink } from "@Utilities/Strings/OtherUtils.js";
-import { IncidentReportNumberLineRegex, ListSplitRegex } from "@Resources/RegularExpressions.js";
+
+import {
+  ListSplitRegex,
+  IncidentReportedOnTSRegex,
+  IncidentReportNumberLineRegex,
+} from "@Resources/RegularExpressions.js";
+
 import {
   FormatSortRDInputNames,
   FormatDutyActivitiesLogSignature,
 } from "@Utilities/Strings/Formatters.js";
 
+import AppLogger from "@Utilities/Classes/AppLogger.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 import IncidentModel from "@Models/Incident.js";
@@ -302,9 +310,18 @@ async function EditIncidentReportLogMessageBasedOnRecordAndInteraction(
   if (!Channel?.isTextBased()) return;
 
   const Message = (await Channel.messages.fetch(MessageId)) as Message<true>;
-  HandleIncidentReportThreadReopeningOrClosure(Message, IncidentRecord).catch(() => null);
-  if (!Message?.editable) return;
+  if (!Message) return;
 
+  HandleIncidentReportThreadReopeningOrClosure(Message, IncidentRecord).catch((Err: any) =>
+    AppLogger.error({
+      message: `Error handling thread for incident report #${IncidentRecord.num};`,
+      stack: Err?.stack,
+      error: Err,
+      label: "Commands:CtxMenu:UpdateIncidentReport",
+    })
+  );
+
+  if (!Message?.editable) return;
   const UpdatedAttachmentURLs = Message.embeds.flatMap((Embed) =>
     Embed.image?.url ? [SanitizeDiscordAttachmentLink(Embed.image.url)] : []
   );
@@ -327,18 +344,12 @@ async function HandleIncidentReportThreadReopeningOrClosure(
   IncReportMsg: Message<true>,
   IncidentReport: GuildIncidents.IncidentRecord
 ) {
-  if (
-    !IncReportMsg.hasThread ||
-    !IncReportMsg.thread?.editable ||
-    !IncReportMsg.channel
-      .permissionsFor(await IncReportMsg.guild.members.fetchMe(), true)
-      .has(PermissionFlagsBits.ManageThreads)
-  ) {
+  if (!IncReportMsg.hasThread || !IncReportMsg.thread?.editable) {
     return;
   }
 
-  const IsClosedStatus = IncidentReport.status.match(
-    /cleared|closed|referred|inactivated|unfounded/i
+  const IsClosedStatus = /cleared|closed|referred|inactivated|unfounded|cold/i.test(
+    IncidentReport.status
   );
 
   if (IsClosedStatus) {
@@ -349,7 +360,12 @@ async function HandleIncidentReportThreadReopeningOrClosure(
         locked: true,
       });
     }
-  } else if (IncReportMsg.thread.archived || IncReportMsg.thread.locked) {
+  } else if (
+    (IncReportMsg.thread.archived || IncReportMsg.thread.locked) &&
+    IncReportMsg.channel
+      .permissionsFor(await IncReportMsg.guild.members.fetchMe(), true)
+      .has(PermissionFlagsBits.ManageThreads)
+  ) {
     return IncReportMsg.thread.edit({
       reason: `Incident report #${IncidentReport.num} has been updated to an active status; the thread has been unlocked and unarchived.`,
       archived: false,
@@ -366,15 +382,30 @@ export async function HandleCommandValidationAndPossiblyGetIncident(
 ): Promise<ValidationResult> {
   const ReportEmbeds = RecInteract.targetMessage.embeds;
   const HandledValResult: ValidationResult = { handled: true, incident: null };
+  const ReportDBId = RecInteract.targetMessage.nonce as string;
   let ReportNumber: Nullable<string> = null;
+  let ReportedOnTS: Nullable<number> = null;
   let IncidentReport: GuildIncidents.IncidentRecord | null = null;
 
-  if (ReportEmbeds[0]?.description?.length) {
+  if (ReportDBId) {
+    ReportNumber = ReportDBId;
+  } else if (ReportEmbeds[0]?.description?.length) {
     ReportNumber = ReportEmbeds[0].description.match(IncidentReportNumberLineRegex)?.[1];
+    ReportedOnTS =
+      parseInt(ReportEmbeds[0].description.match(IncidentReportedOnTSRegex)?.[1] ?? "0") * 1000;
   }
 
-  if (ReportNumber) {
-    IncidentReport = await GetIncidentRecord(RecInteract.guildId, ReportNumber, true);
+  if (ReportNumber && Types.ObjectId.isValid(ReportNumber)) {
+    IncidentReport = await IncidentModel.findById(ReportNumber).lean();
+  } else if (ReportNumber && ReportedOnTS) {
+    IncidentReport = await IncidentModel.findOne({
+      num: ReportNumber,
+      guild: RecInteract.guildId,
+      reported_on: {
+        $gt: ReportedOnTS - 1000,
+        $lt: ReportedOnTS + 1000,
+      },
+    }).lean();
   }
 
   if (RecInteract.targetMessage.author.id !== RecInteract.client.user.id) {
