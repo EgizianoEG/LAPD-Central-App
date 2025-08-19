@@ -1,8 +1,9 @@
-import { APIResponses } from "@Typings/Utilities/Roblox.js";
-import { RobloxAPICache } from "../Other/Cache.js";
+import { APIResponses } from "@Typings/External/Roblox.js";
+import { RobloxAPICache } from "../Helpers/Cache.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Axios from "axios";
-export type ReturnType<Input> = Input extends string[]
+
+export type UserIdLookupResult<Input> = Input extends string[]
   ? [number, string, boolean][]
   : [number, string, boolean];
 
@@ -31,12 +32,12 @@ export type ReturnType<Input> = Input extends string[]
 export default async function GetIdByUsername<Input extends string | string[]>(
   Usernames: Input,
   ExcludeBanned: boolean = true
-): Promise<ReturnType<Input>> {
+): Promise<UserIdLookupResult<Input>> {
   const RequestArray: string[] = Array.isArray(Usernames) ? Usernames : [Usernames];
   const Stringified: string = RequestArray.toString();
 
   if (RobloxAPICache.IdByUsername.has(Stringified)) {
-    return RobloxAPICache.IdByUsername.get<any>(Stringified);
+    return RobloxAPICache.IdByUsername.get(Stringified) as UserIdLookupResult<Input>;
   }
 
   try {
@@ -45,20 +46,23 @@ export default async function GetIdByUsername<Input extends string | string[]>(
       {
         usernames: RequestArray,
         excludeBannedUsers: ExcludeBanned,
+      },
+      {
+        timeout: 8_000,
       }
     );
 
-    let Results = RequestArray.map((Username) => {
+    const Results = RequestArray.map((Username) => {
       return Resp.data.data.find((UserObject) => UserObject.requestedUsername === Username) ?? null;
     }).map((UserObject) => {
-      if (!UserObject) return [0, "", false];
-      return [UserObject.id, UserObject.name, true];
-    }) as any;
+      if (!UserObject) return [0, "", false] as const;
+      return [UserObject.id, UserObject.name, true] as const;
+    });
 
-    Results = Array.isArray(Usernames) ? Results : Results[0];
-    RobloxAPICache.IdByUsername.set(Stringified, Results);
+    const FinalResults = Array.isArray(Usernames) ? Results : Results[0];
+    RobloxAPICache.IdByUsername.set(Stringified, FinalResults as UserIdLookupResult<Input>);
 
-    return Results;
+    return FinalResults as UserIdLookupResult<Input>;
   } catch (Err: any) {
     AppLogger.error({
       label: "Utils:Roblox:GetIdFromUsername",
@@ -66,6 +70,7 @@ export default async function GetIdByUsername<Input extends string | string[]>(
       message: Err.message,
       details: { ...Err },
     });
+
     return (Array.isArray(Usernames) ? [] : [0, "", false]) as any;
   }
 }

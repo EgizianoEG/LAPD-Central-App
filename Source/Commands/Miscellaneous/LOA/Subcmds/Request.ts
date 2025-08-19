@@ -12,7 +12,7 @@ import { differenceInHours } from "date-fns";
 import { milliseconds } from "date-fns/milliseconds";
 
 import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
-import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import ParseDuration from "parse-duration";
 
 const MaxLeaveDuration = milliseconds({ months: 3 });
@@ -128,12 +128,13 @@ export async function HasRecentlyEndedDeniedCancelledUAN(
   return false;
 }
 
-// ---------------------------------------------------------------------------------------
-// Initial Handling:
-// -----------------
-async function Callback(Interaction: SlashCommandInteraction<"cached">) {
-  await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const ActiveOrPendingNotice = await UserActivityNoticeModel.findOne(
+export async function EvaluatePendingOrActiveNotices(
+  Interaction: SlashCommandInteraction<"cached">
+): Promise<{
+  loa: { active: boolean; pending: boolean };
+  ra: { active: boolean; pending: boolean };
+}> {
+  const ActiveOrPendingNotices = await UserActivityNoticeModel.find(
     {
       user: Interaction.user.id,
       guild: Interaction.guildId,
@@ -146,22 +147,59 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         },
       ],
     },
-    { status: 1 }
+    {
+      status: 1,
+      type: 1,
+    }
   )
     .lean()
     .exec();
 
-  if (ActiveOrPendingNotice) {
-    return new ErrorEmbed()
-      .useErrTemplate("UANoticeAlreadyExists", "leave of absence")
-      .replyToInteract(Interaction, true, true);
+  const Statuses = {
+    loa: { active: false, pending: false },
+    ra: { active: false, pending: false },
+  };
+
+  for (const Notice of ActiveOrPendingNotices) {
+    if (Notice.type === "LeaveOfAbsence") {
+      if (Notice.status === "Pending") {
+        Statuses.loa.pending = true;
+      } else {
+        Statuses.loa.active = true;
+      }
+    } else if (Notice.type === "ReducedActivity") {
+      if (Notice.status === "Pending") {
+        Statuses.ra.pending = true;
+      } else {
+        Statuses.ra.active = true;
+      }
+    }
   }
 
+  return Statuses;
+}
+
+// ---------------------------------------------------------------------------------------
+// Initial Handling:
+// -----------------
+async function Callback(Interaction: SlashCommandInteraction<"cached">) {
+  await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const RequestReason = Interaction.options.getString("reason", true);
   const RequestDuration = Interaction.options.getString("duration", true);
-  const DurationParsed = Math.round(ParseDuration(RequestDuration, "millisecond") ?? 0);
+  const DurationParsed = Math.round(Math.abs(ParseDuration(RequestDuration, "millisecond") ?? 0));
   if (await HandleDurationValidation(Interaction, "LeaveOfAbsence", DurationParsed)) return;
   if (await HasRecentlyEndedDeniedCancelledUAN(Interaction, "LeaveOfAbsence")) return;
+
+  const PendingOrActiveNoticeStatuses = await EvaluatePendingOrActiveNotices(Interaction);
+  if (PendingOrActiveNoticeStatuses.loa.active || PendingOrActiveNoticeStatuses.loa.pending) {
+    return new ErrorEmbed()
+      .useErrTemplate("LOARequestNoticeAlreadyExists")
+      .replyToInteract(Interaction, true, true);
+  } else if (PendingOrActiveNoticeStatuses.ra.pending) {
+    return new ErrorEmbed()
+      .useErrTemplate("LOARequestRANoticeIsPending")
+      .replyToInteract(Interaction, true, true);
+  }
 
   const PendingLeave = await UserActivityNoticeModel.create({
     type: "LeaveOfAbsence",

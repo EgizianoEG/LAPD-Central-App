@@ -9,30 +9,31 @@ import {
   userMention,
   GuildMember,
   EmbedBuilder,
+  MessageFlags,
+  resolveColor,
+  ComponentType,
   BaseInteraction,
   ImageURLOptions,
-  TextBasedChannel,
+  DiscordAPIError,
+  SendableChannels,
   AttachmentBuilder,
-  GuildBasedChannel,
   time as FormatTime,
+  SeparatorSpacingSize,
+  APIContainerComponent,
+  PermissionFlagsBits,
 } from "discord.js";
 
 import { Shifts } from "@Typings/Utilities/Database.js";
-import { Embeds } from "@Config/Shared.js";
+import { Colors } from "@Config/Shared.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { App as DiscordApp } from "@DiscordApp";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GuildModel from "@Models/Guild.js";
-import HDuration from "humanize-duration";
 import Dedent from "dedent";
 
 const BluewishText = (Text: string | number, ChannelId: string) => {
   return `[${Text}](${channelLink(ChannelId)})`;
 };
-
-const ReadableDuration = HDuration.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
 
 // ------------------------------------------------------------------------------------
 // Typings:
@@ -69,24 +70,36 @@ export default class ShiftActionLogger {
    * @param Guild
    * @returns
    */
-  private static async GetLoggingChannel(Guild: Guild) {
-    const LoggingChannelId = await GuildModel.findById(Guild.id)
-      .select("settings.shift_management.log_channel")
-      .then((GuildDoc) => {
-        if (GuildDoc) {
-          return GuildDoc.settings.shift_management.log_channel;
-        }
-        return null;
-      });
+  private static async GetLoggingChannel(Guild: Guild): Promise<SendableChannels | null> {
+    const LoggingChannelId = await GetGuildSettings(Guild.id).then((Settings) => {
+      if (Settings) {
+        return Settings.shift_management.log_channel;
+      }
+      return null;
+    });
 
     if (!LoggingChannelId) return null;
-    const ChannelExists = Guild.channels.cache.get(LoggingChannelId);
-    const AbleToSendMsgs =
-      ChannelExists?.viewable &&
-      ChannelExists.isTextBased() &&
-      ChannelExists.permissionsFor(await Guild.members.fetchMe())?.has("SendMessages");
+    const ChannelExists = await Guild.channels.fetch(LoggingChannelId).catch((Err) => {
+      if (Err instanceof DiscordAPIError && Err.code === 10003) {
+        // Channel does not exist anymore, return 'null' and make sure to remove it from the database too.
+        GuildModel.updateOne(
+          { id: Guild.id },
+          { $set: { "settings.shift_management.log_channel": null } }
+        ).catch(() => null);
+        return null;
+      }
+      throw Err;
+    });
 
-    return AbleToSendMsgs === true ? (ChannelExists as GuildBasedChannel & TextBasedChannel) : null;
+    const AbleToSendMsgs =
+      ChannelExists?.isSendable() &&
+      ChannelExists.isTextBased() &&
+      ChannelExists.permissionsFor(await Guild.members.fetchMe()).has(
+        [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages],
+        true
+      );
+
+    return AbleToSendMsgs === true ? ChannelExists : null;
   }
 
   /**
@@ -198,7 +211,7 @@ export default class ShiftActionLogger {
     });
 
     const LogEmbed = BaseData.BaseEmbed.setTitle("Shift Started")
-      .setColor(Embeds.Colors.ShiftOn)
+      .setColor(Colors.ShiftOn)
       .setFields(
         {
           inline: true,
@@ -256,7 +269,7 @@ export default class ShiftActionLogger {
 
     const BreakStartedRT = FormatTime(Math.round(ShiftDoc.events.breaks[0]![0] / 1000), "R");
     const LogEmbed = BaseData.BaseEmbed.setTitle("Shift Break Started")
-      .setColor(Embeds.Colors.ShiftBreak)
+      .setColor(Colors.ShiftBreak)
       .setFields(
         {
           inline: true,
@@ -322,7 +335,7 @@ export default class ShiftActionLogger {
     const AllBTEqualsEndedBreak = ShiftDoc.durations.on_break === EndedBreak[1] - EndedBreak[0];
 
     const LogEmbed = BaseData.BaseEmbed.setTitle("Shift Break Ended")
-      .setColor(Embeds.Colors.ShiftBreak)
+      .setColor(Colors.ShiftBreak)
       .setFields(
         {
           inline: true,
@@ -387,7 +400,7 @@ export default class ShiftActionLogger {
     const OnBreakTime = ShiftDoc.hasBreaks() ? ReadableDuration(ShiftDoc.durations.on_break) : null;
 
     const LogEmbed = BaseData.BaseEmbed.setTitle("Shift Ended")
-      .setColor(Embeds.Colors.ShiftOff)
+      .setColor(Colors.ShiftOff)
       .addFields(
         {
           inline: false,
@@ -457,7 +470,7 @@ export default class ShiftActionLogger {
     const OnBreakTime = ShiftDoc.hasBreaks() ? ReadableDuration(ShiftDoc.durations.on_break) : null;
 
     const LogEmbed = BaseData.BaseEmbed.setTitle("Shift Automatically Ended")
-      .setColor(Embeds.Colors.ShiftOff)
+      .setColor(Colors.ShiftOff)
       .addFields(
         {
           inline: true,
@@ -520,7 +533,7 @@ export default class ShiftActionLogger {
     const OnBreakTime = ShiftDoc.hasBreaks() ? ReadableDuration(ShiftDoc.durations.on_break) : null;
 
     const LogEmbed = BaseData.BaseEmbed.setTitle("Shift Voided")
-      .setColor(Embeds.Colors.ShiftVoid)
+      .setColor(Colors.ShiftVoid)
       .addFields(
         {
           inline: true,
@@ -589,7 +602,7 @@ export default class ShiftActionLogger {
   ) {
     const LoggingChannel = await this.GetLoggingChannel(UserInteract.guild);
     const LogEmbed = new EmbedBuilder()
-      .setColor(Embeds.Colors.ShiftOff)
+      .setColor(Colors.ShiftOff)
       .setTitle(TargettedUser ? "Member Shifts Wiped" : "Shifts Wiped")
       .setFooter({ text: `Wiped by: @${UserInteract.user.username}` })
       .setDescription(
@@ -651,7 +664,7 @@ export default class ShiftActionLogger {
     const LoggingChannel = await this.GetLoggingChannel(UserInteract.guild);
     const LogEmbed = new EmbedBuilder()
       .setTimestamp(UserInteract.createdAt)
-      .setColor(Embeds.Colors.ShiftOff)
+      .setColor(Colors.ShiftOff)
       .setTitle("Shifts Ended")
       .setFooter({ text: `Ended by: @${UserInteract.user.username}` })
       .setDescription(
@@ -677,7 +690,7 @@ export default class ShiftActionLogger {
     const LoggingChannel = await this.GetLoggingChannel(UserInteract.guild);
     const LogEmbed = new EmbedBuilder()
       .setTimestamp(UserInteract.createdAt)
-      .setColor(Embeds.Colors.ShiftOff)
+      .setColor(Colors.ShiftOff)
       .setTitle("Member Shift Deleted")
       .setFooter({ text: `Deleted by: @${UserInteract.user.username}` })
       .setDescription(
@@ -708,7 +721,7 @@ export default class ShiftActionLogger {
     const LoggingChannel = await this.GetLoggingChannel(UserInteract.guild);
     const LogEmbed = new EmbedBuilder()
       .setTimestamp(UserInteract.createdAt)
-      .setColor(Embeds.Colors.ShiftVoid)
+      .setColor(Colors.ShiftVoid)
       .setTitle("Shift Modified — Time Set")
       .setFooter({ text: `Set by: @${UserInteract.user.username}` })
       .setDescription(
@@ -740,7 +753,7 @@ export default class ShiftActionLogger {
     const LoggingChannel = await this.GetLoggingChannel(UserInteract.guild);
     const LogEmbed = new EmbedBuilder()
       .setTimestamp(UserInteract.createdAt)
-      .setColor(Embeds.Colors.ShiftOff)
+      .setColor(Colors.ShiftOff)
       .setTitle("Shift Modified — Time Reset")
       .setFooter({ text: `Reset by: @${UserInteract.user.username}` })
       .setDescription(
@@ -788,10 +801,10 @@ export default class ShiftActionLogger {
 
     if (ActionType === "Add") {
       LogEmbed.setTitle("Shift Modified — Time Add");
-      LogEmbed.setColor(Embeds.Colors.ShiftOn);
+      LogEmbed.setColor(Colors.ShiftOn);
     } else {
       LogEmbed.setTitle("Shift Modified — Time Subtract");
-      LogEmbed.setColor(Embeds.Colors.ShiftOff);
+      LogEmbed.setColor(Colors.ShiftOff);
     }
 
     return LoggingChannel?.send({ embeds: [LogEmbed] });
@@ -819,33 +832,63 @@ export default class ShiftActionLogger {
       SourceFileURL: string;
       ShiftsOfType: string;
     }
-  ): Promise<DiscordJS.Message<true> | undefined> {
+  ): Promise<DiscordJS.Message<boolean> | undefined> {
     const LoggingChannel = await this.GetLoggingChannel(UserInteract.guild);
     if (!LoggingChannel) return undefined;
 
-    const LogEmbed = new EmbedBuilder()
-      .setColor(Embeds.Colors.ShiftOn)
-      .setTimestamp(UserInteract.createdAt)
-      .setFooter({ text: `Imported by: @${UserInteract.user.username}` })
-      .setTitle("Shift Time Imported")
-      .setDescription(
-        Dedent(`
-          **Staff Count:** ${BluewishText(ImportDetails.UsersTotal, LoggingChannel.id)}
-          **Unresolved Staff:** ${BluewishText(ImportDetails.UnresolvedUsers, LoggingChannel.id)}
-          **Imported Shifts:** ${ImportDetails.ShiftsTotal >= ImportDetails.UsersTotal - ImportDetails.UnresolvedUsers ? BluewishText(ImportDetails.ShiftsTotal, LoggingChannel.id) : "*Unknown*"}
-          **Imported Under Type:** ${inlineCode(ImportDetails.ShiftsOfType)}
-          **Total Time Imported:** ${ReadableDuration(ImportDetails.TotalShiftTime)}
-        `)
-      );
+    const AccentColor = resolveColor(Colors.ShiftOn);
+    const ImportData = new AttachmentBuilder(ImportDetails.SourceFileURL, {
+      name: "import_data.txt",
+      description: "Shift import source.",
+    });
+
+    const CompContainerAPIObj: APIContainerComponent = {
+      type: ComponentType.Container,
+      accent_color: AccentColor,
+      components: [
+        {
+          type: ComponentType.TextDisplay,
+          content: "### Shift Time Imported",
+        },
+        {
+          divider: true,
+          type: ComponentType.Separator,
+          spacing: SeparatorSpacingSize.Small,
+        },
+        {
+          type: ComponentType.TextDisplay,
+          content: Dedent(`
+            **Staff Count:** ${BluewishText(ImportDetails.UsersTotal, LoggingChannel.id)}
+            **Unresolved Staff:** ${BluewishText(ImportDetails.UnresolvedUsers, LoggingChannel.id)}
+            **Imported Shifts:** ${ImportDetails.ShiftsTotal >= ImportDetails.UsersTotal - ImportDetails.UnresolvedUsers ? BluewishText(ImportDetails.ShiftsTotal, LoggingChannel.id) : "*Unknown Count*"}
+            **Imported Under Type:** ${inlineCode(ImportDetails.ShiftsOfType)}
+            **Total Time Imported:** ${ReadableDuration(ImportDetails.TotalShiftTime)}
+          `),
+        },
+        {
+          divider: true,
+          type: ComponentType.Separator,
+          spacing: SeparatorSpacingSize.Small,
+        },
+        {
+          type: ComponentType.TextDisplay,
+          content: `-# Imported by: ${userMention(UserInteract.user.id)}; around ${FormatTime(UserInteract.createdAt, "R")}`,
+        },
+        {
+          type: ComponentType.File,
+          file: {
+            url: `attachment://${ImportData.name}`,
+            content_type: "text/plain",
+          },
+        },
+      ],
+    };
 
     return LoggingChannel.send({
-      embeds: [LogEmbed],
-      files: [
-        new AttachmentBuilder(ImportDetails.SourceFileURL, {
-          name: "import_data.txt",
-          description: "Shift import source.",
-        }),
-      ],
+      allowedMentions: { users: [] },
+      components: [CompContainerAPIObj],
+      files: [ImportData],
+      flags: MessageFlags.IsComponentsV2,
     });
   }
 }

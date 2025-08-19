@@ -1,4 +1,4 @@
-import HandleEmbedPagination from "@Utilities/Other/HandleEmbedPagination.js";
+import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
   codeBlock,
@@ -37,7 +37,11 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     Pages.push(new EmbedBuilder().setDescription(codeBlock("json", JsonString)));
   }
 
-  return HandleEmbedPagination(Pages, Interaction, undefined, true);
+  return HandlePagePagination({
+    pages: Pages,
+    interact: Interaction,
+    ephemeral: true,
+  });
 }
 
 // ---------------------------------------------------------------------------------------

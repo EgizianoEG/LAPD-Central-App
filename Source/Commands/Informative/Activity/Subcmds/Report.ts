@@ -9,39 +9,40 @@ import {
   ButtonStyle,
 } from "discord.js";
 
-import { differenceInMilliseconds, isAfter, milliseconds } from "date-fns";
-import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { IsValidShiftTypeName } from "@Utilities/Other/Validators.js";
+import { differenceInMilliseconds, milliseconds } from "date-fns";
+import { Dedent, ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { ShiftTypeExists } from "@Utilities/Database/ShiftTypeValidators.js";
+import { ParseDateInputs } from "./Officer.js";
+import { InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
+import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import * as Chrono from "chrono-node";
-import Dedent from "dedent";
-import DHumanize from "humanize-duration";
 import ShiftModel from "@Models/Shift.js";
 import ParseDuration from "parse-duration";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import CreateShiftReport from "@Utilities/Other/CreateShiftReport.js";
-
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 3,
-  round: true,
-});
+import CreateActivityReport from "@Utilities/Reports/CreateActivityReport.js";
+import GetValidTargetShiftTypes from "@Utilities/Helpers/GetTargetShiftType.js";
 
 // ---------------------------------------------------------------------------------------
+// Command Handling:
+// -----------------
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
+  const [ValidShiftTypes, TargetShiftTypes] = await GetValidTargetShiftTypes(CmdInteraction, false);
   const InputQuotaDuration = CmdInteraction.options.getString("time-requirement", false);
   const EphemeralResponse = CmdInteraction.options.getBoolean("private", false) ?? false;
   const InputShiftType = CmdInteraction.options.getString("shift-type", false);
   const IMNicknames = CmdInteraction.options.getBoolean("include-nicknames", false);
-  const InputSince = CmdInteraction.options.getString("since", true);
-  let SinceDate: Date | null = null;
+  const RespFlags = EphemeralResponse
+    ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
+    : MessageFlags.IsComponentsV2;
+
+  const DateRangeFilters = await ParseDateInputs(CmdInteraction);
   let QuotaDur: number = 0;
 
+  if (DateRangeFilters === true) return;
   if (InputQuotaDuration) {
     const ParsedDuration = ParseDuration(InputQuotaDuration, "millisecond");
-    if (ParsedDuration) {
-      QuotaDur = Math.round(ParsedDuration);
+    if (typeof ParsedDuration === "number") {
+      QuotaDur = Math.round(Math.abs(ParsedDuration));
     } else {
       return new ErrorEmbed()
         .useErrTemplate("UnknownDurationExp")
@@ -49,75 +50,83 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     }
   }
 
-  if (InputSince) {
-    SinceDate = Chrono.parseDate(InputSince, CmdInteraction.createdAt);
-    if (!SinceDate && !InputSince.match(/\bago\s*$/i)) {
-      SinceDate = Chrono.parseDate(`${InputSince} ago`, CmdInteraction.createdAt);
-    }
-
-    if (!SinceDate) {
-      return new ErrorEmbed()
-        .useErrTemplate("UnknownDateFormat")
-        .replyToInteract(CmdInteraction, true, false);
-    } else if (isAfter(SinceDate, CmdInteraction.createdAt)) {
-      return new ErrorEmbed()
-        .useErrTemplate("DateInFuture")
-        .replyToInteract(CmdInteraction, true, false);
-    } else if (
-      differenceInMilliseconds(CmdInteraction.createdAt, SinceDate) + 10_000 <=
+  if (
+    DateRangeFilters.since &&
+    !DateRangeFilters.until &&
+    differenceInMilliseconds(CmdInteraction.createdAt, DateRangeFilters.since) + 10_000 <=
       milliseconds({ days: 1 })
-    ) {
-      return new ErrorEmbed()
-        .useErrTemplate("NotEnoughTimePassedAR")
-        .replyToInteract(CmdInteraction, true, false);
-    }
+  ) {
+    return new ErrorEmbed()
+      .useErrTemplate("NotEnoughTimePassedAR")
+      .replyToInteract(CmdInteraction, true, false);
+  }
+
+  if (
+    DateRangeFilters.since &&
+    DateRangeFilters.until &&
+    Math.abs(differenceInMilliseconds(DateRangeFilters.until, DateRangeFilters.since)) <
+      milliseconds({ days: 1 })
+  ) {
+    return new ErrorEmbed()
+      .useErrTemplate("InvalidDateRangeAR")
+      .replyToInteract(CmdInteraction, true, false);
   }
 
   if (InputShiftType) {
-    if (!IsValidShiftTypeName(InputShiftType)) {
+    if (ValidShiftTypes.length !== TargetShiftTypes.length) {
       return new ErrorEmbed()
         .useErrTemplate("MalformedShiftTypeName")
         .replyToInteract(CmdInteraction, true, false);
-    } else if (!(await ShiftTypeExists(CmdInteraction.guildId, InputShiftType))) {
-      return new ErrorEmbed()
-        .useErrTemplate("NonexistentShiftTypeUsage")
-        .replyToInteract(CmdInteraction, true, false);
+    } else if (ValidShiftTypes.length) {
+      const HasNonexistentShiftType = await Promise.all(
+        TargetShiftTypes.map(
+          async (ShiftType) => !(await ShiftTypeExists(CmdInteraction.guildId, ShiftType))
+        )
+      );
+
+      if (HasNonexistentShiftType.some((Exists) => Exists)) {
+        return new ErrorEmbed()
+          .useErrTemplate("NonexistentShiftTypeUsage")
+          .replyToInteract(CmdInteraction, true, false);
+      }
     }
   }
 
   await CmdInteraction.deferReply({
-    flags: EphemeralResponse ? MessageFlags.Ephemeral : undefined,
+    flags: RespFlags,
   });
 
-  const CheckedShiftType = InputShiftType?.toLowerCase() === "default" ? "Default" : InputShiftType;
-  const QuickShiftCount = await ShiftModel.countDocuments({
+  const EstimatedShiftCount = await ShiftModel.countDocuments({
     guild: CmdInteraction.guild.id,
-    type: CheckedShiftType || { $exists: true },
-    start_timestamp: SinceDate ? { $gte: SinceDate } : { $exists: true },
-    end_timestamp: { $ne: null },
+    type: ValidShiftTypes.length ? { $in: ValidShiftTypes } : { $exists: true },
+    start_timestamp: DateRangeFilters.since ? { $gte: DateRangeFilters.since } : { $exists: true },
+    end_timestamp: DateRangeFilters.until
+      ? { $ne: null, $lte: DateRangeFilters.until }
+      : { $ne: null },
   });
 
-  if (QuickShiftCount === 0) {
-    return new InfoEmbed()
+  if (EstimatedShiftCount === 0) {
+    return new InfoContainer()
       .useInfoTemplate("NoShiftsFoundReport")
       .replyToInteract(CmdInteraction, true, false);
   }
 
   await CmdInteraction.editReply({
-    embeds: [new InfoEmbed().useInfoTemplate("CreatingActivityReport")],
+    components: [new InfoContainer().useInfoTemplate("CreatingActivityReport")],
+    flags: RespFlags,
   });
 
-  const GSettings = await GetGuildSettings(CmdInteraction.guildId, true);
-  const ServerDefaultQuota = GSettings?.shift_management.default_quota || 0;
-  const ReportSpredsheetURL = await CreateShiftReport({
+  const GuildSettings = await GetGuildSettings(CmdInteraction.guildId);
+  const FetchedGuildMembers = await CmdInteraction.guild.members.fetch();
+  const ServerDefaultQuota = GuildSettings?.shift_management.default_quota ?? 0;
+  const ReportSpredsheetURL = await CreateActivityReport({
     guild: CmdInteraction.guild,
-    shift_type: CheckedShiftType,
-    after: SinceDate,
+    after: DateRangeFilters.since,
+    until: DateRangeFilters.until,
+    members: FetchedGuildMembers,
+    shift_type: ValidShiftTypes,
     quota_duration: QuotaDur || ServerDefaultQuota,
     include_member_nicknames: !!IMNicknames,
-    members: await CmdInteraction.guild.members
-      .fetch()
-      .catch(() => CmdInteraction.guild.members.cache),
   });
 
   const ShowReportButton = new ActionRowBuilder<ButtonBuilder>().setComponents(
@@ -127,36 +136,43 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
       .setURL(ReportSpredsheetURL)
   );
 
+  const STPluralSuffix = ValidShiftTypes.length > 1 || ValidShiftTypes.length === 0 ? "s" : "";
+  const DataUntilText = DateRangeFilters.until
+    ? `\n- **Data Until:** ${FormatTime(DateRangeFilters.until, "F")}`
+    : "";
+
   const ShiftTimeReqText = QuotaDur
-    ? HumanizeDuration(QuotaDur)
+    ? ReadableDuration(QuotaDur)
     : ServerDefaultQuota
-      ? `${HumanizeDuration(ServerDefaultQuota)} (Server Default)`
+      ? `${ReadableDuration(ServerDefaultQuota, { largest: 3 })} (Server Default)`
       : "Disabled (No Quota)";
 
-  const RespEmbed = new InfoEmbed()
-    .setThumbnail(null)
+  const ResponseContainer = new InfoContainer()
     .setTitle("Report Created")
     .setDescription(
       Dedent(`
         **The activity report has been successfully created and is ready to be viewed.**
         **Report Configuration:**
-        - **Data Since:** ${SinceDate ? FormatTime(SinceDate, "F") : "Not Specified"}
-        - **Shift Type:** ${InputShiftType ?? "All Shift Types"}
+        - **Data Since:** ${DateRangeFilters.since ? FormatTime(DateRangeFilters.since, "F") : "Not Specified"}${DataUntilText}
+        - **Shift Type${STPluralSuffix}:** ${ValidShiftTypes.length ? ListFormatter.format(ValidShiftTypes) : "All Shift Types"}
         - **Shift Time Requirement:** ${ShiftTimeReqText}
         - **Member Nicknames Included:** ${IMNicknames ? "Yes" : "No"}
         
-        *Click the button below to view the report on Google Sheets.*
+        -# *Click the button below to view the report on Google Sheets.*
+        -# *To make changes or to use interactive highlighting features, use \
+        "File > Make a copy" in Google Sheets.*
       `)
-    );
+    )
+    .attachPromptActionRows(ShowReportButton);
 
   return CmdInteraction.editReply({
-    components: [ShowReportButton],
-    embeds: [RespEmbed],
+    components: [ResponseContainer],
+    flags: RespFlags,
   }).catch(() => null);
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
   callback: Callback,
@@ -189,7 +205,7 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
           "The shift type to be reported on. If not specified, the report will encompass all types of shifts."
         )
         .setMinLength(3)
-        .setMaxLength(20)
+        .setMaxLength(40)
         .setRequired(false)
         .setAutocomplete(true)
     )
@@ -204,6 +220,16 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
       Option.setName("private")
         .setRequired(false)
         .setDescription("Whether to send the report to you privately.")
+    )
+    .addStringOption((Option) =>
+      Option.setName("to")
+        .setDescription(
+          "A specific date, timeframe, or relative time expression to report on activity until then."
+        )
+        .setMinLength(2)
+        .setMaxLength(40)
+        .setRequired(false)
+        .setAutocomplete(true)
     ),
 };
 

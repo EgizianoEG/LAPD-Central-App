@@ -40,12 +40,14 @@ export const IncidentStatusesFlattened = [
 const StatusDescriptions: Record<string, string> = {
   [IncidentStatuses.Active]: "Incident is currently active.",
   [IncidentStatuses.Closed]: "Incident has been closed.",
-  [IncidentStatuses.ColdCase]: "Case has not been solved and is considered inactive.",
+  [IncidentStatuses.ColdCase]:
+    "Major unsolved incident with no active leads; case remains reopenable.",
+
   [IncidentStatuses.ReferredToOtherAgency]:
     "Case has been transferred to another law enforcement agency for investigation.",
 
   [`${[IncidentStatuses.Active]}: ${ActiveIncidentStatus.InProgress}`]:
-    "Incident is currently being worked on",
+    "Incident is currently being worked on.",
 
   [`${[IncidentStatuses.Active]}: ${ActiveIncidentStatus.SuspectAtLarge}`]:
     "The suspect is still on the loose and being sought by authorities.",
@@ -60,10 +62,10 @@ const StatusDescriptions: Record<string, string> = {
     "The case has been closed due to factors outside of law enforcement's control.",
 
   [`${[IncidentStatuses.Closed]}: ${ClosedIncidentStatus.Inactivated}`]:
-    "The reported incident was found to be false or unsubstantiated.",
+    "Investigation suspended due to lack of leads; case remains reopenable.",
 
   [`${[IncidentStatuses.Closed]}: ${ClosedIncidentStatus.Unfounded}`]:
-    "The case has been temporarily suspended due to lack of evidence or leads.",
+    "The incident was determined to be false or baseless.",
 };
 
 export const IncidentStatusesWithDescriptions = [
@@ -73,34 +75,59 @@ export const IncidentStatusesWithDescriptions = [
   })),
   ...Object.values(ActiveIncidentStatus).map((Status) => ({
     status: `${IncidentStatuses.Active}: ${Status}`,
-    description: StatusDescriptions[`Active: ${Status}`],
+    description: StatusDescriptions[`${IncidentStatuses.Active}: ${Status}`],
   })),
   ...Object.values(ClosedIncidentStatus).map((Status) => ({
     status: `${IncidentStatuses.Closed}: ${Status}`,
-    description: StatusDescriptions[`Closed: ${Status}`],
+    description: StatusDescriptions[`${IncidentStatuses.Closed}: ${Status}`],
   })),
-] as const;
+].toSorted((a, b) => a.status.localeCompare(b.status));
 
-export const IncidentTypes = [
-  "Pursuit",
-  "Robbery",
-  "Assault",
-  "Burglary",
-  "Shooting",
-  "Homicide",
-  "Gang Activity",
-  "Traffic Collision",
-  "Hostage Situation",
-  "Firearm Discharge",
-  "Medical Emergency",
-  "Noise Complaint",
-  "Public Disturbance",
-  "Domestic Disturbance",
-  "Attempted Robbery",
-  "Attempted Murder",
-  "Residential Fire",
-  "Commercial Fire",
-  "Structure Fire",
-  "Bush Fire",
-  "Other",
-] as const;
+export const IncidentCategories = {
+  Traffic: ["Traffic Collision", "Pursuit", "Traffic Hazard", "DUI/DWI", "Vehicle Impound/Tow"],
+  Fire: ["Residential Fire", "Commercial Fire", "Structure Fire", "Bush Fire"],
+
+  Critical: ["Armed Subject", "Active Shooter", "Hostage Situation", "Barricaded Subject"],
+  Medical: ["Medical Emergency"],
+
+  Crime: [
+    "Theft",
+    "Robbery",
+    "Assault",
+    "Burglary",
+    "Shooting",
+    "Homicide",
+    "Vandalism",
+    "Kidnapping",
+    "Gang Activity",
+    "Drug Activity",
+    "Warrant Service",
+    "Grand Theft Auto",
+    "Attempted Murder",
+    "Attempted Robbery",
+    "Firearm Discharge",
+  ],
+
+  Disturbance: [
+    "Loitering",
+    "Public Disturbance",
+    "Domestic Disturbance",
+    "Disorderly Conduct",
+    "Noise Complaint",
+    "Trespassing",
+  ],
+
+  GeneralService: [
+    "Suspicious Activity",
+    "Animal Complaint",
+    "Illegal Dumping",
+    "Citizen Assist",
+    "Missing Person",
+    "Welfare Check",
+    "Alarm Drop",
+    "Other",
+  ],
+} as const;
+
+export const IncidentTypes = Object.values(IncidentCategories).flat();
+export type IncidentTypesType = (typeof IncidentTypes)[number];

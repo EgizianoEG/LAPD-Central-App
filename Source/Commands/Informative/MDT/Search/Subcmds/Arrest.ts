@@ -3,7 +3,7 @@
 
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { MessageFlags, SlashCommandSubcommandBuilder } from "discord.js";
-import GetFormattedArrestReportEmbed from "@Utilities/Other/FormatArrestReportEmbed.js";
+import GetFormattedArrestReportEmbed from "@Utilities/Reports/FormatArrestReportEmbed.js";
 import GetArrestRecord from "@Utilities/Database/GetArrestRecord.js";
 
 // ---------------------------------------------------------------------------------------
@@ -19,7 +19,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   }
 
   return CmdInteraction.reply({
-    embeds: [await GetFormattedArrestReportEmbed(ArrestRecord)],
+    embeds: [await GetFormattedArrestReportEmbed(ArrestRecord, true)],
     flags: MessageFlags.Ephemeral,
   });
 }

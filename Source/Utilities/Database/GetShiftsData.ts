@@ -2,9 +2,9 @@
 import type { PropertiesToString } from "utility-types";
 import type { Shifts } from "@Typings/Utilities/Database.js";
 import type { FilterQuery } from "mongoose";
-import DHumanize from "humanize-duration";
-import ShiftModel from "@Models/Shift.js";
-import Guild from "@Models/Guild.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
+import GetGuildSettings from "./GetGuildSettings.js";
 
 export type UserMainShiftsData = {
   shift_count: number;
@@ -21,12 +21,6 @@ export type UserMainShiftsData = {
   /** The shift type with the highest total on-duty time. **/
   frequent_shift_type: string;
 };
-
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
 
 /**
  * Returns an object containing main data for a user's shifts.
@@ -50,20 +44,21 @@ export default async function GetMainShiftsData(
   QueryFilter: FilterQuery<Shifts.ShiftDocument>,
   HasActiveShift: boolean = false
 ) {
-  QueryFilter.end_timestamp = { $ne: null };
   QueryFilter.type = QueryFilter.type || { $exists: true };
+  if (typeof QueryFilter.end_timestamp === "object" && QueryFilter.end_timestamp !== null) {
+    QueryFilter.end_timestamp = {
+      $ne: null,
+      ...QueryFilter.end_timestamp,
+    };
+  } else {
+    QueryFilter.end_timestamp = { $ne: null };
+  }
 
-  const ServerSetShiftQuota = await Guild.findById(
-    QueryFilter.guild,
-    {
-      "settings.shift_management.default_quota": 1,
-    },
-    { lean: true }
-  )
-    .then((Doc) => Doc?.settings.shift_management.default_quota || 0)
+  const ServerSetShiftQuota = await GetGuildSettings(QueryFilter.guild)
+    .then((Settings) => Settings?.shift_management.default_quota || 0)
     .catch(() => 0);
 
-  return ShiftModel.aggregate([
+  return ShiftModel.aggregate<UserMainShiftsData>([
     { $match: QueryFilter },
     {
       $group: {
@@ -84,10 +79,12 @@ export default async function GetMainShiftsData(
           },
         },
 
-        total_onduty_imported: {
+        total_onduty_manual: {
           $sum: {
             $cond: {
-              if: { $eq: ["$flag", "Imported"] },
+              if: {
+                $in: ["$flag", [ShiftFlags.Imported, ShiftFlags.Administrative, ShiftFlags.System]],
+              },
               then: {
                 $add: [
                   "$durations.on_duty",
@@ -101,10 +98,12 @@ export default async function GetMainShiftsData(
           },
         },
 
-        imported_shift_count: {
+        manual_shift_count: {
           $sum: {
             $cond: {
-              if: { $eq: ["$flag", "Imported"] },
+              if: {
+                $in: ["$flag", [ShiftFlags.Imported, ShiftFlags.Administrative, ShiftFlags.System]],
+              },
               then: 1,
               else: 0,
             },
@@ -123,8 +122,8 @@ export default async function GetMainShiftsData(
         total_arrests: { $sum: "$total_arrests" },
         total_citations: { $sum: "$total_citations" },
 
-        imported_shift_count: { $sum: "$imported_shift_count" },
-        total_onduty_imported: { $sum: "$total_onduty_imported" },
+        manual_shift_count: { $sum: "$manual_shift_count" },
+        total_onduty_manual: { $sum: "$total_onduty_manual" },
       },
     },
     {
@@ -138,16 +137,16 @@ export default async function GetMainShiftsData(
         frequent_shift_type: 1,
         avg_onduty: {
           $cond: {
-            if: { $eq: [{ $subtract: ["$shift_count", "$imported_shift_count"] }, 0] },
+            if: { $eq: [{ $subtract: ["$shift_count", "$manual_shift_count"] }, 0] },
             then: 0,
             else: {
               $round: {
                 $divide: [
                   {
-                    $subtract: ["$total_onduty", "$total_onduty_imported"],
+                    $subtract: ["$total_onduty", "$total_onduty_manual"],
                   },
                   {
-                    $subtract: ["$shift_count", "$imported_shift_count"],
+                    $subtract: ["$shift_count", "$manual_shift_count"],
                   },
                 ],
               },
@@ -156,14 +155,14 @@ export default async function GetMainShiftsData(
         },
         avg_onbreak: {
           $cond: {
-            if: { $eq: [{ $subtract: ["$shift_count", "$imported_shift_count"] }, 0] },
+            if: { $eq: [{ $subtract: ["$shift_count", "$manual_shift_count"] }, 0] },
             then: 0,
             else: {
               $round: {
                 $divide: [
                   "$total_onbreak",
                   {
-                    $subtract: ["$shift_count", "$imported_shift_count"],
+                    $subtract: ["$shift_count", "$manual_shift_count"],
                   },
                 ],
               },
@@ -172,7 +171,7 @@ export default async function GetMainShiftsData(
         },
       },
     },
-  ]).then((Resp: UserMainShiftsData[]) => {
+  ]).then((Resp) => {
     if (Resp.length === 0) {
       Resp[0] = {
         shift_count: 0,
@@ -197,7 +196,17 @@ export default async function GetMainShiftsData(
       }
 
       if (Key === "shift_count" || Key.endsWith("s") || typeof Duration !== "number") continue;
-      Resp[0][Key] = HumanizeDuration(Duration);
+      if (Key === "avg_onduty" || Key === "avg_onbreak") {
+        (Resp[0][Key] as unknown as string) =
+          Duration > 500
+            ? ReadableDuration(Duration)
+            : Duration > 0
+              ? "less than 1 minute"
+              : "*insufficient data*";
+      } else {
+        Resp[0][Key] =
+          Duration < 500 && Duration > 0 ? "less than 1 minute" : ReadableDuration(Duration);
+      }
     }
 
     return Resp[0] as unknown as ExpandRecursively<

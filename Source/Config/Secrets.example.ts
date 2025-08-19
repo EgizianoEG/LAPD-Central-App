@@ -1,4 +1,4 @@
-import { Secrets } from "@Typings/Config.js";
+import { Secrets } from "@Typings/Core/Config.js";
 import { env as Env } from "node:process";
 const EnvBotDevs = Env.BOT_DEVS ? (JSON.parse(Env.BOT_DEVS.replace(/'+/g, '"')) as string[]) : null;
 const WLGuilds = Env.WL_GUILDS ? (JSON.parse(Env.WL_GUILDS.replace(/'+/g, '"')) as string[]) : null;
@@ -32,7 +32,7 @@ export const MongoDB: Secrets.MongoDB = {
 
 export const GoogleAPI: Secrets.GoogleAPI = {
   ActivityReportTempSpreadsheetID:
-    Env.ACTIVITY_REPORT_TEMP_SPREADSHEET_ID ?? "1rTaUjFSqP4g0CdjCuZpDD9kmfc5ZFjwmhp5cq2xJHL0",
+    Env.ACTIVITY_REPORT_TEMP_SPREADSHEET_ID ?? "1FVWGct5J4yuAViIs0EorFNVjD9sT-RK01s0qr1H5iLQ",
   ServiceAccountEmail:
     Env.GAPI_SERVICE_ACCOUNT_EMAIL ?? "lapd-central-bot@project.iam.gserviceaccount.com",
   PrivateKey:
@@ -48,6 +48,7 @@ export const Other: Secrets.Other = {
   Environment: (process.env.NODE_ENV as Secrets.Other["Environment"]) ?? "PROD",
   ImgBB_API_Key: Env.IMGBB_API_KEY ?? "33cf14c3eb75cb58b36b7fca231da47f",
   LogTailSourceToken: Env.LOGTAIL_SOURCE_TOKEN ?? "EsQFV7RVhjHKUdrRzM3uvfbX",
+  LogTailIngestingHost: Env.LOGTAIL_INGESTING_HOST ?? "https://in.logs.betterstack.com",
   BloxlinkAPIKey: Env.BLOXLINK_API_KEY ?? "a3a7c9b3-5f8c-4e7b-ba7d-9b9f7f7f7f7f",
   IsProdEnv: !!(process.env.NODE_ENV || "DEV").trim().match(/^Prod(?:uction)?$/i),
 };

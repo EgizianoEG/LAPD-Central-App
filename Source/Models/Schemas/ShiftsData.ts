@@ -45,12 +45,16 @@ const ShiftDataSchema = new Schema({
     type: ADSchema,
   },
 
-  logs: [
-    {
-      type: String,
-      ref: "Shift",
-    },
-  ],
+  logs: {
+    _id: false,
+    default: [],
+    type: [
+      {
+        type: String,
+        ref: "Shift",
+      },
+    ],
+  },
 });
 
 ShiftDataSchema.pre("save", function PreShiftDataSaveFind(next) {

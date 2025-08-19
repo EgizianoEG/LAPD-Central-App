@@ -6,11 +6,12 @@ import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
 import GuildProfile from "@Models/GuildProfile.js";
 
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 import {
   userMention,
   SlashCommandBuilder,
   InteractionContextType,
+  ApplicationIntegrationType,
   type AutocompleteInteraction,
 } from "discord.js";
 
@@ -84,6 +85,7 @@ const CommandObject: SlashCommandObject<any> = {
     .setDescription(
       "See who has the Roblox account with the given username linked to their Discord account."
     )
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild)
     .addStringOption((Option) =>
       Option.setName("roblox-username")

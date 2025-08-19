@@ -11,13 +11,18 @@ import {
   Message,
 } from "discord.js";
 
+import {
+  WarnContainer,
+  ErrorContainer,
+  SuccessContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
+
 import { ReducedActivityEventLogger } from "@Utilities/Classes/UANEventLogger.js";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import { Embeds, Emojis } from "@Config/Shared.js";
+import { Colors, Emojis } from "@Config/Shared.js";
 import { compareDesc } from "date-fns";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import GetUANData from "@Utilities/Database/GetUANData.js";
 import Dedent from "dedent";
 
@@ -43,10 +48,10 @@ function GetManagementComponents(RADocument?: RADocument | null) {
 function GetManagementPromptEmbed(ActiveOrPendingRA?: RADocument | null) {
   const PromptEmbed = new EmbedBuilder()
     .setTitle("Reduced Activity Management")
-    .setColor(Embeds.Colors.Info);
+    .setColor(Colors.Info);
 
   if (ActiveOrPendingRA?.status === "Approved") {
-    PromptEmbed.setColor(Embeds.Colors.LOARequestApproved).addFields({
+    PromptEmbed.setColor(Colors.LOARequestApproved).addFields({
       inline: true,
       name: "Active Notice",
       value: Dedent(`
@@ -57,7 +62,7 @@ function GetManagementPromptEmbed(ActiveOrPendingRA?: RADocument | null) {
       `),
     });
   } else if (ActiveOrPendingRA?.status === "Pending") {
-    PromptEmbed.setColor(Embeds.Colors.LOARequestPending).addFields({
+    PromptEmbed.setColor(Colors.LOARequestPending).addFields({
       inline: true,
       name: "Pending Notice",
       value: Dedent(`
@@ -127,8 +132,7 @@ async function HandlePendingCancellation(
   ActiveOrPendingRA: RADocument,
   PromptMsgId: string
 ) {
-  const ConfirmationEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Warning)
+  const ConfirmationContainer = new WarnContainer()
     .setTitle("Reduced Activity Cancellation")
     .setDescription(
       Dedent(`
@@ -149,10 +153,9 @@ async function HandlePendingCancellation(
   );
 
   const ConfirmationMsg = await Interaction.reply({
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+    components: [ConfirmationContainer.attachPromptActionRows(ConfirmationBtns)],
     withResponse: true,
-    components: [ConfirmationBtns],
-    embeds: [ConfirmationEmbed],
-    flags: MessageFlags.Ephemeral,
   }).then((Resp) => Resp.resource!.message! as Message<true>);
 
   const ButtonInteract = await ConfirmationMsg.awaitMessageComponent({
@@ -184,7 +187,7 @@ async function HandlePendingCancellation(
         message: PromptMsgId,
         embeds: [GetManagementPromptEmbed(ExistingRA)],
       }),
-      new ErrorEmbed()
+      new ErrorContainer()
         .useErrTemplate("NoPendingRAToCancel")
         .replyToInteract(ButtonInteract, true, true, "editReply"),
     ]).then(() => true);
@@ -195,14 +198,13 @@ async function HandlePendingCancellation(
   await ExistingRA.save();
 
   const UpdatedPromptEmbed = GetManagementPromptEmbed(ExistingRA);
-  const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+  const RespContainer = new SuccessContainer()
     .setTitle("Request Cancelled")
     .setDescription("Your reduced activity request was successfully cancelled.");
 
   return Promise.all([
     RAEventLogger.LogCancellation(ButtonInteract, ExistingRA),
-    ButtonInteract.editReply({ embeds: [ReplyEmbed], components: [] }),
+    ButtonInteract.editReply({ components: [RespContainer] }),
     ButtonInteract.editReply({
       components: [],
       message: PromptMsgId,

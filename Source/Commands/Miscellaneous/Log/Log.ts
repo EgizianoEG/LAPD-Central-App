@@ -1,16 +1,15 @@
-/* eslint indent: ["off", 2, { "ObjectExpression": 1 }] */
-// Dependencies:
-// -------------
-
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { DASignatureFormats } from "@Config/Constants.js";
 import {
   SlashCommandBuilder,
   InteractionContextType,
   AutocompleteInteraction,
+  ApplicationIntegrationType,
   ApplicationCommandOptionChoiceData,
 } from "discord.js";
 
+import AutocompleteIncidentType from "@Utilities/Autocompletion/IncidentType.js";
 import AutocompleteUsername from "@Utilities/Autocompletion/Username.js";
 import AutocompleteVehicle from "@Utilities/Autocompletion/Vehicle.js";
 import AutocompleteHeight from "@Utilities/Autocompletion/Height.js";
@@ -18,6 +17,7 @@ import AutocompleteWeight from "@Utilities/Autocompletion/Weight.js";
 import AutocompleteColor from "@Utilities/Autocompletion/Color.js";
 import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
 import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetRobloxUserLinked from "@Utilities/Database/IsUserLoggedIn.js";
 
 const Subcommands = [
@@ -39,6 +39,7 @@ const Subcommands = [
 async function HandleInteractValidation(Interaction: SlashCommandInteraction<"cached">) {
   const ModuleEnabled = await IsModuleEnabled(Interaction.guildId, "duty_activities");
   let IsHandled = false;
+  let LinkedRAId: number = 0;
 
   if (ModuleEnabled === false) {
     IsHandled = true;
@@ -47,12 +48,19 @@ async function HandleInteractValidation(Interaction: SlashCommandInteraction<"ca
       .replyToInteract(Interaction, true, true);
   }
 
-  const HasRobloxLinked = await GetRobloxUserLinked(Interaction);
-  if (!HasRobloxLinked) {
-    IsHandled = true;
-    await new ErrorEmbed()
-      .useErrTemplate("RobloxUserNotLinked")
-      .replyToInteract(Interaction, true, true);
+  const GuildSettings = await GetGuildSettings(Interaction.guildId);
+  if (
+    GuildSettings?.require_authorization === true ||
+    !!(GuildSettings?.duty_activities.signature_format & DASignatureFormats.RobloxDisplayName) ||
+    !!(GuildSettings?.duty_activities.signature_format & DASignatureFormats.RobloxUsername)
+  ) {
+    LinkedRAId = await GetRobloxUserLinked(Interaction);
+    if (!LinkedRAId) {
+      IsHandled = true;
+      await new ErrorEmbed()
+        .useErrTemplate("RobloxUserNotLinked")
+        .replyToInteract(Interaction, true, true);
+    }
   }
 
   const ActiveShift = await GetShiftActive({ Interaction, UserOnly: true });
@@ -69,7 +77,7 @@ async function HandleInteractValidation(Interaction: SlashCommandInteraction<"ca
     ? null
     : {
         ActiveShift,
-        RobloxUserId: HasRobloxLinked,
+        RobloxUserId: LinkedRAId,
       };
 }
 
@@ -96,6 +104,7 @@ async function Callback(_: DiscordClient, Interaction: SlashCommandInteraction<"
  * @returns
  */
 async function Autocomplete(Interaction: AutocompleteInteraction) {
+  const SubCmdName = Interaction.options.getSubcommand();
   const { name, value } = Interaction.options.getFocused(true);
   let Suggestions: ApplicationCommandOptionChoiceData[] = [];
 
@@ -105,6 +114,8 @@ async function Autocomplete(Interaction: AutocompleteInteraction) {
     Suggestions = AutocompleteHeight(value);
   } else if (name === "weight") {
     Suggestions = AutocompleteWeight(value);
+  } else if (name === "type" && SubCmdName === "incident") {
+    Suggestions = await AutocompleteIncidentType(value);
   } else if (name === "color" || name === "vehicle-color") {
     Suggestions = AutocompleteColor(value);
   } else if (name === "vehicle" || name === "vehicle-model") {
@@ -124,6 +135,7 @@ const CommandObject: SlashCommandObject<any> = {
   data: new SlashCommandBuilder()
     .setName("log")
     .setDescription("Logs a particular information into the database.")
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild)
     .addSubcommand(Subcommands[0].data)
     .addSubcommand(Subcommands[1].data)

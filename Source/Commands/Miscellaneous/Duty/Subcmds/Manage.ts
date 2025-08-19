@@ -1,37 +1,31 @@
-/* eslint-disable sonarjs/no-duplicate-string */
-// Dependencies:
-// -------------
-
 import {
   Message,
   inlineCode,
   ButtonStyle,
-  EmbedBuilder,
+  resolveColor,
+  MessageFlags,
   ButtonBuilder,
   MessagePayload,
   ActionRowBuilder,
+  ContainerBuilder,
+  SeparatorBuilder,
   ButtonInteraction,
+  TextDisplayBuilder,
   time as FormatTime,
   InteractionReplyOptions,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
 import { Guilds, Shifts } from "@Typings/Utilities/Database.js";
-import { Embeds, Emojis } from "@Config/Shared.js";
+import { Colors, Emojis } from "@Config/Shared.js";
+import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
-import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
-import DHumanize from "humanize-duration";
 import Dedent from "dedent";
-
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 3,
-  round: true,
-});
 
 export enum RecentShiftAction {
   End = "Shift Ended",
@@ -46,7 +40,6 @@ export enum ShiftMgmtActions {
   ShiftBreakToggle = "dm-break",
 }
 
-type ShiftDocument = Shifts.HydratedShiftDocument;
 type ShiftMgmtButtonsActionRow = ActionRowBuilder<
   ButtonBuilder & { data: { custom_id: string } }
 > & {
@@ -154,7 +147,7 @@ export async function CheckShiftTypeRestrictions(
   if (!CmdShiftType && !GuildDefaultType) return true;
 
   // Users with management permissions can use any shift type.
-  const UserHasMgmtPerms = await UserHasPerms(Interaction, {
+  const UserHasMgmtPerms = await UserHasPermsV2(Interaction.user.id, Interaction.guildId, {
     management: { guild: true, app: true, $or: true },
   });
 
@@ -292,85 +285,97 @@ async function CmdInteractSafeReplyOrEditReply(
 // ---------------------------------------------------------------------------------------
 // State Handlers:
 // ---------------
-
 async function HandleNonActiveShift(
   CmdInteract: SlashCommandInteraction<"cached">,
-  MgmtPromptEmbed: EmbedBuilder,
+  MgmtPromptCtnr: ContainerBuilder,
   MgmtShiftType: string
 ) {
-  const MgmtComps = GetShiftManagementButtons(CmdInteract, MgmtShiftType);
-  const PromptEmbed = MgmtPromptEmbed.setColor(
-    MgmtPromptEmbed.data.color || Embeds.Colors.ShiftNatural
-  );
+  const ShiftActionControls = GetShiftManagementButtons(CmdInteract, MgmtShiftType);
+  const PromptContainer = MgmtPromptCtnr.setAccentColor(
+    MgmtPromptCtnr.data.accent_color ?? resolveColor(Colors.ShiftNatural)
+  )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addActionRowComponents(ShiftActionControls);
 
   return CmdInteractSafeReplyOrEditReply(CmdInteract, {
-    embeds: [PromptEmbed],
-    components: [MgmtComps],
+    flags: MessageFlags.IsComponentsV2,
+    components: [PromptContainer],
   });
 }
 
 async function HandleOnBreakShift(
   CmdInteract: SlashCommandInteraction<"cached">,
   ShiftActive: Shifts.HydratedShiftDocument,
-  BaseEmbedTitle: string
+  BasePromptTitle: string
 ) {
   const BreakEpochs = ShiftActive.events.breaks.findLast(([, end]) => end === null);
   const MgmtComps = GetShiftManagementButtons(CmdInteract, ShiftActive.type, ShiftActive);
   const FieldDescription = Dedent(`
+    **Current Shift**
     >>> **Status:** (${Emojis.Idle}) On Break
     **Shift Started:** ${FormatTime(ShiftActive.start_timestamp, "R")}
     **Break Started:** ${FormatTime(Math.round(BreakEpochs![0] / 1000), "R")}
     **On-Duty Time:** ${ShiftActive.on_duty_time}
   `);
 
-  const PromptEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.ShiftBreak)
-    .setTitle(BaseEmbedTitle)
-    .setFields({ name: "Current Shift", value: FieldDescription });
+  const PromptContainer = new ContainerBuilder()
+    .setAccentColor(resolveColor(Colors.ShiftBreak))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(BasePromptTitle))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(FieldDescription))
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addActionRowComponents(MgmtComps);
 
   return CmdInteractSafeReplyOrEditReply(CmdInteract, {
-    components: [MgmtComps],
-    embeds: [PromptEmbed],
+    flags: MessageFlags.IsComponentsV2,
+    components: [PromptContainer],
   });
 }
 
 async function HandleActiveShift(
   CmdInteract: SlashCommandInteraction<"cached">,
-  ShiftActive: ShiftDocument,
-  MgmtPromptEmbed: EmbedBuilder
+  ShiftActive: Shifts.HydratedShiftDocument,
+  MgmtPromptCtnr: ContainerBuilder
 ) {
-  const PromptEmbed = MgmtPromptEmbed.setColor(Embeds.Colors.ShiftOn);
+  const PromptContainer = MgmtPromptCtnr.setAccentColor(resolveColor(Colors.ShiftOn));
   const MgmtButtonComponents = GetShiftManagementButtons(
     CmdInteract,
     ShiftActive.type,
     ShiftActive
   );
 
-  if (!PromptEmbed.data.fields?.find((Field) => Field.name === "Current Shift")) {
-    if (ShiftActive.durations.on_break > 500) {
-      PromptEmbed.addFields({
-        name: "Current Shift",
-        value: Dedent(`
+  if (ShiftActive.durations.on_break > 500) {
+    PromptContainer.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          **Current Shift**
           >>> **Status:** (${Emojis.Online}) On Duty
           **Shift Started:** ${FormatTime(ShiftActive.start_timestamp, "R")}
           **Break Count:** ${inlineCode(ShiftActive.events.breaks.length.toString())}
-          **Total Break Time:** ${HumanizeDuration(ShiftActive.durations.on_break)}
-        `),
-      });
-    } else {
-      PromptEmbed.addFields({
-        name: "Current Shift",
-        value: Dedent(`
+          **T. Break Time:** ${ReadableDuration(ShiftActive.durations.on_break, {
+            largest: 3,
+          })}
+        `)
+      )
+    );
+  } else {
+    PromptContainer.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          **Current Shift**
           >>> **Status:** (${Emojis.Online}) On Duty
           **Shift Started:** ${FormatTime(ShiftActive.start_timestamp, "R")}
-        `),
-      });
-    }
+        `)
+      )
+    );
   }
 
+  PromptContainer.addSeparatorComponents(
+    new SeparatorBuilder().setDivider()
+  ).addActionRowComponents(MgmtButtonComponents);
+
   return CmdInteractSafeReplyOrEditReply(CmdInteract, {
-    components: [MgmtButtonComponents],
-    embeds: [PromptEmbed],
+    flags: MessageFlags.IsComponentsV2,
+    components: [PromptContainer],
   });
 }
 
@@ -399,29 +404,29 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     !!ShiftActive
   );
 
-  const MgmtEmbedTitle = `Shift Management: \`${TargetShiftType}\` Type`;
+  const MgmtPromptTitle = ShiftActive
+    ? `### Shift Management: \`${ShiftActive.type}\` type`
+    : `### Shift Management: \`${TargetShiftType}\` type`;
+
   const MgmtPromptMainDesc = Dedent(`
+    **Statistics Summary**
     >>> **Shift Count:** \`${MemberShiftsData.shift_count}\`
     **Total On-Duty Time:** ${MemberShiftsData.total_onduty}
     **Average On-Duty Time:** ${MemberShiftsData.avg_onduty}
   `);
 
-  const BasePromptEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.ShiftNatural)
-    .setTitle(ShiftActive ? `Shift Management: \`${ShiftActive.type}\` Type` : MgmtEmbedTitle)
-    .setFields({
-      inline: true,
-      name: "Statistics Summary",
-      value: MgmtPromptMainDesc,
-    });
+  const BasePromptContainer = new ContainerBuilder()
+    .setAccentColor(resolveColor(Colors.ShiftNatural))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(MgmtPromptTitle))
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(MgmtPromptMainDesc));
 
   if (!ShiftActive) {
-    return HandleNonActiveShift(CmdInteract, BasePromptEmbed, TargetShiftType);
+    return HandleNonActiveShift(CmdInteract, BasePromptContainer, TargetShiftType);
   } else if (ShiftActive.hasBreakActive()) {
-    return HandleOnBreakShift(CmdInteract, ShiftActive, BasePromptEmbed.data.title!);
+    return HandleOnBreakShift(CmdInteract, ShiftActive, MgmtPromptTitle);
   }
 
-  return HandleActiveShift(CmdInteract, ShiftActive, BasePromptEmbed);
+  return HandleActiveShift(CmdInteract, ShiftActive, BasePromptContainer);
 }
 
 // ---------------------------------------------------------------------------------------

@@ -1,6 +1,8 @@
 import { Events } from "discord.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Mongoose from "mongoose";
+import Chalk from "chalk";
+import Util from "node:util";
 
 export default function AppLogging(Client: DiscordClient) {
   const DisAppLogLevels: ("error" | "debug" | "warn")[] = [Events.Debug, Events.Warn, Events.Error];
@@ -18,8 +20,14 @@ export default function AppLogging(Client: DiscordClient) {
   Mongoose.set("debug", function OnMongooseDebug(CollectionName, MethodName, ...MethodArgs) {
     AppLogger.debug({
       label: "Mongoose",
-      message: "%s - %s(...)",
-      splat: [CollectionName, MethodName],
+      message: "%s.%s(%s)",
+      splat: [
+        Chalk.bold(CollectionName),
+        Chalk.hex("#f1fa8c")(MethodName),
+        MethodArgs.map((Arg) =>
+          Util.inspect(Arg, { depth: 1, colors: true, compact: true, breakLength: 100 })
+        ).join(", "),
+      ],
       details: {
         method: MethodName,
         collection: CollectionName,

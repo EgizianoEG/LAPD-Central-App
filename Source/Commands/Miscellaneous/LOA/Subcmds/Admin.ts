@@ -16,12 +16,11 @@ import {
   userMention,
   ButtonStyle,
   Message,
-  Colors,
   User,
 } from "discord.js";
 
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Embeds, Emojis } from "@Config/Shared.js";
+import { Colors, Emojis } from "@Config/Shared.js";
 import { addMilliseconds } from "date-fns";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
@@ -29,9 +28,9 @@ import { HandleDurationValidation } from "./Request.js";
 import { ValidateExtendedDuration } from "./Manage.js";
 import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
+import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
-import GetDiscordAPITime from "@Utilities/Other/GetDiscordAPITime.js";
 import ParseDuration from "parse-duration";
 import GetLOAsData from "@Utilities/Database/GetUANData.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -67,20 +66,18 @@ async function PromiseAllThenTrue<T>(Values: T[]): Promise<boolean> {
 
 /**
  * Retrieves the target member from the interaction.
- * - If the interaction is a button, it retrieves the ID from the embed's author URL.
+ * - If the interaction is a button, it retrieves the Id from the button custom Id.
  * - If the interaction is a command, it retrieves the user from the "member" option.
- * @param Interaction The interaction to retrieve the target member from.
- * @returns The target member or null if not found.
+ * @param Interaction - The interaction to retrieve the target member/user from.
+ * @returns The target user or `null` if not found.
  */
-async function GetTargetMember(Interaction: CmdOrButtonInteraction): Promise<User | null> {
+async function GetTargetUser(Interaction: CmdOrButtonInteraction): Promise<User | null> {
   if (Interaction.isButton()) {
-    const ReplyMessage = await Interaction.fetchReply();
-    const ReplyEmbed = ReplyMessage.embeds[0];
-    const TargetMemberId = ReplyEmbed?.data.author?.url?.split("/").pop();
-    if (!ReplyEmbed || !TargetMemberId) return null;
+    const TargetMemberId = Interaction.customId.split(":")[3];
+    if (!TargetMemberId) return null;
     return Interaction.client.users.fetch(TargetMemberId).catch(() => null);
   } else if (Interaction.isCommand()) {
-    // The target member is an available option in the command.
+    // The target user is an available option in the command.
     return Interaction.options.getUser("member", true);
   } else {
     return null;
@@ -105,7 +102,6 @@ function GetPanelEmbed(
     .setColor(Colors.DarkBlue)
     .setAuthor({
       name: `@${TargetMember.username}`,
-      url: `https://discord.com/users/${TargetMember.id}`,
       iconURL: TargetMember.displayAvatarURL({ size: 128 }),
     });
 
@@ -118,7 +114,7 @@ function GetPanelEmbed(
     ActiveOrPendingLOA.review_date &&
     ActiveOrPendingLOA.extension_request?.status !== "Pending"
   ) {
-    PanelEmbed.setColor(Embeds.Colors.LOARequestApproved);
+    PanelEmbed.setColor(Colors.LOARequestApproved);
     PanelEmbed.addFields({
       inline: true,
       name:
@@ -133,7 +129,7 @@ function GetPanelEmbed(
       `),
     });
   } else if (ActiveOrPendingLOA?.status === "Pending") {
-    PanelEmbed.setColor(Embeds.Colors.LOARequestPending);
+    PanelEmbed.setColor(Colors.LOARequestPending);
     PanelEmbed.addFields({
       inline: true,
       name: "Pending Leave",
@@ -149,7 +145,7 @@ function GetPanelEmbed(
     ActiveOrPendingLOA?.review_date &&
     ActiveOrPendingLOA?.extension_request?.status === "Pending"
   ) {
-    PanelEmbed.setColor(Embeds.Colors.LOARequestPending);
+    PanelEmbed.setColor(Colors.LOARequestPending);
     PanelEmbed.addFields({
       inline: true,
       name: "Pending Extension",
@@ -199,6 +195,7 @@ function GetPanelEmbed(
  */
 function GetPanelComponents(
   Interaction: CmdOrButtonInteraction,
+  TargetUserId: string,
   ActiveOrPendingLeave: Awaited<ReturnType<typeof GetLOAsData>>["active_notice"]
 ): ActionRowBuilder<ButtonBuilder>[] {
   const ActionRow = new ActionRowBuilder<ButtonBuilder>();
@@ -269,7 +266,7 @@ function GetPanelComponents(
   // Add the user id and leave id to the custom_id of each button.
   ActionRow.components.forEach((Button) =>
     Button.setCustomId(
-      `${(Button.data as APIButtonComponentWithCustomId).custom_id}:${Interaction.user.id}:${ActiveOrPendingLeave?._id ?? "0"}`
+      `${(Button.data as APIButtonComponentWithCustomId).custom_id}:${Interaction.user.id}:${ActiveOrPendingLeave?._id ?? "0"}:${TargetUserId}`
     )
   );
 
@@ -382,7 +379,7 @@ export async function HandleLeaveReviewValidation(
 
   if (!RequestHasToBeReviewed) {
     const ReplyEmbed = new EmbedBuilder()
-      .setColor(Embeds.Colors.Error)
+      .setColor(Colors.Error)
       .setTitle("Request Modified")
       .setDescription(
         "The request you are taking action on either does not exist or has already been reviewed."
@@ -412,8 +409,16 @@ async function HandleLeaveStart(
       Callback(InitialCmdInteract),
       new ErrorEmbed()
         .useErrTemplate("LOAAlreadyExistsManagement")
-        .replyToInteract(ButtonInteract, true, true),
+        .replyToInteract(ButtonInteract, true),
     ]);
+  }
+
+  const MemberInGuild = await ButtonInteract.guild.members.fetch(TargetMemberId).catch(() => null);
+
+  if (!MemberInGuild) {
+    return new ErrorEmbed()
+      .useErrTemplate("ActionRequiresMemberPresence")
+      .replyToInteract(ButtonInteract, true);
   }
 
   const LeaveOptsModal = new ModalBuilder()
@@ -453,18 +458,18 @@ async function HandleLeaveStart(
       )
     );
 
-  await ButtonInteract.showModal(LeaveOptsModal);
-  const ModalSubmission = await ButtonInteract.awaitModalSubmit({
-    filter: (Modal) => Modal.customId === LeaveOptsModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(
+    ButtonInteract,
+    LeaveOptsModal,
+    8 * 60_000
+  );
 
   if (!ModalSubmission) return;
   await ModalSubmission.deferReply({ flags: MessageFlags.Ephemeral });
 
   const LeaveReason = ModalSubmission.fields.getTextInputValue("notes");
   const LeaveDuration = ModalSubmission.fields.getTextInputValue("duration");
-  const DurationParsed = Math.round(ParseDuration(LeaveDuration, "millisecond") ?? 0);
+  const DurationParsed = Math.round(Math.abs(ParseDuration(LeaveDuration, "millisecond") ?? 0));
   const IsManageableInput = ModalSubmission.fields.getTextInputValue("manageable");
   if (await HandleDurationValidation(ModalSubmission, "LeaveOfAbsence", DurationParsed)) return;
 
@@ -498,7 +503,7 @@ async function HandleLeaveStart(
   });
 
   const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+    .setColor(Colors.Success)
     .setTitle("Leave of Absence Started")
     .setDescription(
       `Successfully started a new leave of absence for ${userMention(TargetMemberId)}. It is scheduled to end on ${FormatTime(CreatedLeave.end_date, "D")}.`
@@ -508,7 +513,7 @@ async function HandleLeaveStart(
     Callback(InitialCmdInteract),
     ModalSubmission.editReply({ embeds: [ReplyEmbed] }),
     LOAEventLogger.LogManualLeave(ModalSubmission, CreatedLeave),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       CreatedLeave.user,
       ModalSubmission.guild,
       "LeaveOfAbsence",
@@ -542,6 +547,13 @@ async function HandleLeaveExtend(
   };
 
   if (!ActiveLeave) return HandleNonActiveLeave();
+  const MemberInGuild = await ButtonInteract.guild.members.fetch(TargetMemberId).catch(() => null);
+  if (!MemberInGuild) {
+    return new ErrorEmbed()
+      .useErrTemplate("ActionRequiresMemberPresence")
+      .replyToInteract(ButtonInteract, true);
+  }
+
   const ExtensionOptsModal = new ModalBuilder()
     .setTitle("Leave of Absence Extension")
     .setCustomId(`loa-admin-ext:${ButtonInteract.user.id}:${RandomString(4)}`)
@@ -568,16 +580,16 @@ async function HandleLeaveExtend(
       )
     );
 
-  await ButtonInteract.showModal(ExtensionOptsModal);
-  const Submission = await ButtonInteract.awaitModalSubmit({
-    filter: (s) => s.customId === ExtensionOptsModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
+  const Submission = await ShowModalAndAwaitSubmission(
+    ButtonInteract,
+    ExtensionOptsModal,
+    8 * 60_000
+  );
 
   if (!Submission) return;
   const Duration = Submission.fields.getTextInputValue("ext-duration");
   const NotesInput = Submission.fields.getTextInputValue("ext-notes") || null;
-  const ParsedDuration = Math.round(ParseDuration(Duration, "millisecond") ?? 0);
+  const ParsedDuration = Math.round(Math.abs(ParseDuration(Duration, "millisecond") ?? 0));
   const SubmissionHandled = ValidateExtendedDuration(Submission, ActiveLeave, ParsedDuration);
   if (SubmissionHandled) return;
   else await Submission.deferReply({ flags: MessageFlags.Ephemeral });
@@ -608,7 +620,7 @@ async function HandleLeaveExtend(
 
   await ActiveLeave.save();
   const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+    .setColor(Colors.Success)
     .setTitle("Leave Extended")
     .setDescription(
       `Successfully extended the active leave of absence for ${userMention(TargetMemberId)}. This leave is now set to expire on ${FormatTime(ActiveLeave.end_date, "D")}.`
@@ -658,14 +670,14 @@ async function HandleLeaveEnd(
       )
     );
 
-  await ButtonInteract.showModal(ReasonModal);
-  const ModalSubmission = await ButtonInteract.awaitModalSubmit({
-    filter: (Modal) => Modal.customId === ReasonModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(
+    ButtonInteract,
+    ReasonModal,
+    8 * 60_000
+  );
 
-  ActiveLeave = await ActiveLeave.getUpToDate();
   if (!ModalSubmission) return;
+  ActiveLeave = await ActiveLeave.getUpToDate();
   if (!ActiveLeave?.is_active) {
     return PromiseAllThenTrue([
       Callback(InitialCmdInteract),
@@ -680,7 +692,7 @@ async function HandleLeaveEnd(
   await ActiveLeave.save();
 
   const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+    .setColor(Colors.Success)
     .setTitle("Leave of Absence Terminated")
     .setDescription(
       `The active leave of absence for ${userMention(TargetMemberId)} has been successfully terminated.`
@@ -690,7 +702,7 @@ async function HandleLeaveEnd(
     Callback(ButtonInteract),
     ModalSubmission.editReply({ embeds: [ReplyEmbed] }),
     LOAEventLogger.LogEarlyUANEnd(ModalSubmission, ActiveLeave, "Management"),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       ActiveLeave.user,
       ModalSubmission.guild,
       "LeaveOfAbsence",
@@ -706,12 +718,7 @@ async function HandleLeaveApprovalOrDenial(
   ActionType: "Approval" | "Denial"
 ) {
   const NotesModal = GetNotesModal(ButtonInteract, ActionType, false);
-  await ButtonInteract.showModal(NotesModal);
-
-  const NotesSubmission = await ButtonInteract.awaitModalSubmit({
-    filter: (s) => s.customId === NotesModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
+  const NotesSubmission = await ShowModalAndAwaitSubmission(ButtonInteract, NotesModal, 8 * 60_000);
 
   if (!NotesSubmission) return;
   await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
@@ -728,7 +735,7 @@ async function HandleLeaveApprovalOrDenial(
 
   const ActionInPastForm = ActionType === "Approval" ? "Approved" : "Denied";
   const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+    .setColor(Colors.Success)
     .setTitle(`Leave of Absence ${ActionInPastForm}`)
     .setDescription(
       `Successfully ${ActionInPastForm.toLowerCase()} ${userMention(TargetMemberId)}'s pending leave request.`
@@ -757,12 +764,7 @@ async function HandleExtensionApprovalOrDenial(
   ActionType: "Extension Approval" | "Extension Denial"
 ) {
   const NotesModal = GetNotesModal(ButtonInteract, ActionType, false);
-  await ButtonInteract.showModal(NotesModal);
-
-  const NotesSubmission = await ButtonInteract.awaitModalSubmit({
-    filter: (s) => s.customId === NotesModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
+  const NotesSubmission = await ShowModalAndAwaitSubmission(ButtonInteract, NotesModal, 8 * 60_000);
 
   if (!NotesSubmission) return;
   await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
@@ -788,7 +790,7 @@ async function HandleExtensionApprovalOrDenial(
   const ActionInPastForm =
     ActionType === "Extension Approval" ? "Extension Approved" : "Extension Denied";
   const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+    .setColor(Colors.Success)
     .setTitle(`Leave of Absence ${ActionInPastForm}`)
     .setDescription(
       `Successfully ${ActionType === "Extension Approval" ? "approved" : "denied"} ${userMention(TargetMemberId)}'s pending extension request.`
@@ -816,7 +818,7 @@ async function HandleExtensionApprovalOrDenial(
 // Initial Logic:
 // --------------
 async function Callback(Interaction: CmdOrButtonInteraction) {
-  const TargetMember = await GetTargetMember(Interaction);
+  const TargetMember = await GetTargetUser(Interaction);
   if (!TargetMember) return Interaction.isButton() && Interaction.deferUpdate().catch(() => null);
   if (TargetMember.bot) {
     return new ErrorEmbed()
@@ -824,18 +826,17 @@ async function Callback(Interaction: CmdOrButtonInteraction) {
       .replyToInteract(Interaction, true, true);
   }
 
-  const TimeNow = await GetDiscordAPITime();
   const LOAData = await GetLOAsData({
     guild_id: Interaction.guildId,
     user_id: TargetMember.id,
-    now: TimeNow,
+    now: Date.now(),
     type: "LeaveOfAbsence",
   });
 
   let PromptMessage: Message<true>;
   const ActiveOrPendingLOA = LOAData.active_notice ?? LOAData.pending_notice;
   const PanelEmbed = GetPanelEmbed(Interaction, TargetMember, LOAData);
-  const PanelComps = GetPanelComponents(Interaction, ActiveOrPendingLOA);
+  const PanelComps = GetPanelComponents(Interaction, TargetMember.id, ActiveOrPendingLOA);
   const ReplyOpts = {
     embeds: [PanelEmbed],
     components: PanelComps,

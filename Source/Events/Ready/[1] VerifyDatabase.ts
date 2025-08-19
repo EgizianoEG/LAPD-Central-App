@@ -1,4 +1,5 @@
 import { addDays } from "date-fns";
+import { Collection } from "discord.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import GuildModel from "@Models/Guild.js";
 const FileLabel = "Events:Ready:VerifyDatabase";
@@ -12,14 +13,22 @@ export default async function VerifyDatabase(Client: DiscordClient): Promise<voi
   try {
     const Guilds = await Client.guilds.fetch();
     const NewGuilds: (typeof GuildModel.schema.obj)[] = [];
-    const GuildsInDB = new Set(
-      (await GuildModel.find().select({ _id: 1 }).lean().exec()).map((GuildDoc) => GuildDoc._id)
+    const DSGToCancel = new Set<string>();
+    const GuildsInDB = new Collection(
+      (await GuildModel.find().select({ _id: 1, deletion_scheduled_on: 1 }).lean().exec()).map(
+        (GuildDoc) =>
+          [GuildDoc._id, GuildDoc.deletion_scheduled_on ?? null] as [string, Date | null]
+      )
     );
 
+    // If a guild in DB and scheduled for deletion (value is Date), cancel the scheduled deletion.
+    // If a guild *is not* in DB (value is undefined), add it to the new guilds list.
     for (const JoinedGuild of Guilds.values()) {
-      const GuildFound = GuildsInDB.has(JoinedGuild.id);
-      if (!GuildFound) {
+      const DBScheduledDate = GuildsInDB.get(JoinedGuild.id);
+      if (DBScheduledDate === undefined) {
         NewGuilds.push({ _id: JoinedGuild.id });
+      } else if (DBScheduledDate !== null) {
+        DSGToCancel.add(JoinedGuild.id);
       }
     }
 
@@ -33,12 +42,11 @@ export default async function VerifyDatabase(Client: DiscordClient): Promise<voi
     }
 
     // Schedule guild data deletion for guilds that are no longer registered on the application (the application is not in them).
-    const ActiveGuildIds = new Set(Guilds.keys());
-    const LeftGuilds = GuildsInDB.difference(ActiveGuildIds);
+    const LeftGuilds = GuildsInDB.difference(Guilds);
     if (LeftGuilds.size > 0) {
       const UpdateManyResult = await GuildModel.updateMany(
         {
-          _id: { $in: Array.from(LeftGuilds) },
+          _id: { $in: Array.from(LeftGuilds.keys()) },
           deletion_scheduled_on: null,
         },
         {
@@ -51,6 +59,29 @@ export default async function VerifyDatabase(Client: DiscordClient): Promise<voi
       if (UpdateManyResult.modifiedCount > 0) {
         AppLogger.debug({
           message: "Scheduled data deletion for %i guild(s) that the application is no longer in.",
+          label: FileLabel,
+          splat: [UpdateManyResult.modifiedCount],
+        });
+      }
+    }
+
+    // Cancel scheduled deletion for guilds that the application is in them at the moment.
+    if (DSGToCancel.size > 0) {
+      const UpdateManyResult = await GuildModel.updateMany(
+        {
+          _id: { $in: Array.from(DSGToCancel) },
+          deletion_scheduled_on: { $ne: null },
+        },
+        {
+          $set: {
+            deletion_scheduled_on: null,
+          },
+        }
+      ).exec();
+
+      if (UpdateManyResult.modifiedCount > 0) {
+        AppLogger.debug({
+          message: "Cancelled scheduled data deletion for %i guild(s).",
           label: FileLabel,
           splat: [UpdateManyResult.modifiedCount],
         });

@@ -1,4 +1,4 @@
-import { APIResponses } from "@Typings/Utilities/Roblox.js";
+import { APIResponses } from "@Typings/External/Roblox.js";
 import Axios from "axios";
 
 /**

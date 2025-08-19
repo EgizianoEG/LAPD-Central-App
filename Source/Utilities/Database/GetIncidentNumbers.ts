@@ -1,13 +1,14 @@
-import { AggregateResults } from "@Typings/Utilities/Database.js";
+/* eslint-disable sonarjs/no-duplicate-string */
 import IncidentModel from "@Models/Incident.js";
-import { IncidentAutocompletionCache } from "@Utilities/Other/Cache.js";
+import { AggregateResults } from "@Typings/Utilities/Database.js";
+import { IncidentAutocompletionCache } from "@Utilities/Helpers/Cache.js";
 
 export default async function GetAllIncidentNums(
   GuildId: string,
   UseCache: boolean = false
 ): Promise<AggregateResults.GetIncidentNumbers[]> {
   if (UseCache) {
-    const Cached = IncidentAutocompletionCache.get<AggregateResults.GetIncidentNumbers[]>(GuildId);
+    const Cached = IncidentAutocompletionCache.get(GuildId);
     if (Cached) return Cached;
   }
 
@@ -31,9 +32,15 @@ export default async function GetAllIncidentNums(
     {
       $project: {
         num: "$num",
+        reported_on: "$reported_on",
         autocomplete_label: {
           $concat: ["INC-", "$num", " - ", "$type", " – Reported on ", "$reported_on"],
         },
+      },
+    },
+    {
+      $sort: {
+        reported_on: 1,
       },
     },
   ])

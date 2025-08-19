@@ -1,4 +1,4 @@
-import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 import { GuildArrests } from "@Typings/Utilities/Database.js";
 import { model, Model, Schema } from "mongoose";
 
@@ -9,7 +9,7 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
   booking_num: {
     type: Number,
     min: 100,
-    max: 999999,
+    max: 9999999,
     index: true,
     required: true,
   },
@@ -29,6 +29,24 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     index: true,
   },
 
+  arrest_loc: {
+    type: String,
+    default: null,
+    required: false,
+  },
+
+  evidence: {
+    type: String,
+    default: null,
+    required: false,
+  },
+
+  detail_arresting: {
+    type: String,
+    default: null,
+    required: false,
+  },
+
   made_on: {
     type: Date,
     index: true,
@@ -42,14 +60,24 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     required: false,
   },
 
+  report_msg: {
+    type: String,
+    default: null,
+    required: false,
+    validate: [
+      (s: string | null) => s === null || /^\d{15,22}:\d{15,22}$/.test(s),
+      "Invalid format for report message; received: '{VALUE}'. Format: <log_channel>:<log_msg_id>.",
+    ],
+  },
+
   arrestee: {
     _id: false,
     required: true,
     type: {
       formatted_name: {
         type: String,
-        trim: true,
-        required: true,
+        default: null,
+        required: false,
       },
 
       roblox_id: {
@@ -113,10 +141,44 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
         required: true,
       },
 
-      // Last known name (to use as a fallback when getting the username from id fails).
       formatted_name: {
         type: String,
+        default: null,
+        required: false,
+      },
+
+      signature: {
+        type: String,
         required: true,
+        minLength: 3,
+        maxLength: 100,
+        default(this: ArrestPlainDoc) {
+          return this.arresting_officer.formatted_name;
+        },
+      },
+
+      discord_id: {
+        type: String,
+        index: true,
+        required: true,
+      },
+    },
+  },
+
+  reporting_officer: {
+    _id: false,
+    default: null,
+    required: false,
+    type: {
+      roblox_id: {
+        type: Number,
+        required: true,
+      },
+
+      formatted_name: {
+        type: String,
+        default: null,
+        required: false,
       },
 
       discord_id: {

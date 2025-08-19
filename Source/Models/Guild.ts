@@ -1,5 +1,5 @@
-import { Schema, model } from "mongoose";
 import { isAfter } from "date-fns";
+import { Schema, model } from "mongoose";
 import GSettingsSchema from "./Schemas/GuildSettings.js";
 
 const GuildSchema = new Schema({
@@ -12,25 +12,73 @@ const GuildSchema = new Schema({
   logs: {
     _id: false,
     default: {},
+    required: true,
     type: {
-      arrests: [
-        {
-          type: String,
-          ref: "Arrest",
+      arrests: {
+        _id: false,
+        default: {},
+        required: true,
+        type: {
+          used_bookings: [
+            {
+              _id: false,
+              type: String,
+              minLength: 1,
+            },
+          ],
+
+          logged: [
+            {
+              type: String,
+              ref: "Arrests",
+            },
+          ],
         },
-      ],
-      citations: [
-        {
-          type: String,
-          ref: "Citation",
+      },
+
+      citations: {
+        _id: false,
+        default: {},
+        required: true,
+        type: {
+          used_nums: [
+            {
+              _id: false,
+              type: String,
+              minLength: 1,
+            },
+          ],
+
+          logged: [
+            {
+              type: String,
+              ref: "Citation",
+            },
+          ],
         },
-      ],
-      incidents: [
-        {
-          type: String,
-          ref: "Incident",
+      },
+
+      incidents: {
+        _id: false,
+        default: {},
+        required: true,
+        type: {
+          most_recent_num: {
+            _id: false,
+            type: String,
+            default: "00-00000",
+            minLength: 1,
+            maxLength: 10,
+          },
+
+          logged: [
+            {
+              type: String,
+              ref: "Incident",
+            },
+          ],
         },
-      ],
+      },
     },
   },
 
@@ -38,6 +86,11 @@ const GuildSchema = new Schema({
     _id: false,
     default: {},
     type: GSettingsSchema,
+  },
+
+  last_logs_cleanup: {
+    type: Date,
+    default: null,
   },
 
   deletion_scheduled_on: {
@@ -53,4 +106,5 @@ const GuildSchema = new Schema({
 GuildSchema.set("_id", false);
 GuildSchema.set("optimisticConcurrency", true);
 
-export default model("Guild", GuildSchema);
+const GuildModel = model("Guild", GuildSchema);
+export default GuildModel;

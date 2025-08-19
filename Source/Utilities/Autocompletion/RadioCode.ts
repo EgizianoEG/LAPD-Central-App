@@ -18,6 +18,7 @@ export default function AutocompleteRadioCode(
   Typed: string
 ): Array<ApplicationCommandOptionChoiceData> {
   let Suggestions: string[] = [];
+  const LowerCaseTyped = Typed.toLowerCase();
 
   if (Typed.match(/^\s*$/)) {
     Suggestions = CodeNames;
@@ -29,7 +30,8 @@ export default function AutocompleteRadioCode(
     });
   } else {
     Suggestions = CodeNames.filter((Name) => {
-      return Name.toLowerCase().includes(Typed.toLowerCase());
+      const LowerCaseName = Name.toLowerCase();
+      return LowerCaseName.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseName);
     });
   }
 

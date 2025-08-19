@@ -4,7 +4,6 @@
 import {
   Colors,
   ButtonStyle,
-  EmbedBuilder,
   MessageFlags,
   ComponentType,
   ButtonBuilder,
@@ -12,14 +11,23 @@ import {
   SlashCommandBuilder,
   InteractionContextType,
   AutocompleteInteraction,
+  ApplicationIntegrationType,
 } from "discord.js";
 
+import {
+  BaseExtraContainer,
+  SuccessContainer,
+  ErrorContainer,
+  InfoContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
+
 import { DummyText } from "@Utilities/Strings/Random.js";
+import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { FormatUsername } from "@Utilities/Strings/Formatters.js";
-import { IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
-import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 
 import GetRobloxIdFromDiscordBloxlink from "@Utilities/Roblox/GetRbxIdBloxLink.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import UpdateLinkedRobloxUser from "@Utilities/Database/UpdateLinkedUser.js";
 import AutocompleteUsername from "@Utilities/Autocompletion/Username.js";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
@@ -88,7 +96,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     return;
   }
 
-  await CmdInteract.deferReply({ flags: MessageFlags.Ephemeral });
+  await CmdInteract.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
   const [AccountRobloxId, ExactUsername] = await GetIdByUsername(InputUsername, true);
   const FoundBloxlinkRobloxId = await GetRobloxIdFromDiscordBloxlink(CmdInteract.user.id);
 
@@ -97,8 +105,9 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     const RobloxAccountInfo = await GetUserInfo(AccountRobloxId);
 
     return CmdInteract.editReply({
-      embeds: [
-        new SuccessEmbed().useTemplate(
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      components: [
+        new SuccessContainer().useTemplate(
           "RobloxAccountLoginSuccess",
           FormatUsername(RobloxAccountInfo, false, true)
         ),
@@ -135,11 +144,11 @@ async function HandleManualVerification(
   AccountExactUsername: string
 ) {
   const SampleText = DummyText();
-  const ProcessEmbed = new EmbedBuilder()
+  const ProcessContainer = new BaseExtraContainer()
     .setColor(Colors.Aqua)
     .setTitle(`Login Process - @${AccountExactUsername}`)
     .setDescription(
-      "To verify your login, kindly modify the About/Description section of your Roblox Profile to include the provided sample text below.\n" +
+      "To verify your login, kindly modify the About/Description section of your Roblox profile to include the provided sample text below.\n" +
         "- When finished, press the `Verify and Login` button\n" +
         "- To cancel the login process, press the `Cancel Login` button\n" +
         "- **Note**: This login process will be automatically cancelled if no response is received within 10 minutes.\n" +
@@ -156,14 +165,14 @@ async function HandleManualVerification(
       .setCustomId("cancel-login")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
-      .setLabel("Profile")
+      .setLabel("Profile Link")
       .setStyle(ButtonStyle.Link)
       .setURL(`https://www.roblox.com/users/${AccountRobloxId}`)
   );
 
   const LoginPromptMsg = await CmdInteract.editReply({
-    embeds: [ProcessEmbed],
-    components: [ButtonsActionRow],
+    components: [ProcessContainer.attachPromptActionRows(ButtonsActionRow)],
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
   });
 
   let AttemptsLeft = 2;
@@ -181,9 +190,8 @@ async function HandleManualVerification(
         ComponentCollector.stop("Confirmed");
 
         return ButtonInteract.editReply({
-          components: [],
-          embeds: [
-            new SuccessEmbed().useTemplate(
+          components: [
+            new SuccessContainer().useTemplate(
               "RobloxAccountLoginManualSuccess",
               FormatUsername(CurrentAccountInfo, false, true)
             ),
@@ -191,19 +199,19 @@ async function HandleManualVerification(
         });
       } else {
         if (--AttemptsLeft === 0) ComponentCollector.stop("Limit");
-        return new ErrorEmbed()
+        return new ErrorContainer()
           .useErrTemplate(
             AttemptsLeft === 0
               ? "RobloxUserVerificationFailedLimit"
               : "RobloxUserVerificationFailed",
             AccountExactUsername,
-            AttemptsLeft ? AttemptsLeft : ""
+            AttemptsLeft || ""
           )
           .replyToInteract(ButtonInteract, true, true, "followUp");
       }
     } else if (ButtonInteract.customId.includes("cancel-login")) {
       ComponentCollector.stop("Cancelled");
-      return new InfoEmbed()
+      return new InfoContainer()
         .setTitle("Login Cancelled")
         .setDescription("The login process has been cancelled due to your request.")
         .replyToInteract(ButtonInteract, true);
@@ -214,9 +222,13 @@ async function HandleManualVerification(
 
   ComponentCollector.on("end", async (CIs, EndReason) => {
     if (!(EndReason !== "Cancelled" && EndReason !== "Confirmed")) return;
-    const LastInteract = CIs.last() || CmdInteract;
-    ButtonsActionRow.components.forEach((Button) => Button.setDisabled(true));
-    LastInteract.editReply({ components: [ButtonsActionRow] });
+    const LastInteract = CIs.last() ?? CmdInteract;
+    const APICompatibleComps = LoginPromptMsg.components.map((Comp) => Comp.toJSON());
+    const DisabledComponents = DisableMessageComponents(APICompatibleComps);
+    LastInteract.editReply({
+      components: DisabledComponents,
+      flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+    });
   });
 }
 
@@ -240,7 +252,7 @@ async function Autocomplete(Interaction: AutocompleteInteraction): Promise<void>
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<any> = {
   options: { cooldown: 20, user_perms: { staff: true } },
@@ -251,6 +263,7 @@ const CommandObject: SlashCommandObject<any> = {
     .setName("log-in")
     .setDescription("Log into the application and get access to restricted actions.")
     .setContexts(InteractionContextType.Guild)
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .addStringOption((Option) =>
       Option.setName("username")
         .setDescription("The Roblox username to log in as.")

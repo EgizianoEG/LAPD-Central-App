@@ -1,6 +1,7 @@
 import {
   Colors,
   Message,
+  Collection,
   inlineCode,
   userMention,
   ButtonStyle,
@@ -12,35 +13,46 @@ import {
   TextInputStyle,
   ActionRowBuilder,
   TextInputBuilder,
+  AttachmentBuilder,
   ButtonInteraction,
   time as FormatTime,
+  PermissionFlagsBits,
   ModalSubmitInteraction,
+  ThreadAutoArchiveDuration,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
 import {
   IncidentTypes,
+  IncidentTypesType,
   IncidentNotesLength,
   IncidentStatusesFlattened,
   IncidentDescriptionLength,
 } from "@Resources/IncidentConstants.js";
 
+import {
+  FormatSortRDInputNames,
+  FormatDutyActivitiesLogSignature,
+} from "@Utilities/Strings/Formatters.js";
+
 import { Types } from "mongoose";
 import { TitleCase } from "@Utilities/Strings/Converters.js";
 import { ReporterInfo } from "../Log.js";
 import { milliseconds } from "date-fns";
-import { ArraysAreEqual } from "@Utilities/Other/ArraysAreEqual.js";
-import { SendGuildMessages } from "@Utilities/Other/GuildMessages.js";
+import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
+import { ListSplitRegex } from "@Resources/RegularExpressions.js";
+import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
 import { GuildIncidents, Guilds } from "@Typings/Utilities/Database.js";
-import { FormatSortRDInputNames } from "@Utilities/Strings/Formatters.js";
-import { IsValidDiscordAttachmentLink } from "@Utilities/Other/Validators.js";
-import { SanitizeDiscordAttachmentLink } from "@Utilities/Strings/OtherUtils.js";
+import { GetDiscordAttachmentExtension } from "@Utilities/Strings/OtherUtils.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
-import IncidentModel, { GenerateNextIncidentNumber } from "@Models/Incident.js";
 
+import GenerateNextSequentialIncidentNumber from "@Utilities/Database/GenerateNextSequenceIncNum.js";
 import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
-import GetIncidentReportEmbeds from "@Utilities/Other/GetIncidentReportEmbeds.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import IncidentModel from "@Models/Incident.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import GuildModel from "@Models/Guild.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -49,7 +61,10 @@ import Dedent from "dedent";
 
 const CmdFileLabel = "Commands:Miscellaneous:Log:Incident";
 const ListFormatter = new Intl.ListFormat("en");
-export const SplitRegexForInputs = /\s*,\s*|\s+/;
+type CmdProvidedDetailsType = Omit<Partial<GuildIncidents.IncidentRecord>, "attachments"> &
+  Pick<GuildIncidents.IncidentRecord, "type" | "location" | "status"> & {
+    attachments: string[];
+  };
 
 // ---------------------------------------------------------------------------------------
 // Helpers:
@@ -73,18 +88,6 @@ function GetIncidentInformationModal(
           .setMinLength(IncidentDescriptionLength.Min)
           .setMaxLength(IncidentDescriptionLength.Max)
           .setRequired(true)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("attachments")
-          .setLabel("Evidence and Attachments")
-          .setPlaceholder(
-            "Direct image links (Discord hosted), separated by linebreaks, that may provide additional context."
-          )
-          .setStyle(TextInputStyle.Paragraph)
-          .setMaxLength(1284)
-          .setMinLength(164)
-          .setRequired(false)
       ),
       new ActionRowBuilder<TextInputBuilder>().setComponents(
         new TextInputBuilder()
@@ -207,17 +210,64 @@ function UpdateEmbedFieldDescription(
 }
 
 /**
- * Extracts and returns the incident details provided in or extracted from a slash command interaction.
- * @param CmdInteract - The slash command interaction object.
- * @returns
+ * Retrieves and processes details provided by a slash command interaction.
+ * @param CmdInteract - The slash command interaction object with a "cached" type.
+ * @returns A promise that resolves to an object containing the provided details
+ *          (type, location, status, and filtered attachments) or `null` if invalid
+ *          attachments are detected and an error response is sent.
+ * @throws This function does not throw errors directly but may return `null` if an error response is sent.
  */
-function GetCmdProvidedDetails(CmdInteract: SlashCommandInteraction<"cached">) {
+async function GetCmdProvidedDetails(
+  CmdInteract: SlashCommandInteraction<"cached">
+): Promise<CmdProvidedDetailsType | null> {
+  let IncidentType = CmdInteract.options.getString("type", true);
+  const MatchedType = IncidentTypes.find((type) => {
+    const LCType = type.toLowerCase();
+    const LCProvidedType = IncidentType.toLowerCase();
+    return LCType === LCProvidedType || LCProvidedType.split(/[–-]/)[1]?.trim() === LCType;
+  });
+
+  if (!MatchedType) {
+    return new ErrorEmbed()
+      .useErrTemplate("LogIncidentInvalidType")
+      .replyToInteract(CmdInteract, true)
+      .then(() => null);
+  }
+
+  IncidentType = MatchedType;
+  const UniqueAttachments = new Set<string>();
+  const ProvidedAttachments =
+    CmdInteract.options.resolved?.attachments?.map((Attachment) => Attachment) || [];
+
+  const FilteredAttachments = ProvidedAttachments.filter((Attachment) => {
+    if (!Attachment.contentType?.match(/^image[/\\](?:png|jpg|jpeg)/i)) {
+      return false;
+    }
+
+    const UniqueId = `${Attachment.size}-${Attachment.contentType}-${Attachment.width}x${Attachment.height}`;
+    if (UniqueAttachments.has(UniqueId)) {
+      return false;
+    }
+
+    UniqueAttachments.add(UniqueId);
+    return true;
+  })
+    .map((Attachment) => Attachment.url)
+    .reverse();
+
+  if (FilteredAttachments.length === 0 && ProvidedAttachments.length > 0) {
+    return new ErrorEmbed()
+      .useErrTemplate("LogIncidentInvalidAttachments")
+      .replyToInteract(CmdInteract, true)
+      .then(() => null);
+  }
+
   return {
-    type: CmdInteract.options.getString("type", true),
+    type: IncidentType as IncidentTypesType,
     location: TitleCase(CmdInteract.options.getString("location", true), true),
     status: CmdInteract.options.getString("status", true),
-  } as Partial<GuildIncidents.IncidentRecord> &
-    Pick<GuildIncidents.IncidentRecord, "type" | "location" | "status">;
+    attachments: FilteredAttachments,
+  } as CmdProvidedDetailsType;
 }
 
 /**
@@ -246,30 +296,31 @@ async function AwaitIncidentDetailsModalSubmission(
  * @param CmdInteract - The slash command interaction object.
  * @param CmdProvidedDetails - Partial incident record details provided by the command, including mandatory fields: type, location, and status.
  * @param ModalSubmission - The modal submission interaction object.
- * @param GuildDocument - The current list of incident records in the guild.
+ * @param GuildSettings - The current list of incident records in the guild.
  * @param ReportingOfficer - Information about the officer reporting the incident.
  * @returns A promise that resolves to the prepared incident data object or `null` if attachment validation fails.
  */
 async function PrepareIncidentData(
   CmdInteract: SlashCommandInteraction<"cached">,
-  CmdProvidedDetails: Partial<GuildIncidents.IncidentRecord> &
-    Pick<GuildIncidents.IncidentRecord, "type" | "location" | "status">,
+  CmdProvidedDetails: CmdProvidedDetailsType,
   ModalSubmission: ModalSubmitInteraction<"cached">,
-  GuildDocument: Guilds.GuildDocument,
+  GuildSettings: Guilds.GuildDocument["settings"],
   ReportingOfficer: ReporterInfo
-): Promise<GuildIncidents.IncidentRecord | null> {
+): Promise<GuildIncidents.IncidentRecord> {
   const UTIFOpts: FilterUserInputOptions = {
     replacement: "#",
     guild_instance: CmdInteract.guild,
     replacement_type: "Character",
     filter_links_emails: true,
-    utif_setting_enabled: GuildDocument.settings.utif_enabled,
+    utif_setting_enabled: GuildSettings.utif_enabled,
   };
 
   const InputNotes = ModalSubmission.fields.getTextInputValue("notes").replace(/\s+/g, " ") || null;
   const ReporterRobloxInfo = await GetUserInfo(ReportingOfficer.RobloxUserId);
-  const IncidentNumber = await GenerateNextIncidentNumber(CmdInteract.guild.id);
+  const IncidentNumber = await GenerateNextSequentialIncidentNumber(CmdInteract.guild.id);
+
   const IncidentNotes = InputNotes ? await FilterUserInput(InputNotes, UTIFOpts) : null;
+  const IncidentLoc = await FilterUserInput(CmdProvidedDetails.location, UTIFOpts);
   const IncidentDesc = await FilterUserInput(
     ModalSubmission.fields
       .getTextInputValue("incident-desc")
@@ -283,27 +334,24 @@ async function PrepareIncidentData(
 
     _id: new Types.ObjectId(),
     num: IncidentNumber,
+    guild: CmdInteract.guildId,
     notes: IncidentNotes,
+    location: IncidentLoc,
     description: IncidentDesc,
     last_updated: new Date(),
     last_updated_by: null,
-    guild: CmdInteract.guildId,
 
     officers: [],
     witnesses: [],
+
     suspects: ModalSubmission.fields
       .getTextInputValue("suspects")
-      .split(SplitRegexForInputs)
+      .split(ListSplitRegex)
       .filter(Boolean),
 
     victims: ModalSubmission.fields
       .getTextInputValue("victims")
-      .split(SplitRegexForInputs)
-      .filter(Boolean),
-
-    attachments: ModalSubmission.fields
-      .getTextInputValue("attachments")
-      .split(SplitRegexForInputs)
+      .split(ListSplitRegex)
       .filter(Boolean),
 
     reported_on: ModalSubmission.createdAt,
@@ -313,47 +361,57 @@ async function PrepareIncidentData(
       roblox_id: ReportingOfficer.RobloxUserId,
       roblox_display_name: ReporterRobloxInfo?.displayName || "[Unknown]",
       roblox_username: ReporterRobloxInfo?.name || "[Unknown]",
+      signature: FormatDutyActivitiesLogSignature(
+        CmdInteract.member,
+        ReporterRobloxInfo,
+        GuildSettings.duty_activities.signature_format
+      ),
     },
   };
 
-  if (
-    (await HandleProvidedAttachmentsValidation(ModalSubmission, IncidentRecordInst.attachments)) ===
-    true
-  ) {
-    return null;
-  }
-
-  IncidentRecordInst.attachments = IncidentRecordInst.attachments.map(
-    SanitizeDiscordAttachmentLink
-  );
-
   return IncidentRecordInst;
-}
-
-async function HandleProvidedAttachmentsValidation(
-  ModalSubmission: ModalSubmitInteraction<"cached">,
-  Attachments: string[]
-): Promise<boolean> {
-  if (Attachments.length === 0) return false;
-
-  for (const Attachment of Attachments) {
-    if (!IsValidDiscordAttachmentLink(Attachment, true, "image")) {
-      return new ErrorEmbed()
-        .useErrTemplate("LogIncidentInvalidAttachments")
-        .replyToInteract(ModalSubmission, true)
-        .then(() => true);
-    }
-  }
-
-  return false;
 }
 
 async function InsertIncidentRecord(
   Interact: ButtonInteraction<"cached"> | SlashCommandInteraction<"cached">,
   IncidentRecord: GuildIncidents.IncidentRecord
-) {
-  IncidentRecord = { ...IncidentRecord, num: await GenerateNextIncidentNumber(Interact.guild.id) };
-  return IncidentModel.create(IncidentRecord);
+): Promise<GuildIncidents.IncidentRecord | null> {
+  IncidentRecord = {
+    ...IncidentRecord,
+    num: await GenerateNextSequentialIncidentNumber(Interact.guild.id),
+  };
+
+  const Session = await IncidentModel.startSession();
+  let InsertedDocument: GuildIncidents.IncidentRecord | null = null;
+
+  try {
+    await Session.withTransaction(async () => {
+      const CreatedDocuments = await IncidentModel.create([IncidentRecord], { session: Session });
+      if (CreatedDocuments?.[0]) {
+        InsertedDocument = CreatedDocuments[0];
+        await GuildModel.updateOne(
+          { _id: Interact.guildId },
+          {
+            $set: {
+              "logs.incidents.most_recent_num": InsertedDocument.num,
+            },
+          },
+          { session: Session }
+        );
+      }
+    });
+  } catch (Err: any) {
+    AppLogger.error({
+      message: Err.message,
+      label: CmdFileLabel,
+      stack: Err.stack,
+      error: Err,
+    });
+  } finally {
+    await Session.endSession();
+  }
+
+  return InsertedDocument;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -361,11 +419,15 @@ async function InsertIncidentRecord(
 // ----------------------
 async function OnReportConfirmation(
   BtnInteract: ButtonInteraction<"cached">,
+  ConfirmationMsgComponents: ActionRowBuilder<ButtonBuilder>[],
   IncidentReport: GuildIncidents.IncidentRecord,
   IRChannelIds?: null | string | string[]
 ) {
-  await BtnInteract.deferUpdate();
   let InsertedRecord: GuildIncidents.IncidentRecord | null = null;
+  await BtnInteract.update({
+    components: DisableMessageComponents(ConfirmationMsgComponents.map((Comp) => Comp.toJSON())),
+  }).catch(() => null);
+
   try {
     InsertedRecord = await InsertIncidentRecord(BtnInteract, IncidentReport).then((Res) => {
       IncrementActiveShiftEvent("incidents", BtnInteract.user.id, BtnInteract.guildId).catch(
@@ -385,11 +447,24 @@ async function OnReportConfirmation(
       .replyToInteract(BtnInteract, true, true, "followUp");
   }
 
-  let ReportSentMessageURL: string | null = null;
+  let ReportSentMessage: Message<true> | null = null;
+  const Attachments = new Collection<string, AttachmentBuilder>(
+    IncidentReport.attachments.map((Attachment, I) => [
+      Attachment,
+      new AttachmentBuilder(Attachment, {
+        name: `inc-${IncidentReport.num}-attachment_${I + 1}.${GetDiscordAttachmentExtension(Attachment)}`,
+      }),
+    ])
+  );
+
   if (IRChannelIds) {
-    ReportSentMessageURL = await SendGuildMessages(BtnInteract, IRChannelIds, {
+    ReportSentMessage = await SendGuildMessages(BtnInteract, IRChannelIds, {
+      files: Attachments.values().toArray(),
+      nonce: IncidentReport._id.toString(),
       embeds: GetIncidentReportEmbeds(IncidentReport, {
         channel_id: Array.isArray(IRChannelIds) ? IRChannelIds[0] : IRChannelIds,
+        guild_id: BtnInteract.guildId,
+        attachments_override: Attachments,
       }),
     });
   }
@@ -397,11 +472,15 @@ async function OnReportConfirmation(
   const REDescription = Dedent(`
     The incident report has been successfully submitted and logged.
     - Incident Number: \`${IncidentReport.num}\`
-    - Logged Report: ${ReportSentMessageURL ?? "N/A"} 
+    - Logged Report: ${ReportSentMessage?.url ?? "N/A"} 
   `);
 
-  if (ReportSentMessageURL) {
-    const SplatURL = ReportSentMessageURL.split("/");
+  if (ReportSentMessage) {
+    HandleIncThreadCreation(ReportSentMessage, IncidentReport);
+    const MsgAttachmentURLs = ReportSentMessage.embeds
+      .map((Embed) => Embed.data.image?.url)
+      .filter((URL) => URL !== undefined);
+
     IncidentModel.updateOne(
       {
         guild: BtnInteract.guildId,
@@ -409,12 +488,18 @@ async function OnReportConfirmation(
       },
       {
         $set: {
-          log_message: `${SplatURL[SplatURL.length - 2]}:${SplatURL[SplatURL.length - 1]}`,
+          attachments: MsgAttachmentURLs,
+          log_message: `${ReportSentMessage.channelId}:${ReportSentMessage.id}`,
         },
       }
     )
       .exec()
-      .catch(() => null);
+      .catch((Err) =>
+        AppLogger.error({
+          message: "Failed to update the incident record with the log message.",
+          stack: Err.stack,
+        })
+      );
   }
 
   return BtnInteract.editReply({
@@ -456,7 +541,7 @@ async function OnReportInvolvedOfficersOrWitnessesAddition(
   let InputText = ModalSubmission.components[0].components[0].value;
 
   if (!InputText?.trim()) InputText = "N/A";
-  CopiedTargetField = FormatSortRDInputNames(InputText.split(SplitRegexForInputs), false);
+  CopiedTargetField = FormatSortRDInputNames(InputText.split(ListSplitRegex), false);
 
   if (!ArraysAreEqual(CopiedTargetField, ReportData[AdditionFor.toLowerCase()])) {
     ReportData[AdditionFor.toLowerCase()] = CopiedTargetField;
@@ -480,6 +565,36 @@ async function OnReportInvolvedOfficersOrWitnessesAddition(
   return Promise.all([ModalSubmission.deferUpdate(), BtnInteract.editReply({ embeds: IREmbeds })]);
 }
 
+async function HandleIncThreadCreation(
+  ReportMessage: Message<true>,
+  IncidentReport: GuildIncidents.IncidentRecord
+) {
+  const GuildSettings = await GetGuildSettings(ReportMessage.guildId);
+  if (!GuildSettings?.duty_activities.incident_reports.auto_thread_management) return;
+  if (ReportMessage.channel.isThread() || ReportMessage.channel.isThreadOnly()) return;
+  if (IncidentReport.status.match(/cleared|closed|referred|inactivated|unfounded|cold/i)) return;
+  if (
+    !ReportMessage.channel
+      .permissionsFor(await ReportMessage.guild.members.fetchMe())
+      .has(PermissionFlagsBits.CreatePublicThreads, true)
+  ) {
+    return;
+  }
+
+  const ThreadName = `Incident Report #${IncidentReport.num} - ${IncidentReport.type}`;
+  const CreatedThread = await ReportMessage.startThread({
+    autoArchiveDuration: ThreadAutoArchiveDuration.OneDay,
+    reason: `Incident report #${IncidentReport.num} logged; a new thread has been created for it.`,
+    name: ThreadName,
+  });
+
+  if (CreatedThread.ownerId === ReportMessage.author.id) {
+    CreatedThread.members.add(IncidentReport.reporter.discord_id).catch(() => null);
+  }
+
+  return CreatedThread;
+}
+
 async function HandleIRAdditionalDetailsAndConfirmation(
   CmdInteract: SlashCommandInteraction<"cached">,
   ModalSubmission: ModalSubmitInteraction<"cached">,
@@ -488,6 +603,7 @@ async function HandleIRAdditionalDetailsAndConfirmation(
 ) {
   const IncidentReportEmbeds = GetIncidentReportEmbeds(CmdModalProvidedData, {
     channel_id: CmdInteract.channelId,
+    guild_id: CmdInteract.guildId,
   });
 
   const ConfirmationMsgComponents = [
@@ -497,9 +613,10 @@ async function HandleIRAdditionalDetailsAndConfirmation(
 
   IncidentReportEmbeds[0].setColor(Colors.Gold).setTitle("Incident Report Confirmation");
   const ConfirmationMessage = await ModalSubmission.editReply({
-    content: `${userMention(CmdInteract.user.id)} - Are you sure you want to submit this incident? Revise the incident details and add involved officers or witnesses if necessary.`,
-    embeds: IncidentReportEmbeds,
+    content: `${userMention(CmdInteract.user.id)} - Are you sure you want to submit this incident?\nRevise the incident details and add involved officers or witnesses if necessary.`,
+    allowedMentions: { users: [CmdInteract.user.id] },
     components: ConfirmationMsgComponents,
+    embeds: IncidentReportEmbeds,
   });
 
   ProcessReceivedIRBtnInteractions(
@@ -532,6 +649,7 @@ function ProcessReceivedIRBtnInteractions(
       if (BtnId.includes("confirm")) {
         await OnReportConfirmation(
           BtnInteract,
+          ConfirmationMsgComps,
           CmdModalProvidedData,
           DAGuildSettings.log_channels.incidents
         );
@@ -602,7 +720,9 @@ async function IncidentLogCallback(
   CmdInteract: SlashCommandInteraction<"cached">,
   ReportingOfficer: ReporterInfo
 ) {
-  const CmdProvidedDetails = GetCmdProvidedDetails(CmdInteract);
+  const CmdProvidedDetails = await GetCmdProvidedDetails(CmdInteract);
+  if (!CmdProvidedDetails) return;
+
   const IDModalSubmission = await AwaitIncidentDetailsModalSubmission(
     CmdInteract,
     CmdProvidedDetails.type
@@ -611,16 +731,8 @@ async function IncidentLogCallback(
   if (!IDModalSubmission) return;
   await IDModalSubmission.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const GuildDocument = await GuildModel.findById(
-    CmdInteract.guildId,
-    {
-      "settings.utif_enabled": 1,
-      "settings.duty_activities.log_channels.incidents": 1,
-    },
-    { lean: true }
-  ).exec();
-
-  if (!GuildDocument) {
+  const GuildSettings = await GetGuildSettings(CmdInteract.guildId);
+  if (!GuildSettings) {
     return new ErrorEmbed()
       .useErrTemplate("DBGuildDocumentNotFound")
       .replyToInteract(IDModalSubmission, true, true, "editReply");
@@ -630,18 +742,15 @@ async function IncidentLogCallback(
     CmdInteract,
     CmdProvidedDetails,
     IDModalSubmission,
-    GuildDocument as unknown as Guilds.GuildDocument,
+    GuildSettings,
     ReportingOfficer
   );
 
-  // Return if there was invalid data and a feedback has been sent to the user;
-  // otherwise, continue with the incident report creation process.
-  if (!CmdModalProvidedData) return;
   return HandleIRAdditionalDetailsAndConfirmation(
     CmdInteract,
     IDModalSubmission,
     CmdModalProvidedData,
-    GuildDocument.settings.duty_activities
+    GuildSettings.duty_activities
   );
 }
 
@@ -655,11 +764,11 @@ const CommandObject = {
     .setDescription("Creates and logs a traffic warning citation record for a person.")
     .addStringOption((Option) =>
       Option.setName("type")
-        .setDescription("The specific category of the incident.")
+        .setDescription("The type of incident being reported.")
+        .setAutocomplete(true)
         .setRequired(true)
         .setMaxLength(4)
         .setMaxLength(36)
-        .setChoices(IncidentTypes.map((Type) => ({ name: Type, value: Type })))
     )
     .addStringOption((Option) =>
       Option.setName("location")
@@ -679,6 +788,14 @@ const CommandObject = {
         .setRequired(true)
     ),
 };
+
+for (let i = 1; i <= 10; i++) {
+  CommandObject.data.addAttachmentOption((Option) =>
+    Option.setName(`evidence_${i}`)
+      .setDescription("Evidence and scene photos of the incident. Only static images are accepted.")
+      .setRequired(false)
+  );
+}
 
 // ----------------------------------------------------------------
 export default CommandObject;

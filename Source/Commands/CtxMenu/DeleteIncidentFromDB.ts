@@ -1,6 +1,5 @@
 import IncidentModel from "@Models/Incident.js";
 import { HandleCommandValidationAndPossiblyGetIncident } from "./UpdateIncidentReport.js";
-import { ErrorEmbed, InfoEmbed, WarnEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
   MessageContextMenuCommandInteraction,
   ApplicationIntegrationType,
@@ -14,41 +13,34 @@ import {
   ButtonStyle,
 } from "discord.js";
 
-// ---------------------------------------------------------------------------------------
-function GetDeleteConfirmationButtons() {
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("ir-delete-confirm")
-      .setLabel("Confirm and Delete")
-      .setStyle(ButtonStyle.Danger),
-    new ButtonBuilder()
-      .setCustomId("ir-delete-cancel")
-      .setLabel("Cancel Deletion")
-      .setStyle(ButtonStyle.Secondary)
-  );
-}
+import {
+  ErrorContainer,
+  InfoContainer,
+  WarnContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
 
 // ---------------------------------------------------------------------------------------
 // Handling:
 // ---------
 async function Callback(Interaction: MessageContextMenuCommandInteraction<"cached">) {
   const ValidationResult = await HandleCommandValidationAndPossiblyGetIncident(Interaction);
+  const MsgFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
   if (ValidationResult.handled && !ValidationResult.incident) return;
-  await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  await Interaction.deferReply({ flags: MsgFlags });
 
   const IncidentRecord = ValidationResult.incident!;
   const ConfirmationComponents = GetDeleteConfirmationButtons();
-  const DeletionPromptEmbed = new WarnEmbed()
-    .setThumbnail(null)
+  const DeletionPromptContainer = new WarnContainer()
     .setTitle("Incident Report Deletion")
     .setDescription(
-      `Please confirm the deletion of incident report with number \`${IncidentRecord.num}\` from the database.\n` +
-        "The deletion will be cancelled automatically after five minutes."
-    );
+      `Please confirm your intent to the deletion of incident report with number \`${IncidentRecord.num}\` from the database.\n`
+    )
+    .setFooter("The deletion will be cancelled automatically after five minutes.")
+    .attachPromptActionRows(ConfirmationComponents);
 
   const PromptMessage = await Interaction.editReply({
-    embeds: [DeletionPromptEmbed],
-    components: [ConfirmationComponents],
+    components: [DeletionPromptContainer],
+    flags: MsgFlags,
   });
 
   const ButtonInteract = await PromptMessage.awaitMessageComponent({
@@ -70,15 +62,15 @@ async function Callback(Interaction: MessageContextMenuCommandInteraction<"cache
 
     if (!DeletedReport) {
       return ButtonInteract.update({
-        embeds: [new ErrorEmbed().useErrTemplate("UpdateIncidentReportDBFailed")],
-        components: [],
+        components: [new ErrorContainer().useErrTemplate("UpdateIncidentReportDBFailed")],
+        flags: MsgFlags,
       });
     }
 
     await ButtonInteract.update({
-      components: [],
-      embeds: [
-        new InfoEmbed()
+      flags: MsgFlags,
+      components: [
+        new InfoContainer()
           .setTitle("Incident Report Deleted")
           .setDescription(
             `Incident report with number \`${DeletedReport.num}\` has been deleted successfully from the database.`
@@ -86,6 +78,19 @@ async function Callback(Interaction: MessageContextMenuCommandInteraction<"cache
       ],
     });
   }
+}
+
+function GetDeleteConfirmationButtons() {
+  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("ir-delete-confirm")
+      .setLabel("Confirm and Delete")
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId("ir-delete-cancel")
+      .setLabel("Cancel Deletion")
+      .setStyle(ButtonStyle.Secondary)
+  );
 }
 
 // ---------------------------------------------------------------------------------------

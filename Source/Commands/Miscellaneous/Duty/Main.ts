@@ -1,16 +1,18 @@
+import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
   SlashCommandBuilder,
   InteractionContextType,
   AutocompleteInteraction,
+  ApplicationIntegrationType,
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
 import DutyTypesSubcommandGroup from "./Duty Types/Main.js";
 import AutocompleteShiftType from "@Utilities/Autocompletion/ShiftType.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import HasRobloxLinked from "@Utilities/Database/IsUserLoggedIn.js";
 import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
-import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
 
 const Subcommands = [
   (await import("./Subcmds/Void.js")).default,
@@ -41,7 +43,8 @@ async function IsAuthorizedCmdUsage(Interaction: SlashCommandInteraction<"cached
       .then(() => false);
   }
 
-  if (SubcmdName === "manage") {
+  const GuildSettings = await GetGuildSettings(Interaction.guildId);
+  if (SubcmdName === "manage" && GuildSettings?.require_authorization === true) {
     const LinkedRobloxUser = await HasRobloxLinked(Interaction);
     if (!LinkedRobloxUser) {
       return new ErrorEmbed()
@@ -82,26 +85,46 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
   const { name, value } = Interaction.options.getFocused(true);
   const SubcommandGroup = Interaction.options.getSubcommandGroup();
   const SubcommandName = Interaction.options.getSubcommand();
-  const Suggestions =
+
+  if (name === "since" && value.match(/^\s*$/)) {
+    return Interaction.respond(
+      ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"].map((Choice) => ({
+        name: Choice,
+        value: Choice,
+      }))
+    );
+  }
+
+  if (
     ["type", "shift-type"].includes(name) ||
     (name === "name" &&
       SubcommandGroup === "types" &&
       SubcommandName === "delete" &&
-      (await UserHasPerms(Interaction, { management: true })))
-      ? await AutocompleteShiftType(value, Interaction.guildId, SubcommandName !== "delete")
-      : [{ name: "[Unauthorized]", value: "0" }];
-
-  return Interaction.respond(Suggestions);
+      (await UserHasPermsV2(Interaction.user.id, Interaction.guildId, { management: true })))
+  ) {
+    const ShiftTypeSuggestions = await AutocompleteShiftType(value, Interaction.guildId);
+    return Interaction.respond(ShiftTypeSuggestions);
+  } else {
+    return Interaction.respond([{ name: "[Unauthorized]", value: "0" }]);
+  }
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
   callback: Callback,
   autocomplete: Autocomplete,
   options: {
-    cooldown: 2.5,
+    cooldown: {
+      $all_other: 2.5,
+      leaderboard: 5,
+      active: 5,
+      import: {
+        $user: { cooldown: 60, timeframe: 15 * 60, max_executions: 2 },
+        $guild: { cooldown: 15, timeframe: 30 * 60, max_executions: 6 },
+      },
+    },
     user_perms: {
       types: { management: true },
       admin: { management: true },
@@ -115,6 +138,7 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
     .setName("duty")
     .setDescription("Duty and shifts related actions.")
     .addSubcommandGroup(DutyTypesSubcommandGroup.data)
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild),
 };
 

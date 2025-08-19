@@ -2,14 +2,17 @@
 // -------------
 import AutocompleteShiftType from "@Utilities/Autocompletion/ShiftType.js";
 import AutocompleteTimeDuration from "../../../Utilities/Autocompletion/TimeDuration.js";
+import { secondsInDay, secondsInHour } from "date-fns/constants";
 import {
   SlashCommandBuilder,
   InteractionContextType,
+  ApplicationIntegrationType,
   type AutocompleteInteraction,
   type ApplicationCommandOptionChoiceData,
   type SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
+const DateOffsets = ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"];
 const Subcommands = [
   (await import("./Subcmds/Officer.js")).default,
   (await import("./Subcmds/Report.js")).default,
@@ -38,9 +41,14 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">): Pro
   if (name === "shift-type") {
     Suggestions = await AutocompleteShiftType(value, Interaction.guildId);
   } else if (name === "since" && value.match(/^\s*$/)) {
-    Suggestions = ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"].map(
-      (Choice) => ({ name: Choice, value: Choice })
-    );
+    Suggestions = DateOffsets.map((Choice) => ({ name: Choice, value: Choice }));
+  } else if (["to", "until"].includes(name) && value.match(/^\s*$/)) {
+    Suggestions = DateOffsets.map((Choice) => ({
+      name: Choice,
+      value: Choice,
+    }));
+
+    Suggestions.unshift({ name: "today", value: "today" });
   } else if (name === "time-requirement") {
     Suggestions = AutocompleteTimeDuration(value);
   } else {
@@ -57,13 +65,29 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
   autocomplete: Autocomplete,
   callback: Callback,
   options: {
-    cooldown: { report: 10, for: 2.5 },
     user_perms: { report: { management: true }, $all: { staff: true } },
+    cooldown: {
+      for: 2.5,
+      report: {
+        $user: {
+          cooldown: 10,
+          max_executions: 8,
+          timeframe: secondsInHour,
+        },
+
+        $guild: {
+          max_executions: 30,
+          timeframe: secondsInDay,
+          cooldown: 10,
+        },
+      },
+    },
   },
 
   data: new SlashCommandBuilder()
     .setName("activity")
     .setDescription("Get information about server activity.")
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild)
     .addSubcommand(Subcommands[0].data)
     .addSubcommand(Subcommands[1].data),

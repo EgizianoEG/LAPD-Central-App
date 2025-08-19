@@ -1,13 +1,14 @@
-/* eslint-disable sonarjs/no-duplicate-string */
 // Dependencies:
 // -------------
 
 import {
   inlineCode,
-  EmbedBuilder,
+  MessageFlags,
+  ComponentType,
   BaseInteraction,
   ButtonInteraction,
   time as FormatTime,
+  TextDisplayBuilder,
 } from "discord.js";
 
 import {
@@ -19,33 +20,32 @@ import {
 
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
+import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
 import { secondsInDay } from "date-fns/constants";
 import { ErrorMessages } from "@Resources/AppMessages.js";
-import { Embeds, Emojis } from "@Config/Shared.js";
+import { Colors, Emojis } from "@Config/Shared.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { BaseExtraContainer } from "@Utilities/Classes/ExtraContainers.js";
 import { differenceInSeconds } from "date-fns";
 import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { DutyManagementBtnCustomIdRegex } from "@Resources/RegularExpressions.js";
-import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Other/Validators.js";
+import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
 
-import HandleRoleAssignment from "@Utilities/Other/HandleShiftRoleAssignment.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import HandleRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetActiveShift from "@Utilities/Database/GetShiftActive.js";
 import ShiftModel from "@Models/Shift.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import DHumanize from "humanize-duration";
 import AppError from "@Utilities/Classes/AppError.js";
 import Dedent from "dedent";
 
 type ShiftDocument = Shifts.HydratedShiftDocument;
 const FileLabel = "Events:InteractionCreate:ShiftManagementHandler";
-const HumanizeDuration = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 3,
-  round: true,
-});
-
+const SMActionFeedbackFailureErrMsg =
+  "Encountered an error while performing shift action logging and role assignment.";
 // ---------------------------------------------------------------------------------------
 // Initial Handling:
 // -----------------
@@ -73,6 +73,7 @@ export default async function ShiftManagementHandlerWrapper(
 
     await ShiftManagementHandler(Interaction, ValidationResult.target_shift_type);
     const ButtonResponded = Interaction.deferred || Interaction.replied;
+
     if (!ButtonResponded) {
       await Interaction.deferUpdate().catch(() => null);
     }
@@ -107,8 +108,17 @@ async function ShiftManagementHandler(
   const ShiftAction = SplatDetails[0] as ShiftMgmtActions;
   const TargetShiftId = SplatDetails[3];
   const PromptMessageId = Interaction.message.id;
+  let TargetShift: Shifts.HydratedShiftDocument | null = null;
 
-  const TargetShift = await ShiftModel.findById(TargetShiftId).exec();
+  if (
+    MongoDBCache.StreamChangeConnected.ActiveShifts &&
+    MongoDBCache.ActiveShifts.has(TargetShiftId)
+  ) {
+    TargetShift = MongoDBCache.ActiveShifts.getHydrated(TargetShiftId)!;
+  } else if (TargetShiftId) {
+    TargetShift = await ShiftModel.findById(TargetShiftId).exec();
+  }
+
   const ActiveShift =
     TargetShift?.end_timestamp === null
       ? TargetShift
@@ -144,7 +154,7 @@ async function HandleShiftOnAction(
       start_timestamp: Interaction.createdAt,
     });
 
-    await Promise.all([
+    const ShiftActionFeedbacks = await Promise.allSettled([
       ShiftActionLogger.LogShiftStart(StartedShift, Interaction),
       HandleRoleAssignment("on-duty", Interaction.client, Interaction.guild, Interaction.user.id),
       UpdateManagementPrompt(
@@ -155,6 +165,16 @@ async function HandleShiftOnAction(
         RecentShiftAction.Start
       ),
     ]);
+
+    ShiftActionFeedbacks.forEach((Result) => {
+      if (Result.status === "fulfilled") return;
+      AppLogger.error({
+        message: SMActionFeedbackFailureErrMsg,
+        label: FileLabel,
+        error: { ...Result.reason },
+        stack: Result.reason instanceof Error ? Result.reason.stack : null,
+      });
+    });
   } catch (Err: any) {
     const ErrorId = GetErrorId();
     if (Err instanceof AppError && Err.is_showable) {
@@ -216,7 +236,7 @@ async function HandleShiftBreakToggleAction(
       Interaction.createdTimestamp
     )) as ShiftDocument;
 
-    return Promise.all([
+    const ShiftActionFeedbacks = await Promise.allSettled([
       ShiftActionLogger[`LogShiftBreak${BreakActionType}`](UpdatedShift, Interaction),
       HandleRoleAssignment(
         BreakActionType === "End" ? "on-duty" : "on-break",
@@ -232,19 +252,42 @@ async function HandleShiftBreakToggleAction(
         RecentShiftAction[`Break${BreakActionType}`]
       ),
     ]);
+
+    ShiftActionFeedbacks.forEach((Result) => {
+      if (Result.status === "fulfilled") return;
+      AppLogger.error({
+        message: SMActionFeedbackFailureErrMsg,
+        label: FileLabel,
+        error: { ...Result.reason },
+        stack: Result.reason instanceof Error ? Result.reason.stack : null,
+      });
+    });
   } catch (Err: any) {
     if (Err instanceof AppError && Err.is_showable) {
-      await Interaction.deferUpdate().catch(() => null);
-      return Promise.allSettled([
-        new ErrorEmbed().useErrClass(Err).replyToInteract(Interaction, true, false, "followUp"),
-        UpdateManagementPrompt(
-          Interaction,
-          ActiveShift.type,
-          PromptMsgId,
-          ActiveShift,
-          RecentShiftAction.BreakStart
-        ),
-      ]);
+      const CurrentActiveShift = await GetActiveShift({
+        UserOnly: true,
+        Interaction,
+      });
+
+      if (CurrentActiveShift?._id === ActiveShift._id) {
+        await Interaction.deferUpdate().catch(() => null);
+        return Promise.allSettled([
+          new ErrorEmbed()
+            .useErrTemplate("DSMStateChangedExternally")
+            .replyToInteract(Interaction, true, true, "followUp"),
+          UpdateManagementPrompt(
+            Interaction,
+            CurrentActiveShift.type,
+            PromptMsgId,
+            CurrentActiveShift,
+            CurrentActiveShift.hasBreakActive()
+              ? RecentShiftAction.BreakStart
+              : RecentShiftAction.BreakEnd
+          ),
+        ]);
+      } else {
+        return new ErrorEmbed().useErrClass(Err).replyToInteract(Interaction, true, true, "reply");
+      }
     } else {
       throw Err;
     }
@@ -261,7 +304,7 @@ async function HandleShiftOffAction(
 
   try {
     UpdatedShift = await ActiveShift.end(Interaction.createdTimestamp);
-    return Promise.all([
+    const ShiftActionFeedbacks = await Promise.allSettled([
       ShiftActionLogger.LogShiftEnd(UpdatedShift, Interaction),
       HandleRoleAssignment("off-duty", Interaction.client, Interaction.guild, Interaction.user.id),
       UpdateManagementPrompt(
@@ -272,6 +315,16 @@ async function HandleShiftOffAction(
         RecentShiftAction.End
       ),
     ]);
+
+    ShiftActionFeedbacks.forEach((Result) => {
+      if (Result.status === "fulfilled") return;
+      AppLogger.error({
+        message: SMActionFeedbackFailureErrMsg,
+        label: FileLabel,
+        error: { ...Result.reason },
+        stack: Result.reason instanceof Error ? Result.reason.stack : null,
+      });
+    });
   } catch (Err: any) {
     if (Err instanceof AppError && Err.is_showable) {
       const ShiftExists = await ShiftModel.exists({ _id: ActiveShift._id });
@@ -372,13 +425,15 @@ async function HandleInvalidShiftAction(
   ShiftAction: ShiftMgmtActions,
   TargetShift?: ShiftDocument | null
 ) {
+  const IsUsingComponentsV2 = Interaction.message.flags.has(MessageFlags.IsComponentsV2);
   const PromptMessageLastEditedTimestamp =
     Interaction.message.editedTimestamp || Interaction.message.createdTimestamp;
 
   if (
+    !IsUsingComponentsV2 ||
     differenceInSeconds(Interaction.createdAt, PromptMessageLastEditedTimestamp) >= secondsInDay
   ) {
-    await DisablePromptComponents(Interaction, TargetShift?.type);
+    await DisablePromptComponents(Interaction);
     return new ErrorEmbed()
       .useErrTemplate("DSMContinueExpired")
       .replyToInteract(Interaction, true, true, "followUp")
@@ -444,23 +499,25 @@ async function UpdateManagementPrompt(
     !!ActiveShift
   );
 
-  const MgmtEmbedTitle = `Shift Management: \`${ShiftType}\` Type`;
+  let ShiftOverviewDesc = "";
+  const MgmtEmbedTitle = `### Shift Management: \`${ShiftType}\` type`;
   const MgmtPromptMainDesc = Dedent(`
-    >>> **Shift Count:** \`${MemberShiftsData.shift_count}\`
-    **Total On-Duty Time:** ${MemberShiftsData.total_onduty}
-    **Average On-Duty Time:** ${MemberShiftsData.avg_onduty}
+    > **Shift Count:** \`${MemberShiftsData.shift_count}\`
+    > **Total On-Duty Time:** ${MemberShiftsData.total_onduty}
+    > **Average On-Duty Time:** ${MemberShiftsData.avg_onduty}
   `);
 
-  const PromptEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.ShiftNatural)
-    .setTitle(MgmtEmbedTitle);
+  const PromptContainer = new BaseExtraContainer()
+    .setColor(Colors.ShiftNatural)
+    .setTitle(MgmtEmbedTitle, { no_sep: true });
 
   if (PreviousAction) {
-    if (PreviousAction === RecentShiftAction.End) {
-      PromptEmbed.setColor(Embeds.Colors.ShiftOff);
-      PromptEmbed.setTitle(PreviousAction);
-      PromptEmbed.setFooter({ text: `Shift Type: ${ShiftType}` });
+    PromptContainer.setTitle(`${PreviousAction}`, {
+      no_sep: true,
+    });
 
+    if (PreviousAction === RecentShiftAction.End) {
+      PromptContainer.setColor(Colors.ShiftOff);
       const MostRecentFinishedShift = await ShiftModel.findOne({
         user: Interaction.user.id,
         guild: Interaction.guildId,
@@ -473,113 +530,97 @@ async function UpdateManagementPrompt(
             ? `**Break Time:** ${MostRecentFinishedShift.on_break_time}`
             : "";
 
-        PromptEmbed.addFields(
-          {
-            inline: true,
-            name: "Shift Overview",
-            value: Dedent(`
-              >>> **Status:** (${Emojis.Offline}) Off-Duty
-              **Shift Time:** ${MostRecentFinishedShift.on_duty_time}
-              ${BreakTimeText}
-            `),
-          },
-          {
-            inline: true,
-            name: "Shift Activity",
-            value: Dedent(`
-              >>> **Arrests Made:** \`${MostRecentFinishedShift.events.arrests}\`
-              **Citations Issued:** \`${MostRecentFinishedShift.events.citations}\`
-              **Incidents Reported:** \`${MostRecentFinishedShift.events.incidents}\`
-            `),
-          },
-          {
-            inline: false,
-            name: "Statistics Summary",
-            value: MgmtPromptMainDesc,
-          }
-        );
+        ShiftOverviewDesc = Dedent(`
+          **Shift Overview:**
+          >>> **Status:** (${Emojis.Offline}) Off-Duty
+          **Shift Type:** \`${MostRecentFinishedShift.type}\`
+          **Shift Time:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}
+        `);
       }
     } else if (PreviousAction === RecentShiftAction.BreakEnd && ActiveShift?.hasBreaks()) {
+      PromptContainer.setColor(Colors.ShiftOn);
       const EndedBreak = ActiveShift.events.breaks.findLast((v) => v[0] && v[1])!;
       const BreaksTakenLine =
         ActiveShift.events.breaks.length > 1
           ? `**Breaks Taken:** ${ActiveShift.events.breaks.length}\n`
           : "";
 
-      PromptEmbed.setColor(Embeds.Colors.ShiftOn);
-      PromptEmbed.setFooter({ text: `Shift Type: ${ShiftType}` });
-      PromptEmbed.setTitle(PreviousAction);
-      PromptEmbed.setFields({
-        inline: true,
-        name: "Current Shift",
-        value:
-          `>>> **Status:** (${Emojis.Online}) On Duty\n` +
-          `**Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}\n` +
-          BreaksTakenLine +
-          `**Ended Break Time:** ${EndedBreak[1] ? HumanizeDuration(EndedBreak[1] - EndedBreak[0]) : "N/A"}\n` +
-          `**Total Break Time:** ${ActiveShift.on_break_time}`,
-      });
+      ShiftOverviewDesc =
+        "**Current Shift**\n" +
+        `>>> **Status:** (${Emojis.Online}) On Duty\n` +
+        `**Shift Type:** \`${ActiveShift.type}\`\n` +
+        `**Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}\n` +
+        BreaksTakenLine +
+        `**Ended Break Time:** ${EndedBreak[1] ? ReadableDuration(EndedBreak[1] - EndedBreak[0]) : "N/A"}\n` +
+        `**Total Break Time:** ${ActiveShift.on_break_time}`;
     } else if (PreviousAction === RecentShiftAction.BreakStart && ActiveShift?.hasBreakActive()) {
+      PromptContainer.setColor(Colors.ShiftBreak);
       const StartedBreak = ActiveShift.events.breaks.findLast((v) => !v[1])!;
-      PromptEmbed.setColor(Embeds.Colors.ShiftBreak);
-      PromptEmbed.setFooter({ text: `Shift Type: ${ShiftType}` });
-      PromptEmbed.setTitle(PreviousAction);
-      PromptEmbed.setFields({
-        inline: true,
-        name: "Current Shift",
-        value: Dedent(`
-          >>> **Status:** (${Emojis.Idle}) On Break
-          **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-          **Break Started:** ${FormatTime(Math.round(StartedBreak[0] / 1000), "R")}
-          **On-Duty Time:** ${ActiveShift.on_duty_time}
-          ${ActiveShift.events.breaks.length > 1 ? `**Total Break Time:** ${ActiveShift.on_break_time}` : ""}
-        `),
-      });
+      ShiftOverviewDesc = Dedent(`
+        **Current Shift**
+        >>> **Status:** (${Emojis.Idle}) On Break
+        **Shift Type:** \`${ActiveShift.type}\`
+        **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
+        **Break Started:** ${FormatTime(Math.round(StartedBreak[0] / 1000), "R")}
+        **On-Duty Time:** ${ActiveShift.on_duty_time}
+        ${ActiveShift.events.breaks.length > 1 ? `**Total Break Time:** ${ActiveShift.on_break_time}` : ""}
+      `);
     } else if (ActiveShift) {
-      PromptEmbed.setColor(Embeds.Colors.ShiftOn);
-      if (!PromptEmbed.data.fields?.find((Field) => Field.name === "Current Shift")) {
-        if (ActiveShift.durations.on_break > 500) {
-          PromptEmbed.addFields({
-            name: "Current Shift",
-            value: Dedent(`
-              >>> **Status:** (${Emojis.Online}) On Duty
-              **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-              **Break Count:** ${inlineCode(ActiveShift.events.breaks.length.toString())}
-              **Total Break Time:** ${HumanizeDuration(ActiveShift.durations.on_break)}
-            `),
-          });
-        } else {
-          PromptEmbed.addFields({
-            name: "Current Shift",
-            value: Dedent(`
-              >>> **Status:** (${Emojis.Online}) On Duty
-              **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-            `),
-          });
-        }
+      PromptContainer.setColor(Colors.ShiftOn);
+      if (ActiveShift.durations.on_break > 500) {
+        ShiftOverviewDesc = Dedent(`
+          **Current Shift**
+          >>> **Status:** (${Emojis.Online}) On Duty
+          **Shift Type:** \`${ActiveShift.type}\`
+          **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
+          **Break Count:** ${inlineCode(ActiveShift.events.breaks.length.toString())}
+          **T. Break Time:** ${ActiveShift.on_break_time}
+        `);
+      } else {
+        ShiftOverviewDesc = Dedent(`
+          **Current Shift**
+          >>> **Status:** (${Emojis.Online}) On Duty
+          **Shift Type:** \`${ActiveShift.type}\`
+          **Shift Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
+        `);
       }
     }
   }
 
-  if (!PreviousAction || PreviousAction === RecentShiftAction.Start) {
-    PromptEmbed.addFields({
-      inline: true,
-      name: "Statistics Summary",
-      value: MgmtPromptMainDesc,
-    });
+  const DescTDIndex = PromptContainer.components.findIndex(
+    (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 3
+  );
+
+  const ShouldUseSplice =
+    DescTDIndex !== -1 &&
+    ShiftOverviewDesc &&
+    (!PreviousAction || PreviousAction === RecentShiftAction.End);
+
+  if (ShouldUseSplice) {
+    PromptContainer.components.splice(
+      DescTDIndex,
+      1,
+      new TextDisplayBuilder().setContent(ShiftOverviewDesc),
+      new TextDisplayBuilder().setContent(`**Statistics Summary**\n${MgmtPromptMainDesc}`)
+    );
+  } else if (ShiftOverviewDesc) {
+    PromptContainer.setDescription(ShiftOverviewDesc);
+  } else if (!PreviousAction) {
+    PromptContainer.setDescription(`**Statistics Summary**\n${MgmtPromptMainDesc}`);
   }
 
+  PromptContainer.attachPromptActionRows(ManagementComponents);
   if (Interaction.deferred || Interaction.replied) {
     return Interaction.editReply({
+      flags: MessageFlags.IsComponentsV2,
       message: PromptMsgId,
-      embeds: [PromptEmbed],
-      components: [ManagementComponents],
+      components: [PromptContainer],
     });
   }
 
   return Interaction.update({
-    embeds: [PromptEmbed],
-    components: [ManagementComponents],
+    flags: MessageFlags.IsComponentsV2,
+    components: [PromptContainer],
   });
 }
 
@@ -587,29 +628,25 @@ async function UpdateManagementPrompt(
  * Disables the interactive components (buttons) of a shift management prompt.
  * This function updates the buttons to a disabled state and edits or updates the interaction reply accordingly.
  * @param Interaction - The button interaction object.
- * @param TargetShiftType - (Optional) The specific shift type to target when updating the buttons.
  * @param SafeDisable - (Optional) If true, the function will not throw an error if the prompt cannot be updated. Defaults to true.
  * @returns A promise that resolves when the interaction is updated or edited.
  */
 async function DisablePromptComponents(
   Interaction: ButtonInteraction<"cached">,
-  TargetShiftType?: string,
   SafeDisable: boolean = true
 ) {
-  const DisabledMgmtComponents = GetShiftManagementButtons(
-    Interaction,
-    TargetShiftType
-  ).updateButtons({ start: false, end: false, break: false });
+  const PromptComps = Interaction.message.components.map((Comp) => Comp.toJSON());
+  const DisabledPrompt = DisableMessageComponents(PromptComps);
 
   try {
     if (Interaction.deferred || Interaction.replied) {
       await Interaction.editReply({
         message: Interaction.message.id,
-        components: [DisabledMgmtComponents],
+        components: DisabledPrompt,
       });
     } else {
       await Interaction.update({
-        components: [DisabledMgmtComponents],
+        components: DisabledPrompt,
       });
     }
   } catch (Err) {
@@ -637,22 +674,6 @@ function ExtractShiftTypeFromPrompt<TiNF extends boolean | undefined = true>(
     return ShiftTypeFromCustomId.toLowerCase() === "default" ? "Default" : ShiftTypeFromCustomId;
   }
 
-  const Embed = Interaction.message.embeds[0];
-  if (!Embed) {
-    if (!ThrowIfNotFound) return null as any;
-    throw new AppError({ template: "DSMEmbedNotFound", showable: true });
-  }
-
-  const ShiftTypeTitle = Embed.title
-    ?.match(/(?:Shift|Duty)\s+?Manage(?:ment)?: `?([\w\s]+)`?/i)?.[1]
-    ?.trim();
-
-  if (ShiftTypeTitle) return ShiftTypeTitle;
-  const ShiftTypeFooter = Embed.footer?.text
-    .match(/(?:Shift|Duty)\s+?Type: `?([\w\s]+)`?/i)?.[1]
-    ?.trim();
-
-  if (ShiftTypeFooter) return ShiftTypeFooter;
   if (!ThrowIfNotFound) return null as any;
   throw new AppError({ template: "DSMContinueNoShiftTypeFound", showable: true });
 }

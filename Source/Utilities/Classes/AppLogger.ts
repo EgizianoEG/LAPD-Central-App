@@ -43,6 +43,111 @@ const IgnoreSpecificConsoleLogs = Format((Msg) =>
 );
 
 // --------------------------------------------------------------------------------------
+// Custom Formatters:
+// ------------------
+const FlattenLogMetadata = Format(
+  (Info: Winston.Logform.TransformableInfo): Winston.Logform.TransformableInfo => {
+    function FlattenDetails(Obj: any): any {
+      if (typeof Obj !== "object" || Obj === null) {
+        return Obj;
+      }
+
+      if ("details" in Obj && typeof Obj.details === "object") {
+        Obj = { ...Obj, ...Obj.details };
+        delete Obj.details;
+        Obj = FlattenDetails(Obj);
+      }
+
+      return Obj;
+    }
+
+    if ("details" in Info && Info.details !== null) {
+      Info.details = FlattenDetails(Info.details);
+    }
+
+    if ("metadata" in Info && Info.metadata !== null) {
+      Info.metadata = FlattenDetails(Info.metadata);
+    }
+
+    return Info;
+  }
+);
+
+const EliminateCircularRefs = Format(
+  (Info: Winston.Logform.TransformableInfo): Winston.Logform.TransformableInfo => {
+    const Seen = new WeakSet();
+    function SanitizeCircular(Obj: any, Path: string[] = []): any {
+      if (typeof Obj !== "object" || Obj === null) {
+        return Obj;
+      }
+
+      if (Seen.has(Obj)) {
+        return "[Circular Reference]";
+      }
+
+      Seen.add(Obj);
+      if (Array.isArray(Obj)) {
+        const Result: any[] = [];
+        for (let i = 0; i < Obj.length; i++) {
+          Result[i] = SanitizeCircular(Obj[i], [...Path, i.toString()]);
+        }
+        return Result;
+      }
+
+      const Result: Record<string, any> = {};
+      for (const Key of Object.keys(Obj)) {
+        if (typeof Obj[Key] !== "function" && typeof Obj[Key] !== "symbol") {
+          Result[Key] = SanitizeCircular(Obj[Key], [...Path, Key]);
+        }
+      }
+
+      return Result;
+    }
+
+    const CleanedInfo = SanitizeCircular(Info);
+    return CleanedInfo;
+  }
+);
+
+const FormatLogEntry = (Info: Winston.Logform.TransformableInfo): string => {
+  let Description: string = String(Info.message);
+  const Metadata: Record<string, any> = Info.metadata ?? {};
+  const ErrorStack: string | undefined = Info.stack ?? Metadata.stack;
+  const Timestamp: string = Info.timestamp ?? Metadata.timestamp;
+  const LogLabel: string | undefined = LogLabels ? (Info.label ?? Metadata.label) : null;
+
+  if (ErrorStack && Metadata.stack) {
+    Metadata.stack = ErrorStack.replace(
+      /(at .+ )\((.+:\d+:\d+)\)/g,
+      (_, AtText: string, FilePath: string) => {
+        if (!FilePath.startsWith("node:")) FilePath = `file:///${FilePath}`;
+        FilePath = FilePath.replace(/[\\/]/g, process.platform === "win32" ? "/" : "\\");
+        FilePath = FilePath.replaceAll(" ", "%20").replace(/:(\d+):(\d+)/g, (_, N1, N2) => {
+          const Colon = Chalk.white(":");
+          return `${Colon}${Chalk.yellow(N1)}${Colon}${Chalk.yellow(N2)}`;
+        });
+
+        return `${AtText}(${Chalk.cyan.dim(FilePath)})`;
+      }
+    );
+
+    if (Metadata.title) {
+      Description = `${Metadata.title}; ${Info.message}\n    ${Metadata.stack}`;
+    } else {
+      Description = `${Info.message}\n    ${Metadata.stack}`;
+    }
+  }
+
+  return Util.format(
+    "%s %s%s: %s",
+    Chalk.gray(`[${Timestamp}]`),
+    LogLabel ? Chalk.grey(`[${LogLabel}] `) : "",
+    ColorizeLevel(Info.level, Info.level.toUpperCase()),
+    Description
+  );
+};
+
+// --------------------------------------------------------------------------------------
 // Logger Instance:
 // ----------------
 Winston.addColors(LevelsData.Colors);
@@ -56,44 +161,8 @@ const AppLogger = Winston.createLogger({
         IgnoreSpecificConsoleLogs(),
         SplatFormat({ colors: true }),
         Format.timestamp({ format: "hh:mm:ss A" }),
-        Format.metadata({ key: "metadata" }),
-        Format.printf((Info) => {
-          let Description: string = String(Info.message);
-          const Metadata: Record<string, any> = Info.metadata ?? {};
-          const ErrorStack: string | undefined = Info.stack ?? Metadata.stack;
-          const Timestamp: string = Info.timestamp ?? Metadata.timestamp;
-          const LogLabel: string | undefined = LogLabels ? (Info.label ?? Metadata.label) : null;
-
-          if (ErrorStack && Metadata.stack) {
-            Metadata.stack = ErrorStack.replace(
-              /(at .+ )\((.+:\d+:\d+)\)/g,
-              (_, AtText: string, FilePath: string) => {
-                if (!FilePath.startsWith("node:")) FilePath = `file:///${FilePath}`;
-                FilePath = FilePath.replace(/[\\/]/g, process.platform === "win32" ? "/" : "\\");
-                FilePath = FilePath.replaceAll(" ", "%20").replace(/:(\d+):(\d+)/g, (_, N1, N2) => {
-                  const Colon = Chalk.white(":");
-                  return `${Colon}${Chalk.yellow(N1)}${Colon}${Chalk.yellow(N2)}`;
-                });
-
-                return `${AtText}(${Chalk.cyan.dim(FilePath)})`;
-              }
-            );
-
-            if (Metadata.title) {
-              Description = `${Metadata.title}; ${Info.message}\n    ${Metadata.stack}`;
-            } else {
-              Description = `${Info.message}\n    ${Metadata.stack}`;
-            }
-          }
-
-          return Util.format(
-            "%s %s%s: %s",
-            Chalk.gray(`[${Timestamp}]`),
-            LogLabel ? Chalk.grey(`[${LogLabel}] `) : "",
-            ColorizeLevel(Info.level, Info.level.toUpperCase()),
-            Description
-          );
-        })
+        Format.metadata(),
+        Format.printf(FormatLogEntry)
       ),
     }),
   ],
@@ -102,16 +171,22 @@ const AppLogger = Winston.createLogger({
 // --------------------------------------------------------------------------------------
 // Cloud Logging on Production:
 // ----------------------------
-if (Other.IsProdEnv && Other.LogTailSourceToken) {
-  const LogTailInst = new Logtail(Other.LogTailSourceToken);
+if (Other.IsProdEnv && Other.LogTailSourceToken && Other.LogTailIngestingHost) {
+  const LogTailInst = new Logtail(Other.LogTailSourceToken, {
+    endpoint: Other.LogTailIngestingHost,
+    batchInterval: 2500,
+    syncMax: 8,
+  });
+
   AppLogger.add(
     new LogtailTransport(LogTailInst, {
       level: LogLevel,
       format: Format.combine(
         IgnorePrivateLogs(),
         SplatFormat({ colors: true }),
-        Format.timestamp(),
-        Format.metadata(),
+        EliminateCircularRefs(),
+        Format.metadata({ key: "details" }),
+        FlattenLogMetadata(),
         Format.json({ space: 2 })
       ),
     })

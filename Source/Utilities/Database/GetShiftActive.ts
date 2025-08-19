@@ -1,4 +1,4 @@
-import { ButtonInteraction } from "discord.js";
+import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { Falsey } from "utility-types";
 import ShiftModel from "@Models/Shift.js";
@@ -32,13 +32,24 @@ export default async function GetShiftActive<UOType extends boolean | undefined 
   /** The types of duty shifts that will be retrieved; e.g. `"Default"`, `["Default", "Night Shift"]` */
   ShiftType?: null | string | string[];
   /** The received discord.js guild interaction */
-  Interaction:
-    | SlashCommandInteraction<"cached">
-    | ButtonInteraction<"cached">
-    | { user: { id: string }; guildId: string };
+  Interaction: { user: { id: string }; guildId: string };
 }): Promise<
   UOType extends Falsey ? Shifts.HydratedShiftDocument[] : Shifts.HydratedShiftDocument | null
 > {
+  if (UserOnly && MongoDBCache.StreamChangeConnected.ActiveShifts) {
+    const ActiveShiftId = MongoDBCache.ActiveShifts.findKey(
+      (Shift) =>
+        Shift.guild === Interaction.guildId &&
+        Shift.user === Interaction.user.id &&
+        (ShiftType == null ||
+          (Array.isArray(ShiftType) ? ShiftType.includes(Shift.type) : Shift.type === ShiftType))
+    );
+
+    return ActiveShiftId
+      ? (MongoDBCache.ActiveShifts.getHydrated(ActiveShiftId) ?? (null as any))
+      : (null as any);
+  }
+
   const ActiveShifts = await ShiftModel.find({
     guild: Interaction.guildId,
     user: UserOnly ? Interaction.user.id : { $exists: true },

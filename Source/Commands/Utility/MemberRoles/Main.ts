@@ -4,6 +4,7 @@ import {
   PermissionFlagsBits,
   InteractionContextType,
   AutocompleteInteraction,
+  ApplicationIntegrationType,
   ApplicationCommandOptionChoiceData,
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
@@ -54,9 +55,15 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
 // Command structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
+  callback: Callback,
+  autocomplete: Autocomplete,
+
   options: {
-    cooldown: { load: 10, backup: 10 },
-    bot_perms: { load: [PermissionFlagsBits.ManageRoles] },
+    app_perms: { load: [PermissionFlagsBits.ManageRoles] },
+    cooldown: {
+      $all_other: 8,
+      load: { $user: { max_executions: 5, timeframe: 5 * 60, cooldown: 10 } },
+    },
     user_perms: {
       $all_other: { management: true },
       load: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageRoles],
@@ -66,10 +73,8 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
   data: new SlashCommandBuilder()
     .setName("member-roles")
     .setDescription("Utility commands for managing member roles.")
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild),
-
-  callback: Callback,
-  autocomplete: Autocomplete,
 };
 
 for (const Subcmd of Subcommands) {

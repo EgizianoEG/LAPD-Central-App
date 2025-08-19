@@ -4,14 +4,23 @@ import FileSys from "node:fs";
 import Process from "node:process";
 import Linkify from "linkifyjs";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
-import { GetDirName } from "@Utilities/Other/Paths.js";
+
+import { GuildAutomodRulesCache } from "@Utilities/Helpers/Cache.js";
+import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import {
   Guild,
   Collection,
   AutoModerationRule,
+  PermissionFlagsBits,
   AutoModerationActionType,
   AutoModerationRuleEventType,
+  AutoModerationRuleTriggerType,
 } from "discord.js";
+
+import {
+  IsValidChannelOrMessageLink,
+  IsValidDiscordAttachmentLink,
+} from "@Utilities/Helpers/Validators.js";
 
 // ---------------------------------------------------------------------------------------
 // Definitions:
@@ -27,9 +36,17 @@ const CLibPath = Path.join(
   `cl_rust_rr.${CLibExtension}`
 );
 
-let FFIFuncs: null | Record<string, any> = null;
+let FFIFuncs: null | {
+  rust_regex_replace: RustRegexReplaceFun;
+  rust_regex_replace_free: RustRegexRepFreeFun;
+} = null;
+
 type ReplacementType = "Word" | "Character";
-type RustRegexReplaceFun = (params: RustRegexReplaceParams) => string;
+type FilterUserInputsReturnT<T> = T extends readonly string[] ? string[] : string;
+type RustRegexRepFreeFun = (params: [FFI.JsExternal]) => void;
+type RustRegexReplaceFun = (
+  params: RustRegexReplaceParams
+) => FFI.ResultWithErrno<FFI.JsExternal, true>;
 
 export interface FilterUserInputOptions {
   /**
@@ -81,6 +98,19 @@ export interface FilterUserInputOptions {
    * If not set, the input string will be filtered regardless of the member's roles.
    */
   input_from_roles?: string[];
+
+  /**
+   * Specifies whether to not redact links on Discord domains/subdomains that are considered safe.
+   * Safe links are those that are not considered harmful or malicious in nature such as channel, message, and attachment links.
+   * Options include:
+   * - `true`: Channel, message, and attachment links are excluded.
+   * - `false`: All Discord links are included.
+   * - `"channel/message"`: Only channel and message links are excluded.
+   * - `"attachment"`: Only attachment links are excluded.
+   * @remarks This option is only applicable when `filter_links_emails` is set to `true`.
+   * @default `"channel/message"`
+   */
+  allow_discord_safe_links?: boolean | "channel/message" | "attachment";
 }
 
 /**
@@ -144,18 +174,26 @@ try {
 
   FFIFuncs = FFI.define({
     rust_regex_replace: {
+      errno: true,
       library: "rs_reg_replace",
       funcName: "rust_regex_replace",
-      freeResultMemory: true,
-      retType: FFI.DataType.String,
+      retType: FFI.DataType.External,
       paramsType: [
-        FFI.DataType.String,
-        FFI.DataType.String,
-        FFI.DataType.String,
-        FFI.DataType.String,
-        FFI.DataType.StringArray,
-        FFI.DataType.I32,
+        FFI.DataType.String, // Input string
+        FFI.DataType.String, // Pattern
+        FFI.DataType.String, // Replacement
+        FFI.DataType.String, // Replacement type
+        FFI.DataType.StringArray, // Allowlist
+        FFI.DataType.I32, // Allowlist count
       ],
+    },
+
+    rust_regex_replace_free: {
+      errno: true,
+      library: "rs_reg_replace",
+      funcName: "rust_regex_replace_free",
+      retType: FFI.DataType.Void,
+      paramsType: [FFI.DataType.External],
     },
   });
 } catch (Err: any) {
@@ -176,18 +214,37 @@ try {
  * @param Input - The input string to redact links and emails from.
  * @param Replacement - The replacement character to use when redacting links and emails. Defaults to `*` for every single character redacted/replaced.
  * @param ReplacementType - The type of replacement to use, either "Character" or "Word". Defaults to "Character".
+ * @param ExcludeDiscordSafeLinks - A boolean or string indicating whether to exclude Discord safe links from redaction.
+ *  - If `true`, all Discord links are excluded.
+ *  - If `"channel/message"`, only channel and message links are excluded.
+ *  - If `"attachment"`, only attachment links are excluded.
+ *  - If `false`, no links are excluded.
  * @returns An array containing the modified input string (if modified, validate by comparing with `Input`).
  */
 export function RedactLinksAndEmails(
   Input: string,
   Replacement: string = "*",
-  ReplacementType: ReplacementType = "Character"
+  ReplacementType: ReplacementType = "Character",
+  ExcludeDiscordSafeLinks: boolean | "channel/message" | "attachment" = "channel/message"
 ): string {
   const Matches = Linkify.find(Input);
   const Parts: string[] = [];
   let LastIndex = 0;
 
   for (const Match of Matches) {
+    if (
+      Match.isLink &&
+      ((ExcludeDiscordSafeLinks === true &&
+        (IsValidChannelOrMessageLink(Match.href) ||
+          IsValidDiscordAttachmentLink(Match.href, false))) ||
+        (ExcludeDiscordSafeLinks === "channel/message" &&
+          IsValidChannelOrMessageLink(Match.href)) ||
+        (ExcludeDiscordSafeLinks === "attachment" &&
+          IsValidDiscordAttachmentLink(Match.href, false)))
+    ) {
+      continue;
+    }
+
     Parts.push(Input.slice(LastIndex, Match.start));
     Parts.push(ReplacementType === "Word" ? Replacement : Replacement.repeat(Match.value.length));
     LastIndex = Match.end;
@@ -237,44 +294,72 @@ export function RedactTextByOptions(Input: string, Options: RedactTextFromOption
 }
 
 /**
- * Filters user input based on provided options and guild auto-moderation rules.
- * @param Input - The user input string to be filtered.
+ * Filters user input(s) based on provided options and guild auto-moderation rules.
+ * @param Inputs - The user input string(s) to be filtered. Can be a single string or an array of strings.
  * @param Options - The options for filtering the user input.
- * @returns The filtered user input string.
+ * @returns The filtered user input. Returns a string if input was a string, or an array of strings if input was an array.
  */
-export async function FilterUserInput(Input: string, Options: FilterUserInputOptions = {}) {
-  if (/^\s*$/.test(Input)) return Input;
+export async function FilterUserInput<T extends string | readonly string[]>(
+  Inputs: T,
+  Options: FilterUserInputOptions = {}
+): Promise<T extends readonly string[] ? string[] : string> {
+  const IsArrayInput = Array.isArray(Inputs);
+  const InputArray = IsArrayInput ? (Inputs.slice() as string[]) : [Inputs as string];
+
+  // Early returns for empty or whitespace-only inputs:
+  const FilteredInputs = InputArray.filter((Input) => !!Input && !/^\s*$/.test(Input));
+  if (FilteredInputs.length === 0) {
+    return (IsArrayInput ? InputArray : InputArray[0] || "") as FilterUserInputsReturnT<T>;
+  }
+
   if (typeof Options.utif_setting_enabled !== "boolean") {
     Options.utif_setting_enabled = true;
   }
 
   if (!Options.utif_setting_enabled) {
-    return Input;
+    return (IsArrayInput ? InputArray : InputArray[0] || "") as FilterUserInputsReturnT<T>;
   }
 
-  let ModifiedInput: string = Input;
-  Options.replacement = Options.replacement ?? "*";
-  Options.replacement_type = Options.replacement_type ?? "Character";
-  Options.filter_links_emails =
+  let ModifiedInputs = InputArray.slice();
+  const Replacement = Options.replacement ?? "*";
+  const ReplacementType = Options.replacement_type ?? "Character";
+  const FilterLinksEmails =
     typeof Options.filter_links_emails === "boolean" ? Options.filter_links_emails : true;
 
-  if (Options.filter_links_emails) {
-    ModifiedInput = RedactLinksAndEmails(Input, Options.replacement);
+  if (FilterLinksEmails) {
+    ModifiedInputs = ModifiedInputs.map((Input) =>
+      RedactLinksAndEmails(Input, Replacement, ReplacementType, Options.allow_discord_safe_links)
+    );
   }
 
+  // Apply automoderation rules set in the specified guild:
   if (Options.guild_instance) {
-    const AutomoderationRules = await Options.guild_instance.autoModerationRules
-      .fetch()
-      .catch((Err: any) => {
-        AppLogger.error({
-          message: "Failed to fetch auto-moderation rules for guild '%s'",
-          label: FileLabel,
-          stack: Err.stack,
-          splat: [Options.guild_instance!.id],
-        });
+    const AppMember =
+      Options.guild_instance.members.me ?? (await Options.guild_instance.members.fetchMe());
 
-        return new Collection<string, AutoModerationRule>();
-      });
+    const CachedAutoModerationRules = GuildAutomodRulesCache.get(Options.guild_instance.id);
+    if (!CachedAutoModerationRules && !AppMember.permissions.has(PermissionFlagsBits.ManageGuild)) {
+      return (IsArrayInput ? ModifiedInputs : ModifiedInputs[0]) as FilterUserInputsReturnT<T>;
+    }
+
+    const AutomoderationRules =
+      CachedAutoModerationRules ??
+      (await Options.guild_instance.autoModerationRules
+        .fetch()
+        .then((Rules) => {
+          GuildAutomodRulesCache.set(Options.guild_instance!.id, Rules);
+          return Rules;
+        })
+        .catch((Err: any) => {
+          AppLogger.error({
+            message: "Failed to fetch auto-moderation rules for guild '%s'",
+            label: FileLabel,
+            stack: Err.stack,
+            splat: [Options.guild_instance!.id],
+          });
+
+          return new Collection<string, AutoModerationRule>();
+        }));
 
     for (const Rule of AutomoderationRules.values()) {
       if (!ShouldAutomoderationRuleBeApplied(Rule, Options)) continue;
@@ -290,41 +375,72 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
         );
 
         if (SanitizedRuleBlockedKeywords.length) {
-          try {
-            const KeywordsRegex = new RegExp(SanitizedRuleBlockedKeywords.join("|"), "gi");
-            ModifiedInput = ModifiedInput.replace(KeywordsRegex, (Match) => {
-              if (SanitizedRuleAllowedKeywords.some((Word) => new RegExp(Word).test(Match))) {
-                return Match;
-              }
+          const ProcessedInputs: string[] = [];
 
-              return Options.replacement_type === "Word"
-                ? (Options.replacement as string)
-                : (Options.replacement as string).repeat(Match.length);
-            });
-          } catch {
-            // Ignore malformed regex errors.
+          for (const Input of ModifiedInputs) {
+            try {
+              const KeywordsRegex = new RegExp(SanitizedRuleBlockedKeywords.join("|"), "gi");
+              const ProcessedInput = Input.replace(KeywordsRegex, (Match: string) => {
+                if (SanitizedRuleAllowedKeywords.some((Word) => new RegExp(Word).test(Match))) {
+                  return Match;
+                }
+                return ReplacementType === "Word" ? Replacement : Replacement.repeat(Match.length);
+              });
+
+              ProcessedInputs.push(ProcessedInput);
+            } catch {
+              // If there's an error processing this input, keep it unchanged.
+              ProcessedInputs.push(Input);
+            }
           }
+
+          ModifiedInputs = ProcessedInputs;
         }
       }
 
-      // Filter input based on set Rust regex patterns in the automoderation rule.
+      // Filter inputs based on set Rust regex patterns in the automoderation rule:
       if (!Rule.triggerMetadata.regexPatterns.length || !FFIFuncs?.rust_regex_replace) continue;
-      const ForLoopOutput = { last_error: null as any, error_count: 0 };
+      const ForLoopOutput: { last_error: null | Error; error_count: number } = {
+        last_error: null,
+        error_count: 0,
+      };
 
       for (const Pattern of Rule.triggerMetadata.regexPatterns) {
-        try {
-          ModifiedInput = (FFIFuncs?.rust_regex_replace as RustRegexReplaceFun)([
-            ModifiedInput,
-            Pattern,
-            Options.replacement,
-            Options.replacement_type,
-            Rule.triggerMetadata.allowList,
-            Rule.triggerMetadata.allowList.length,
-          ]);
-        } catch (Err: any) {
-          ForLoopOutput.error_count++;
-          ForLoopOutput.last_error = Err;
-        }
+        ModifiedInputs = ModifiedInputs.map((Input) => {
+          try {
+            const Received = FFIFuncs.rust_regex_replace([
+              Input,
+              Pattern,
+              Replacement,
+              ReplacementType as any,
+              Rule.triggerMetadata.allowList,
+              Rule.triggerMetadata.allowList.length,
+            ]);
+
+            if (Received.errnoCode === 0) {
+              const WrappedStrPointer = FFI.wrapPointer([Received.value]);
+              const OutputString = FFI.restorePointer<FFI.DataType.String>({
+                retType: [FFI.DataType.String],
+                paramsValue: WrappedStrPointer,
+              })[0];
+
+              // Make sure to free up memory allocated by the returned value:
+              FFIFuncs.rust_regex_replace_free([Received.value]);
+              return OutputString;
+            }
+
+            ForLoopOutput.error_count++;
+            ForLoopOutput.last_error = new Error(Received.errnoMessage, {
+              cause: Received.errnoCode,
+            });
+
+            return Input;
+          } catch (Err: any) {
+            ForLoopOutput.error_count++;
+            ForLoopOutput.last_error = Err;
+            return Input;
+          }
+        });
       }
 
       if (ForLoopOutput.error_count) {
@@ -332,14 +448,14 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
           message:
             "Failed to apply auto-moderation rule '%s' for guild '%s'. Errors outputted: %i; last error stack:",
           label: FileLabel,
-          stack: ForLoopOutput.last_error.stack,
+          stack: ForLoopOutput.last_error?.stack,
           splat: [Rule.id, Options.guild_instance.id, ForLoopOutput.error_count],
         });
       }
     }
   }
 
-  return ModifiedInput;
+  return (IsArrayInput ? ModifiedInputs : ModifiedInputs[0]) as FilterUserInputsReturnT<T>;
 }
 
 /**
@@ -354,7 +470,7 @@ export async function FilterUserInput(Input: string, Options: FilterUserInputOpt
  * - All actions of the rule are of type `AutoModerationActionType.SendAlertMessage` which do not block the message triggered it.
  * - The rule is exempt from the target channel (`Rule.exemptChannels.has(FilteringOpts.target_channel)`).
  * - The rule is exempt from the member who wrote/typed the input string (`Rule.exemptRoles.hasAny(...FilteringOpts.input_from_roles)`).
- * - The rule is of trigger type `3`, `4`, `5`, or `6` which are executable by the way we handle them.
+ * - The rule is of trigger type `3`, `4`, `5`, or `6` which are *not* executable by the way we handle them.
  *
  * @see https://discord.com/developers/docs/resources/auto-moderation#auto-moderation for more information about why certain rules are not applicable to be executed here.
  */
@@ -372,7 +488,12 @@ function ShouldAutomoderationRuleBeApplied(
     (FilteringOpts.target_channel && Rule.exemptChannels.has(FilteringOpts.target_channel)) ||
     (FilteringOpts.input_from_roles &&
       Rule.exemptRoles.hasAny(...FilteringOpts.input_from_roles)) ||
-    [3, 4, 5, 6].includes(Rule.triggerType)
+    [
+      AutoModerationRuleTriggerType.Spam,
+      AutoModerationRuleTriggerType.MentionSpam,
+      AutoModerationRuleTriggerType.KeywordPreset,
+      AutoModerationRuleTriggerType.MemberProfile,
+    ].includes(Rule.triggerType)
   );
 }
 

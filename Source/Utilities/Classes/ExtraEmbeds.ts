@@ -14,11 +14,8 @@ import {
 
 import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
 import { format as FormatString } from "node:util";
-import { Embeds } from "@Config/Shared.js";
+import { Colors, Thumbs } from "@Config/Shared.js";
 import AppError from "./AppError.js";
-
-const EmbedThumbs = Embeds.Thumbs;
-const EmbedColors = Embeds.Colors;
 const TemplateCheckerRegex = /%[scdjifoO%]/;
 
 class BaseEmbed extends EmbedBuilder {
@@ -59,6 +56,13 @@ class BaseEmbed extends EmbedBuilder {
       (interaction.deferred || interaction.replied)
     ) {
       ReplyMethod = "editReply";
+    } else if (
+      replyMethod === "editReply" &&
+      interaction instanceof MessageComponentInteraction &&
+      !(interaction.deferred || interaction.replied) &&
+      !interaction.message.flags.has(MessageFlags.IsComponentsV2)
+    ) {
+      ReplyMethod = "update";
     }
 
     // If the reply is about error messages, removing components of a message is necessary
@@ -101,7 +105,7 @@ class BaseEmbed extends EmbedBuilder {
           });
         }
       })
-      .catch((err: UtilityTypes.Class<Error>) => {
+      .catch((err: unknown) => {
         if (silent) return null;
         else throw err;
       });
@@ -111,7 +115,7 @@ class BaseEmbed extends EmbedBuilder {
 export class InfoEmbed extends BaseEmbed {
   constructor(data?: EmbedData) {
     super(data);
-    this.setColor(EmbedColors.Info).setThumbnail(EmbedThumbs.Info);
+    this.setColor(Colors.Info).setThumbnail(Thumbs.Info);
     if (!this.data.description) {
       this.setDescription("[Information]");
     }
@@ -134,7 +138,7 @@ export class InfoEmbed extends BaseEmbed {
 export class WarnEmbed extends BaseEmbed {
   constructor(data?: EmbedData) {
     super(data);
-    this.setColor(EmbedColors.Warning).setThumbnail(EmbedThumbs.Warning);
+    this.setColor(Colors.Warning).setThumbnail(Thumbs.Warning);
     if (!this.data.description) {
       this.setDescription("[Warning]");
     }
@@ -147,7 +151,7 @@ export class WarnEmbed extends BaseEmbed {
 export class ErrorEmbed extends BaseEmbed {
   constructor(data?: EmbedData) {
     super(data);
-    this.setColor(EmbedColors.Error).setThumbnail(EmbedThumbs.Error);
+    this.setColor(Colors.Error).setThumbnail(Thumbs.Error);
     if (!this.data.description) {
       this.setDescription("[Error Occurred]");
     }
@@ -196,7 +200,7 @@ export class ErrorEmbed extends BaseEmbed {
 export class SuccessEmbed extends BaseEmbed {
   constructor(data?: EmbedData) {
     super(data);
-    this.setColor(EmbedColors.Success).setThumbnail(EmbedThumbs.Success);
+    this.setColor(Colors.Success).setThumbnail(Thumbs.Success);
     if (!this.data.description) {
       this.setDescription("[Succeeded]");
     }
@@ -223,7 +227,7 @@ export class SuccessEmbed extends BaseEmbed {
 export class UnauthorizedEmbed extends BaseEmbed {
   constructor(data?: EmbedData) {
     super(data);
-    this.setColor(EmbedColors.Error).setThumbnail(EmbedThumbs.Unauthorized);
+    this.setColor(Colors.Error).setThumbnail(Thumbs.Unauthorized);
     if (!this.data.description) {
       this.setDescription("[Unauthorized Action]");
     }

@@ -45,6 +45,7 @@ export namespace Vehicles {
       | "Tractor"
       | "Pickup"
       | "Truck"
+      | "Hearse"
       | "Van"
       | "Bus";
   }

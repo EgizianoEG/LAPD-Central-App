@@ -35,7 +35,6 @@ function GetUpdateShiftOnDutyDuration(SD: ThisType) {
   const TotalShiftDuration = EndTimestamp - SD.start_timestamp.valueOf();
   let OnDutyDuration = TotalShiftDuration;
   OnDutyDuration -= GetUpdateShiftOnBreakDuration(SD);
-  OnDutyDuration += SD.durations.on_duty_mod;
 
   return Math.max(OnDutyDuration, 0);
 }
@@ -306,7 +305,7 @@ export async function ResetShiftTime(this: ThisType, CurrentTimestamp: number = 
         title: ErrorTitle,
         showable: true,
         message:
-          "The shift you are trying to alter may have been recently voided or deleted or does no longer exist.",
+          "The shift you are trying to alter may have been recently voided, deleted, or does no longer exist.",
       })
     );
   }
@@ -324,12 +323,14 @@ export async function SetShiftTime(
     throw new AppError({ template: "NoShiftFoundWithId", showable: true });
   }
 
-  DBShiftDoc.durations.on_duty_mod = 0;
-  DBShiftDoc.durations.on_duty_mod += Math.round(Math.max(Duration, 0));
-  DBShiftDoc.durations.on_duty_mod -=
-    (DBShiftDoc.end_timestamp?.valueOf() || CurrentTimestamp) -
-    DBShiftDoc.start_timestamp.valueOf();
+  const DesiredDuration = Math.round(Math.max(Duration, 0));
+  const EndTimestamp = DBShiftDoc.end_timestamp?.valueOf() || CurrentTimestamp;
+  const ElapsedTime = EndTimestamp - DBShiftDoc.start_timestamp.valueOf();
+  const BreakTime = DBShiftDoc.events.breaks.reduce((Total, [StartEpoch, EndEpoch]) => {
+    return Total + Math.max((EndEpoch || EndTimestamp) - StartEpoch, 0);
+  }, 0);
 
+  DBShiftDoc.durations.on_duty_mod = DesiredDuration - (ElapsedTime - BreakTime);
   return DBShiftDoc.save();
 }
 

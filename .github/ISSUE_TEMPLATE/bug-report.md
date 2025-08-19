@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 <!--- Provide a general summary of the issue in the title above. -->
-<!--- You may also proved detailed description here. -->
+<!--- You may also provide detailed description here. -->
 
 ## Expected Behavior
 <!--- Tell us what should happen. -->
@@ -20,8 +20,8 @@ assignees: ''
 <!--- Not obligatory, but suggest a fix/reason for the bug if possible. -->
 
 ## Steps to Reproduce
-<!--- Provide a link to a live example, or an unambiguous set of steps to -->
-<!--- reproduce this bug. Include content/text to reproduce, if relevant. -->
+<!--- Provide a link (if applicable) to a live example, or an unambiguous set of -->
+<!--- steps to reproduce this bug. Include content/text to reproduce, if relevant. -->
 1.
 2.
 3.

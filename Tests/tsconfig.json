@@ -11,20 +11,17 @@
     "baseUrl": "./",
     "rootDir": "../",
     "module": "ES2022",
-    "moduleResolution": "Node",
     "types": ["node", "jest"],
-    "typeRoots": [
-      "../node_modules/@types",
-      "../Source/Typings"
-      //
-    ],
+    "moduleResolution": "Node",
+    "typeRoots": ["../node_modules/@types", "../Source/Typings"],
     "paths": {
       "@Cmds/*": ["./../Source/Commands/*"],
       "@Config/*": ["./../Source/Config/*"],
       "@Models/*": ["./../Source/Models/*"],
       "@Typings/*": ["./../Source/Typings/*"],
       "@Resources/*": ["./../Source/Resources/*"],
-      "@Utilities/*": ["./../Source/Utilities/*"]
+      "@Utilities/*": ["./../Source/Utilities/*"],
+      "@DiscordApp": ["./../Source/Main.ts"]
     }
   }
 }

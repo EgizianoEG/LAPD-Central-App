@@ -1,4 +1,41 @@
-import type { ColorResolvable } from "discord.js";
+import { type ColorResolvable, Colors as DiscordColors } from "discord.js";
+import { env as Env } from "node:process";
+import AppLogger from "@Utilities/Classes/AppLogger.js";
+
+/**
+ * Environment variable override for emoji configurations.
+ *
+ * @description
+ * This allows customizing emoji IDs through an environment variable.
+ * The APP_EMOJIS environment variable must be a JSON string that:
+ * - Contains all the same keys as the default Emojis object
+ * - Can use single quotes (which will be converted to double quotes)
+ * - Is at least 1300 characters long to ensure it's kind of valid
+ *   Emojis object when parsed with all the keys existing
+ *
+ * @example
+ * ```py
+ * # Example environment variable format:
+ * APP_EMOJIS='{"Online":"<:CustomOnline:1234567890>","Offline":"<:CustomOffline:1234567890>",...}'
+ * ```
+ */
+let EnvAppEmojis: typeof SharedData.Emojis | null = null;
+try {
+  EnvAppEmojis =
+    Env.APP_EMOJIS && Env.APP_EMOJIS.length >= 1300
+      ? (JSON.parse(Env.APP_EMOJIS.replace(/['"]+/g, '"')) as typeof SharedData.Emojis)
+      : null;
+
+  if (EnvAppEmojis !== null) {
+    AppLogger.info({
+      message: "Environment emojis loaded successfully.",
+      label: "Config:Shared.ts",
+      emojis: EnvAppEmojis,
+    });
+  }
+} catch {
+  EnvAppEmojis = null;
+}
 
 const SharedData = {
   Images: {
@@ -9,44 +46,44 @@ const SharedData = {
     FooterDivider: "https://i.ibb.co/6HWMHFS/Horizontal-Divider.png",
   },
 
-  Embeds: {
-    Colors: {
-      Info: "#3498DB",
-      Success: "#28a745",
-      Warning: "#E67E22",
-      Error: "#ED4245",
-      Gold: "#FFBC45",
+  Colors: {
+    Info: "#3498DB",
+    Success: "#28a745",
+    Warning: "#E67E22",
+    Error: "#ED4245",
+    RealGold: "#FFBC45",
 
-      ShiftOn: "#1F9D4B",
-      ShiftOff: "#DB2626",
-      ShiftVoid: "#4E5052",
-      ShiftBreak: "#FE8C2A",
-      ShiftNatural: "#C2D1E6",
+    ShiftOn: "#1F9D4B",
+    ShiftOff: "#DB2626",
+    ShiftVoid: "#4E5052",
+    ShiftBreak: "#FE8C2A",
+    ShiftNatural: "#C2D1E6",
 
-      // Cancelled color is only used in logging messages; leave requests uses LOARequestDenied when cancelled.
-      LOARequestCancelled: "#C2D1E6",
-      LOARequestEnded: "#CA2222",
-      LOARequestDenied: "#CA2222",
-      LOARequestPending: "#F2A265",
-      LOARequestApproved: "#227F46",
-    },
+    // Cancelled color is only used in logging messages; leave requests uses LOARequestDenied when cancelled.
+    LOARequestCancelled: "#C2D1E6",
+    LOARequestEnded: "#CA2222",
+    LOARequestDenied: "#CA2222",
+    LOARequestPending: "#F2A265",
+    LOARequestApproved: "#227F46",
 
-    Thumbs: {
-      Info: "https://i.ibb.co/Fztk9dQ/Info-Icon-48.png",
-      Warning: "https://i.ibb.co/D9ffPMx/Warning-Icon-48.png",
-      Error: "https://i.ibb.co/tqk15t2/Error-Icon-48.png",
-      Success: "https://i.ibb.co/TmYLkf4/Checkmark-Icon-48.png",
-      Unauthorized: "https://i.ibb.co/DYM3Wcq/Blocked-Icon-48.png",
+    ...DiscordColors,
+  },
 
-      AvatarMale: "https://i.ibb.co/m0fyKh1/Male-Avatar-Placeholder.png",
-      AvatarFemale: "https://i.ibb.co/Lr37RGx/Female-Avatar-Placeholder.png",
+  Thumbs: {
+    Info: "https://i.ibb.co/Fztk9dQ/Info-Icon-48.png",
+    Warning: "https://i.ibb.co/D9ffPMx/Warning-Icon-48.png",
+    Error: "https://i.ibb.co/tqk15t2/Error-Icon-48.png",
+    Success: "https://i.ibb.co/TmYLkf4/Checkmark-Icon-48.png",
+    Unauthorized: "https://i.ibb.co/DYM3Wcq/Blocked-Icon-48.png",
 
-      RobloxAvatarMale: "https://i.ibb.co/LzrzMwr2/Roblox-Thumb-Male-Unknown.png",
-      RobloxAvatarFemale: "https://i.ibb.co/pB1wLmhY/Roblox-Thumb-Female-Unknown.png",
+    AvatarMale: "https://i.ibb.co/m0fyKh1/Male-Avatar-Placeholder.png",
+    AvatarFemale: "https://i.ibb.co/Lr37RGx/Female-Avatar-Placeholder.png",
 
-      UnknownImage: "https://placehold.co/254x254/F7F8F9/202428/png?text=%3F",
-      Transparent: "https://i.ibb.co/qFtywJK/Transparent.png",
-    },
+    RobloxAvatarMale: "https://i.ibb.co/LzrzMwr2/Roblox-Thumb-Male-Unknown.png",
+    RobloxAvatarFemale: "https://i.ibb.co/pB1wLmhY/Roblox-Thumb-Female-Unknown.png",
+
+    UnknownImage: "https://placehold.co/254x254/F7F8F9/202428/png?text=%3F",
+    Transparent: "https://i.ibb.co/qFtywJK/Transparent.png",
   },
 
   // Attribution & Credits;
@@ -63,7 +100,6 @@ const SharedData = {
     Fingerprint: "<:Fingerprint:1363577813063565604>",
     StatusChange: "<:Status:1363577818226626902>",
 
-    Warning: "<:Warn:1186171864343654513>",
     FileEdit: "<:FileEdit:1185790827809738803>",
     FileDelete: "<:FileDelete:1185785834058813480>",
     Trash: "<:Trash:1185785496757088286>",
@@ -71,11 +107,13 @@ const SharedData = {
     LoadingBlue: "<a:DualRingBlue:1294539916759400448>",
     LoadingGold: "<a:DualRingGold:1294539933754855425>",
 
+    GearColored: "<:Gear:1368202985372516554>",
     MediaStop: "<:MediaStop:1220887197398470780>",
     WhitePlus: "<:WhitePlus:1270733376533434471>",
     WhiteCheck: "<:WhiteCheck:1272950397044133999>",
     WhiteCross: "<:Crossed:1271079415027073114>",
     WhiteBack: "<:TurnBack:1277740862821896272>",
+    WhiteInfo: "<:WhiteInfo:1376235794586534029>",
     StopWatch: "<:Time:1185414712670826557>",
     LosAngeles: "<:LosAngeles:1185406541709463652>",
     HamburgerList: "<:Menu:1185793738212114484>",
@@ -183,15 +221,25 @@ const SharedData = {
   },
 };
 
-type OrgTypings = Omit<typeof SharedData, "Embeds">;
-interface SharedConfig extends OrgTypings {
-  Embeds: Omit<typeof SharedData.Embeds, "Colors"> & {
-    Colors: Record<keyof typeof SharedData.Embeds.Colors, ColorResolvable>;
-  };
+type ColorsType = Record<keyof typeof SharedData.Colors, ColorResolvable>;
+interface SharedConfig extends Omit<typeof SharedData, "Colors"> {
+  Colors: ColorsType;
 }
 
+/**
+ * Apply environment emoji configuration if available.
+ *
+ * @description
+ * This overrides the default emoji configuration with values from the environment.
+ * The override mechanism exists because:
+ * 1. Discord emoji IDs are server[mutual]-specific
+ * 2. Different deployment environments may require different emoji sets
+ * 3. It allows customization without code changes
+ */
+SharedData.Emojis = EnvAppEmojis ?? SharedData.Emojis;
 export const Icons = SharedData.Icons;
 export const Emojis = SharedData.Emojis;
 export const Images = SharedData.Images;
-export const Embeds = SharedData.Embeds as SharedConfig["Embeds"];
+export const Thumbs = SharedData.Thumbs;
+export const Colors = SharedData.Colors as ColorsType;
 export default SharedData as SharedConfig;

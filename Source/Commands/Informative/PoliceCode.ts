@@ -1,5 +1,7 @@
 import {
+  ApplicationIntegrationType,
   AutocompleteInteraction,
+  InteractionContextType,
   SlashCommandBuilder,
   EmbedBuilder,
   MessageFlags,
@@ -8,12 +10,13 @@ import {
 import { TenCodes, ElevenCodes, LiteralCodes } from "@Resources/RadioCodes.js";
 import { PoliceCodeToWords, TitleCase } from "@Utilities/Strings/Converters.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Embeds } from "@Config/Shared.js";
+import { Colors } from "@Config/Shared.js";
 import AutocompleteRadioCode from "@Utilities/Autocompletion/RadioCode.js";
 const AllCodes = [...TenCodes, ...ElevenCodes, ...LiteralCodes];
 // ---------------------------------------------------------------------------------------
 
 async function Callback(Interaction: SlashCommandInteraction) {
+  let IsPrivate = Interaction.options.getBoolean("private", false);
   const CodeTyped = Interaction.options.getString("code", true);
   const CodeFound = AllCodes.find(
     (CodeObj) => CodeObj.code.toLowerCase() === CodeTyped.match(/(.+) \(.+\)/)?.[1].toLowerCase()
@@ -23,10 +26,11 @@ async function Callback(Interaction: SlashCommandInteraction) {
     return new ErrorEmbed().useErrTemplate("UnknownRadioCode").replyToInteract(Interaction, true);
   }
 
+  IsPrivate = typeof IsPrivate === "boolean" ? IsPrivate : true;
   const Title = PoliceCodeToWords(CodeFound.code);
   const ResponseEmbed = new EmbedBuilder()
     .setDescription(CodeFound.description)
-    .setColor(Embeds.Colors.Info)
+    .setColor(Colors.Info)
     .setTitle(Title);
 
   if (CodeFound.title) {
@@ -91,7 +95,7 @@ async function Callback(Interaction: SlashCommandInteraction) {
 
   return Interaction.reply({
     embeds: [ResponseEmbed],
-    flags: MessageFlags.Ephemeral,
+    flags: IsPrivate === true ? MessageFlags.Ephemeral : undefined,
   });
 }
 
@@ -109,14 +113,28 @@ const CommandObject: SlashCommandObject<any> = {
   autocomplete: Autocomplete,
   data: new SlashCommandBuilder()
     .setName("police-code")
-    .setDescription("Search for information regarding a radio code.")
+    .setDescription("Look up detailed information about a police radio code.")
     .addStringOption((Option) =>
       Option.setName("code")
-        .setDescription("The radio code to get information about.")
+        .setDescription("Enter the police radio code you want to look up.")
         .setMinLength(4)
         .setMaxLength(45)
         .setRequired(true)
         .setAutocomplete(true)
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("private")
+        .setDescription("Show the response only to you. Defaults to true.")
+        .setRequired(false)
+    )
+    .setIntegrationTypes(
+      ApplicationIntegrationType.GuildInstall,
+      ApplicationIntegrationType.UserInstall
+    )
+    .setContexts(
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel
     ),
 };
 

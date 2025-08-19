@@ -1,9 +1,20 @@
 import type { IncidentTypes, IncidentStatusesFlattened } from "@Resources/IncidentConstants.ts";
 import type { Types, HydratedDocument, Model } from "mongoose";
-import type { EyeColors, HairColors } from "@Resources/ERLCPDColors.ts";
+import type { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.ts";
+import type { DASignatureFormats } from "@Config/Constants.ts";
 import type { ShiftFlags } from "@Models/Shift.ts";
 import type { Overwrite } from "utility-types";
-import type ERLCAgeGroups from "@Resources/ERLCAgeGroups.ts";
+import type {
+  NTATypes,
+  CitationTypes,
+  TravelDirections,
+  WeatherConditions,
+  TrafficConditions,
+  RoadSurfaceConditions,
+} from "@Models/Citation.ts";
+
+import type UserActivityNoticeModel from "@Models/UserActivityNotice.ts";
+import type ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.ts";
 import type AppError from "@Utilities/Classes/AppError.ts";
 
 export namespace Guilds {
@@ -28,15 +39,26 @@ export namespace Guilds {
   }
 
   interface GuildLogs {
-    arrests: GuildArrests.ArrestRecord[];
-    citations: GuildCitations.AnyCitationData[];
-    incidents: [];
+    arrests: {
+      /** Booking numbers that have been used in the guild during the current year. */
+      used_bookings: string[];
+      logged: string[];
+    };
+    citations: {
+      /** Citation numbers that have been used in the guild during the current year. */
+      used_nums: string[];
+      logged: string[];
+    };
+    incidents: {
+      /** The most recent incident number for the guild. Used to prevent duplicate incident number creation. */
+      most_recent_num: string;
+      logged: string[];
+    };
   }
 
   interface GuildSettings {
     /**
      * Whether or not staff members are required to link their Roblox account in order to execute specific set of commands.
-     * By default, this is `true` and linking account is always required to use certain commands.
      */
     require_authorization: boolean;
 
@@ -97,6 +119,12 @@ export namespace Guilds {
        */
       enabled: boolean;
 
+      /**
+       * The signature format to use for duty activity logs as a footer or such.
+       * @default DASignatureFormat.DiscordNickname
+       */
+      signature_format: DASignatureFormat;
+
       /* 
         The interval in milliseconds that the application will delete logged records of citations, arrests, and incidents
         if the current date minus the creation/reporting timestamp/date is greater than this value
@@ -104,6 +132,25 @@ export namespace Guilds {
         Value can be one of the following: `0 days` when disabled, `3 days`, `7 days`, `14 days`, and `30 days`
       */
       log_deletion_interval: number;
+
+      /**
+       * Certain settings only for incident reports.
+       */
+      incident_reports: {
+        /**
+         * Automatically open and close threads on incident report messages on creation and on closed statuses if applicable.
+         * Only works in non-forum channels.
+         */
+        auto_thread_management: boolean;
+      };
+
+      /**
+       * Certain settings only for arrest reports.
+       */
+      arrest_reports: {
+        /** Should the "to protect and to server" header image be used in the output arrest report embeds? */
+        show_header_img: boolean;
+      };
 
       /**
        * The logging channels for citations, arrests, and incidents.
@@ -147,6 +194,17 @@ export namespace Guilds {
        * This could be left `null` if no role should be assigned.
        */
       leave_role?: string | null;
+
+      /**
+       * The prefix added to nicknames of members with an active LOA.
+       * Set to `null` or `undefined` for no prefix.
+       */
+      active_prefix?: string | null;
+
+      /**
+       * The role(s) that will be mentioned and notified when a new LOA request is posted.
+       */
+      alert_roles: string[];
     };
 
     reduced_activity: {
@@ -174,6 +232,17 @@ export namespace Guilds {
        * This role will be removed once the reduced activity period ends. Can be left `null` if no role is needed.
        */
       ra_role?: string | null;
+
+      /**
+       * The prefix added to nicknames of members with an active RA.
+       * Set to `null` or `undefined` for no prefix.
+       */
+      active_prefix?: string | null;
+
+      /**
+       * The role(s) that will be mentioned and notified when a new RA request is posted.
+       */
+      alert_roles: string[];
     };
   }
 
@@ -186,6 +255,13 @@ export namespace Guilds {
 
     /** The guild's configuration. */
     settings: GuildSettings;
+
+    /**
+     * The date when the last logs cleanup (scheduled deletion) was performed.
+     * This is useful for tracking when the last cleanup occurred and can be used to skip
+     * unnecessary cleanups if the date is still within the configured interval.
+     */
+    last_logs_cleanup: Date | null;
 
     /** The date and time when the guild (the guild document) and it's associated data should be deleted from the database. */
     deletion_scheduled_on: Date | null;
@@ -229,9 +305,12 @@ export namespace Shifts {
 
     /**
      * On-duty shift duration in milliseconds.
-     * This property is automatically calculated and cannot be set or modified.
+     * This property is automatically calculated and cannot be set or modified
+     * unless done explicitly using atomic database operations.
      * Attempting to modify it will not do any change unless setting it to `-1`
      * which will set it to the automatically calculated value.
+     *
+     * @remarks This property also takes into account the `on_duty_mod`.
      */
     on_duty: number;
 
@@ -253,7 +332,20 @@ export namespace Shifts {
   }
 
   interface ShiftDocumentOverrides {
-    durations: Types.Subdocument<undefined> & ShiftDurations;
+    durations: Types.Subdocument<undefined> &
+      ShiftDurations & {
+        /**
+         * @virtual - Not stored in the database.
+         * The on-duty time of this shift in a human-readable format.
+         */
+        on_duty_time: string;
+
+        /**
+         * @virtual - Not stored in the database.
+         * The on-break time of this shift in a human-readable format.
+         */
+        on_break_time: string;
+      };
 
     /**
      * Returns `true` if there is an active break; otherwise, `false`.
@@ -274,7 +366,7 @@ export namespace Shifts {
 
     /**
      * Fetches the latest saved version (last state) of the shift document.
-     * @param old_fallback - Whether or not to return the old shift document if fetching the latest fails.
+     * @param old_fallback - Whether or not to return the old shift document if fetching the latest fails. Defaults to `false`.
      * @param silent - Whether or not to *not* throw an error if fetching the latest state fails. Defaults to `true`.
      * @returns The saved shift or `null` if it wasn't found on the database and `old_fallback` is `false`.
      */
@@ -503,6 +595,7 @@ export namespace UserActivityNotice {
   type NoticeType = "LeaveOfAbsence" | "ReducedActivity";
   type NoticeStatus = "Pending" | "Approved" | "Denied" | "Cancelled";
   type NoticeModel = Model<UserActivityNoticeDocument, {}, DocumentMethods, DocumentVirtuals>;
+  type ANHDwInst = InstanceType<typeof UserActivityNoticeModel>;
   type ActivityNoticeHydratedDocument = HydratedDocument<
     UserActivityNotice.UserActivityNoticeDocument,
     DocumentVirtuals & DocumentMethods
@@ -525,11 +618,7 @@ export namespace UserActivityNotice {
      */
     getUpToDate<OldFallback extends boolean = false>(
       old_fallback: OldFallback = false
-    ): Promise<
-      OldFallback extends true
-        ? ActivityNoticeHydratedDocument
-        : ActivityNoticeHydratedDocument | null
-    >;
+    ): Promise<OldFallback extends true ? ANHDwInst : ANHDwInst | null>;
   }
 
   interface DocumentVirtuals {
@@ -759,10 +848,20 @@ export namespace UserActivityNotice {
 }
 
 export namespace GuildCitations {
-  type CitationType = "Warning" | "Fine";
+  type NTAType = `${NTATypes}`;
+  type DayOfWeek = `${DayOfWeeks}`;
+  type CitationType = `${CitationTypes}`;
+  type WeatherCondition = `${WeatherConditions}`;
+  type TrafficCondition = `${TrafficConditions}`;
+  type TravelDirection = `${TravelDirections}`;
+  type RoadSurfaceCondition = `${RoadSurfaceConditions}`;
+
   interface WarningCitationData {
     /** Citation number. */
     num: number;
+
+    /** The type of the Notice to Appear (NTA) issued. Defaults to "Traffic". */
+    nta_type: NTAType;
 
     /** The Discord snowflake Id of the guild where this citation was issued. */
     guild: string;
@@ -796,6 +895,8 @@ export namespace GuildCitations {
      * Where it contains the violation vehicle/penal code and it's description.
      */
     violations: (string | Violation)[];
+    case_details: CaseDetails;
+    comments: Comments;
     violator: ViolatorInfo;
     vehicle: VehicleInfo;
   }
@@ -806,12 +907,15 @@ export namespace GuildCitations {
   }
 
   interface AnyCitationData extends WarningCitationData, PartialAllowNull<FineCitationData> {
-    type: GuildCitations.CitationType;
+    /** The type of citation. Either a `Warning` or a `Fine`. Automatically set based on the presence of `fine_amount`. */
+    cit_type: GuildCitations.CitationType;
   }
 
   interface InitialProvidedCmdDetails extends PartialAllowNull<AnyCitationData> {
     violator: Omit<ViolatorInfo, "address" | "id"> & Partial<ViolatorInfo>;
-    vehicle: Omit<VehicleInfo, "body_style" | "make" | "year"> & Partial<VehicleInfo>;
+    vehicle: Omit<VehicleInfo, "body_style" | "make" | "year"> & VehicleInfo;
+    comments?: Comments | null;
+    case_details?: CaseDetails | null;
   }
 
   interface CitingOfficerInfo {
@@ -823,10 +927,43 @@ export namespace GuildCitations {
     name: string;
     /** Roblox display name */
     display_name: string;
+    /** @since 1.5.0 */
+    signature: string;
   }
 
+  /** The comments provided by the officer who issued the citation. */
+  interface Comments {
+    /** The weather condition at the time of violation. */
+    weather?: WeatherCondition | null;
+
+    /** The road traffic condition at the time of violation. */
+    traffic?: TrafficCondition | null;
+
+    /** The road surface condition at the time of violation. */
+    road_surface?: RoadSurfaceCondition | null;
+
+    /** The direction of travel of the violator at the time of violation. */
+    travel_dir?: TravelDirection | null;
+
+    /** Whether the violation or stop was connected to a traffic accident. */
+    accident: boolean;
+  }
+
+  /** The details of the case/incident. */
+  interface CaseDetails {
+    /** The approximate speed of the vehicle/boat/aircraft. */
+    speed_approx?: number | null;
+
+    /** The speed limit of the road/intersection/area. */
+    posted_speed?: number | null;
+
+    /** The applicable legal speed limit for that vehicle at the location of the violation. */
+    veh_speed_limit?: number | null;
+  }
+
+  /** The details of a single violation. */
   interface Violation {
-    /** Whether the violation is correctable or not */
+    /** Whether the violation is *correctable* or *fixable* by the driver (e.g., equipment problems like a broken taillight, expired registration). */
     correctable?: boolean;
     /** The violation text itself */
     violation: string;
@@ -835,42 +972,42 @@ export namespace GuildCitations {
   }
 
   interface ViolatorInfo {
-    /** Roblox user Id */
+    /** Roblox user Id. */
     id: number;
 
     /** The name of the violator. Recommended to use the format: `[RobloxDisplayName] (@[RobloxUsername])` */
     name: string;
 
-    /** The age group of the violator */
+    /** The age group of the violator. */
     age: (typeof ERLCAgeGroups)[number]["name"];
 
     gender: "Male" | "Female" | "M" | "F";
 
-    /** Hair color */
+    /** Hair color .*/
     hair_color: (typeof HairColors)[number]["abbreviation"];
 
-    /** Eye color */
+    /** Eye color. */
     eye_color: (typeof EyeColors)[number]["abbreviation"];
 
-    /** Height in the format of feet and inches (5'7") */
+    /** Height in the format of feet and inches (5'7"). */
     height: `${number}'${number}` | string;
 
-    /** Weight in pounds (lbs) */
+    /** Weight in pounds (lbs). */
     weight: number;
 
-    /** Residence city */
+    /** Residence city. */
     city: string;
 
-    /** Residence address */
+    /** Residence address. */
     address: string;
 
-    /** The driving license number itself; not the *vehicle* license/plate number */
+    /** The driving license number itself; not the *vehicle* license/plate number. */
     lic_num: string;
 
-    /** The driving license class */
+    /** The driving license class. */
     lic_class: string;
 
-    /** Whether the driving license is commercial or not */
+    /** Whether the driving license is commercial or not. */
     lic_is_comm: boolean;
   }
 
@@ -881,6 +1018,21 @@ export namespace GuildCitations {
     make: string;
     model: string;
     color: string;
+
+    /** Whether the vehicle is classified as a commercial vehicle under the California Vehicle Code § 15210(b). */
+    commercial?: boolean;
+
+    /** Whether the vehicle is transporting hazardous materials or not (Veh. Code, § 353). */
+    hazardous_mat?: boolean;
+
+    /** Whether the vehicle is a vehicle (yes...) */
+    is_vehicle: boolean;
+
+    /** Whether the vehicle is an aircraft or not. */
+    is_aircraft: boolean;
+
+    /** Whether the vehicle is a boat or not. */
+    is_boat: boolean;
   }
 }
 
@@ -895,6 +1047,18 @@ export namespace GuildArrests {
     /** The booking number. */
     booking_num: number;
 
+    /** The location where the arrest took place. */
+    arrest_loc: string | null;
+
+    /** Any evidence collected during the arrest. */
+    evidence: string | null;
+
+    /** The detail or division which made the arrest. For example, GED (Gang Enforcement Detail). */
+    detail_arresting: string | null;
+
+    /** The arrest report message link as [ChannelId]:[MessageId] */
+    report_msg?: string | null;
+
     /** The date when the arrest report was made. */
     made_on: Date;
 
@@ -904,9 +1068,14 @@ export namespace GuildArrests {
     /** Detailed information about the arrestee. */
     arrestee: ArresteeInfo;
 
-    /** An array of arresting officers' discord ids who assisted with the arrest. */
+    /** An array of arresting officers' discord ids or Roblox usernames who assisted with the arrest. */
     assisting_officers: string[];
-    arresting_officer: ArrestingOfficerInfo;
+
+    /** Detailed information about the arresting officer. */
+    arresting_officer: OfficerInfo;
+
+    /** A detailed information about the reporting officer (who submitted the arrest log/report), if any. */
+    reporting_officer?: OfficerInfo;
   }
 
   interface ArresteeInfo {
@@ -934,9 +1103,18 @@ export namespace GuildArrests {
     charges: string[];
   }
 
-  interface ArrestingOfficerInfo {
+  interface OfficerInfo {
     roblox_id: number;
     discord_id: string;
+
+    /**
+     * @since 1.5.0
+     *
+     * The fictional signature of the officer.
+     */
+    signature: string;
+
+    /** The formatted Roblox name of the officer. */
     formatted_name: string;
   }
 }
@@ -960,6 +1138,11 @@ export namespace GuildIncidents {
 
     /** The Discord username. */
     discord_username: string;
+
+    /**
+     * @since 1.5.0
+     */
+    signature: string;
   }
 
   interface IncidentRecord {
@@ -1003,7 +1186,157 @@ export namespace GuildIncidents {
     attachments: string[];
 
     last_updated: Date;
-    last_updated_by?: Pick<OfficerInvolved, "discord_id" | "discord_username"> | null;
+    last_updated_by?: Pick<OfficerInvolved, "discord_id" | "discord_username" | "signature"> | null;
+  }
+}
+
+export namespace RolePersist {
+  type HydratedRolePersistDocument = HydratedDocument<RolePersistDocument, RolePersistVirtuals>;
+  interface RolePersistModel extends Model<RolePersistDocument, {}, {}, RolePersistVirtuals> {}
+
+  interface SavedByInfo {
+    user_id: string;
+    username: string;
+  }
+
+  interface SavedRole {
+    role_id: string;
+    role_name: string;
+  }
+
+  interface RolePersistVirtuals {
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a Discord user mention for the user who has this record; *not the user who created it*.
+     */
+    user_mention: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted timestamp for when the record was saved.
+     */
+    saved_on_timestamp: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a human-readable formatted date for when the record was saved.
+     */
+    saved_on_formatted: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted timestamp for the expiration date, or null if no expiry is set.
+     */
+    expiration_timestamp: string | null;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns an array of Discord role mentions for all saved roles.
+     */
+    roles_mentioned: string[];
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns formatted text for autocompletion display showing save details and expiration.
+     */
+    autocomplete_text: string;
+  }
+
+  interface RolePersistDocument {
+    /** The MongoDB ObjectId of the role persist record. */
+    _id: Types.ObjectId;
+
+    /** The Discord guild snowflake Id where the roles were saved. */
+    guild: string;
+
+    /** The Discord user snowflake Id whose roles were persisted. */
+    user: string;
+
+    /** Information about who saved the roles. */
+    saved_by: SavedByInfo;
+
+    /** The date when the roles were saved. */
+    saved_on: Date;
+
+    /** Optional reason for saving the roles. */
+    reason: string | null;
+
+    /** Optional expiration date for the saved roles. */
+    expiry: Date | null;
+
+    /** Array of saved roles (1-3 roles maximum). */
+    roles: SavedRole[];
+  }
+}
+
+export namespace MemberSavedRoles {
+  type HydratedMemberRolesDocument = HydratedDocument<MemberRolesDocument, MemberRolesVirtuals>;
+  interface MemberRolesModel extends Model<MemberRolesDocument, {}, {}, MemberRolesVirtuals> {}
+
+  interface SavedRole {
+    role_id: string;
+    role_name: string;
+  }
+
+  interface MemberRolesVirtuals {
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a Discord user mention for the member.
+     */
+    user_mention: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted timestamp for when the roles were saved.
+     */
+    saved_on_timestamp: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a human-readable formatted date for when the roles were saved.
+     */
+    saved_on_formatted: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns an array of Discord role mentions for all saved roles.
+     */
+    roles_mentioned: string[];
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns formatted text for autocompletion display showing member info and save date.
+     */
+    autocomplete_text: string;
+  }
+
+  interface MemberRolesDocument {
+    /** The MongoDB ObjectId of the member roles record. */
+    _id: Types.ObjectId;
+
+    /** The Discord guild snowflake Id where the roles were saved. */
+    guild: string;
+
+    /** The Discord member snowflake Id whose roles were saved. */
+    member: string;
+
+    /** The username of the member at the time the roles were saved. */
+    username: string;
+
+    /** The nickname of the member at the time the roles were saved. */
+    nickname: string;
+
+    /** The Discord user snowflake Id of who saved the roles. */
+    saved_by: string;
+
+    /** The date when the roles were saved. */
+    saved_on: Date;
+
+    /** Optional reason for saving the roles. */
+    reason: string | null;
+
+    /** Array of saved roles. */
+    roles: SavedRole[];
   }
 }
 
@@ -1018,6 +1351,7 @@ export namespace AggregateResults {
   interface GetIncidentNumbers {
     _id: string;
     num: string;
+    reported_on: Date;
     autocomplete_label: string;
   }
   [];
@@ -1103,10 +1437,33 @@ export namespace AggregateResults {
   }
 
   interface ActivityReportStatistics<T extends number | string = number> {
-    /** Total on duty time compined. */
+    /** Total on duty time combined. */
     total_time: T;
+    average_time: T;
 
     /** Total shifts recorded. */
     total_shifts: number;
+  }
+
+  interface DutyAdminShiftRecordsShow {
+    _id: string;
+
+    /** Shift type */
+    type: string;
+
+    /** Start epoch in milliseconds */
+    started: number;
+
+    /** End epoch in milliseconds or `"Currently Active"` */
+    ended: number | string;
+
+    /** On-duty duration in milliseconds */
+    duration: number;
+
+    /** On-break duration in milliseconds */
+    break_duration: number;
+
+    /** Flag */
+    flag: ShiftFlags;
   }
 }

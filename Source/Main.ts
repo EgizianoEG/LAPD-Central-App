@@ -1,32 +1,42 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
-import { Client, Collection, GatewayIntentBits } from "discord.js";
+import { Client, Options, Collection, GatewayIntentBits, Status } from "discord.js";
 import { Discord as DiscordSecrets } from "@Config/Secrets.js";
-import { GetDirName } from "@Utilities/Other/Paths.js";
+import { GetDirName } from "@Utilities/Helpers/Paths.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
 import Express from "express";
-import GetFiles from "@Utilities/Other/GetFilesFrom.js";
+import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import FileSystem from "node:fs";
-import GetOSMetrics from "@Utilities/Other/GetOSMetrics.js";
+import GetOSMetrics from "@Utilities/Helpers/GetOSMetrics.js";
 import DurHumanizer from "humanize-duration";
 AppLogger.info(Chalk.grey("=========================== New Run ==========================="));
 
 // -------------------------------------------------------------------------------------------
 // Discord Application:
 // --------------------
-export const App = new Client({
+export const App: Client = new Client({
+  allowedMentions: {},
+  makeCache: Options.cacheWithLimits({
+    ...Options.DefaultMakeCacheSettings,
+    MessageManager: 80,
+  }),
+  sweepers: {
+    messages: {
+      interval: 60,
+      filter: () => (Msg) => Msg.partial || (Msg.author !== null && Msg.author.id !== App.user?.id),
+    },
+  },
   intents: [
-    //
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
   ],
 });
 
 App.commands = new Collection();
-App.cooldowns = new Collection();
 App.ctx_commands = new Collection();
 App.modalListeners = new Collection();
 App.buttonListeners = new Collection();
@@ -62,8 +72,13 @@ App.buttonListeners = new Collection();
       });
     })
     .catch((Err) => {
+      setTimeout(() => {
+        process.exit(1);
+      }, 3000);
+
       AppLogger.fatal({
-        message: "Failed to initialize and login to the Discord application.",
+        message:
+          "Failed to initialize and login to the Discord application. Terminating the current process...",
         label: "Main.ts",
         stack: Err.stack,
       });
@@ -90,7 +105,11 @@ ExpressApp.get("/metrics", (_, Res) => {
         {
           message: "OK",
           client: {
-            online: App.isReady(),
+            ready: App.isReady(),
+            websocket: {
+              ping: App.ws.ping,
+              status: Status[App.ws.status],
+            },
             uptime: DurHumanizer(App.uptime ?? 0, {
               conjunction: " and ",
               largest: 4,

@@ -1,8 +1,15 @@
 import { Guilds } from "@Typings/Utilities/Database.js";
-import { InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { SlashCommandSubcommandBuilder, EmbedBuilder, Colors, MessageFlags } from "discord.js";
+import { Colors } from "@Config/Shared.js";
+import {
+  SlashCommandSubcommandBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  ContainerBuilder,
+  MessageFlags,
+  resolveColor,
+} from "discord.js";
 
-import HandleEmbedPagination from "@Utilities/Other/HandleEmbedPagination.js";
+import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import GetShiftTypes from "@Utilities/Database/GetShiftTypes.js";
 import Dedent from "dedent";
 import Util from "node:util";
@@ -14,11 +21,12 @@ const DisplayedShiftTypesPerPage = 2;
 // Functions:
 // ----------
 /**
- * Returns a formatted string from a given shift type data
- * @param ShiftTypeData - An array of shift types to format
- * @returns A formatted string to be set as an embed description
+ * Formats an array of shift type data into a list of descriptive strings.
+ * @param ShiftTypeData - An array of shift type objects containing details about each shift type.
+ * @returns An array of formatted strings, each describing a shift type with its name, default status,
+ *          access roles, and other relevant details.
  */
-function FormatEmbedDescription(ShiftTypeData: Guilds.ShiftType[]): string {
+function FormatDescriptions(ShiftTypeData: Guilds.ShiftType[]): string[] {
   const Formatted: string[] = [];
 
   for (const ShiftType of ShiftTypeData) {
@@ -30,7 +38,7 @@ function FormatEmbedDescription(ShiftTypeData: Guilds.ShiftType[]): string {
     `);
 
     const ShiftTypeDesc = Util.format(
-      Template + "\n\n",
+      Template,
       ShiftType.name,
       ShiftType.is_default ? "Yes" : "No",
       ShiftType.access_roles.length,
@@ -42,21 +50,21 @@ function FormatEmbedDescription(ShiftTypeData: Guilds.ShiftType[]): string {
     Formatted.push(ShiftTypeDesc);
   }
 
-  return Formatted.join("");
+  return Formatted;
 }
 
 /**
- * Returns an array of embeds representing pages of shift types
- * @param ShiftTypesData Raw shift types data containing names and permissible roles
- * @param ShiftTypesPerPage How many shift types to include in a single embed (page)?
- * @returns An array of embeds representing pages of shift types
+ * Builds paginated containers for displaying duty shift types.
+ * @param ShiftTypesData - An array of shift type objects to display.
+ * @param ShiftTypesPerPage - The maximum number of shift types to display per page.
+ * @returns An array of `ContainerBuilder` instances, each representing a page of shift types.
  */
-function CreateEmbedPages(
+function BuildSTVPages(
   ShiftTypesData: Guilds.ShiftType[],
   ShiftTypesPerPage: number
-): EmbedBuilder[] {
+): ContainerBuilder[] {
   const SegmentedData: Guilds.ShiftType[][] = [];
-  const Pages: EmbedBuilder[] = [];
+  const Pages: ContainerBuilder[] = [];
 
   if (ShiftTypesData.length) {
     for (let Index = 0; Index < ShiftTypesData.length; Index += ShiftTypesPerPage) {
@@ -65,19 +73,36 @@ function CreateEmbedPages(
     }
 
     for (const Segment of SegmentedData) {
-      const EmbedPage = new EmbedBuilder()
-        .setColor(Colors.DarkBlue)
-        .setTitle("Created Duty Shift Types")
-        .setDescription(FormatEmbedDescription(Segment));
+      const FormattedDescriptions = FormatDescriptions(Segment);
+      const PageContainer = new ContainerBuilder()
+        .setAccentColor(resolveColor(Colors.DarkBlue))
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent("### Created Duty Shift Types")
+        )
+        .addSeparatorComponents(new SeparatorBuilder().setDivider().setSpacing(2));
 
-      Pages.push(EmbedPage);
+      FormattedDescriptions.forEach((Description, Index) => {
+        PageContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(Description));
+        if (Index !== FormattedDescriptions.length - 1) {
+          PageContainer.addSeparatorComponents(new SeparatorBuilder().setDivider());
+        }
+      });
+
+      Pages.push(PageContainer);
     }
   } else {
     Pages.push(
-      new InfoEmbed()
-        .setTitle("No Custom Types Found")
-        .setDescription(
-          "This server has no created duty shift types. There is only the default shift type available for use."
+      new ContainerBuilder()
+        .setAccentColor(resolveColor(Colors.Info))
+        .addTextDisplayComponents(
+          new TextDisplayBuilder({ content: "### Created Duty Shift Types" })
+        )
+        .addSeparatorComponents(new SeparatorBuilder().setDivider())
+        .addTextDisplayComponents(
+          new TextDisplayBuilder({
+            content:
+              "No custom duty shift types exist for this server. Currently, only the app's default shift type is available for use.",
+          })
         )
     );
   }
@@ -87,23 +112,24 @@ function CreateEmbedPages(
 
 /**
  * Handles the command execution process for displaying all available duty shift types.
- * @param _ - The Discord.js client instance (not used in this function)
- * @param Interaction - The user command interaction
- * @description
- * Handles the logic for displaying a paginated list of all available duty shift types.
- * It retrieves shift type data from the database, formats it into embed pages, and sets up a collector
- * for navigation buttons to paginate through the embed pages.
+ * @param Interaction - The user command interaction.
  */
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
-  await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const GuildShiftTypes = await GetShiftTypes(Interaction.guildId);
-  const Pages = CreateEmbedPages(GuildShiftTypes, DisplayedShiftTypesPerPage);
+  await Interaction.deferReply({
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+  });
 
-  return HandleEmbedPagination(Pages, Interaction);
+  const GuildShiftTypes = await GetShiftTypes(Interaction.guildId);
+  const Pages = BuildSTVPages(GuildShiftTypes, DisplayedShiftTypesPerPage);
+  return HandlePagePagination({
+    pages: Pages,
+    ephemeral: true,
+    interact: Interaction,
+  });
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,

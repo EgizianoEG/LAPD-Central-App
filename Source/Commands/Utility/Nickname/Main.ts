@@ -1,7 +1,9 @@
+import { secondsInDay } from "date-fns/constants";
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,
   InteractionContextType,
+  ApplicationIntegrationType,
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
@@ -13,7 +15,6 @@ const Subcommands = [
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
-
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   for (const Subcommand of Subcommands) {
     if (Subcommand.data.name === Interaction.options.getSubcommand()) {
@@ -27,23 +28,39 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
+  callback: Callback,
   options: {
-    cooldown: { search: 2.5, replace: 8 },
-    bot_perms: { replace: [PermissionFlagsBits.ManageNicknames] },
+    app_perms: { replace: [PermissionFlagsBits.ManageNicknames] },
     user_perms: { replace: [PermissionFlagsBits.Administrator], $all_other: { staff: true } },
+    cooldown: {
+      search: {
+        $user: {
+          max_executions: 20,
+          timeframe: secondsInDay,
+          cooldown: 15,
+        },
+      },
+      replace: {
+        $user: 60,
+        $guild: {
+          max_executions: 4,
+          timeframe: secondsInDay,
+          cooldown: 2 * 60,
+        },
+      },
+    },
   },
 
   data: new SlashCommandBuilder()
     .setName("nicknames")
     .setDescription("Utility commands for member nicknames.")
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild)
     .addSubcommand(Subcommands[0].data)
     .addSubcommand(Subcommands[1].data),
-
-  callback: Callback,
 };
 
 // ---------------------------------------------------------------------------------------

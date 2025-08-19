@@ -4,8 +4,9 @@
 import {
   User,
   Colors,
-  Message,
+  codeBlock,
   Collection,
+  GuildMember,
   userMention,
   ButtonStyle,
   ModalBuilder,
@@ -16,11 +17,9 @@ import {
   ActionRowBuilder,
   TextInputBuilder,
   ButtonInteraction,
-  InteractionResponse,
   UserSelectMenuBuilder,
   ModalSubmitInteraction,
   SlashCommandSubcommandBuilder,
-  codeBlock,
 } from "discord.js";
 
 import {
@@ -32,33 +31,38 @@ import {
 
 import LogArrestReport, {
   type ArresteeInfoType,
-  type ReporterInfoType,
-} from "@Utilities/Other/LogArrestReport.js";
+  type ReportInfoType,
+} from "@Utilities/Database/LogArrestReport.js";
 
 import { RandomString } from "@Utilities/Strings/Random.js";
 import { ReporterInfo } from "../Log.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import { ArraysAreEqual } from "@Utilities/Other/ArraysAreEqual.js";
-import { SplitRegexForInputs } from "./Incident.js";
+import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
+import { ListSplitRegex } from "@Resources/RegularExpressions.js";
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
-import { IsValidPersonHeight, IsValidRobloxUsername } from "@Utilities/Other/Validators.js";
+import { IsValidPersonHeight, IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 
-import HandleCollectorFiltering from "@Utilities/Other/HandleCollectorFilter.js";
-import GetBookingMugshot from "@Utilities/Other/ThumbToMugshot.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
+import GetBookingMugshot from "@Utilities/ImageRendering/ThumbToMugshot.js";
 import GetAllBookingNums from "@Utilities/Database/GetBookingNums.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
-import ERLCAgeGroups from "@Resources/ERLCAgeGroups.js";
+import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
 import Dedent from "dedent";
+import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 
 const ListFormatter = new Intl.ListFormat("en");
-export type CmdOptionsType = {
+export type CmdOptionsType<IsPrimaryOfficerNullable extends boolean = false> = {
+  PrimaryOfficer: IsPrimaryOfficerNullable extends true ? GuildMember | null : GuildMember;
+  ArrestLocation: string | null;
+  DetailArresting: string | null;
   Arrestee: string;
   AgeGroup: (typeof ERLCAgeGroups)[number]["name"];
   Gender: "Male" | "Female";
@@ -69,23 +73,34 @@ export type CmdOptionsType = {
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
-function GetAdditionalInformationModal(CmdInteract: SlashCommandInteraction<"cached">) {
+function GetAdditionalArrestDetailsModal(CmdInteract: SlashCommandInteraction<"cached">) {
   return new ModalBuilder()
     .setTitle("Arrest Report - Additional Information")
     .setCustomId(`arrest-report:${CmdInteract.user.id}:${RandomString(4)}`)
     .setComponents(
       new ActionRowBuilder<TextInputBuilder>().setComponents(
         new TextInputBuilder()
-          .setLabel("Convicted Charges")
+          .setLabel("Charges")
           .setStyle(TextInputStyle.Paragraph)
           .setCustomId("charges-text")
           .setPlaceholder("1. [Charge #1]\n2. [Charge #2]\n3. ...")
           .setMinLength(6)
           .setMaxLength(650)
+          .setRequired(true)
       ),
       new ActionRowBuilder<TextInputBuilder>().setComponents(
         new TextInputBuilder()
-          .setLabel("Arrest Notes")
+          .setLabel("Evidence")
+          .setStyle(TextInputStyle.Paragraph)
+          .setCustomId("evidence-text")
+          .setPlaceholder("A list of any evidence related to the arrest...")
+          .setMinLength(6)
+          .setMaxLength(160)
+          .setRequired(false)
+      ),
+      new ActionRowBuilder<TextInputBuilder>().setComponents(
+        new TextInputBuilder()
+          .setLabel("Arrest Notes (shown on explicit DB queries)")
           .setStyle(TextInputStyle.Short)
           .setCustomId("arrest-notes")
           .setPlaceholder("e.g., known to be in a gang.")
@@ -127,35 +142,55 @@ function GetArrestPendingSubmissionComponents() {
  * Handles the validation of the slash command inputs.
  * @param Interaction
  * @param CmdOptions
- * @returns
+ * @returns A boolean indicating whether the interaction was handled and responded to (true) or not (false).
  */
 async function HandleCmdOptsValidation(
   Interaction: SlashCommandInteraction<"cached">,
-  CmdOptions: CmdOptionsType,
+  CmdOptions: CmdOptionsType<true>,
   Reporter: ReporterInfo
-): Promise<ReturnType<ErrorEmbed["replyToInteract"]> | null> {
+): Promise<boolean> {
+  if (CmdOptions.PrimaryOfficer?.user.bot) {
+    return new ErrorEmbed()
+      .useErrTemplate("BotMemberSelected")
+      .replyToInteract(Interaction, true)
+      .then(() => true);
+  }
+
+  if (!CmdOptions.PrimaryOfficer) {
+    return new ErrorEmbed()
+      .useErrTemplate("MemberNotFound")
+      .replyToInteract(Interaction, true)
+      .then(() => true);
+  }
+
   if (!IsValidPersonHeight(CmdOptions.Height)) {
     return new ErrorEmbed()
       .useErrTemplate("MalformedPersonHeight")
-      .replyToInteract(Interaction, true);
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   }
 
   if (!IsValidRobloxUsername(CmdOptions.Arrestee)) {
     return new ErrorEmbed()
       .useErrTemplate("MalformedRobloxUsername", CmdOptions.Arrestee)
-      .replyToInteract(Interaction, true);
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   }
 
   const [ARobloxId, , WasUserFound] = await GetIdByUsername(CmdOptions.Arrestee, true);
   if (!WasUserFound) {
     return new ErrorEmbed()
       .useErrTemplate("NonexistentRobloxUsername", CmdOptions.Arrestee)
-      .replyToInteract(Interaction, true);
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   } else if (Reporter.RobloxUserId === ARobloxId) {
-    return new ErrorEmbed().useErrTemplate("SelfArrestAttempt").replyToInteract(Interaction, true);
+    return new ErrorEmbed()
+      .useErrTemplate("SelfArrestAttempt")
+      .replyToInteract(Interaction, true)
+      .then(() => true);
   }
 
-  return null;
+  return false;
 }
 
 /**
@@ -172,16 +207,11 @@ async function FilterAsstOfficers(
 ) {
   if (!UsersCollection.size) return UsersCollection;
 
-  const Perms = await UserHasPermsV2(
-    [...UsersCollection.keys()],
-    GuildId,
-    {
-      management: true,
-      staff: true,
-      $or: true,
-    },
-    true
-  );
+  const Perms = await UserHasPermsV2([...UsersCollection.keys()], GuildId, {
+    management: true,
+    staff: true,
+    $or: true,
+  });
 
   UsersCollection.delete(ReporterId);
   UsersCollection.sweep((User) => User.bot || !Perms[User.id]);
@@ -203,7 +233,7 @@ async function OnReportCancellation(ButtonInteract: ButtonInteraction<"cached">)
 async function HandleAddAssistingOfficersUsernames(
   BtnInteract: ButtonInteraction<"cached">,
   CurrentAsstUsernames: string[]
-) {
+): Promise<{ ModalSubmission?: ModalSubmitInteraction<"cached">; UsernamesInput?: string[] }> {
   const InputModal = new ModalBuilder()
     .setTitle("Add Assisting Officers - Usernames")
     .setCustomId(`arrest-add-ao-usernames:${BtnInteract.user.id}:${BtnInteract.createdTimestamp}`)
@@ -225,28 +255,22 @@ async function HandleAddAssistingOfficersUsernames(
     InputModal.components[0].components[0].setValue(PrefilledInput);
   }
 
-  await BtnInteract.showModal(InputModal);
-  const ModalSubmitInteract = await BtnInteract.awaitModalSubmit({
-    time: 8 * 60_000,
-    filter: (MS) => {
-      return MS.user.id === BtnInteract.user.id && MS.customId === InputModal.data.custom_id;
-    },
-  }).catch(() => null);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 8 * 60_000);
+  if (!ModalSubmission) return {};
+  await ModalSubmission.deferUpdate();
 
-  if (!ModalSubmitInteract) return {};
-  await ModalSubmitInteract.deferUpdate();
-  const UsernamesInput = ModalSubmitInteract.fields
+  const UsernamesInput = ModalSubmission.fields
     .getTextInputValue("input-usernames")
     .trim()
-    .split(SplitRegexForInputs)
+    .split(ListSplitRegex)
     .filter(IsValidRobloxUsername);
 
-  return { ModalSubmitInteract, UsernamesInput };
+  return { ModalSubmission, UsernamesInput };
 }
 
 async function OnReportConfirmation(
   ButtonInteract: ButtonInteraction<"cached">,
-  ReporterInfo: ReporterInfoType,
+  ReporterInfo: ReportInfoType,
   ArresteeInfo: ArresteeInfoType
 ) {
   const LoggedReport = await LogArrestReport(ButtonInteract, ArresteeInfo, ReporterInfo);
@@ -268,7 +292,7 @@ async function OnReportConfirmation(
  * @param ModalInteraction
  * @param CmdInteraction
  */
-async function OnChargesModalSubmission(
+async function OnChargesAndDetailsModalSubmission(
   CmdInteract: SlashCommandInteraction<"cached">,
   CmdOptions: CmdOptionsType,
   ReporterMainInfo: ReporterInfo,
@@ -276,19 +300,18 @@ async function OnChargesModalSubmission(
 ) {
   await ModalInteraction.deferReply({ flags: MessageFlags.Ephemeral });
   const [ArresteeId] = await GetIdByUsername(CmdOptions.Arrestee, true);
-  const ARUserInfo = await GetUserInfo(ArresteeId);
-  const ThumbUrl = await GetUserThumbnail({
-    UserIds: ArresteeId,
-    Size: "420x420",
-    Format: "png",
-    CropType: "headshot",
-    IsManCharacter: CmdOptions.Gender === "Male",
-  });
-
-  const ExistingBookingNums = (await GetAllBookingNums(CmdInteract.guildId)).map((Num) => Num.num);
-  const UTIFEnabled = await GetGuildSettings(CmdInteract.guildId).then(
-    (Doc) => Doc?.utif_enabled ?? false
-  );
+  const [ArresteeUserInfo, ArresteeThumbURL, ExistingBookingNums, UTIFEnabled] = await Promise.all([
+    GetUserInfo(ArresteeId),
+    GetUserThumbnail({
+      UserIds: ArresteeId,
+      Size: "420x420",
+      Format: "png",
+      CropType: "bust",
+      IsManCharacter: CmdOptions.Gender === "Male",
+    }),
+    GetAllBookingNums(CmdInteract.guildId).then((Nums) => Nums.map((Num) => Num.num)),
+    GetGuildSettings(CmdInteract.guildId).then((Doc) => Doc?.utif_enabled ?? false),
+  ]);
 
   let AsstOfficersDisIds: string[] = [];
   let AsstOfficersUsernames: string[] = [];
@@ -300,37 +323,64 @@ async function OnChargesModalSubmission(
     utif_setting_enabled: UTIFEnabled,
   };
 
-  const RInputCharges = await FilterUserInput(
-    ModalInteraction.fields.getTextInputValue("charges-text"),
-    UTIFOpts
-  );
+  const [FilteredArrestLocation, FilteredDetailArresting, InputCharges, ArrestNotes, EvidenceText] =
+    await FilterUserInput(
+      [
+        CmdOptions.ArrestLocation ?? "",
+        CmdOptions.DetailArresting ?? "",
+        ModalInteraction.fields.getTextInputValue("charges-text"),
+        ModalInteraction.fields.getTextInputValue("arrest-notes"),
+        ModalInteraction.fields.getTextInputValue("evidence-text"),
+      ],
+      UTIFOpts
+    );
 
-  const ArrestNotes = await FilterUserInput(
-    ModalInteraction.fields.getTextInputValue("arrest-notes"),
-    UTIFOpts
-  );
+  CmdOptions.ArrestLocation = FilteredArrestLocation.length ? FilteredArrestLocation : null;
+  CmdOptions.DetailArresting = FilteredDetailArresting.length ? FilteredDetailArresting : null;
 
-  const FCharges = FormatCharges(RInputCharges);
-  const BookingNumber = parseInt(RandomString(4, /\d/, ExistingBookingNums));
+  const FCharges = FormatCharges(InputCharges);
+  const YearSuffix = new Date().getFullYear().toString().slice(-2);
+  const BookingNumber = parseInt(`${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`);
+  const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
+
+  const ArrestingOfficerRobloxId = PrimaryIsReporter
+    ? null
+    : await IsLoggedIn({
+        user: { id: CmdOptions.PrimaryOfficer.user.id },
+        guildId: CmdInteract.guildId,
+      });
+
+  const ArrestingOfficerRobloxInfo = ArrestingOfficerRobloxId
+    ? await GetUserInfo(ArrestingOfficerRobloxId)
+    : null;
+
   const BookingMugshotURL = await GetBookingMugshot<true>({
+    thumb_is_bust: true,
     return_url: true,
-    head_position: 25,
+    head_position: 18,
     height: CmdOptions.Height,
-    user_thumb_url: ThumbUrl,
+    thumb_img: ArresteeThumbURL,
     booking_num: BookingNumber,
     user_gender: CmdOptions.Gender,
     booking_date: CmdInteract.createdAt,
   });
 
+  if (!PrimaryIsReporter) {
+    AsstOfficersDisIds.push(CmdInteract.user.id);
+  }
+
   const ConfirmationEmbed = new EmbedBuilder()
     .setTitle("Arrest Report - Confirmation")
-    .setDescription("Assisting Officers: N/A")
+    .setDescription(
+      `Arresting Officer: <@${CmdOptions.PrimaryOfficer.user.id}>\n` +
+        `Assisting Officers: ${ListFormatter.format(AsstOfficersDisIds.map((Id) => userMention(Id))) || "N/A"}`
+    )
     .setThumbnail(BookingMugshotURL)
     .setColor(Colors.Gold)
     .setFields([
       {
         name: "Arrestee",
-        value: `${ARUserInfo.displayName} (@${ARUserInfo.name})`,
+        value: `${ArresteeUserInfo.displayName} (@${ArresteeUserInfo.name})`,
         inline: true,
       },
       {
@@ -354,15 +404,39 @@ async function OnChargesModalSubmission(
         inline: true,
       },
       {
-        name: "Convicted Charges",
+        name: "Charges",
         value: FCharges.join("\n"),
         inline: false,
       },
     ]);
 
-  if (ArrestNotes?.length) {
+  if (CmdOptions.ArrestLocation?.length) {
+    ConfirmationEmbed.spliceFields(-1, 0, {
+      name: "Loc. of Arrest",
+      value: CmdOptions.ArrestLocation,
+      inline: true,
+    });
+  }
+
+  if (CmdOptions.DetailArresting?.length) {
+    ConfirmationEmbed.spliceFields(-1, 0, {
+      name: "Detail/Div. Arresting",
+      value: CmdOptions.DetailArresting,
+      inline: false,
+    });
+  }
+
+  if (EvidenceText.length) {
+    ConfirmationEmbed.spliceFields(-1, 0, {
+      name: "Evidence",
+      value: EvidenceText,
+      inline: false,
+    });
+  }
+
+  if (ArrestNotes.length) {
     ConfirmationEmbed.addFields({
-      name: "Arrest Notes",
+      name: "Arrest Notes (shown on explicit DB queries)",
       value: codeBlock("fix", ArrestNotes),
       inline: false,
     });
@@ -391,14 +465,22 @@ async function OnChargesModalSubmission(
         ReceivedInteract.users
       );
 
-      AsstOfficersDisIds = [...Filtered.keys()];
+      AsstOfficersDisIds = [
+        ...(PrimaryIsReporter ? [] : [CmdInteract.user.id]),
+        ...Filtered.keys(),
+      ];
+
       AsstOfficersMenu.components[0].setDefaultUsers(AsstOfficersDisIds);
       const FormattedMentions =
         ListFormatter.format(AsstOfficersDisIds.map((Id) => userMention(Id))) || "N/A";
 
       await ReceivedInteract.editReply({
-        embeds: [ConfirmationEmbed.setDescription(`Assisting Officers: ${FormattedMentions}`)],
         components: [AsstOfficersMenu, AddUsernamesConfirmationComponents],
+        embeds: [
+          ConfirmationEmbed.setDescription(
+            `Arresting Officer: <@${CmdOptions.PrimaryOfficer.user.id}>\nAssisting Officers: ${FormattedMentions}`
+          ),
+        ],
       }).catch(() => null);
     } else if (ReceivedInteract.isButton()) {
       if (ReceivedInteract.customId === "confirm-report") {
@@ -408,12 +490,12 @@ async function OnChargesModalSubmission(
         await ReceivedInteract.deferUpdate();
         ComponentCollector.stop("Report Cancellation");
       } else if (ReceivedInteract.customId === "ao-add-usernames") {
-        const { ModalSubmitInteract, UsernamesInput } = await HandleAddAssistingOfficersUsernames(
+        const { ModalSubmission, UsernamesInput } = await HandleAddAssistingOfficersUsernames(
           ReceivedInteract,
           AsstOfficersUsernames
         );
 
-        if (!ModalSubmitInteract || !UsernamesInput) return;
+        if (!ModalSubmission || !UsernamesInput) return;
         if (!ArraysAreEqual(AsstOfficersUsernames, UsernamesInput)) {
           AsstOfficersUsernames = UsernamesInput;
 
@@ -422,9 +504,13 @@ async function OnChargesModalSubmission(
               FormatSortRDInputNames([...AsstOfficersDisIds, ...AsstOfficersUsernames], true)
             ) || "N/A";
 
-          await ModalSubmitInteract.editReply({
-            embeds: [ConfirmationEmbed.setDescription(`Assisting Officers: ${FormattedMentions}`)],
+          await ModalSubmission.editReply({
             components: [AsstOfficersMenu, AddUsernamesConfirmationComponents],
+            embeds: [
+              ConfirmationEmbed.setDescription(
+                `Arresting Officer: <@${CmdOptions.PrimaryOfficer.user.id}>\nAssisting Officers: ${FormattedMentions}`
+              ),
+            ],
           }).catch(() => null);
         }
       }
@@ -437,24 +523,44 @@ async function OnChargesModalSubmission(
     if (EndReason.match(/reason: (?:\w+Delete|time)/)) {
       AsstOfficersMenu.components[0].setDisabled(true);
       AddUsernamesConfirmationComponents.components.forEach((Btn) => Btn.setDisabled(true));
-      await ConfirmationMsg.edit({ components: [AddUsernamesConfirmationComponents] }).catch(
-        () => null
-      );
+      return LastInteraction?.editReply({
+        message: ConfirmationMsg,
+        components: [AddUsernamesConfirmationComponents],
+      }).catch(() => null);
     }
 
     try {
       if (!LastInteraction?.isButton()) return;
       if (EndReason === "Report Confirmation") {
         const ReporterRobloxUserInfo = await GetUserInfo(ReporterMainInfo.RobloxUserId);
-        const ReporterInfo: ReporterInfoType = {
+        const ReportInfo: ReportInfoType = {
           shift_active: ReporterMainInfo.ActiveShift,
-          discord_user_id: CmdInteract.user.id,
           report_date: CmdInteract.createdAt,
           asst_officers: [...AsstOfficersDisIds, ...AsstOfficersUsernames],
-          roblox_user: {
-            display_name: ReporterRobloxUserInfo.displayName,
-            name: ReporterRobloxUserInfo.name,
-            id: ReporterMainInfo.RobloxUserId,
+
+          detail_arresting: CmdOptions.DetailArresting,
+          arrest_loc: CmdOptions.ArrestLocation,
+          evidence: EvidenceText.length ? EvidenceText : null,
+
+          reporting_officer: PrimaryIsReporter
+            ? null
+            : {
+                discord_id: CmdInteract.user.id,
+                roblox_user: {
+                  display_name: ReporterRobloxUserInfo.displayName,
+                  name: ReporterRobloxUserInfo.name,
+                  id: ReporterRobloxUserInfo.id,
+                },
+              },
+
+          arresting_officer: {
+            discord_id: CmdOptions.PrimaryOfficer.user.id,
+            roblox_user: {
+              display_name:
+                ArrestingOfficerRobloxInfo?.displayName ?? ReporterRobloxUserInfo.displayName,
+              name: ArrestingOfficerRobloxInfo?.name ?? ReporterRobloxUserInfo.name,
+              id: ArrestingOfficerRobloxInfo?.id ?? ReporterRobloxUserInfo.id,
+            },
           },
         };
 
@@ -468,13 +574,13 @@ async function OnChargesModalSubmission(
           AgeGroup: CmdOptions.AgeGroup,
           formatted_charges: FCharges,
           roblox_user: {
-            display_name: ARUserInfo.displayName,
-            name: ARUserInfo.name,
+            display_name: ArresteeUserInfo.displayName,
+            name: ArresteeUserInfo.name,
             id: ArresteeId,
           },
         };
 
-        await OnReportConfirmation(LastInteraction, ReporterInfo, ArresteeInfo);
+        await OnReportConfirmation(LastInteraction, ReportInfo, ArresteeInfo);
       } else {
         await OnReportCancellation(LastInteraction);
       }
@@ -499,27 +605,34 @@ async function OnChargesModalSubmission(
 
 async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Reporter: ReporterInfo) {
   const CmdOptions = {
+    PrimaryOfficer: Interaction.options.getMember("primary-officer") ?? Interaction.member,
+    DetailArresting: Interaction.options.getString("arresting-detail", false),
+    ArrestLocation: Interaction.options.getString("arrest-location", false),
     Arrestee: Interaction.options.getString("name", true),
     Gender: Interaction.options.getString("gender", true),
     Height: FormatHeight(Interaction.options.getString("height", true)),
     Weight: Interaction.options.getInteger("weight", true),
     AgeGroup: FormatAge(Interaction.options.getInteger("arrest-age", true)),
-  } as CmdOptionsType;
+  } as CmdOptionsType<true>;
 
-  const Response = await HandleCmdOptsValidation(Interaction, CmdOptions, Reporter);
-  if (Response instanceof Message || Response instanceof InteractionResponse) return;
-
-  const AdditionalDataModal = GetAdditionalInformationModal(Interaction);
-  const ModalFilter = (MS) => {
-    return MS.user.id === Interaction.user.id && MS.customId === AdditionalDataModal.data.custom_id;
-  };
+  const ResponseHandled = await HandleCmdOptsValidation(Interaction, CmdOptions, Reporter);
+  if (ResponseHandled) return;
+  const AdditionalDetailsModal = GetAdditionalArrestDetailsModal(Interaction);
 
   try {
-    await Interaction.showModal(AdditionalDataModal);
-    await Interaction.awaitModalSubmit({ time: 8 * 60_000, filter: ModalFilter }).then(
-      async (Submission) => {
-        await OnChargesModalSubmission(Interaction, CmdOptions, Reporter, Submission);
-      }
+    const AdditionalDetailsSubmission = await ShowModalAndAwaitSubmission(
+      Interaction,
+      AdditionalDetailsModal,
+      8 * 60 * 1000,
+      true
+    );
+
+    if (!AdditionalDetailsSubmission) return;
+    await OnChargesAndDetailsModalSubmission(
+      Interaction,
+      CmdOptions as unknown as CmdOptionsType,
+      Reporter,
+      AdditionalDetailsSubmission
     );
   } catch (Err: unknown) {
     if (Err instanceof Error && !Err.message.match(/reason: (?:\w+Delete|time)/)) {
@@ -529,7 +642,7 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">, Repor
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: CmdCallback,
@@ -573,6 +686,27 @@ const CommandObject = {
         .setMinValue(25)
         .setMaxValue(700)
         .setAutocomplete(true)
+    )
+    .addUserOption((Option) =>
+      Option.setName("primary-officer")
+        .setDescription(
+          "The officer who conducted the arrest and has primary responsibility for this case. Defaults to you."
+        )
+        .setRequired(false)
+    )
+    .addStringOption((Option) =>
+      Option.setName("arrest-location")
+        .setDescription("The location where the arrest took place.")
+        .setMinLength(3)
+        .setMaxLength(24)
+        .setRequired(false)
+    )
+    .addStringOption((Option) =>
+      Option.setName("arresting-detail")
+        .setDescription("The division, sub-division, or detail responsible for the arrest.")
+        .setMinLength(3)
+        .setMaxLength(36)
+        .setRequired(false)
     ),
 };
 

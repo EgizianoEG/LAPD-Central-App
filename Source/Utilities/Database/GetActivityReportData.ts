@@ -1,16 +1,10 @@
-import { Collection, Guild, GuildMember } from "discord.js";
-import { differenceInHours, isAfter } from "date-fns";
+import { add, sub, isAfter, differenceInHours, milliseconds } from "date-fns";
+import { Collection, Guild, GuildMember, Role } from "discord.js";
 import { AggregateResults } from "@Typings/Utilities/Database.js";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import GetGuildSettings from "./GetGuildSettings.js";
 import ProfileModel from "@Models/GuildProfile.js";
-import DHumanize from "humanize-duration";
 import AppError from "@Utilities/Classes/AppError.js";
-
-const DurationFormatter = DHumanize.humanizer({
-  conjunction: " and ",
-  largest: 4,
-  round: true,
-});
 
 interface GetActivityReportDataOpts {
   /** The guild to get the activity report data for. */
@@ -22,8 +16,11 @@ interface GetActivityReportDataOpts {
   /** The date to return the activity report data after. If not provided, defaults to all the time. */
   after?: Date | null;
 
-  /** The shift type to get the activity report data for. */
-  shift_type?: string | null;
+  /** The date to return the activity report data until. If not provided, defaults to the current date. */
+  until?: Date | null;
+
+  /** The shift type(s) to get the activity report data for. */
+  shift_type?: string | string[] | null;
 
   /** The duration in milliseconds of the quota that must be met. Defaults to 0 seconds, which means no quota. */
   quota_duration?: number | null;
@@ -88,26 +85,43 @@ export default async function GetActivityReportData(
     ...(GuildConfig?.role_perms.management ?? []),
   ];
 
-  const ShiftStatusRoles = [
+  const ShiftOrUANStatusRoles = [
+    ...[GuildConfig?.leave_notices.leave_role].filter((R): R is string => !!R),
+    ...[GuildConfig?.reduced_activity.ra_role].filter((R): R is string => !!R),
     ...(GuildConfig?.shift_management.role_assignment.on_duty ?? []),
     ...(GuildConfig?.shift_management.role_assignment.on_break ?? []),
   ];
+
+  const SpecifiedShiftTypes = Array.isArray(Opts.shift_type)
+    ? Opts.shift_type
+    : Opts.shift_type
+      ? [Opts.shift_type]
+      : [];
 
   if (!GuildConfig) throw new AppError({ template: "GuildConfigNotFound", showable: true });
   if (!GuildStaffMgmtRoles.length)
     throw new AppError({ template: "ActivityReportNoIdentifiedStaff", showable: true });
 
-  if (Opts.shift_type && Opts.shift_type.toLowerCase() !== "default") {
+  if (SpecifiedShiftTypes && SpecifiedShiftTypes.length > 0) {
     const GuildShiftTypes = GuildConfig.shift_management.shift_types;
-    const ShiftType = GuildShiftTypes.find((ST) => ST.name === Opts.shift_type);
-    if (!ShiftType) throw new AppError({ template: "NonexistentShiftTypeUsage", showable: true });
+    const ValidShiftTypes = SpecifiedShiftTypes.map((ST) => {
+      const ShiftType = GuildShiftTypes.find((Type) => Type.name === ST);
+      if (!ShiftType && ST.toLowerCase() === "default") {
+        return {
+          name: "Default",
+          access_roles: GuildStaffMgmtRoles,
+        };
+      }
+
+      if (!ShiftType) throw new AppError({ template: "NonexistentShiftTypeUsage", showable: true });
+      return ShiftType;
+    });
 
     Opts.members = Opts.members.filter((Member) => {
       const HasStaffMgmtRoles = Member.roles.cache.hasAny(...GuildStaffMgmtRoles);
-      const HasShiftTypeRoles =
-        Opts.shift_type && Opts.shift_type.toLowerCase() !== "default"
-          ? Member.roles.cache.hasAny(...ShiftType.access_roles)
-          : true;
+      const HasShiftTypeRoles = ValidShiftTypes.some((ShiftType) =>
+        Member.roles.cache.hasAny(...ShiftType.access_roles)
+      );
 
       return HasStaffMgmtRoles && HasShiftTypeRoles && !Member.user.bot;
     });
@@ -117,10 +131,10 @@ export default async function GetActivityReportData(
     );
   }
 
-  const RetrieveDate = new Date();
+  const RetrieveDate = Opts.until ?? new Date();
   const RecordsBaseData = await ProfileModel.aggregate<
     AggregateResults.BaseActivityReportData["records"][number]
-  >(CreateActivityReportAggregationPipeline(Opts));
+  >(CreateActivityReportAggregationPipeline({ ...Opts, shift_type: SpecifiedShiftTypes })).exec();
 
   if (!RecordsBaseData.length) {
     throw new AppError({
@@ -129,14 +143,19 @@ export default async function GetActivityReportData(
     });
   }
 
+  const TotalShiftTimeCombined = RecordsBaseData.reduce((Acc, Curr) => Acc + Curr.total_time, 0);
   const ReportStatistics: AggregateResults.ActivityReportStatistics<string> = {
-    total_time: DurationFormatter(RecordsBaseData.reduce((Acc, Curr) => Acc + Curr.total_time, 0)),
+    total_time: ReadableDuration(TotalShiftTimeCombined),
     total_shifts: RecordsBaseData.reduce((Acc, Curr) => Acc + Curr.total_shifts, 0),
+    average_time:
+      RecordsBaseData.length > 2 && TotalShiftTimeCombined > milliseconds({ minutes: 30 })
+        ? ReadableDuration(TotalShiftTimeCombined / RecordsBaseData.length)
+        : "Insufficient Data",
   };
 
   const ProcessedMemberIds = new Set<string>();
   const MembersById = new Map(Opts.members.map((Member) => [Member.id, Member]));
-  const Records = RecordsBaseData.map((Record, Index) => {
+  const Records = RecordsBaseData.map((Record) => {
     const Member = MembersById.get(Record.id);
     const RecentUAN = Record.recent_activity_notice;
     const TypeAbbr = RecentUAN?.type === "LeaveOfAbsence" ? "leave" : "ra";
@@ -178,7 +197,7 @@ export default async function GetActivityReportData(
               ? `\nQuota Reduction: ~${Math.round((1 - (RecentUAN.quota_scale || 0)) * 100)}%`
               : "";
 
-          const RelativeDuration = DHumanize(
+          const RelativeDuration = ReadableDuration(
             RetrieveDate.getTime() - RecentUAN.review_date.getTime(),
             {
               conjunction: " and ",
@@ -195,11 +214,14 @@ export default async function GetActivityReportData(
         const EndCurrentDatesDifferenceInDays = differenceInHours(RetrieveDate, NoticeEndDate) / 24;
 
         if (EndCurrentDatesDifferenceInDays <= 2.5) {
-          const RelativeDuration = DHumanize(RetrieveDate.getTime() - NoticeEndDate.getTime(), {
-            conjunction: " and ",
-            largest: 2,
-            round: true,
-          });
+          const RelativeDuration = ReadableDuration(
+            RetrieveDate.getTime() - NoticeEndDate.getTime(),
+            {
+              conjunction: " and ",
+              largest: 2,
+              round: true,
+            }
+          );
 
           NoticeNotes[TypeAbbr] = `${NoticeTypeDesc} ended around ${RelativeDuration} ago.`;
         }
@@ -209,7 +231,7 @@ export default async function GetActivityReportData(
         differenceInHours(RetrieveDate, RecentUAN.request_date) / 24;
 
       if (RequestCurrentDatesDifferenceInDays <= 3) {
-        const RelativeDuration = DHumanize(
+        const RelativeDuration = ReadableDuration(
           RetrieveDate.getTime() - RecentUAN.request_date.getTime(),
           {
             conjunction: " and ",
@@ -225,14 +247,22 @@ export default async function GetActivityReportData(
 
     return {
       values: [
-        { userEnteredValue: { numberValue: Index + 1 } },
+        { userEnteredValue: { numberValue: Record.total_time, member: Member } },
+        { userEnteredValue: { numberValue: 0 } },
         {
           userEnteredValue: {
             stringValue: FormatName(Member, Opts.include_member_nicknames),
           },
         },
-        { userEnteredValue: { stringValue: HighestHoistedRoleName(Member, ShiftStatusRoles) } },
-        { userEnteredValue: { stringValue: DurationFormatter(Record.total_time) } },
+        {
+          userEnteredValue: {
+            stringValue: GetHighestHoistedRole(Member, ShiftOrUANStatusRoles) as
+              | Role
+              | string
+              | null,
+          },
+        },
+        { userEnteredValue: { stringValue: ReadableDuration(Record.total_time) } },
         { userEnteredValue: { numberValue: Record.arrests } },
         { userEnteredValue: { numberValue: Record.arrests_assisted } },
         { userEnteredValue: { numberValue: Record.citations } },
@@ -255,10 +285,13 @@ export default async function GetActivityReportData(
     .forEach((Member) => {
       Records.push({
         values: [
-          { userEnteredValue: { numberValue: Records.length + 1 } },
+          { userEnteredValue: { numberValue: 0, member: Member } },
+          { userEnteredValue: { numberValue: 0 } },
           { userEnteredValue: { stringValue: FormatName(Member, Opts.include_member_nicknames) } },
-          { userEnteredValue: { stringValue: HighestHoistedRoleName(Member, ShiftStatusRoles) } },
-          { userEnteredValue: { stringValue: DurationFormatter(0) } },
+          {
+            userEnteredValue: { stringValue: GetHighestHoistedRole(Member, ShiftOrUANStatusRoles) },
+          },
+          { userEnteredValue: { stringValue: ReadableDuration(0) } },
           { userEnteredValue: { numberValue: 0 } },
           { userEnteredValue: { numberValue: 0 } },
           { userEnteredValue: { numberValue: 0 } },
@@ -269,10 +302,48 @@ export default async function GetActivityReportData(
       });
     });
 
+  Records.sort((A, B) => {
+    const ATotalTime = A.values[0].userEnteredValue.numberValue ?? 0;
+    const BTotalTime = B.values[0].userEnteredValue.numberValue ?? 0;
+    if (BTotalTime !== ATotalTime) return BTotalTime - ATotalTime;
+
+    // Secondary sort: Role position descending (higher roles first).
+    const MemberAHHRole = A.values[3].userEnteredValue.stringValue as Role | null;
+    const MemberBHHRole = B.values[3].userEnteredValue.stringValue as Role | null;
+    if (MemberAHHRole && MemberBHHRole) {
+      const RoleComparison = MemberBHHRole.comparePositionTo(MemberAHHRole);
+      if (RoleComparison !== 0) return RoleComparison;
+    }
+
+    // Tertiary sort: Alphabetical by name when time and roles are equal.
+    const AName = A.values[2].userEnteredValue.stringValue! as string;
+    const BName = B.values[2].userEnteredValue.stringValue! as string;
+    return AName.localeCompare(BName, undefined, {
+      ignorePunctuation: true,
+      sensitivity: "base",
+      numeric: true,
+    });
+  });
+
+  Records.forEach((Record, Index) => {
+    Record.values[1].userEnteredValue.numberValue = Index + 1;
+  });
+
   return {
+    quota: Opts.quota_duration ? ReadableDuration(Opts.quota_duration) : "None",
     statistics: ReportStatistics,
-    records: Records,
-    quota: Opts.quota_duration ? DurationFormatter(Opts.quota_duration) : "None",
+    records: Records.map((Record) => ({
+      values: Record.values.slice(1).map((Value) => {
+        const UserEnteredValue = Value.userEnteredValue;
+        if (UserEnteredValue.stringValue instanceof Role) {
+          UserEnteredValue.stringValue = UserEnteredValue.stringValue.name;
+        } else if (UserEnteredValue.stringValue === null) {
+          UserEnteredValue.stringValue = "N/A";
+        }
+
+        return { userEnteredValue: UserEnteredValue, ...(Value.note ? { note: Value.note } : {}) };
+      }),
+    })) as ActivityReportDataReturn["records"],
   };
 }
 
@@ -299,9 +370,12 @@ function FormatName(Member: GuildMember | string, IncludeNickname?: boolean) {
  * @param DisregardedRoleIds - An optional array of role IDs to exclude from consideration.
  * @returns The name of the highest hoisted role, or "N/A" if no valid hoisted role is found.
  */
-function HighestHoistedRoleName(Member: GuildMember, DisregardedRoleIds: string[] = []): string {
+function GetHighestHoistedRole(
+  Member: GuildMember,
+  DisregardedRoleIds: string[] = []
+): Role | null {
   if (Member.roles.highest.hoist && !DisregardedRoleIds.includes(Member.roles.highest.id)) {
-    return Member.roles.highest.name;
+    return Member.roles.highest;
   }
 
   const TopHoistedRole = [...Member.roles.cache.values()]
@@ -309,8 +383,8 @@ function HighestHoistedRoleName(Member: GuildMember, DisregardedRoleIds: string[
     .sort((A, B) => B.position - A.position)[0];
 
   return (
-    TopHoistedRole?.name ??
-    (Member.roles.highest.id === Member.guild.roles.everyone.id ? "N/A" : Member.roles.highest.name)
+    TopHoistedRole ??
+    (Member.roles.highest.id === Member.guild.roles.everyone.id ? null : Member.roles.highest)
   );
 }
 
@@ -324,7 +398,7 @@ function HighestHoistedRoleName(Member: GuildMember, DisregardedRoleIds: string[
  * @returns An aggregation pipeline array to be used with the `aggregate` method of the `ProfileModel`.
  */
 function CreateActivityReportAggregationPipeline(
-  Opts: GetActivityReportDataOpts
+  Opts: Exclude<GetActivityReportDataOpts, "shift_type"> & { shift_type: string[] }
 ): Parameters<typeof ProfileModel.aggregate>[0] {
   return [
     {
@@ -356,7 +430,10 @@ function CreateActivityReportAggregationPipeline(
                     $or: [Opts.after ? { $gte: ["$start_timestamp", Opts.after] } : true],
                   },
                   {
-                    $or: [Opts.shift_type ? { $eq: ["$type", Opts.shift_type] } : true],
+                    $or: [Opts.until ? { $lte: ["$end_timestamp", Opts.until] } : true],
+                  },
+                  {
+                    $or: [Opts.shift_type.length ? { $in: ["$type", Opts.shift_type] } : true],
                   },
                 ],
               },
@@ -386,6 +463,27 @@ function CreateActivityReportAggregationPipeline(
                   { $eq: ["$user", "$$user"] },
                   { $eq: ["$guild", "$$guild"] },
                   { $in: ["$status", ["Approved", "Pending"]] },
+                  {
+                    $or: [
+                      {
+                        $and: [
+                          Opts.after
+                            ? { $gte: ["$request_date", sub(Opts.after, { days: 3 })] }
+                            : true,
+                          Opts.until
+                            ? { $lte: ["$request_date", add(Opts.until, { days: 3 })] }
+                            : true,
+                        ],
+                      },
+                      {
+                        $and: [
+                          { $ne: ["$end_date", null] },
+                          Opts.after ? { $gte: ["$end_date", Opts.after] } : true,
+                          Opts.until ? { $lte: ["$end_date", Opts.until] } : true,
+                        ],
+                      },
+                    ],
+                  },
                 ],
               },
             },
@@ -429,6 +527,9 @@ function CreateActivityReportAggregationPipeline(
                   {
                     $cond: { if: Opts.after, then: { $gte: ["$made_on", Opts.after] }, else: true },
                   },
+                  {
+                    $cond: { if: Opts.until, then: { $lte: ["$made_on", Opts.until] }, else: true },
+                  },
                 ],
               },
             },
@@ -450,6 +551,9 @@ function CreateActivityReportAggregationPipeline(
                   { $in: ["$$user", "$assisting_officers"] },
                   {
                     $cond: { if: Opts.after, then: { $gte: ["$made_on", Opts.after] }, else: true },
+                  },
+                  {
+                    $cond: { if: Opts.until, then: { $lte: ["$made_on", Opts.until] }, else: true },
                   },
                 ],
               },
@@ -477,6 +581,13 @@ function CreateActivityReportAggregationPipeline(
                       else: true,
                     },
                   },
+                  {
+                    $cond: {
+                      if: Opts.until,
+                      then: { $lte: ["$issued_on", Opts.until] },
+                      else: true,
+                    },
+                  },
                 ],
               },
             },
@@ -500,6 +611,13 @@ function CreateActivityReportAggregationPipeline(
                     $cond: {
                       if: Opts.after,
                       then: { $gte: ["$reported_on", Opts.after] },
+                      else: true,
+                    },
+                  },
+                  {
+                    $cond: {
+                      if: Opts.until,
+                      then: { $lte: ["$reported_on", Opts.until] },
                       else: true,
                     },
                   },

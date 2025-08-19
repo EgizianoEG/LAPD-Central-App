@@ -1,6 +1,5 @@
-import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import { EscapeRegExp } from "@Utilities/Strings/Formatters.js";
-import GuildModel from "@Models/Guild.js";
+import type { ApplicationCommandOptionChoiceData } from "discord.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 
 const DefaultSuggestion = {
   name: "[Default Shift Type]",
@@ -20,23 +19,22 @@ export default async function AutocompleteShiftType(
   IncludeDefault = true
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
   let Suggestions: (string | { name: string; value: string })[];
-  const EscapedValue = EscapeRegExp(TypedValue);
-  const ShiftTypes = await GuildModel.findById(GuildId)
-    .select("settings.shift_management.shift_types")
-    .then((GuildData) => {
-      if (!GuildData) return [];
-      return GuildData.settings.shift_management.shift_types
-        .map((ShiftType) => ShiftType.name)
-        .sort((a, b) => a.localeCompare(b));
-    });
+  const LowerCaseTyped = TypedValue.toLowerCase();
+  const ShiftTypes = await GetGuildSettings(GuildId).then((Settings) => {
+    if (!Settings) return [];
+    return Settings.shift_management.shift_types
+      .map((ShiftType) => ShiftType.name)
+      .sort((a, b) => a.localeCompare(b));
+  });
 
   if (!ShiftTypes.length) {
     Suggestions = [];
-  } else if (EscapedValue.match(/^\s*$/)) {
+  } else if (TypedValue.match(/^\s*$/)) {
     Suggestions = ShiftTypes;
   } else {
     Suggestions = ShiftTypes.filter((Element) => {
-      return Element.match(new RegExp(EscapedValue, "i"));
+      const LowerCaseElement = Element.toLowerCase();
+      return LowerCaseElement.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseElement);
     });
   }
 

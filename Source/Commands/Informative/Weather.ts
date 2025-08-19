@@ -1,13 +1,22 @@
 // Dependencies:
 // -------------
-import GetWeatherIcon from "@Utilities/Other/GetWeatherIcon.js";
+import GetWeatherIcon from "@Utilities/Helpers/GetWeatherIcon.js";
 import { Icons, Emojis } from "@Config/Shared.js";
-import { GetCurrentWeather } from "@Utilities/Other/WeatherData.js";
-import { Colors, EmbedBuilder, SlashCommandBuilder } from "discord.js";
-// ---------------------------------------------------------------------------------------
+import { GetCurrentWeather } from "@Utilities/External/WeatherData.js";
+import {
+  ApplicationIntegrationType,
+  InteractionContextType,
+  SlashCommandBuilder,
+  EmbedBuilder,
+  MessageFlags,
+  Colors,
+} from "discord.js";
 
+// ---------------------------------------------------------------------------------------
 async function Callback(Interaction: SlashCommandInteraction<"raw">) {
   const Units: any = Interaction.options.getString("units") ?? "imperial";
+  const IsPrivate: boolean = Interaction.options.getBoolean("private") ?? false;
+
   const WeatherData = await GetCurrentWeather({ Formatted: true, Units });
   const LocalDateTime = new Date().toLocaleString(["en-US"], {
     timeZone: "America/Los_Angeles",
@@ -60,11 +69,14 @@ async function Callback(Interaction: SlashCommandInteraction<"raw">) {
       }
     );
 
-  return Interaction.reply({ embeds: [WeatherEmbed] });
+  return Interaction.reply({
+    embeds: [WeatherEmbed],
+    flags: IsPrivate ? MessageFlags.Ephemeral : undefined,
+  });
 }
 
-// ---------------------------------------------------------------------------------------
-// Command structure:
+// ----------------s-----------------------------------------------------------------------
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<any> = {
   callback: Callback,
@@ -72,6 +84,15 @@ const CommandObject: SlashCommandObject<any> = {
   data: new SlashCommandBuilder()
     .setName("weather")
     .setDescription("Check the current weather in the city of Los Angeles.")
+    .setIntegrationTypes(
+      ApplicationIntegrationType.GuildInstall,
+      ApplicationIntegrationType.UserInstall
+    )
+    .setContexts(
+      InteractionContextType.Guild,
+      InteractionContextType.BotDM,
+      InteractionContextType.PrivateChannel
+    )
     .addStringOption((Option) =>
       Option.setName("units").setDescription("Units of measurement.").addChoices(
         {
@@ -82,6 +103,11 @@ const CommandObject: SlashCommandObject<any> = {
           name: "imperial",
           value: "imperial",
         }
+      )
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("private").setDescription(
+        "Whether to send the response as ephemeral only to you. Defaults to false."
       )
     ),
 };

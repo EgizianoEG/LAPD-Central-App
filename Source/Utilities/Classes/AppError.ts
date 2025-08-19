@@ -15,7 +15,12 @@ export interface AppErrorOptions {
   /** The error message and description; defaults to "Unknown Error". */
   message?: string;
 
-  /** Whether or not the error can be shown to the end user; defaults to `false`. */
+  /**
+   * Whether or not the error can be shown to the end user.
+   * Defaults to:
+   *  - `true` when using a name of a template for the Options parameter,
+   *  - `false` when using an object with details about the error (this object).
+   */
   showable?: boolean;
 
   /** Custom stack trace to set. */
@@ -37,11 +42,17 @@ export default class AppError extends Error {
 
   /**
    * The extended error class that should be used around the application/bot codebase.
-   * @param Options - Optional things to include in the error class.
+   * @param Options - Options for the error object. Can be a template name or an object with details about the error.
    */
-  constructor(Options: AppErrorOptions) {
-    super(Options.message);
+  constructor(Options: AppErrorOptions | keyof typeof ErrorMessages) {
+    if (typeof Options === "string") {
+      Options = {
+        template: Options,
+        showable: true,
+      };
+    }
 
+    super(Options.message);
     this.code = Options.code ?? this.code;
     this.title = Options.title ?? this.title;
     this.message = Options.message ?? this.message;

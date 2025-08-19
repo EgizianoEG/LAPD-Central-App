@@ -46,15 +46,20 @@ describe("Secrets.Roblox", () => {
       /^_\|WARNING:-DO-NOT-SHARE-THIS\.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items\.\|_[0-9A-F]{200,}$/
     );
   });
+
+  it(`Should have a valid ${Cyanish("CloudKey")} string value`, () => {
+    expect(typeof Roblox.CloudKey).toBe("string");
+    expect(Roblox.CloudKey.length).toBeGreaterThan(20);
+  });
 });
 
 describe("Secrets.Discord", () => {
   it(`Should only contain key-value pairs of type string except for ${Cyanish(
     "TestGuildId"
-  )} and ${Cyanish("WLGuilds")}; which are of type Array.`, () => {
+  )}, ${Cyanish("DeveloperIds")}, and ${Cyanish("WLGuilds")}`, () => {
     for (const [Key, Value] of Object.entries(Discord)) {
       expect(typeof Key).toBe("string");
-      if (Key === "BotDevs") {
+      if (Key === "DeveloperIds") {
         expect(Array.isArray(Value)).toBe(true);
         for (const DevId of Value) {
           expect(typeof DevId).toBe("string");
@@ -74,8 +79,8 @@ describe("Secrets.Discord", () => {
     }
   });
 
-  it(`Should have a valid ${Cyanish("BotDevs")} value; an array of snowflake ids`, () => {
-    for (const DevId of Discord.BotDevs) {
+  it(`Should have a valid ${Cyanish("DeveloperIds")} value; an array of snowflake ids`, () => {
+    for (const DevId of Discord.DeveloperIds) {
       expect(IsValidSnowflake(DevId)).toBe(true);
     }
   });
@@ -84,8 +89,8 @@ describe("Secrets.Discord", () => {
     expect(IsValidSnowflake(Discord.TestGuildId)).toBe(true);
   });
 
-  it(`Should have a valid ${Cyanish("BotToken")} value`, () => {
-    expect(Discord.BotToken).toMatch(/^[MN][\w-]{23,25}\.[\w-]{6}\.[\w-]{27,39}$/);
+  it(`Should have a valid ${Cyanish("AppToken")} value`, () => {
+    expect(Discord.AppToken).toMatch(/^[MN][\w-]{23,25}\.[\w-]{6}\.[\w-]{27,39}$/);
   });
 });
 
@@ -135,5 +140,37 @@ describe("Secrets.OpenWeather", () => {
         expect(OpenWeather.WeatherGeoCoordinates.lon).toBeGreaterThanOrEqual(-180);
       }
     }
+  });
+});
+
+describe("Secrets.GoogleAPI", () => {
+  it("Should have correct API properties", () => {
+    expect(typeof GoogleAPI.ActivityReportTempSpreadsheetID).toBe("string");
+    expect(typeof GoogleAPI.ServiceAccountEmail).toBe("string");
+    expect(typeof GoogleAPI.PrivateKey).toBe("string");
+
+    expect(GoogleAPI.ServiceAccountEmail).toMatch(/^.+@.+\.iam\.gserviceaccount\.com$/);
+    expect(GoogleAPI.PrivateKey).toMatch(
+      /^-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----\n$/
+    );
+    expect(GoogleAPI.APIScopes).toBeInstanceOf(Array);
+
+    for (const Scope of GoogleAPI.APIScopes) {
+      expect(typeof Scope).toBe("string");
+      expect(Scope).toMatch(/^https:\/\/www\.googleapis\.com\/auth\//);
+    }
+  });
+});
+
+describe("Secrets.Other", () => {
+  it("Should have valid properties", () => {
+    expect(typeof Other.ImgBB_API_Key).toBe("string");
+    expect(typeof Other.LogTailSourceToken).toBe("string");
+    expect(typeof Other.LogTailIngestingHost).toBe("string");
+    expect(typeof Other.BloxlinkAPIKey).toBe("string");
+    expect(typeof Other.IsProdEnv).toBe("boolean");
+
+    expect(Other.LogTailIngestingHost).toMatch(/^https?:\/\//);
+    expect(Other.BloxlinkAPIKey).toMatch(/^[a-zA-Z0-9-]{25,45}$/);
   });
 });

@@ -3,11 +3,12 @@ import { ReducedActivityEventLogger } from "@Utilities/Classes/UANEventLogger.js
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
   HandleDurationValidation,
+  EvaluatePendingOrActiveNotices,
   HasRecentlyEndedDeniedCancelledUAN,
 } from "@Cmds/Miscellaneous/LOA/Subcmds/Request.js";
 
 import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
-import MentionCmdByName from "@Utilities/Other/MentionCmd.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import ParseDuration from "parse-duration";
 const RAEventLogger = new ReducedActivityEventLogger();
 
@@ -16,33 +17,20 @@ const RAEventLogger = new ReducedActivityEventLogger();
 // -----------------
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const ActiveOrPendingNotice = await UserActivityNoticeModel.findOne(
-    {
-      user: Interaction.user.id,
-      guild: Interaction.guildId,
-      $or: [
-        { status: "Pending", review_date: null },
-        {
-          status: "Approved",
-          early_end_date: null,
-          end_date: { $gt: Interaction.createdAt },
-        },
-      ],
-    },
-    { status: 1 }
-  )
-    .lean()
-    .exec();
-
-  if (ActiveOrPendingNotice) {
+  const PendingOrActiveNoticeStatuses = await EvaluatePendingOrActiveNotices(Interaction);
+  if (PendingOrActiveNoticeStatuses.loa.active || PendingOrActiveNoticeStatuses.loa.pending) {
     return new ErrorEmbed()
-      .useErrTemplate("UANoticeAlreadyExists", "reduced activity")
+      .useErrTemplate("RARequestLOANoticeIsPendingOrActive")
+      .replyToInteract(Interaction, true, true);
+  } else if (PendingOrActiveNoticeStatuses.ra.active || PendingOrActiveNoticeStatuses.ra.pending) {
+    return new ErrorEmbed()
+      .useErrTemplate("RARequestNoticeAlreadyExists")
       .replyToInteract(Interaction, true, true);
   }
 
   const RequestReason = Interaction.options.getString("reason", true);
   const RequestDuration = Interaction.options.getString("duration", true);
-  const DurationParsed = Math.round(ParseDuration(RequestDuration, "millisecond") ?? 0);
+  const DurationParsed = Math.round(Math.abs(ParseDuration(RequestDuration, "millisecond") ?? 0));
   if (await HandleDurationValidation(Interaction, "ReducedActivity", DurationParsed)) return;
   if (await HasRecentlyEndedDeniedCancelledUAN(Interaction, "ReducedActivity")) return;
 

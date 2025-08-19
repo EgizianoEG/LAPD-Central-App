@@ -22,11 +22,11 @@ import { ReducedActivityEventLogger } from "@Utilities/Classes/UANEventLogger.js
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { addMilliseconds } from "date-fns";
-import { Embeds, Emojis } from "@Config/Shared.js";
+import { Colors, Emojis } from "@Config/Shared.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import HandleUserActivityNoticeRoleAssignment from "@Utilities/Other/HandleUANRoleAssignment.js";
-import GetDiscordAPITime from "@Utilities/Other/GetDiscordAPITime.js";
+import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import GetUANData from "@Utilities/Database/GetUANData.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Dedent from "dedent";
@@ -92,10 +92,10 @@ function GetAdminPromptEmbed(
 
   const PromptEmbed = new EmbedBuilder()
     .setTitle("Reduced Activity Administration")
-    .setColor(Embeds.Colors.Info);
+    .setColor(Colors.Info);
 
   if (ActiveOrPendingRA?.status === "Approved") {
-    PromptEmbed.setColor(Embeds.Colors.LOARequestApproved).addFields({
+    PromptEmbed.setColor(Colors.LOARequestApproved).addFields({
       inline: true,
       name: "Active Notice",
       value: Dedent(`
@@ -106,7 +106,7 @@ function GetAdminPromptEmbed(
       `),
     });
   } else if (ActiveOrPendingRA?.status === "Pending") {
-    PromptEmbed.setColor(Embeds.Colors.LOARequestPending).addFields({
+    PromptEmbed.setColor(Colors.LOARequestPending).addFields({
       inline: true,
       name: "Pending Notice",
       value: Dedent(`
@@ -174,12 +174,7 @@ async function HandleApprovalOrDenial(
   ActionType: "Approval" | "Denial"
 ): Promise<boolean> {
   const NotesModal = GetNotesModal(Interaction, ActionType);
-  await Interaction.showModal(NotesModal);
-
-  const NotesSubmission = await Interaction.awaitModalSubmit({
-    filter: (i) => i.customId === NotesModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
+  const NotesSubmission = await ShowModalAndAwaitSubmission(Interaction, NotesModal, 8 * 60_000);
 
   if (!NotesSubmission) return false;
   await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
@@ -192,7 +187,7 @@ async function HandleApprovalOrDenial(
   const ReviewerNotes = NotesSubmission.fields.getTextInputValue("notes") || null;
   const ActionInPastForm = ActionType === "Approval" ? "Approved" : "Denied";
   const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+    .setColor(Colors.Success)
     .setTitle(`Reduced Activity ${ActionInPastForm}`)
     .setDescription(
       `Successfully ${ActionInPastForm.toLowerCase()} the pending reduced activity request for ${userMention(
@@ -212,7 +207,7 @@ async function HandleApprovalOrDenial(
     RefreshedRA.save(),
     RAEventLogger[`Log${ActionType}`](NotesSubmission, RefreshedRA),
     NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       RefreshedRA.user,
       NotesSubmission.guild,
       "ReducedActivity",
@@ -228,14 +223,9 @@ async function HandleEarlyTermination(
   ActiveRA: RADocument
 ) {
   const NotesModal = GetNotesModal(Interaction, "Termination");
-  await Interaction.showModal(NotesModal);
-
-  const NotesSubmission = await Interaction.awaitModalSubmit({
-    filter: (i) => i.customId === NotesModal.data.custom_id,
-    time: 8 * 60_000,
-  }).catch(() => null);
-
+  const NotesSubmission = await ShowModalAndAwaitSubmission(Interaction, NotesModal, 8 * 60_000);
   if (!NotesSubmission) return false;
+
   const RefreshedActiveRA = await ActiveRA.getUpToDate();
   if (!RefreshedActiveRA || !RefreshedActiveRA.is_active) {
     return NotesSubmission.reply({
@@ -248,7 +238,7 @@ async function HandleEarlyTermination(
 
   await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
   const ReplyEmbed = new EmbedBuilder()
-    .setColor(Embeds.Colors.Success)
+    .setColor(Colors.Success)
     .setTitle("Reduced Activity Terminated")
     .setDescription(
       `The active reduced activity for ${userMention(
@@ -265,7 +255,7 @@ async function HandleEarlyTermination(
   await Promise.all([
     RAEventLogger.LogEarlyUANEnd(NotesSubmission, RefreshedActiveRA, "Management"),
     NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
-    HandleUserActivityNoticeRoleAssignment(
+    HandleUserActivityNoticeUpdate(
       RefreshedActiveRA.user,
       NotesSubmission.guild,
       "ReducedActivity",
@@ -291,11 +281,10 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     await Interaction.deferReply();
   }
 
-  const TimeNow = await GetDiscordAPITime();
   const NoticesData = await GetUANData({
     guild_id: Interaction.guildId,
     user_id: TargetUser.id,
-    now: TimeNow,
+    now: Date.now(),
     type: "ReducedActivity",
   });
 

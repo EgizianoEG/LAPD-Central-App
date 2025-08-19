@@ -7,8 +7,8 @@ export default async function GetIncidentRecord(
   IncidentDatabaseId: string | Types.ObjectId,
   Lean: boolean = true
 ): Promise<GuildIncidents.IncidentRecord | null> {
-  const SearchLabel =
-    typeof IncidentDatabaseId === "string" && IncidentDatabaseId.includes("-") ? "num" : "_id";
+  const IsValidObjId = Types.ObjectId.isValid(IncidentDatabaseId);
+  const SearchLabel = IsValidObjId ? "_id" : "num";
 
   return IncidentModel.findOne({ guild: Guild, [SearchLabel]: IncidentDatabaseId })
     .lean(Lean)
