@@ -788,6 +788,7 @@ async function HandleIncidentSuspectsOrWitnessesEdit(
   const NewlySetNames = InputSubmission.fields
     .getTextInputValue(ModalInputIds[InputType])
     .split(ListSplitRegex)
+    .map((Name) => Name.trim())
     .filter((Name) => Name.length >= 2);
 
   if (InputType === "Suspects") IRUpdatesCopy.suspects = NewlySetNames;

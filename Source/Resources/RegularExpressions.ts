@@ -20,7 +20,7 @@ const FActionRegex = /(?:Not Using|Fail(?:ing|ure|ed) (?:to )Use|Did(?: not|n['â
  * const items = list.split(ListSplitRegex);
  * console.log(items); // ["Item 1", "Item 2", "Item 3"]
  */
-export const ListSplitRegex = /\s*[,&]\s*(?:and\s|&)?\s*|\s+/i;
+export const ListSplitRegex = /\s*[,&]\s*(?:and\s|&)?\s*/i;
 
 /**
  * A regular expression used to parse and extract information from duty leaderboard entries.

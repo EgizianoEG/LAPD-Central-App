@@ -261,8 +261,8 @@ async function HandleAddAssistingOfficersUsernames(
 
   const UsernamesInput = ModalSubmission.fields
     .getTextInputValue("input-usernames")
-    .trim()
     .split(ListSplitRegex)
+    .map((Name) => Name.trim())
     .filter(IsValidRobloxUsername);
 
   return { ModalSubmission, UsernamesInput };

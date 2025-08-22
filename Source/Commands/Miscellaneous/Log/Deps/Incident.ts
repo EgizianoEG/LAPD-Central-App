@@ -347,11 +347,13 @@ async function PrepareIncidentData(
     suspects: ModalSubmission.fields
       .getTextInputValue("suspects")
       .split(ListSplitRegex)
+      .map((Name) => Name.trim())
       .filter(Boolean),
 
     victims: ModalSubmission.fields
       .getTextInputValue("victims")
       .split(ListSplitRegex)
+      .map((Name) => Name.trim())
       .filter(Boolean),
 
     reported_on: ModalSubmission.createdAt,
