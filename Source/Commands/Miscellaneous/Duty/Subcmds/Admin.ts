@@ -1209,7 +1209,7 @@ async function HandleUserShiftEnd(
 
   return Promise.allSettled([
     ShiftActionLogger.LogShiftEnd(EndedShift, BInteract, BInteract.user, TargetUser),
-    HandleRoleAssignment("off-duty", BInteract.client, BInteract.guild, BInteract.user.id),
+    HandleRoleAssignment("off-duty", BInteract.client, BInteract.guild, TargetUser.id),
     BInteract.editReply({
       components: [RespContainer],
     }),
@@ -1244,7 +1244,7 @@ async function HandleUserShiftDelete(
   }
 
   if (!ShiftDeleted.end_timestamp) {
-    HandleRoleAssignment("off-duty", BInteract.client, BInteract.guild, BInteract.user.id).catch(
+    HandleRoleAssignment("off-duty", BInteract.client, BInteract.guild, TargetUser.id).catch(
       () => null
     );
   }
