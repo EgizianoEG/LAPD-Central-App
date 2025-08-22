@@ -3,6 +3,12 @@ import { differenceInMilliseconds } from "date-fns";
 import { RiskyRolePermissions } from "@Config/Constants.js";
 import RolePersistenceModel from "@Models/RolePersist.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
+import TTLCache from "@isaacs/ttlcache";
+
+const PRCooldownMultiplier = new TTLCache<
+  string,
+  { last_reassigned: Date; assignment_count: number; current_op: null | Promise<any> }
+>({ checkAgeOnGet: true, ttl: 60_000 });
 
 const OnboardingFeaturesModifiers = [
   GuildFeature.Community,
@@ -10,14 +16,14 @@ const OnboardingFeaturesModifiers = [
 ] as `${GuildFeature}`[];
 
 /**
- * Handles role persistence for a guild member when their membership status changes.
- * Supports both onboarding completion and direct joins for guilds without onboarding.
- * @param Client - The Discord client instance.
- * @param OutdatedMember - The member's previous state.
- * @param UpdatedMember - The member's current state.
+ * Handles and restores persistent roles to a guild member when their membership status changes.
+ * It works for both cases: when a user completes onboarding/screening for join/rejoin cases, and when member roles are updated.
+ * @param Client - The Discord client instance (not used).
+ * @param OutdatedMember - The member's state before the update (used to detect screening completion).
+ * @param UpdatedMember - The member's state after the update (used for role assignment and guild info).
  */
 export default async function OnMemberRejoinRolePersistHandler(
-  Client: DiscordClient,
+  _: DiscordClient,
   OutdatedMember: GuildMember,
   UpdatedMember: GuildMember
 ) {
@@ -32,34 +38,40 @@ export default async function OnMemberRejoinRolePersistHandler(
     UpdatedMember.joinedTimestamp &&
     differenceInMilliseconds(Date.now(), UpdatedMember.joinedTimestamp) < 3 * 1000;
 
-  // Case 1: Guild has onboarding - only proceed if user just completed screening.
+  // Case 1: If the guild uses onboarding features, only continue if the user has
+  // just finished the screening process.
   if (IsOnboardingFeaturesEnabled && !HasUserCompletedScreening) {
     return;
   }
 
-  // Case 2: Guild has no onboarding - only proceed if member recently joined and is
-  // not pending and the user has not completed any screening (pending: true -> false).
+  // Case 2: Only continue if
+  // - The member is already in the guild for enough time, has roles changed, and has persistent roles,
+  // - The member has joined very recently, completed the screening if any, and is not in a pending state
   if (
-    !HasUserCompletedScreening &&
-    !IsOnboardingFeaturesEnabled &&
-    (UpdatedMember.pending || !IsMemberRecentlyJoined)
+    (!HasUserCompletedScreening && !IsOnboardingFeaturesEnabled && UpdatedMember.pending) ||
+    OutdatedMember.roles.cache.difference(UpdatedMember.roles.cache).size === 0
   ) {
     return;
   }
 
+  const ActiveRolePersistRecords = await RolePersistenceModel.find({
+    guild: UpdatedMember.guild.id,
+    user: UpdatedMember.id,
+    $or: [{ expiry: null }, { expiry: { $gt: new Date() } }],
+  })
+    .sort({ saved_on: -1, expiry: -1 })
+    .lean()
+    .exec();
+
   try {
-    const AppMember = await UpdatedMember.guild.members.fetch(Client.user.id);
+    if (!ActiveRolePersistRecords.length) return;
+    const AppMember = await UpdatedMember.guild.members.fetchMe();
     if (!AppMember?.permissions.has(PermissionFlagsBits.ManageRoles)) return;
 
-    const ActiveRolePersistRecords = await RolePersistenceModel.find({
-      guild: UpdatedMember.guild.id,
-      user: UpdatedMember.id,
-      $or: [{ expiry: { $gte: new Date() } }, { expiry: null }],
-    })
-      .sort({ saved_on: -1, expiry: -1 })
-      .exec();
+    const RestorationReason = IsMemberRecentlyJoined
+      ? "user (re)joined"
+      : "a persistent role was manually removed";
 
-    if (!ActiveRolePersistRecords.length) return;
     const RolesToAssignSet = new Set<Role>(
       ActiveRolePersistRecords.map((Record) =>
         Record.roles.map((Role) => UpdatedMember.guild.roles.cache.get(Role.role_id))
@@ -69,8 +81,7 @@ export default async function OnMemberRejoinRolePersistHandler(
     );
 
     if (!RolesToAssignSet.size) return;
-    const RecordIdsProcessed = ActiveRolePersistRecords.map((Record) => `${Record._id.toString()}`);
-
+    const RecordIdsProcessed = ActiveRolePersistRecords.map((Record) => Record._id);
     const RolesToAssign = [...RolesToAssignSet.values()].filter(
       (Role) =>
         !Role.managed &&
@@ -80,10 +91,28 @@ export default async function OnMemberRejoinRolePersistHandler(
     );
 
     if (!RolesToAssign.length) return;
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    if (IsMemberRecentlyJoined) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    } else {
+      const CooldownInfo = PRCooldownMultiplier.get(UpdatedMember.id) ?? {
+        current_op: null,
+        assignment_count: 0,
+        last_reassigned: new Date(),
+      };
+
+      const CooldownDuration = Math.min(
+        CooldownInfo.assignment_count * 1000 * (2 * Math.min(Math.random(), 0.7)),
+        20_000
+      );
+
+      CooldownInfo.assignment_count += 1;
+      PRCooldownMultiplier.set(UpdatedMember.id, CooldownInfo);
+      await new Promise((resolve) => setTimeout(resolve, CooldownDuration));
+    }
+
     await UpdatedMember.roles.add(
       RolesToAssign,
-      `Role persistence restoration, user rejoined; record${RecordIdsProcessed.length > 1 ? "s" : ""}: ${RecordIdsProcessed.join(", ")}.`
+      `Role persistence restoration, ${RestorationReason}; record${RecordIdsProcessed.length > 1 ? "s" : ""}: ${RecordIdsProcessed.join(", ")}.`
     );
   } catch (Err: any) {
     AppLogger.error({
