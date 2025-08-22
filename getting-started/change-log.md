@@ -3,22 +3,23 @@ description: >-
   Track LAPD Central's evolution with detailed release notes, feature additions,
   and bug fixes. Each version includes commit links for full transparency.
 icon: newspaper
-layout:
-  title:
-    visible: true
-  description:
-    visible: true
-  tableOfContents:
-    visible: true
-  outline:
-    visible: true
-  pagination:
-    visible: false
 ---
 
 # Change Log
 
-## [Version 1.3](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.0) (Latest) — June 2&#x32;**, 2025**
+## Version 1.6  — August 23, 2025
+
+See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.6.0).
+
+## Version 1.5  — August 9, 2025
+
+See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.5.0).
+
+## Version 1.4  — July 21, 2025
+
+See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.4.0).
+
+## [Version 1.3](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.0) — June 2&#x32;**, 2025**
 
 ### **Enhancements**
 

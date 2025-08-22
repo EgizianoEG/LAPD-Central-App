@@ -225,7 +225,7 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Ephemeral:** Yes (Prompt)\
   **Description:** Allows staff members to log the fines they issue while being on-duty so it can be accessible later on. Nearly the same as the`/log citation-warning` command.
 * **Log Arrest&#x20;**<mark style="color:blue;">**(\*)**</mark>\
-  **Command:** `/log arrest <name:Text> <gender: "Male" or "Female"> <arrest-age:Integer> <height:Text> <weight:Integer>` \
+  **Command:** `/log arrest <name:Text> <gender: "Male" or "Female"> <arrest-age:Integer> <height:Text> <weight:Integer> [primary-officer:Text] [arrest-location:Text] [arresting-detail:Text]` \
   **Ephemeral:** Yes (Prompt)\
   **Description:** Allows staff members to log the arrests they make while being on-duty.
 
