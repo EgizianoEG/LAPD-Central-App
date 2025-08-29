@@ -35,8 +35,9 @@ export default async function OnMemberRejoinRolePersistHandler(
   );
 
   const IsMemberRecentlyJoined =
-    UpdatedMember.joinedTimestamp &&
-    differenceInMilliseconds(Date.now(), UpdatedMember.joinedTimestamp) < 3 * 1000;
+    HasUserCompletedScreening ||
+    (UpdatedMember.joinedTimestamp &&
+      differenceInMilliseconds(Date.now(), UpdatedMember.joinedTimestamp) <= 60 * 1000);
 
   // Case 1: If the guild uses onboarding features, only continue if the user has
   // just finished the screening process.
@@ -49,7 +50,8 @@ export default async function OnMemberRejoinRolePersistHandler(
   // - The member has joined very recently, completed the screening if any, and is not in a pending state
   if (
     (!HasUserCompletedScreening && !IsOnboardingFeaturesEnabled && UpdatedMember.pending) ||
-    OutdatedMember.roles.cache.difference(UpdatedMember.roles.cache).size === 0
+    (!IsMemberRecentlyJoined &&
+      OutdatedMember.roles.cache.difference(UpdatedMember.roles.cache).size === 0)
   ) {
     return;
   }
