@@ -82,6 +82,7 @@ async function HandleExpiredUserActivityNotices(
     }
   }
 
+  if (!NoticesHandled.length) return;
   return ActivityNoticeModel.updateMany(
     { _id: { $in: NoticesHandled } },
     { $set: { end_processed: true } }
