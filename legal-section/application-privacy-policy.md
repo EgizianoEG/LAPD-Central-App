@@ -106,6 +106,7 @@ If you have any questions, concerns, or comments about this Privacy Notice or an
 * Opening an issue on the application's [GitHub repository](https://github.com/EgizianoEG/LAPD-Central-Bot/issues) (recommended only for priorities and urgent issues).
 * Contacting us via the application's [support server](https://discord.gg/B2qMTjqgPK).
 * Reaching out to a developer directly for urgent issues.
+* Or, by [e-mailing us](mailto:guiurwu0o@mozmail.com) directly.
 
 ***
 
