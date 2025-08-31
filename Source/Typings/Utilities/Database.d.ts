@@ -244,6 +244,84 @@ export namespace Guilds {
        */
       alert_roles: string[];
     };
+
+    callsigns_module: {
+      /**
+       * Indicates whether the callsigns module is active. Defaults to `false`.
+       * If disabled, staff members will be unable to use any functionality of this module.
+       */
+      enabled: boolean;
+
+      /**
+       * A list of roles whose members are authorized to approve and/or manage callsign requests.
+       * However, members with application or server management permissions can still approve and manage these requests.
+       */
+      approver_roles: string[];
+
+      /**
+       * The channel where callsign changes will be logged.
+       * @default null
+       */
+      log_channel?: string | null;
+
+      /**
+       * The channel designated for submitting callsign requests.
+       * If set to `null`, staff members can still submit requests, but management staff
+       * will need to be notified manually via slash commands.
+       *
+       * @default null
+       */
+      requests_channel?: string | null;
+
+      /**
+       * Restrictions on unit types based on roles (e.g., specific roles required for "W" type units).
+       * Set to an empty array to remove all restrictions (Default);
+       *
+       * @default []
+       */
+      unit_type_restrictions: {
+        unit_type: string;
+        permitted_roles: string[];
+      }[];
+
+      /**
+       * Restrictions on identifier values based on roles (e.g., specific roles required for certain identifier ranges).
+       * For example, members with sergeant roles may request callsigns that fall within a specific numeric range.
+       *
+       * There are no restrictions (empty array) as a default.
+       * @default []
+       */
+      identifier_restrictions: {
+        range: [number, number];
+        permitted_roles: string[];
+
+        /** Allow certain identifier values; override the companion restrictions such as `exclude`. */
+        allow: number[];
+
+        /** Exclude certain identifier values within the `range`. */
+        exclude: number[];
+      }[];
+
+      /**
+       * The format to apply on requester nicknames when a callsign request is approved.
+       * Supports template strings with the following placeholders:
+       * - `{division}`
+       * - `{unit_type}`
+       * - `{identifier}`
+       * - `{display_name}`
+       * - `{nickname}`; falls back to `{display_name}` if not set.
+       *
+       * This only works if `update_nicknames` option is enabled.
+       * @default {division}{unit_type}-{identifier} | {nickname}
+       */
+      nickname_format: string;
+
+      /**
+       * Whether to automatically update nicknames to align with the set format when callsigns gets approved.
+       * @default false
+       */
+      update_nicknames: boolean;
+    };
   }
 
   interface GuildDocument {

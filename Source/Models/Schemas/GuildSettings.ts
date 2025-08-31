@@ -1,5 +1,5 @@
 import { Schema } from "mongoose";
-import { DASignatureFormats } from "@Config/Constants.js";
+import { CallsignUnitTypes, DASignatureFormats } from "@Config/Constants.js";
 import ShiftTypeSchema from "./ShiftType.js";
 
 const SnowflakeIdValidationN1: [RegExp, string] = [
@@ -291,6 +291,110 @@ const GuildSettings = new Schema({
           validator: (arr: string[]) =>
             ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 3,
         },
+      },
+    },
+  },
+
+  callsigns_module: {
+    _id: false,
+    default: {},
+    required: true,
+    type: {
+      enabled: {
+        type: Boolean,
+        default: false,
+        required: true,
+      },
+
+      approver_roles: {
+        type: [String],
+        default: [],
+        required: true,
+        validate: ArrayOfSnowflakesValidator,
+      },
+
+      log_channel: {
+        type: String,
+        default: null,
+        required: false,
+        match: SnowflakeIdValidationN1,
+      },
+
+      requests_channel: {
+        type: String,
+        default: null,
+        required: false,
+        match: SnowflakeIdValidationN1,
+      },
+
+      unit_type_restrictions: {
+        default: [],
+        required: true,
+        type: [
+          {
+            _id: false,
+            unit_type: {
+              type: String,
+              required: true,
+              enum: CallsignUnitTypes,
+              trim: true,
+            },
+            permitted_roles: {
+              type: [String],
+              default: [],
+              required: true,
+              validate: ArrayOfSnowflakesValidator,
+            },
+          },
+        ],
+      },
+
+      identifier_restrictions: {
+        default: [],
+        required: true,
+        type: [
+          {
+            _id: false,
+            range: {
+              type: [Number],
+              required: true,
+              validate: {
+                validator: (arr: number[]) => arr.length === 2 && arr[0] <= arr[1],
+                message:
+                  "Range must be an array of two numbers where the first is less than or equal to the second.",
+              },
+            },
+            permitted_roles: {
+              type: [String],
+              default: [],
+              required: true,
+              validate: ArrayOfSnowflakesValidator,
+            },
+            allow: {
+              type: [Number],
+              default: [],
+              required: true,
+            },
+            exclude: {
+              type: [Number],
+              default: [],
+              required: true,
+            },
+          },
+        ],
+      },
+
+      nickname_format: {
+        type: String,
+        default: "{division}{unit_type}-{identifier} | {nickname}",
+        required: true,
+        trim: true,
+      },
+
+      update_nicknames: {
+        type: Boolean,
+        default: false,
+        required: true,
       },
     },
   },
