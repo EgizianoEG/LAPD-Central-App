@@ -1,7 +1,7 @@
+import type { DASignatureFormats, GenericRequestStatuses } from "@Config/Constants.ts";
 import type { IncidentTypes, IncidentStatusesFlattened } from "@Resources/IncidentConstants.ts";
 import type { Types, HydratedDocument, Model } from "mongoose";
 import type { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.ts";
-import type { DASignatureFormats } from "@Config/Constants.ts";
 import type { ShiftFlags } from "@Models/Shift.ts";
 import type { Overwrite } from "utility-types";
 import type {
@@ -1266,6 +1266,66 @@ export namespace GuildIncidents {
     last_updated: Date;
     last_updated_by?: Pick<OfficerInvolved, "discord_id" | "discord_username" | "signature"> | null;
   }
+}
+
+export namespace Callsigns {
+  interface CallsignDocument {
+    _id: Types.ObjectId;
+    guild: string;
+
+    /** The Id of the person who made the request. */
+    requester: string;
+
+    /** The date when the request was made. */
+    requested_on: Date;
+
+    /** The message associated with the request for later updates. */
+    request_message: string | null;
+
+    /** The reason for the request. */
+    request_reason: string;
+
+    /** The current status of the request. */
+    request_status: keyof typeof GenericRequestStatuses;
+
+    /** The Id of the person who reviewed this request. */
+    reviewer: string | null;
+
+    /** Any provided notes for the approval/denial of this request. */
+    reviewer_notes: string | null;
+    reviewed_on: Date | null;
+
+    /**
+     * The expiry date of this callsign if it was approved.
+     * This field will be set to a date when the callsign requester/holder has changed callsigns,
+     * no longer considered staff, the request/callsign was managed manually, or, possibly in the feature, if there is considered a temporary callsign.
+     */
+    expiry: Date | null;
+
+    /**
+     * The designation of the callsign.
+     */
+    designation: {
+      /**
+       * The geographical division of the callsign.
+       * An integer in the range (1-35).
+       */
+      division: number;
+
+      /**
+       * A string represents the unit or assignment the callsign belongs to.
+       */
+      unit_type: string;
+
+      /**
+       * A unique (or semi-unique) identifier for the callsign.
+       */
+      identifier: string;
+    };
+  }
+
+  type HydratedCallsignDocument = HydratedDocument<CallsignDocument>;
+  interface CallsignModel extends Model<CallsignDocument, {}, {}, HydratedCallsignDocument> {}
 }
 
 export namespace RolePersist {

@@ -1,7 +1,8 @@
 import { CallsignUnitTypes, GenericRequestStatuses } from "@Config/Constants.js";
 import { Schema, model } from "mongoose";
+import { Callsigns } from "@Typings/Utilities/Database.js";
 
-const CallsignSchema = new Schema({
+const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.CallsignModel>({
   guild: {
     type: String,
     index: true,
@@ -33,13 +34,24 @@ const CallsignSchema = new Schema({
   },
 
   request_status: {
-    type: String,
+    type: String as any,
     required: true,
     default: GenericRequestStatuses.Pending,
     enum: {
       values: Object.values(GenericRequestStatuses),
       message: `Request status must be one of the following: ${Object.values(GenericRequestStatuses).join(", ")}. Received {VALUE}.`,
     },
+  },
+
+  request_message: {
+    type: String,
+    trim: true,
+    default: null,
+    required: false,
+    validate: [
+      (s: string | null) => s === null || /^\d{15,22}:\d{15,22}$/.test(s),
+      "Invalid format for request message Id; received: {VALUE}. Format: <requests_channel>:<request_msg_id>.",
+    ],
   },
 
   reviewer: {
@@ -80,7 +92,7 @@ const CallsignSchema = new Schema({
     default: {},
     type: {
       division: {
-        type: Schema.Types.Int32,
+        type: Schema.Types.Int32 as unknown as any,
         index: true,
         required: true,
         default: 1,
@@ -111,9 +123,7 @@ const CallsignSchema = new Schema({
           return Num.toString().padStart(2, "0");
         },
         validate: {
-          validator: (Value: string) => {
-            return Value.match(/^\d{2,4}$/) && parseInt(Value) > 0;
-          },
+          validator: (val: string) => /^\d{2,4}$/.test(val) && parseInt(val) > 0,
           message:
             "Identifier must be 2-4 digits (e.g., '01', '123') and > 0. Value received: {VALUE}",
         },
@@ -122,5 +132,9 @@ const CallsignSchema = new Schema({
   },
 });
 
-const CallsignModel = model("Callsign", CallsignSchema);
+const CallsignModel = model<Callsigns.CallsignDocument, Callsigns.CallsignModel>(
+  "Callsign",
+  CallsignSchema
+);
+
 export default CallsignModel;
