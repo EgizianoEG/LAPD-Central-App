@@ -1,81 +1,19 @@
+import { CallsignUnitTypes, GenericRequestStatuses } from "@Config/Constants.js";
 import { Schema, model } from "mongoose";
 
 const CallsignSchema = new Schema({
-  holder: {
+  guild: {
     type: String,
+    index: true,
     required: true,
-    immutable: true,
+    match: /^\d{15,22}$/,
   },
 
-  /** @see http://forums.radioreference.com/threads/lapd-supervisory-command-staff-callsigns.451920/post-3834919 */
-  designation: {
-    _id: false,
+  requester: {
+    type: String,
+    index: true,
     required: true,
-    immutable: true,
-    alias: "callsign",
-    default: {},
-    type: {
-      division: {
-        type: Schema.Types.Int32,
-        required: true,
-        default: 7,
-        min: 1,
-        max: 35,
-      },
-
-      unit_type: {
-        type: String,
-        trim: true,
-        required: true,
-        uppercase: true,
-        enum: {
-          values: [
-            "A",
-            "B",
-            "C",
-            "E",
-            "F",
-            "G",
-            "K9",
-            "H",
-            "L",
-            "M",
-            "N",
-            "P",
-            "R",
-            "S",
-            "U",
-            "T",
-            "W",
-            "Y",
-            "I",
-            "K",
-            "X",
-            "Z",
-          ],
-          message:
-            "The callsign unit type must be one of the following: A, B, C, E, F, G, K9, H, L, M, N, P, R, S, U, T, W, Y, I, K, X, Z.; provided {VALUE} is not supported.",
-        },
-      },
-
-      identifier: {
-        type: String,
-        required: true,
-        set: (Value: string) => {
-          const Trimmed = Value.trim();
-          const Num = parseInt(Trimmed);
-          if (isNaN(Num) || Num <= 0) return "000";
-          return Num.toString().padStart(3, "0");
-        },
-        validate: {
-          validator: (Value: string) => {
-            return Value.match(/^\d{3,4}$/) && parseInt(Value) > 0;
-          },
-          message:
-            "Identifier must be 3-4 digits (e.g., '001', '123') and > 0. Value received: {VALUE}",
-        },
-      },
-    },
+    match: /^\d{15,22}$/,
   },
 
   requested_on: {
@@ -85,7 +23,26 @@ const CallsignSchema = new Schema({
     immutable: true,
   },
 
-  approving_user: {
+  request_reason: {
+    type: String,
+    trim: true,
+    required: true,
+    default: "N/A",
+    minLength: 3,
+    maxLength: 128,
+  },
+
+  request_status: {
+    type: String,
+    required: true,
+    default: GenericRequestStatuses.Pending,
+    enum: {
+      values: Object.values(GenericRequestStatuses),
+      message: `Request status must be one of the following: ${Object.values(GenericRequestStatuses).join(", ")}. Received {VALUE}.`,
+    },
+  },
+
+  reviewer: {
     type: String,
     match: /^\d{15,22}$/,
     ref: "GuildProfile",
@@ -93,10 +50,75 @@ const CallsignSchema = new Schema({
     required: false,
   },
 
-  approved_on: {
+  reviewer_notes: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+
+  reviewed_on: {
     type: Date,
     default: null,
     required: false,
+  },
+
+  expiry: {
+    type: Date,
+    default: null,
+    required: false,
+  },
+
+  /**
+   * For more information,
+   * @see http://forums.radioreference.com/threads/lapd-supervisory-command-staff-callsigns.451920/post-3834919
+   */
+  designation: {
+    _id: false,
+    required: true,
+    immutable: true,
+    alias: "callsign",
+    default: {},
+    type: {
+      division: {
+        type: Schema.Types.Int32,
+        index: true,
+        required: true,
+        default: 1,
+        min: 1,
+        max: 35,
+      },
+
+      unit_type: {
+        type: String,
+        trim: true,
+        index: true,
+        required: true,
+        uppercase: true,
+        enum: {
+          values: Object.values(CallsignUnitTypes),
+          message: `The callsign unit type must be one of the following: ${Object.values(CallsignUnitTypes).join(", ")}, provided {VALUE} is not supported.`,
+        },
+      },
+
+      identifier: {
+        type: String,
+        index: true,
+        required: true,
+        set: (Value: string) => {
+          const Trimmed = Value.trim();
+          const Num = parseInt(Trimmed);
+          if (isNaN(Num) || Num <= 0) return "000";
+          return Num.toString().padStart(2, "0");
+        },
+        validate: {
+          validator: (Value: string) => {
+            return Value.match(/^\d{2,4}$/) && parseInt(Value) > 0;
+          },
+          message:
+            "Identifier must be 2-4 digits (e.g., '01', '123') and > 0. Value received: {VALUE}",
+        },
+      },
+    },
   },
 });
 
