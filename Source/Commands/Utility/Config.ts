@@ -2033,8 +2033,8 @@ async function HandleBasicConfigDBSave(
   ).then((GuildDoc) => GuildDoc?.settings);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = clone(UpdatedSettings) as GuildSettings;
-    MState.ModuleConfig = clone(UpdatedSettings) as GuildSettings;
+    MState.OriginalConfig = clone(UpdatedSettings);
+    MState.ModuleConfig = clone(UpdatedSettings);
 
     const SetStaffRoles = UpdatedSettings.role_perms.staff.map((R) => roleMention(R));
     const SetMgmtRoles = UpdatedSettings.role_perms.management.map((R) => roleMention(R));
@@ -2083,7 +2083,7 @@ async function HandleShiftModuleDBSave(
   ).then((GuildDoc) => GuildDoc?.settings.shift_management);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = { ...(UpdatedSettings as GuildSettings["shift_management"]) };
+    MState.OriginalConfig = { ...UpdatedSettings };
     const SetLogChannel = UpdatedSettings.log_channel
       ? channelMention(UpdatedSettings.log_channel)
       : "`None`";
@@ -2321,8 +2321,8 @@ async function HandleAdditionalConfigDBSave(
   ).then((GuildDoc) => GuildDoc?.settings);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = clone(UpdatedSettings) as GuildSettings;
-    MState.ModuleConfig = clone(UpdatedSettings) as GuildSettings;
+    MState.OriginalConfig = clone(UpdatedSettings);
+    MState.ModuleConfig = clone(UpdatedSettings);
 
     const LDIFormatted = GetHumanReadableLogDeletionInterval(
       UpdatedSettings.duty_activities.log_deletion_interval

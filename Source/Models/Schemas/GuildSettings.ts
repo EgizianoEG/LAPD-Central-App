@@ -1,6 +1,7 @@
 import { Schema } from "mongoose";
 import { CallsignUnitTypes, DASignatureFormats } from "@Config/Constants.js";
 import ShiftTypeSchema from "./ShiftType.js";
+import type { Guilds } from "@Typings/Utilities/Database.js";
 
 const SnowflakeIdValidationN1: [RegExp, string] = [
   /^\d{15,22}$/,
@@ -22,7 +23,7 @@ const ArrayOfSnowflakesValidator = {
  * Represents the schema for guild settings in the database.
  * @see @Typings/Utilities/Database.js for schema documentation.
  */
-const GuildSettings = new Schema({
+const GuildSettings = new Schema<Guilds.GuildSettings>({
   require_authorization: {
     type: Boolean,
     default: true,
@@ -233,7 +234,7 @@ const GuildSettings = new Schema({
         type: [String],
         default: [],
         required: true,
-        match: {
+        validate: {
           message: "Expected an array of valid snowflake Ids of length 0-3.",
           validator: (arr: string[]) =>
             ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 3,
@@ -286,7 +287,7 @@ const GuildSettings = new Schema({
         type: [String],
         default: [],
         required: true,
-        match: {
+        validate: {
           message: "Expected an array of valid snowflake Ids of length 0-3.",
           validator: (arr: string[]) =>
             ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 3,
