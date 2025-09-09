@@ -45,6 +45,8 @@ type LeaderboardEntry = {
 
 const FileLabel = "Commands:Miscellaneous:Duty:Import";
 const LineRegex = DutyLeaderboardEntryRegex;
+const MaxFileSize = 1 * 1024 * 1024; // 1MB
+const MaxContentSize = 1.5 * 1024 * 1024; // 1.5MB
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
@@ -52,11 +54,21 @@ async function IsAttachmentExtensionValid(
   Interaction: SlashCommandInteraction<"cached">,
   DataFile: Attachment
 ): Promise<boolean> {
-  if (DataFile.name.endsWith(".txt")) return true;
-  return new ErrorContainer()
-    .useErrTemplate("AttachmentMustBeTextFile")
-    .replyToInteract(Interaction, true)
-    .then(() => false);
+  if (!DataFile.name.endsWith(".txt")) {
+    return new ErrorContainer()
+      .useErrTemplate("AttachmentMustBeTextFile")
+      .replyToInteract(Interaction, true)
+      .then(() => false);
+  }
+
+  if (DataFile.size > MaxFileSize) {
+    return new ErrorContainer()
+      .useErrTemplate("DutyImportFileTooLarge")
+      .replyToInteract(Interaction, true)
+      .then(() => false);
+  }
+
+  return true;
 }
 
 async function AwaitImportConfirmation(
@@ -137,26 +149,57 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   });
 
   try {
-    const FileContent = await (await fetch(UploadedFile.url)).text();
+    const FileContent = await (
+      await fetch(UploadedFile.url, {
+        signal: AbortSignal.timeout(30_000),
+      })
+    ).text();
+
+    if (new Blob([FileContent]).size > MaxContentSize) {
+      throw new AppError({ template: "DutyImportFContentTooLarge", showable: true });
+    }
+
     const FileEntries = FileContent.split(/\r?\n/)
       .map((Line) => Line.trim())
       .filter((Line) => Line.length > 0)
-      .map((Line) => (Line.match(LineRegex)?.groups as LeaderboardEntry) ?? null)
+      .filter((Line) => Line.length <= 1000)
+      .slice(0, 5000)
+      .map((Line) => {
+        try {
+          return (Line.match(LineRegex)?.groups as LeaderboardEntry) ?? null;
+        } catch (RegexError: any) {
+          AppLogger.warn({
+            message: "Regex processing failed for line",
+            line: Line.substring(0, 100),
+            error: RegexError,
+            stack: RegexError?.stack,
+            label: FileLabel,
+          });
+
+          return null;
+        }
+      })
       .filter(
         (Entry) =>
           Entry &&
           "hr_time" in Entry &&
           "username" in Entry &&
+          Entry.username.length >= 2 &&
+          Entry.username.length <= 32 &&
+          /^[a-zA-Z0-9_.]+$/.test(Entry.username) &&
           !Entry.hr_time.trim().match(/^0\s*?seconds$/i)
       )
       .map((Entry) => {
+        if (!Entry) return null;
         if (!Entry.duty_ms && Entry.hr_time) {
           Entry.duty_ms = Math.round(Math.abs(ParseDuration(Entry.hr_time, "millisecond") ?? 0));
         } else if (typeof Entry.duty_ms === "string") {
           Entry.duty_ms = parseInt(Entry.duty_ms, 10);
         }
+
         return Entry as LeaderboardEntry & { duty_ms: number };
-      });
+      })
+      .filter((Entry): Entry is LeaderboardEntry & { duty_ms: number } => Entry !== null);
 
     if (FileEntries.length === 0) {
       return ConfirmationInteract.editReply({
@@ -178,16 +221,27 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       }
     });
 
-    const SanitizedShiftEntries = FileEntries.filter((Entry) => Entry.user_id && Entry.duty_ms).map(
-      (Entry) => ({
-        user: Entry.user_id!,
+    // Group entries by `user_id` and aggregate duty times for duplicate usernames:
+    const UserDutyMap = new Map<string, number>();
+    const ValidEntries = FileEntries.filter((Entry) => Entry.user_id && Entry.duty_ms);
+
+    ValidEntries.forEach((Entry) => {
+      const UserId = Entry.user_id!;
+      const CurrentDuty = UserDutyMap.get(UserId) || 0;
+      UserDutyMap.set(UserId, CurrentDuty + Entry.duty_ms);
+    });
+
+    // Shift entries with unique timestamps to avoid ID collisions:
+    const SanitizedShiftEntries = Array.from(UserDutyMap.entries()).map(
+      ([UserId, TotalDutyMs], index) => ({
+        user: UserId,
         guild: Interaction.guild.id,
         flag: ShiftFlags.Imported,
         type: ShiftType,
-        start_timestamp: ConfirmationInteract.createdAt,
-        end_timestamp: ConfirmationInteract.createdAt,
+        start_timestamp: new Date(ConfirmationInteract.createdAt.getTime() + index),
+        end_timestamp: new Date(ConfirmationInteract.createdAt.getTime() + index),
         durations: {
-          on_duty_mod: Entry.duty_ms,
+          on_duty_mod: TotalDutyMs,
         },
       })
     );
@@ -196,8 +250,9 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       UsersTotal: FileEntries.length,
       ShiftsOfType: ShiftType,
       SourceFileURL: UploadedFile.url,
-      TotalShiftTime: FileEntries.reduce((Acc, Entry) => Acc + Entry.duty_ms, 0),
-      UnresolvedUsers: FileEntries.length - SanitizedShiftEntries.length,
+      TotalShiftTime: Array.from(UserDutyMap.values()).reduce((acc, dutyMs) => acc + dutyMs, 0),
+      UnresolvedUsers: FileEntries.length - ValidEntries.length,
+      UniqueUsersImported: UserDutyMap.size,
       ShiftsTotal: FileEntries.reduce((Acc, Entry) => {
         return typeof Entry.shift_count === "string"
           ? Acc + parseInt(Entry.shift_count, 10)
@@ -235,7 +290,8 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         .setDescription(
           Dedent(`
             The duty time import has been completed successfully. The following is a summary of the imported data:
-            - **Total Staff:** ${DataParsed.UsersTotal}${UnresolvedUsersText}
+            - **Unique Staff Imported:** ${DataParsed.UniqueUsersImported}
+            - **Total Staff in File:** ${DataParsed.UsersTotal}${UnresolvedUsersText}
             - **Under Shift Type:** ${DataParsed.ShiftsOfType}
             - **Total Shift Time:** ${ReadableDuration(DataParsed.TotalShiftTime)}
           `)

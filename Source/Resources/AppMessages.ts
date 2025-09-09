@@ -954,6 +954,17 @@ export const ErrorMessages = {
       "The duty import file contained no valid entries that could be processed. Make sure the entries in the file are correctly formatted and try again.",
   },
 
+  DutyImportFileTooLarge: {
+    Title: "File Too Large",
+    Description: "The uploaded file exceeds the maximum allowed size of one megabyte (1MB).",
+  },
+
+  DutyImportFContentTooLarge: {
+    Title: "Content Too Large",
+    Description:
+      "The uploaded file's content is too large to process. Try splitting it into smaller chunks and uploading them separately.",
+  },
+
   ActionRequiresMemberPresence: {
     Title: "Must Be a Present Member",
     Description:
