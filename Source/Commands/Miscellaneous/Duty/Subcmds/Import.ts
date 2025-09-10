@@ -273,7 +273,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       UsersTotal: FileEntries.length,
       ShiftsOfType: ShiftType,
       SourceFileURL: UploadedFile.url,
-      TotalShiftTime: Array.from(UserDutyMap.values()).reduce((acc, dutyMs) => acc + dutyMs, 0),
+      TotalShiftTime: Array.from(UserDutyMap.values()).reduce((Acc, DutyMs) => Acc + DutyMs, 0),
       UnresolvedUsers: FileEntries.length - ValidEntries.length,
       UniqueUsersImported: UserDutyMap.size,
       ShiftsTotal: FileEntries.reduce((Acc, Entry) => {
@@ -337,6 +337,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       error_id: ErrorId,
       label: FileLabel,
       stack: Err.stack,
+      error: Err,
     });
   }
 }
