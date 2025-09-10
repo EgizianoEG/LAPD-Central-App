@@ -1,6 +1,8 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import { DutyLeaderboardEntryRegex } from "@Resources/RegularExpressions.js";
+import { randomInt as RandomInteger } from "node:crypto";
 import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
+import { DutyLeaderboardEntryRegex } from "@Resources/RegularExpressions.js";
+import { Dedent, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
 import {
   SlashCommandSubcommandBuilder,
@@ -21,7 +23,6 @@ import {
   WarnContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
-import { Dedent, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
 import ResolveUsernamesToIds from "@Utilities/Discord/ResolveDiscordUsernames.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
@@ -232,19 +233,41 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     });
 
     // Shift entries with unique timestamps to avoid ID collisions:
-    const SanitizedShiftEntries = Array.from(UserDutyMap.entries()).map(
-      ([UserId, TotalDutyMs], index) => ({
-        user: UserId,
-        guild: Interaction.guild.id,
-        flag: ShiftFlags.Imported,
-        type: ShiftType,
-        start_timestamp: new Date(ConfirmationInteract.createdAt.getTime() + index),
-        end_timestamp: new Date(ConfirmationInteract.createdAt.getTime() + index),
-        durations: {
-          on_duty_mod: TotalDutyMs,
-        },
-      })
-    );
+    let ShiftIds: string[] = [];
+    let SanitizedShiftEntries: {
+      _id: string;
+      user: string;
+      guild: string;
+      flag: ShiftFlags;
+      type: string;
+      start_timestamp: number;
+      end_timestamp: number;
+      durations: { on_duty_mod: number };
+    }[] = [];
+
+    do {
+      SanitizedShiftEntries = Array.from(UserDutyMap.entries()).map(
+        ([UserId, TotalDutyMs], index) => {
+          const ShiftIdEpoch =
+            Date.now() + index * RandomInteger(1, 50) + index + RandomInteger(10, 99);
+
+          return {
+            _id: `${ShiftIdEpoch}${RandomInteger(10, 99)}`.slice(0, 15),
+            user: UserId,
+            guild: Interaction.guild.id,
+            flag: ShiftFlags.Imported,
+            type: ShiftType,
+            start_timestamp: Date.now() + index,
+            end_timestamp: Date.now() + index,
+            durations: {
+              on_duty_mod: TotalDutyMs,
+            },
+          };
+        }
+      );
+
+      ShiftIds = SanitizedShiftEntries.map((Entry) => Entry._id);
+    } while (new Set(ShiftIds).size !== SanitizedShiftEntries.length);
 
     const DataParsed = {
       UsersTotal: FileEntries.length,
@@ -267,13 +290,14 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
     try {
       await ShiftModel.insertMany(SanitizedShiftEntries);
-    } catch (dbError: any) {
+    } catch (DBError: any) {
       const ErrorId = GetErrorId();
       AppLogger.error({
         message: "Failed to import duty data into the database.",
         error_id: ErrorId,
         label: FileLabel,
-        stack: dbError.stack,
+        stack: DBError.stack,
+        error: DBError,
       });
 
       return new ErrorContainer()
