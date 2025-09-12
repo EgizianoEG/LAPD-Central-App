@@ -129,6 +129,15 @@ export const ErrorMessages = {
   },
 
   /**
+   * @template InputShiftTypeName The name of the shift type provided by the user.
+   */
+  ShiftTypeDeletionFailed: {
+    Title: "Deletion Failed",
+    Description:
+      "The shift type `%s` could not be deleted as expected. If the issue persists, please contact support.",
+  },
+
+  /**
    *
    */
   MaximumShiftTypesReached: {

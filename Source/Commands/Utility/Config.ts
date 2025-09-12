@@ -485,7 +485,7 @@ async function HandleConfigTimeoutResponse(
 ) {
   const MsgContainer = new InfoContainer()
     .useInfoTemplate("TimedOutConfigPrompt")
-    .setTitle(`Timed Out - ${CurrModule} Configuration`);
+    .setTitle(`Timed Out - ${CurrModule}`);
 
   if (Interact.deferred || Interact.replied) {
     return Interact.editReply({
