@@ -39,3 +39,10 @@ export const SignatureFormatResolved = {
   [DASignatureFormats.DiscordNicknameDiscordUsername]: "Discord Nickname + Discord Username",
   [DASignatureFormats.RobloxDisplayNameRobloxUsername]: "Roblox Display Name + Roblox Username",
 };
+
+export const GenericRequestStatuses = {
+  Pending: "Pending",
+  Approved: "Approved",
+  Denied: "Denied",
+  Cancelled: "Cancelled",
+} as const;

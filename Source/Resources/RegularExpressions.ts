@@ -54,6 +54,7 @@ export const IncidentReportNumberLineRegex =
 
 export const IncidentReportedOnTSRegex = /\b\*{0,3}Reported On:\*{0,3}\s{0,10}<t:(\d{9,14}):\w>/i;
 export const UserActivityNoticeMgmtCustomIdRegex = /^(?:loa|ra)-(?:ext-)?(?:app|den|inf)[\w-]*:/;
+export const CallsignMgmtCustomIdRegex = /^callsign-(?:approve|deny|info):/;
 export const DutyManagementBtnCustomIdRegex = /^dm-(?:start|end|break):\d{15,22}:[\w\-. ]{3,20}/;
 
 export const LEORegex = /(?:Officer|Peace Officer|\bPolice\b|\bLEO\b|\bPO\b)s?/;

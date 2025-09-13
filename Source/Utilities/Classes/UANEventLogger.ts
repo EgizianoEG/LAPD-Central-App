@@ -64,10 +64,10 @@ export class BaseUserActivityNoticeLogger {
     Guild: Guild,
     Channel: GuildBasedChannel,
     Perms: bigint | bigint[] = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-  ) {
+  ): Promise<boolean> {
     const ClientMember = await Guild.members.fetchMe().catch(() => null);
     return (
-      ClientMember &&
+      !!ClientMember &&
       Channel.isSendable() &&
       Channel.isTextBased() &&
       Channel.permissionsFor(ClientMember).has(Perms, true)
@@ -226,7 +226,7 @@ export class BaseUserActivityNoticeLogger {
     const Embed = new EmbedBuilder()
       .setImage(Images.FooterDivider)
       .setFooter({ text: `Reference ID: ${Opts.NoticeDocument._id}` })
-      .setColor(Opts.Type === "Cancelled" ? Colors.LOARequestDenied : Colors.LOARequestPending)
+      .setColor(Opts.Type === "Cancelled" ? Colors.RequestDenied : Colors.RequestPending)
       .setTitle(
         `${Opts.Type}${IsExtension ? " Request" : ""} |  ${this.title}${IsExtension ? "" : " Request"}`
       );
@@ -289,7 +289,7 @@ export class BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestPending)
+        .setColor(Colors.RequestPending)
         .setFooter({ text: `Reference ID: ${PendingNotice._id}` })
         .setTitle(`${this.title} — Request Under Review`)
         .setDescription(
@@ -353,7 +353,7 @@ export class BaseUserActivityNoticeLogger {
 
     if (RequestStatus === "Approved" && NoticeDocument.review_date) {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, NoticeDocument.reviewed_by!.id);
-      RequestEmbed.setColor(Colors.LOARequestApproved)
+      RequestEmbed.setColor(Colors.RequestApproved)
         .setTitle(`Approved  |  ${this.title} Request`)
         .setFooter({
           text: `Reference ID: ${NoticeDocument._id}; approved by @${NoticeDocument.reviewed_by!.username} on`,
@@ -361,7 +361,7 @@ export class BaseUserActivityNoticeLogger {
         });
     } else if (RequestStatus === "Denied" && NoticeDocument.review_date) {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, NoticeDocument.reviewed_by!.id);
-      RequestEmbed.setColor(Colors.LOARequestDenied)
+      RequestEmbed.setColor(Colors.RequestDenied)
         .setTitle(`Denied  |  ${this.title} Request`)
         .setFooter({
           text: `Reference ID: ${NoticeDocument._id}; denied by @${NoticeDocument.reviewed_by!.username} on`,
@@ -369,7 +369,7 @@ export class BaseUserActivityNoticeLogger {
         });
     } else if (RequestStatus.includes("Cancelled")) {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, NoticeDocument.user);
-      RequestEmbed.setColor(Colors.LOARequestDenied)
+      RequestEmbed.setColor(Colors.RequestDenied)
         .setTitle(`Cancelled  |  ${this.title} Request`)
         .setFooter({
           iconURL: AvatarURL,
@@ -394,7 +394,7 @@ export class BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMApprovalNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setFooter({ text: `Reference ID: ${ApprovedRequest._id}` })
         .setTitle(`${this.title} — Approval Notice`)
         .setDescription(
@@ -425,7 +425,7 @@ export class BaseUserActivityNoticeLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setTitle(`${this.title} Approval`)
         .setFooter({ text: `Reference ID: ${ApprovedRequest._id}; approved on` })
         .addFields(
@@ -468,7 +468,7 @@ export class BaseUserActivityNoticeLogger {
         NoticeDocument: ApprovedRequest,
       })
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setTitle(`Approved  |  ${this.title} Request`)
         .setFooter({
           text: `Reference ID: ${ApprovedRequest._id}; approved by @${Interaction.user.username} on`,
@@ -506,7 +506,7 @@ export class BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMDenialNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setFooter({ text: `Reference ID: ${DeniedRequest._id}` })
         .setTitle(`${this.title} — Denial Notice`)
         .setDescription(
@@ -528,7 +528,7 @@ export class BaseUserActivityNoticeLogger {
 
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setTitle(`${this.title} Denial`)
         .setFooter({ text: `Reference ID: ${DeniedRequest._id}; denied on` })
         .setTimestamp(Interaction.createdAt)
@@ -571,7 +571,7 @@ export class BaseUserActivityNoticeLogger {
         NoticeDocument: DeniedRequest,
       })
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setTitle(`Denied  |  ${this.title} Request`)
         .setFooter({
           text: `Reference ID: ${DeniedRequest._id}; denied by @${Interaction.user.username} on`,
@@ -614,7 +614,7 @@ export class BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMCancellationNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setFooter({ text: `Reference ID: ${CancelledRequest._id}` })
         .setTitle(`${this.title} — Cancellation Notice`)
         .setAuthor({
@@ -644,7 +644,7 @@ export class BaseUserActivityNoticeLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestCancelled)
+        .setColor(Colors.RequestCancelled)
         .setTitle(`${this.title} Cancellation`)
         .setFooter({ text: `Reference ID: ${CancelledRequest._id}; cancelled by requester on` })
         .addFields({
@@ -712,7 +712,7 @@ export class BaseUserActivityNoticeLogger {
       const LeaveOrReduced = this.is_leave ? "leave" : "RA";
       const DMNotice = new EmbedBuilder()
         .setTimestamp(NoticeDocument.end_date)
-        .setColor(Colors.LOARequestEnded)
+        .setColor(Colors.RequestEnded)
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}` })
         .setTitle(`${this.title} — End Notice`)
         .setDescription(
@@ -736,7 +736,7 @@ export class BaseUserActivityNoticeLogger {
       if (LogChannel) {
         const LogEmbed = new EmbedBuilder()
           .setTimestamp(NoticeDocument.end_date)
-          .setColor(Colors.LOARequestEnded)
+          .setColor(Colors.RequestEnded)
           .setTitle(`${this.title} Ended`)
           .setFooter({ text: `Reference ID: ${NoticeDocument._id}; ended on` })
           .addFields(
@@ -787,7 +787,7 @@ export class BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestEnded)
+        .setColor(Colors.RequestEnded)
         .setTitle(`${this.title} — End Notice`)
         .setAuthor({
           name: Interaction.guild.name,
@@ -828,7 +828,7 @@ export class BaseUserActivityNoticeLogger {
       const LeaveOrRAText = this.is_leave ? "Leave" : "RA";
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestEnded)
+        .setColor(Colors.RequestEnded)
         .setTitle(`${this.title} Ended`)
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}; ended early on` })
         .addFields({
@@ -889,7 +889,7 @@ export class BaseUserActivityNoticeLogger {
   ) {
     const LoggingChannel = await this.FetchLoggingChannel(MgmtInteract.guild, "log");
     const LogEmbed = new EmbedBuilder()
-      .setColor(Colors.LOARequestCancelled)
+      .setColor(Colors.RequestCancelled)
       .setTitle(
         TargettedUser
           ? `Member ${this.cmd_name.toUpperCase()} Records Wiped`
@@ -951,7 +951,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (Requester && ActiveLOA.extension_request?.date) {
       const DMNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestPending)
+        .setColor(Colors.RequestPending)
         .setFooter({ text: `Reference ID: ${ActiveLOA._id}` })
         .setTitle("Leave of Absence — Extension Request Under Review")
         .setDescription(
@@ -1006,7 +1006,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setFooter({ text: `Reference ID: ${CreatedLOA._id}` })
         .setTitle("Leave of Absence — Start Notice")
         .setDescription(
@@ -1044,7 +1044,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setTitle("Leave of Absence Started")
         .setFooter({ text: `Reference ID: ${CreatedLOA._id}; placed on` })
         .addFields(
@@ -1092,7 +1092,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMApprovalNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setTitle("Leave of Absence — Extension Notice")
         .setDescription(
           Dedent(`
@@ -1116,7 +1116,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setTitle("Leave of Absence Extended")
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}; extended on` })
         .addFields({
@@ -1162,7 +1162,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMApprovalNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}` })
         .setTitle("Leave of Absence — Extension Approval Notice")
         .setDescription(
@@ -1183,7 +1183,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setTitle("Leave of Absence Extension Approval")
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}; approved on` })
         .addFields(
@@ -1228,7 +1228,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
       if (!ReqMsgChannel) return;
       const RequestEmbed = this.GetRequestEmbed({ Type: "Pending", NoticeDocument })
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestApproved)
+        .setColor(Colors.RequestApproved)
         .setTitle("Approved Extension  |  Leave of Absence")
         .setFooter({
           text: `Reference ID: ${NoticeDocument._id}; approved by @${Interaction.user.username} on`,
@@ -1270,7 +1270,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (Requester) {
       const DMDenialNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}` })
         .setTitle("Leave of Absence — Extension Denial Notice")
         .setAuthor({
@@ -1292,7 +1292,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setTitle("Leave of Absence Extension Denial")
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}` })
         .addFields(
@@ -1343,7 +1343,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         CancellationDate: Interaction.createdAt,
       })
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setTitle("Denied Extension  |  Leave of Absence")
         .setFooter({
           iconURL: Interaction.user.displayAvatarURL(this.ImgURLOpts),
@@ -1385,7 +1385,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (Requester && !NoticeDocument.extension_request.reviewed_by) {
       const DMCancellationNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}` })
         .setTitle("Leave of Absence — Extension Cancellation Notice")
         .setAuthor({
@@ -1406,7 +1406,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestCancelled)
+        .setColor(Colors.RequestCancelled)
         .setTitle("Leave of Absence Extension Cancellation")
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}; cancelled by requester on` })
         .addFields(
@@ -1448,7 +1448,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         CancellationDate: Interaction.createdAt,
       })
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.LOARequestDenied)
+        .setColor(Colors.RequestDenied)
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}; cancelled by requester on` })
         .setTitle("Cancelled Extension  |  Leave of Absence");
 
@@ -1488,7 +1488,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
 
     if (RequestStatus === "Approved") {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, LeaveDocument.reviewed_by!.id);
-      RequestEmbed.setColor(Colors.LOARequestApproved)
+      RequestEmbed.setColor(Colors.RequestApproved)
         .setTitle("Approved Extension  |  Leave of Absence")
         .setFooter({
           iconURL: AvatarURL,
@@ -1496,7 +1496,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         });
     } else if (RequestStatus === "Denied") {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, LeaveDocument.reviewed_by!.id);
-      RequestEmbed.setColor(Colors.LOARequestDenied)
+      RequestEmbed.setColor(Colors.RequestDenied)
         .setTitle("Denied Extension  |  Leave of Absence")
         .setFooter({
           iconURL: AvatarURL,
@@ -1504,7 +1504,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         });
     } else if (RequestStatus === "Cancelled") {
       const AvatarURL = await this.GetUserProfileImageURL(Guild, LeaveDocument.user);
-      RequestEmbed.setColor(Colors.LOARequestDenied)
+      RequestEmbed.setColor(Colors.RequestDenied)
         .setTitle("Cancelled Extension  |  Leave of Absence")
         .setFooter({
           iconURL: AvatarURL,

@@ -51,7 +51,7 @@ function GetManagementPromptEmbed(ActiveOrPendingRA?: RADocument | null) {
     .setColor(Colors.Info);
 
   if (ActiveOrPendingRA?.status === "Approved") {
-    PromptEmbed.setColor(Colors.LOARequestApproved).addFields({
+    PromptEmbed.setColor(Colors.RequestApproved).addFields({
       inline: true,
       name: "Active Notice",
       value: Dedent(`
@@ -62,7 +62,7 @@ function GetManagementPromptEmbed(ActiveOrPendingRA?: RADocument | null) {
       `),
     });
   } else if (ActiveOrPendingRA?.status === "Pending") {
-    PromptEmbed.setColor(Colors.LOARequestPending).addFields({
+    PromptEmbed.setColor(Colors.RequestPending).addFields({
       inline: true,
       name: "Pending Notice",
       value: Dedent(`

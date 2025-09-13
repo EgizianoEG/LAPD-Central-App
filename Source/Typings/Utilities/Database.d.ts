@@ -1,7 +1,7 @@
+import type { DASignatureFormats, GenericRequestStatuses } from "@Config/Constants.ts";
 import type { IncidentTypes, IncidentStatusesFlattened } from "@Resources/IncidentConstants.ts";
 import type { Types, HydratedDocument, Model } from "mongoose";
 import type { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.ts";
-import type { DASignatureFormats } from "@Config/Constants.ts";
 import type { ShiftFlags } from "@Models/Shift.ts";
 import type { Overwrite } from "utility-types";
 import type {
@@ -243,6 +243,87 @@ export namespace Guilds {
        * The role(s) that will be mentioned and notified when a new RA request is posted.
        */
       alert_roles: string[];
+    };
+
+    callsigns_module: {
+      /**
+       * Indicates whether the callsigns module is active. Defaults to `false`.
+       * If disabled, staff members will be unable to use any functionality of this module.
+       */
+      enabled: boolean;
+
+      /**
+       * A list of roles whose members are authorized to approve and/or manage callsign requests.
+       * However, members with application or server management permissions can still approve and manage these requests.
+       */
+      manager_roles: string[];
+
+      /** Whether or not to notify members with the roles in `manager_roles` when a new callsign request is submitted. */
+      alert_on_request: boolean;
+
+      /**
+       * The channel where callsign changes will be logged.
+       * @default null
+       */
+      log_channel?: string | null;
+
+      /**
+       * The channel designated for submitting callsign requests.
+       * If set to `null`, staff members can still submit requests, but management staff
+       * will need to be notified manually via slash commands.
+       *
+       * @default null
+       */
+      requests_channel?: string | null;
+
+      /**
+       * Restrictions on unit types based on roles (e.g., specific roles required for "W" type units).
+       * Set to an empty array to remove all restrictions (Default);
+       *
+       * @default []
+       */
+      unit_type_restrictions: {
+        unit_type: string;
+        permitted_roles: string[];
+      }[];
+
+      /**
+       * Restrictions on identifier/beat-number values based on roles (e.g., specific roles required for certain identifier ranges).
+       * For example, members with sergeant roles may request callsigns that fall within a specific numeric range.
+       *
+       * There are no restrictions (empty array) as a default.
+       * @default []
+       */
+      beat_restrictions: {
+        range: [number, number];
+        permitted_roles: string[];
+
+        /** Allow certain identifier values; override the companion restrictions such as `exclude`. */
+        allow: number[];
+
+        /** Exclude certain identifier values within the `range`. */
+        exclude: number[];
+      }[];
+
+      /**
+       * The format to apply on requester nicknames when a callsign request is approved.
+       * Supports template strings with the following placeholders:
+       * - `{division}`
+       * - `{unit_type}`
+       * - `{identifier}`
+       * - `{display_name}`
+       * - `{nickname}`; falls back to `{display_name}` if not set.
+       *
+       * This only works if `update_nicknames` option is enabled.
+       * @default {division}{unit_type}-{identifier} | {nickname}
+       */
+      nickname_format: string;
+
+      /**
+       * Whether to automatically update nicknames to align with the set format when callsigns gets approved.
+       * @default false
+       */
+      update_nicknames: boolean;
     };
   }
 
@@ -1188,6 +1269,66 @@ export namespace GuildIncidents {
     last_updated: Date;
     last_updated_by?: Pick<OfficerInvolved, "discord_id" | "discord_username" | "signature"> | null;
   }
+}
+
+export namespace Callsigns {
+  interface CallsignDocument {
+    _id: Types.ObjectId;
+    guild: string;
+
+    /** The Id of the person who made the request. */
+    requester: string;
+
+    /** The date when the request was made. */
+    requested_on: Date;
+
+    /** The message associated with the request for later updates. Format: `[ChannelId]:[MessageId]`. */
+    request_message: string | null;
+
+    /** The reason for the request. */
+    request_reason: string;
+
+    /** The current status of the request. */
+    request_status: keyof typeof GenericRequestStatuses;
+
+    /** The Id of the person who reviewed this request. */
+    reviewer: string | null;
+
+    /** Any provided notes for the approval/denial of this request. */
+    reviewer_notes: string | null;
+    reviewed_on: Date | null;
+
+    /**
+     * The expiry date of this callsign if it was approved.
+     * This field will be set to a date when the callsign requester/holder has changed callsigns,
+     * no longer considered staff, the request/callsign was managed manually, or, possibly in the feature, if there is considered a temporary callsign.
+     */
+    expiry: Date | null;
+
+    /**
+     * The designation of the callsign.
+     */
+    designation: {
+      /**
+       * The geographical division of the callsign.
+       * An integer in the range (1-35).
+       */
+      division: number;
+
+      /**
+       * A string represents the unit or assignment the callsign belongs to.
+       */
+      unit_type: string;
+
+      /**
+       * A unique (or semi-unique) identifier for the callsign.
+       */
+      beat_num: string;
+    };
+  }
+
+  type HydratedCallsignDocument = HydratedDocument<CallsignDocument>;
+  interface CallsignModel extends Model<CallsignDocument, {}, {}, HydratedCallsignDocument> {}
 }
 
 export namespace RolePersist {
