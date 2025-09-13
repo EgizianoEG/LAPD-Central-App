@@ -46,28 +46,3 @@ export const GenericRequestStatuses = {
   Denied: "Denied",
   Cancelled: "Cancelled",
 };
-
-export const CallsignUnitTypes = {
-  A: "A",
-  B: "B",
-  C: "C",
-  E: "E",
-  F: "F",
-  G: "G",
-  K9: "K9",
-  H: "H",
-  L: "L",
-  M: "M",
-  N: "N",
-  P: "P",
-  R: "R",
-  S: "S",
-  U: "U",
-  T: "T",
-  W: "W",
-  Y: "Y",
-  I: "I",
-  K: "K",
-  X: "X",
-  Z: "Z",
-};

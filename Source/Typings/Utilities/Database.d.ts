@@ -256,7 +256,7 @@ export namespace Guilds {
        * A list of roles whose members are authorized to approve and/or manage callsign requests.
        * However, members with application or server management permissions can still approve and manage these requests.
        */
-      approver_roles: string[];
+      manager_roles: string[];
 
       /**
        * The channel where callsign changes will be logged.
@@ -285,13 +285,13 @@ export namespace Guilds {
       }[];
 
       /**
-       * Restrictions on identifier values based on roles (e.g., specific roles required for certain identifier ranges).
+       * Restrictions on identifier/beat-number values based on roles (e.g., specific roles required for certain identifier ranges).
        * For example, members with sergeant roles may request callsigns that fall within a specific numeric range.
        *
        * There are no restrictions (empty array) as a default.
        * @default []
        */
-      identifier_restrictions: {
+      beat_restrictions: {
         range: [number, number];
         permitted_roles: string[];
 
@@ -1320,7 +1320,7 @@ export namespace Callsigns {
       /**
        * A unique (or semi-unique) identifier for the callsign.
        */
-      identifier: string;
+      beat_num: string;
     };
   }
 

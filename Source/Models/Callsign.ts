@@ -1,4 +1,5 @@
-import { CallsignUnitTypes, GenericRequestStatuses } from "@Config/Constants.js";
+import { GenericRequestStatuses } from "@Config/Constants.js";
+import { ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 import { Schema, model } from "mongoose";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 
@@ -36,6 +37,7 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
   request_status: {
     type: String as any,
     required: true,
+    index: true,
     default: GenericRequestStatuses.Pending,
     enum: {
       values: Object.values(GenericRequestStatuses),
@@ -97,7 +99,7 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
         required: true,
         default: 1,
         min: 1,
-        max: 35,
+        max: 36,
       },
 
       unit_type: {
@@ -105,14 +107,15 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
         trim: true,
         index: true,
         required: true,
-        uppercase: true,
+        minLength: 1,
+        maxLength: 4,
         enum: {
-          values: Object.values(CallsignUnitTypes),
-          message: `The callsign unit type must be one of the following: ${Object.values(CallsignUnitTypes).join(", ")}, provided {VALUE} is not supported.`,
+          values: ServiceUnitTypes.map((u) => u.unit),
+          message: `The callsign unit type must be one of the following: ${ServiceUnitTypes.map((u) => u.unit).join(", ")}, provided {VALUE} is not supported.`,
         },
       },
 
-      identifier: {
+      beat_num: {
         type: String,
         index: true,
         required: true,

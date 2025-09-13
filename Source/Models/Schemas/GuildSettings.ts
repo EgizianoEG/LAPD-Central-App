@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
-import { CallsignUnitTypes, DASignatureFormats } from "@Config/Constants.js";
+import { DASignatureFormats } from "@Config/Constants.js";
+import { ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 import ShiftTypeSchema from "./ShiftType.js";
 import type { Guilds } from "@Typings/Utilities/Database.js";
 
@@ -307,7 +308,7 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         required: true,
       },
 
-      approver_roles: {
+      manager_roles: {
         type: [String],
         default: [],
         required: true,
@@ -337,7 +338,7 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
             unit_type: {
               type: String,
               required: true,
-              enum: CallsignUnitTypes,
+              enum: ServiceUnitTypes.map((u) => u.unit),
               trim: true,
             },
             permitted_roles: {
@@ -350,7 +351,7 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         ],
       },
 
-      identifier_restrictions: {
+      beat_restrictions: {
         default: [],
         required: true,
         type: [
