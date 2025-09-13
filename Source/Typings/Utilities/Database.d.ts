@@ -258,6 +258,9 @@ export namespace Guilds {
        */
       manager_roles: string[];
 
+      /** Whether or not to notify members with the roles in `manager_roles` when a new callsign request is submitted. */
+      alert_on_request: boolean;
+
       /**
        * The channel where callsign changes will be logged.
        * @default null
@@ -1279,7 +1282,7 @@ export namespace Callsigns {
     /** The date when the request was made. */
     requested_on: Date;
 
-    /** The message associated with the request for later updates. */
+    /** The message associated with the request for later updates. Format: `[ChannelId]:[MessageId]`. */
     request_message: string | null;
 
     /** The reason for the request. */

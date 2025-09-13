@@ -315,6 +315,12 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         validate: ArrayOfSnowflakesValidator,
       },
 
+      alert_on_request: {
+        type: Boolean,
+        default: false,
+        required: true,
+      },
+
       log_channel: {
         type: String,
         default: null,
