@@ -774,6 +774,84 @@ export const ErrorMessages = {
       "The reduced activity module is currently disabled. You cannot request, manage, or administer reduced activity notices without it being enabled.",
   },
 
+  CallsignsModuleDisabled: {
+    Title: "Module Disabled",
+    Description:
+      "The callsigns module is currently disabled. To handle or allocate callsigns, you'll need to activate the module first.",
+  },
+
+  CallsignReqSendFailed: {
+    Title: "Request Submission Failed",
+    Description:
+      "Failed to send your callsign request. Please try again later or contact support if the issue persists.",
+  },
+
+  CallsignAlreadyRequested: {
+    Title: "Callsign Already Requested",
+    Description:
+      "You already have a pending callsign request. Please wait for it to be reviewed before submitting a new request.",
+  },
+
+  CallsignAlreadyAssigned: {
+    Title: "Callsign Already Assigned",
+    Description:
+      "You currently have an active callsign assigned. You must release your current callsign before requesting a new one.",
+  },
+
+  CallsignNotAvailable: {
+    Title: "Callsign Not Available",
+    Description:
+      "The requested callsign `%s` is already in use or reserved. Please choose a different callsign.",
+  },
+
+  CallsignUnitTypeRestricted: {
+    Title: "Unit Type Restricted",
+    Description:
+      "You do not have the required role to request a callsign of type `%s`. Contact an administrator for more information.",
+  },
+
+  CallsignIdentifierRestricted: {
+    Title: "Identifier Restricted",
+    Description:
+      "The identifier `%s` is restricted and cannot be requested with your current role permissions.",
+  },
+
+  CallsignInvalidFormat: {
+    Title: "Invalid Callsign Format",
+    Description:
+      "The callsign format is invalid. Please ensure the division (1-36), unit type, and identifier are correctly specified.",
+  },
+
+  CallsignInvalidUnitType: {
+    Title: "Invalid Unit Type",
+    Description:
+      "The input unit type, `%s`, is invalid. Ensure you are using a valid unit type from the autocomplete suggestions.",
+  },
+
+  CallsignInvalidDivision: {
+    Title: "Invalid Division Beat",
+    Description:
+      "The input division beat integer, `%s`, is invalid. Ensure you are using a valid division beat from the autocomplete suggestions.",
+  },
+
+  CallsignPreviouslyDenied: {
+    Title: "Recent Denial Cooldown",
+    Description:
+      "You recently had a callsign request denied. Please wait at least one hour before submitting a new one.",
+  },
+
+  CallsignPreviouslyCancelled: {
+    Title: "Recent Cancellation Cooldown",
+    Description:
+      "You recently cancelled a callsign request. Please wait at least 30 minutes before submitting a new one.",
+  },
+
+  CallsignRecentlyExpired: {
+    Title: "Recent Expiry Cooldown",
+    Description:
+      "Your previous callsign recently expired or was revoked. Please wait at least 30 minutes before submitting a new request.",
+  },
+
   SANoShiftsToModify: {
     Title: "No Shifts To Modify",
     Description:
