@@ -68,6 +68,9 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
     type: String,
     trim: true,
     default: null,
+    required: false,
+    minLength: 3,
+    maxLength: 128,
   },
 
   reviewed_on: {
