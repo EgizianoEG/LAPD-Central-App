@@ -75,15 +75,12 @@ export async function ValidateCallsignFormat(
     "designation.beat_num": FormattedBeatNum,
     request_status: { $in: [GenericRequestStatuses.Approved, GenericRequestStatuses.Pending] },
     guild: Interaction.guildId,
-    $or: [
-      { expiry: null }, // Active callsigns
-      { request_status: GenericRequestStatuses.Pending }, // Pending requests
-    ],
+    $or: [{ expiry: null }, { expiry: { $gt: Interaction.createdAt } }],
   })
     .lean()
     .exec();
 
-  if (ExistingCallsign) {
+  if (ExistingCallsign?.requester !== Interaction.user.id) {
     const CallsignString = `${Division}-${UnitType}-${FormattedBeatNum}`;
     return new ErrorEmbed()
       .useErrTemplate("CallsignNotAvailable", CallsignString)
@@ -193,23 +190,6 @@ export async function CheckExistingCallsignRequests(
   if (PendingRequest) {
     return new ErrorEmbed()
       .useErrTemplate("CallsignAlreadyRequested")
-      .replyToInteract(Interaction, true)
-      .then(() => true);
-  }
-
-  // Check for approved/active callsigns
-  const ActiveCallsign = await CallsignModel.findOne({
-    guild: Interaction.guildId,
-    requester: Interaction.user.id,
-    request_status: GenericRequestStatuses.Approved,
-    expiry: null,
-  })
-    .lean()
-    .exec();
-
-  if (ActiveCallsign) {
-    return new ErrorEmbed()
-      .useErrTemplate("CallsignAlreadyAssigned")
       .replyToInteract(Interaction, true)
       .then(() => true);
   }
