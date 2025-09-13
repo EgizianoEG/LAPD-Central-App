@@ -45,4 +45,4 @@ export const GenericRequestStatuses = {
   Approved: "Approved",
   Denied: "Denied",
   Cancelled: "Cancelled",
-};
+} as const;
