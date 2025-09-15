@@ -46,7 +46,7 @@ export function AutocompleteDivisionBeat(Typed: string): Array<ApplicationComman
   let Suggestions: { name: string; value: string }[];
 
   if (Typed.match(/^\s*$/)) {
-    Suggestions = DivisionBeats.map((b) => ({ name: b.name, value: `${b.num}` }));
+    Suggestions = DivisionBeats.map((b) => ({ name: `(${b.num}) ${b.name}`, value: `${b.num}` }));
   } else {
     Suggestions = DivisionBeats.filter((b) => {
       const LowerCaseName = b.name.toLowerCase();
