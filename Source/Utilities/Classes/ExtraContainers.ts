@@ -175,11 +175,11 @@ export class BaseExtraContainer extends ContainerBuilder {
     let FooterIconText = "";
 
     if (this._footer && this._timestamp) {
-      FooterContent = `${this._footer}${this._footerDelimiter}${FormatTime(this._timestamp)}`;
+      FooterContent = `${this._footer}${this._footerDelimiter}${FormatTime(this._timestamp, "D")}`;
     } else if (this._footer) {
       FooterContent = this._footer;
     } else if (this._timestamp) {
-      FooterContent = FormatTime(this._timestamp);
+      FooterContent = FormatTime(this._timestamp, "D");
     }
 
     if (this._footerEmoji && FooterContent) {
