@@ -51,6 +51,11 @@ export class BaseExtraContainer extends ContainerBuilder {
   protected _timestamp: Date | null = null;
   protected _footerDelimiter: string = " | ";
   protected _footerEmoji: string | null = null;
+  protected _actionRows: MessageActionRowComponent[] = [];
+  protected _actionRowSeparatorOpts: { spacing?: 1 | 2; divider?: boolean } = {
+    spacing: 1,
+    divider: true,
+  };
 
   public get title(): string | null {
     return this._title;
@@ -82,6 +87,14 @@ export class BaseExtraContainer extends ContainerBuilder {
 
   public get footerEmoji(): string | null {
     return this._footerEmoji;
+  }
+
+  public get actionRows(): MessageActionRowComponent[] {
+    return this._actionRows;
+  }
+
+  public get actionRowSeparatorOpts(): { spacing?: 1 | 2; divider?: boolean } {
+    return this._actionRowSeparatorOpts;
   }
 
   constructor() {
@@ -190,10 +203,6 @@ export class BaseExtraContainer extends ContainerBuilder {
       (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
     );
 
-    const HasLastActionRow =
-      this.components.length > 0 &&
-      this.components[this.components.length - 1] instanceof ActionRowBuilder;
-
     if (FooterIndex !== -1) {
       const StartIndex =
         FooterIndex > 0 && this.components[FooterIndex - 1].data.type === ComponentType.Separator
@@ -231,21 +240,54 @@ export class BaseExtraContainer extends ContainerBuilder {
       id: 4,
     });
 
-    if (HasLastActionRow) {
-      const TotalARsExisting = this.components.reduceRight(
-        (acc, c) => acc + (c.data.type === ComponentType.ActionRow ? 1 : 0),
-        0
-      );
-
-      const ActionRows = this.components.slice(-TotalARsExisting) as MessageActionRowComponent[];
-      return this.addSeparatorComponents(new SeparatorBuilder().setDivider(divider))
-        .addTextDisplayComponents(FooterComponent)
-        .addActionRowComponents(...ActionRows);
-    }
-
     return this.addSeparatorComponents(
       new SeparatorBuilder().setDivider(divider)
     ).addTextDisplayComponents(FooterComponent);
+  }
+
+  /**
+   * Private method to rebuild action rows from stored action row data.
+   * Removes existing action rows and adds the stored ones with proper separators.
+   * Only adds a separator if there's no footer (since footer already has its own separator).
+   * @returns The current instance for method chaining.
+   */
+  private _rebuildActionRows(): this {
+    const ActionRowIndices = this.components
+      .map((c, i) => (c instanceof ActionRowBuilder ? i : -1))
+      .filter((i) => i !== -1);
+
+    for (let i = ActionRowIndices.length - 1; i >= 0; i--) {
+      this.spliceComponents(ActionRowIndices[i], 1);
+    }
+
+    if (this._actionRows.length > 0) {
+      const HasFooter = this.components.some(
+        (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
+      );
+
+      if (!HasFooter) {
+        const Separator = new SeparatorBuilder()
+          .setSpacing(this._actionRowSeparatorOpts.spacing ?? 1)
+          .setDivider(this._actionRowSeparatorOpts.divider ?? true);
+
+        this.addSeparatorComponents(Separator);
+      }
+
+      return this.addActionRowComponents(...this._actionRows);
+    }
+
+    return this;
+  }
+
+  /**
+   * Private method to rebuild both footer and action rows in the correct order.
+   * This ensures proper separator coordination between components.
+   * @param footerDivider - Whether to include a visible divider line in the footer separator.
+   * @returns The current instance for method chaining.
+   */
+  private _rebuildFooterAndActionRows(footerDivider: boolean = true): this {
+    this._rebuildFooterComponent(footerDivider);
+    return this._rebuildActionRows();
   }
 
   /**
@@ -281,7 +323,7 @@ export class BaseExtraContainer extends ContainerBuilder {
       this._footerEmoji = null;
     }
 
-    return this._rebuildFooterComponent(divider);
+    return this._rebuildFooterAndActionRows(divider);
   }
 
   /**
@@ -296,7 +338,7 @@ export class BaseExtraContainer extends ContainerBuilder {
   ): this {
     this._timestamp = timestampDate;
     this._footerDelimiter = footerDelimiter;
-    return this._rebuildFooterComponent(true);
+    return this._rebuildFooterAndActionRows(true);
   }
 
   /**
@@ -395,24 +437,19 @@ export class BaseExtraContainer extends ContainerBuilder {
 
     this.addSectionComponents(Section);
     if (this._footer || this._timestamp) {
-      return this._rebuildFooterComponent();
+      return this._rebuildFooterAndActionRows();
     }
 
-    return this;
+    return this._rebuildActionRows();
   }
 
   /**
    * Attaches action row(s) containing interactive components (buttons, select menus, etc.) to the container.
-   * Maintains proper component hierarchy by:
-   * - Replacing existing action rows
-   * - Preserving footer components
-   * - Adding appropriate separators between content and interactive elements
+   * Stores the action rows internally and rebuilds the component structure to maintain proper hierarchy.
+   * This method ensures consistent layout regardless of the order of method calls (setFooter, setThumbnail, etc.).
    *
-   * This method ensures consistent layout regardless of whether components were added before
-   * or after setting a footer, thumbnail, or other container elements.
-   *
-   * @param actionRows - The action row component containing interactive elements (buttons, select menus, etc.)
-   * @param separatorOpts - Configuration options for the separator above the action row.
+   * @param actionRows - The action row component(s) containing interactive elements (buttons, select menus, etc.)
+   * @param separatorOpts - Configuration options for the separator above the action rows.
    * @param separatorOpts.spacing - The spacing size to use for the separator (1 = small, 2 = large).
    * @param separatorOpts.divider - Whether to show a visible divider line in the separator.
    * @returns The current container instance for method chaining.
@@ -421,7 +458,7 @@ export class BaseExtraContainer extends ContainerBuilder {
    * const container = new InfoContainer()
    *   .setTitle("Confirmation")
    *   .setDescription("Please confirm your choice")
-   *   .attachPromptActionRow(
+   *   .attachPromptActionRows(
    *     new ActionRowBuilder<ButtonBuilder>().addComponents(
    *       new ButtonBuilder()
    *         .setCustomId("confirm")
@@ -438,25 +475,18 @@ export class BaseExtraContainer extends ContainerBuilder {
     actionRows: MessageActionRowComponent | MessageActionRowComponent[],
     separatorOpts: { spacing?: 1 | 2; divider?: boolean } = { spacing: 1, divider: true }
   ): this {
-    const ActionRows = Array.isArray(actionRows) ? actionRows : [actionRows];
-    const Separator = new SeparatorBuilder()
-      .setSpacing(separatorOpts.spacing ?? 1)
-      .setDivider(separatorOpts.divider);
+    this._actionRows = Array.isArray(actionRows) ? actionRows : [actionRows];
+    this._actionRowSeparatorOpts = separatorOpts;
+    return this._rebuildActionRows();
+  }
 
-    const ActionRowIndices = this.components
-      .map((c, i) => (c instanceof ActionRowBuilder ? i : -1))
-      .filter((i) => i !== -1);
-
-    for (let i = ActionRowIndices.length - 1; i >= 0; i--) {
-      this.spliceComponents(ActionRowIndices[i], 1);
-    }
-
-    if (this._footer || this._timestamp) {
-      this._rebuildFooterComponent();
-      return this.addActionRowComponents(...ActionRows);
-    }
-
-    return this.addSeparatorComponents(Separator).addActionRowComponents(...ActionRows);
+  /**
+   * Clears all attached action rows from the container.
+   * @returns The current instance for method chaining.
+   */
+  public clearActionRows(): this {
+    this._actionRows = [];
+    return this._rebuildActionRows();
   }
 
   /**
