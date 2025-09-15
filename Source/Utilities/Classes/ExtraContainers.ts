@@ -1,8 +1,11 @@
 import type {
   MessageActionRowComponentBuilder,
   APIComponentInMessageActionRow,
+  APITextDisplayComponent,
+  APIComponentInContainer,
   MessageFlagsResolvable,
   APIActionRowComponent,
+  APIContainerComponent,
   APIThumbnailComponent,
   APISeparatorComponent,
   RepliableInteraction,
@@ -115,80 +118,35 @@ export class BaseExtraContainer extends ContainerBuilder {
   }
 
   /**
-   * Sets the accent color for the container.
-   * @param color - The color to set as the accent, or `null` to clear the accent color.
-   *                Accepts a value of type `ColorResolvable`.
-   * @returns The current instance for method chaining.
+   * Extracts the description text from a Discord API container component JSON structure.
+   * @param apiData - The Discord API container component data (single container from message components array).
+   * @returns The description string content, or `null` if not found.
    */
-  public setColor(color: ColorResolvable | null): this {
-    if (!color) return this.clearAccentColor();
-    return this.setAccentColor(resolveColor(color));
+  static getDescriptionFromContainerJSON(apiData: APIContainerComponent): string | null {
+    if (!apiData?.components) return null;
+
+    const DescriptionComponent = apiData.components.find(
+      (component: APIComponentInContainer) =>
+        component.type === ComponentType.TextDisplay && component.id === 3
+    ) as APITextDisplayComponent | undefined;
+
+    return DescriptionComponent?.content ?? null;
   }
 
   /**
-   * Sets the title for the container, trimming any leading or trailing whitespace.
-   * Updates the content of the first TextDisplayBuilder component to reflect the new title, formatted as a Markdown heading.
-   * @param title - The new title to set. If `null` or `undefined`, an empty string is used.
-   * @param sep_opts - Optional configuration for the separator component after the title.
-   * @returns The current instance for method chaining.
+   * Extracts the title text from a Discord API container component JSON structure.
+   * @param apiData - The Discord API container component data (single container from message components array).
+   * @returns The title string content, or `null` if not found.
    */
-  public setTitle(
-    title?: string | null,
-    sep_opts?: Partial<APISeparatorComponent> & { no_sep?: boolean }
-  ): this {
-    this._title = title?.trim() ?? "";
+  static getTitleFromContainerJSON(apiData: APIContainerComponent): string | null {
+    if (!apiData?.components) return null;
 
-    if (sep_opts) this._title_sep_opts = sep_opts;
-    if (sep_opts && !sep_opts.no_sep && !(this.components[0] instanceof SectionBuilder)) {
-      this.components[1] = new SeparatorBuilder(sep_opts);
-    } else if (
-      sep_opts?.no_sep &&
-      this.components.findIndex((c) => c instanceof SeparatorBuilder && c.data.id === 2) !== -1
-    ) {
-      this.components.splice(1, 1);
-    }
+    const TitleComponent = apiData.components.find(
+      (component: APIComponentInContainer) =>
+        component.type === ComponentType.TextDisplay && component.id === 1
+    ) as APITextDisplayComponent | undefined;
 
-    if (this.components[0] instanceof SectionBuilder) {
-      return (
-        (this.components[0].components[0] as TextDisplayBuilder).setContent(`### ${this._title}`) &&
-        this
-      );
-    } else if (this.components[0] instanceof TextDisplayBuilder) {
-      return this.components[0].setContent(`### ${this._title}`) && this;
-    }
-
-    return this;
-  }
-
-  /**
-   * Sets the description of this embed using node `util.format()`.
-   * @remarks This method will set the description to a single space if it was provided as a falsey value.
-   * @requires {@link FormatString `node:util.format()`}
-   * @param description - A tuple of data to format (by `util.format()`) and set as the description.
-   */
-  setDescription(...description: any[]): this {
-    const Formatted = FormatString(...description).trim();
-    this._description = Formatted.match(/^(?:\s*|NaN|null|undefined)$/) ? " " : Formatted;
-
-    if (this.components.length > 0 && this.components[0] instanceof SectionBuilder) {
-      const DescriptionComponent = this.components[0].components.find(
-        (c, index) => c instanceof TextDisplayBuilder && index > 0
-      ) as TextDisplayBuilder;
-
-      if (DescriptionComponent) {
-        DescriptionComponent.setContent(this._description);
-      }
-    } else {
-      const DescriptionIndex = this.components.findIndex(
-        (c, index) => c instanceof TextDisplayBuilder && index > 0
-      );
-
-      if (DescriptionIndex !== -1) {
-        (this.components[DescriptionIndex] as TextDisplayBuilder).setContent(this._description);
-      }
-    }
-
-    return this;
+    return TitleComponent?.content ?? null;
   }
 
   /**
@@ -288,6 +246,83 @@ export class BaseExtraContainer extends ContainerBuilder {
   private _rebuildFooterAndActionRows(footerDivider: boolean = true): this {
     this._rebuildFooterComponent(footerDivider);
     return this._rebuildActionRows();
+  }
+
+  /**
+   * Sets the accent color for the container.
+   * @param color - The color to set as the accent, or `null` to clear the accent color.
+   *                Accepts a value of type `ColorResolvable`.
+   * @returns The current instance for method chaining.
+   */
+  public setColor(color: ColorResolvable | null): this {
+    if (!color) return this.clearAccentColor();
+    return this.setAccentColor(resolveColor(color));
+  }
+
+  /**
+   * Sets the title for the container, trimming any leading or trailing whitespace.
+   * Updates the content of the first TextDisplayBuilder component to reflect the new title, formatted as a Markdown heading.
+   * @param title - The new title to set. If `null` or `undefined`, an empty string is used.
+   * @param sep_opts - Optional configuration for the separator component after the title.
+   * @returns The current instance for method chaining.
+   */
+  public setTitle(
+    title?: string | null,
+    sep_opts?: Partial<APISeparatorComponent> & { no_sep?: boolean }
+  ): this {
+    this._title = title?.trim() ?? "";
+
+    if (sep_opts) this._title_sep_opts = sep_opts;
+    if (sep_opts && !sep_opts.no_sep && !(this.components[0] instanceof SectionBuilder)) {
+      this.components[1] = new SeparatorBuilder(sep_opts);
+    } else if (
+      sep_opts?.no_sep &&
+      this.components.findIndex((c) => c instanceof SeparatorBuilder && c.data.id === 2) !== -1
+    ) {
+      this.components.splice(1, 1);
+    }
+
+    if (this.components[0] instanceof SectionBuilder) {
+      return (
+        (this.components[0].components[0] as TextDisplayBuilder).setContent(`### ${this._title}`) &&
+        this
+      );
+    } else if (this.components[0] instanceof TextDisplayBuilder) {
+      return this.components[0].setContent(`### ${this._title}`) && this;
+    }
+
+    return this;
+  }
+
+  /**
+   * Sets the description of this embed using node `util.format()`.
+   * @remarks This method will set the description to a single space if it was provided as a falsey value.
+   * @requires {@link FormatString `node:util.format()`}
+   * @param description - A tuple of data to format (by `util.format()`) and set as the description.
+   */
+  public setDescription(...description: any[]): this {
+    const Formatted = FormatString(...description).trim();
+    this._description = Formatted.match(/^(?:\s*|NaN|null|undefined)$/) ? " " : Formatted;
+
+    if (this.components.length > 0 && this.components[0] instanceof SectionBuilder) {
+      const DescriptionComponent = this.components[0].components.find(
+        (c, index) => c instanceof TextDisplayBuilder && index > 0
+      ) as TextDisplayBuilder;
+
+      if (DescriptionComponent) {
+        DescriptionComponent.setContent(this._description);
+      }
+    } else {
+      const DescriptionIndex = this.components.findIndex(
+        (c, index) => c instanceof TextDisplayBuilder && index > 0
+      );
+
+      if (DescriptionIndex !== -1) {
+        (this.components[DescriptionIndex] as TextDisplayBuilder).setContent(this._description);
+      }
+    }
+
+    return this;
   }
 
   /**
