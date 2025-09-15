@@ -500,7 +500,7 @@ async function UpdateManagementPrompt(
   );
 
   let ShiftOverviewDesc = "";
-  const MgmtEmbedTitle = `### Shift Management: \`${ShiftType}\` type`;
+  const MgmtEmbedTitle = `Shift Management: \`${ShiftType}\` type`;
   const MgmtPromptMainDesc = Dedent(`
     > **Shift Count:** \`${MemberShiftsData.shift_count}\`
     > **Total On-Duty Time:** ${MemberShiftsData.total_onduty}
