@@ -17,7 +17,7 @@ import {
 } from "@Utilities/Classes/ExtraContainers.js";
 
 import Dedent from "dedent";
-import GetActiveShifts from "@Utilities/Database/GetShiftActive.js";
+import ShiftModel from "@Models/Shift.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
@@ -28,7 +28,12 @@ import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollec
 // Functions:
 // ----------
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
-  const ActiveShift = await GetActiveShifts({ Interaction, UserOnly: true });
+  const ActiveShift = await ShiftModel.findOne({
+    guild: Interaction.guildId,
+    user: Interaction.user.id,
+    end_timestamp: null,
+  }).exec();
+
   if (!ActiveShift) {
     return new ErrorEmbed()
       .useErrTemplate("ShiftMustBeActive")
@@ -77,12 +82,17 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   })
     .then(async (ButtonInteract) => {
       await ButtonInteract.deferUpdate();
-      const ActiveShiftLatestVer = await GetActiveShifts({ Interaction, UserOnly: true });
-      if (!ActiveShiftLatestVer) {
+      const OngoingShift = await ShiftModel.findOne({
+        end_timestamp: null,
+        user: Interaction.user.id,
+        guild: Interaction.guildId,
+      });
+
+      if (!OngoingShift) {
         return new ErrorContainer()
           .useErrTemplate("ShiftMustBeActive")
           .replyToInteract(ButtonInteract, true);
-      } else if (ActiveShift._id !== ActiveShiftLatestVer._id) {
+      } else if (ActiveShift._id !== OngoingShift._id) {
         return new ErrorContainer()
           .useErrTemplate("ShiftVoidMismatch")
           .replyToInteract(ButtonInteract, true);
@@ -98,7 +108,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         }
 
         return Promise.allSettled([
-          ShiftActionLogger.LogShiftVoid(ActiveShiftLatestVer, ButtonInteract),
+          ShiftActionLogger.LogShiftVoid(OngoingShift, ButtonInteract),
           HandleShiftRoleAssignment(
             "off-duty",
             ButtonInteract.client,
