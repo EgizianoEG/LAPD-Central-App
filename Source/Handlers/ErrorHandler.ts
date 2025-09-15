@@ -1,4 +1,5 @@
 import { DiscordAPIError, DiscordjsError, DiscordjsErrorCodes } from "discord.js";
+import { AxiosError } from "axios";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
 import Mongoose from "mongoose";
@@ -32,6 +33,7 @@ export default function ErrorHandler() {
       (Err instanceof DiscordjsError && !FatalDiscordJSErrors.includes(Err.code)) ||
       (Err instanceof AppError && Err.code !== 0) ||
       Err instanceof Mongoose.mongo.MongoServerError ||
+      Err instanceof AxiosError ||
       Err instanceof RangeError ||
       Err instanceof ReferenceError ||
       NonFatalErrorsFromConstructors.includes(Err.constructor.name) ||
