@@ -675,11 +675,11 @@ export namespace GuildProfiles {
 export namespace UserActivityNotice {
   type NoticeType = "LeaveOfAbsence" | "ReducedActivity";
   type NoticeStatus = "Pending" | "Approved" | "Denied" | "Cancelled";
-  type NoticeModel = Model<UserActivityNoticeDocument, {}, DocumentMethods, DocumentVirtuals>;
+  type NoticeModel = Model<UserActivityNoticeDocument, {}, DocumentMethods, ActivityNoticeVirtuals>;
   type ANHDwInst = InstanceType<typeof UserActivityNoticeModel>;
   type ActivityNoticeHydratedDocument = HydratedDocument<
-    UserActivityNotice.UserActivityNoticeDocument,
-    DocumentVirtuals & DocumentMethods
+    UserActivityNoticeDocument,
+    ActivityNoticeVirtuals & DocumentMethods
   >;
 
   interface DocumentMethods {
@@ -702,7 +702,7 @@ export namespace UserActivityNotice {
     ): Promise<OldFallback extends true ? ANHDwInst : ANHDwInst | null>;
   }
 
-  interface DocumentVirtuals {
+  interface ActivityNoticeVirtuals {
     /**
      * @virtual - Not stored in the database.
      * Indicates whether the activity notice is currently active.
@@ -1272,6 +1272,9 @@ export namespace GuildIncidents {
 }
 
 export namespace Callsigns {
+  type CallsignModel = Model<CallsignDocument, {}, {}, CallsignVirtuals>;
+  type HydratedCallsignDocument = HydratedDocument<CallsignDocument, CallsignVirtuals>;
+
   interface CallsignDocument {
     _id: Types.ObjectId;
     guild: string;
@@ -1327,8 +1330,14 @@ export namespace Callsigns {
     };
   }
 
-  type HydratedCallsignDocument = HydratedDocument<CallsignDocument>;
-  interface CallsignModel extends Model<CallsignDocument, {}, {}, HydratedCallsignDocument> {}
+  interface CallsignVirtuals {
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted string representing the callsign designation.
+     * E.g., `"1-A-123"`.
+     */
+    designation_str: string;
+  }
 }
 
 export namespace RolePersist {

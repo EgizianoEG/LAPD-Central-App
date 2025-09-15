@@ -8,6 +8,7 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
     type: String,
     index: true,
     required: true,
+    immutable: true,
     match: /^\d{15,22}$/,
   },
 
@@ -15,6 +16,7 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
     type: String,
     index: true,
     required: true,
+    immutable: true,
     match: /^\d{15,22}$/,
   },
 
@@ -136,6 +138,10 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
       },
     },
   },
+});
+
+CallsignSchema.virtual("designation_str").get(function (this: Callsigns.CallsignDocument) {
+  return `${this.designation.division}-${this.designation.unit_type}-${this.designation.beat_num}`;
 });
 
 const CallsignModel = model<Callsigns.CallsignDocument, Callsigns.CallsignModel>(
