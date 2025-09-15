@@ -13,6 +13,7 @@ import type {
 
 import {
   MessageComponentInteraction,
+  time as FormatTime,
   CommandInteraction,
   TextDisplayBuilder,
   ButtonInteraction,
@@ -47,6 +48,9 @@ export class BaseExtraContainer extends ContainerBuilder {
   protected _accentColor: ColorResolvable | null = null;
   protected _thumbnail: string | null = null;
   protected _footer: string | null = null;
+  protected _timestamp: Date | null = null;
+  protected _footerDelimiter: string = " | ";
+  protected _footerEmoji: string | null = null;
 
   public get title(): string | null {
     return this._title;
@@ -66,6 +70,18 @@ export class BaseExtraContainer extends ContainerBuilder {
 
   public get footer(): string | null {
     return this._footer;
+  }
+
+  public get timestamp(): Date | null {
+    return this._timestamp;
+  }
+
+  public get footerDelimiter(): string {
+    return this._footerDelimiter;
+  }
+
+  public get footerEmoji(): string | null {
+    return this._footerEmoji;
   }
 
   constructor() {
@@ -163,14 +179,13 @@ export class BaseExtraContainer extends ContainerBuilder {
   }
 
   /**
-   * Sets the footer text for the container. If a footer is provided, it trims the text,
-   * updates the internal footer property, and adds separator and text display components
-   * to the container. If `null` is provided, it removes the footer and associated components.
-   * @param footer - The footer text to set, or `null` to remove the footer.
+   * Private method to rebuild the footer component based on current footer text and timestamp.
+   * Handles all combinations: footer only, timestamp only, both, or neither.
+   * Also handles footer emoji icons using pre-uploaded emojis or emoji strings.
    * @param divider - Whether to include a visible divider line in the footer separator.
    * @returns The current instance for method chaining.
    */
-  public setFooter(footer: string | null, divider: boolean = true): this {
+  private _rebuildFooterComponent(divider: boolean = true): this {
     const FooterIndex = this.components.findLastIndex(
       (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
     );
@@ -189,14 +204,30 @@ export class BaseExtraContainer extends ContainerBuilder {
       this.spliceComponents(StartIndex, ItemsToRemove);
     }
 
-    if (!footer?.trim()) {
-      this._footer = null;
+    let FooterContent: string | null = null;
+    let FooterIconText = "";
+
+    if (this._footer && this._timestamp) {
+      FooterContent = `${this._footer}${this._footerDelimiter}${FormatTime(this._timestamp)}`;
+    } else if (this._footer) {
+      FooterContent = this._footer;
+    } else if (this._timestamp) {
+      FooterContent = FormatTime(this._timestamp);
+    }
+
+    if (this._footerEmoji && FooterContent) {
+      FooterIconText = `${this._footerEmoji} `;
+    }
+
+    if (!FooterContent) {
       return this;
     }
 
-    this._footer = footer.trim();
+    const FinalFooterContent = `${FooterIconText}${FooterContent}`.trim();
     const FooterComponent = new TextDisplayBuilder({
-      content: this._footer?.startsWith("-# ") ? this._footer : `-# ${this._footer}`,
+      content: FinalFooterContent.startsWith("-# ")
+        ? FinalFooterContent
+        : `-# ${FinalFooterContent}`,
       id: 4,
     });
 
@@ -215,6 +246,57 @@ export class BaseExtraContainer extends ContainerBuilder {
     return this.addSeparatorComponents(
       new SeparatorBuilder().setDivider(divider)
     ).addTextDisplayComponents(FooterComponent);
+  }
+
+  /**
+   * Sets the footer text for the container. If a footer is provided, it trims the text,
+   * updates the internal footer property, and rebuilds the footer component.
+   * If `null` is provided, it removes the footer text and rebuilds the footer component.
+   * @param footer - The footer text to set, or `null` to remove the footer.
+   * @param divider - Whether to include a visible divider line in the footer separator.
+   * @returns The current instance for method chaining.
+   */
+  public setFooter(footer: string | null, divider?: boolean): this;
+
+  /**
+   * Sets the footer with text and optional emoji icon. The emoji should be a pre-uploaded
+   * emoji mention (e.g., "<:name:id>").
+   * @param opts - Object containing text and optional emoji, or `null` to remove the footer.
+   * @param divider - Whether to include a visible divider line in the footer separator.
+   * @returns The current instance for method chaining.
+   */
+  public setFooter(opts: { text: string; emoji?: string | null } | null, divider?: boolean): this;
+  public setFooter(
+    footerOrOpts: string | { text: string; emoji?: string | null } | null,
+    divider: boolean = true
+  ): this {
+    if (typeof footerOrOpts === "string" || footerOrOpts === null) {
+      this._footer = footerOrOpts?.trim() || null;
+      this._footerEmoji = null;
+    } else if (footerOrOpts) {
+      this._footer = footerOrOpts.text.trim();
+      this._footerEmoji = footerOrOpts.emoji ? footerOrOpts.emoji.trim() : null;
+    } else {
+      this._footer = null;
+      this._footerEmoji = null;
+    }
+
+    return this._rebuildFooterComponent(divider);
+  }
+
+  /**
+   * Sets the timestamp for the footer. An alternative method to Embeds' `setTimestamp`.
+   * @param timestampDate - The date to format as the timestamp. Defaults to the current date and time. If `null`, removes any existing timestamp.
+   * @param footerDelimiter - The separator to use between the footer text and the timestamp. Defaults to `" | "`.
+   * @returns The current instance for method chaining.
+   */
+  public setTimestamp(
+    timestampDate: Date | null = new Date(),
+    footerDelimiter: string = " | "
+  ): this {
+    this._timestamp = timestampDate;
+    this._footerDelimiter = footerDelimiter;
+    return this._rebuildFooterComponent(true);
   }
 
   /**
@@ -312,8 +394,8 @@ export class BaseExtraContainer extends ContainerBuilder {
       .setThumbnailAccessory(Thumb);
 
     this.addSectionComponents(Section);
-    if (this._footer) {
-      return this.setFooter(this._footer);
+    if (this._footer || this._timestamp) {
+      return this._rebuildFooterComponent();
     }
 
     return this;
@@ -369,20 +451,9 @@ export class BaseExtraContainer extends ContainerBuilder {
       this.spliceComponents(ActionRowIndices[i], 1);
     }
 
-    if (this._footer) {
-      const FooterIndex = this.components.findLastIndex(
-        (c) => c.data.type === ComponentType.TextDisplay && c.data.id === 4
-      );
-
-      if (FooterIndex !== -1) {
-        if (
-          FooterIndex < this.components.length - 1 &&
-          this.components[FooterIndex + 1].data.type === ComponentType.Separator
-        ) {
-          this.spliceComponents(FooterIndex + 1, 1);
-        }
-        return this.addActionRowComponents(...ActionRows);
-      }
+    if (this._footer || this._timestamp) {
+      this._rebuildFooterComponent();
+      return this.addActionRowComponents(...ActionRows);
     }
 
     return this.addSeparatorComponents(Separator).addActionRowComponents(...ActionRows);
