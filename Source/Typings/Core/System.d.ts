@@ -30,6 +30,13 @@ export interface CronJobFileDefReturn {
 
   cron_opts?: ScheduleOptions & {
     /**
+     * If set to `true`, the cron job will be running only after the Discord client is fully online and ready.
+     * This ensures that any operations dependent on the Discord client can be executed without issues.
+     * If set to `false` or omitted, the cron job may run even if the Discord client is not yet ready.
+     */
+    awaitAppOnline?: boolean;
+
+    /**
      * Defines how unhandled errors in the cron function should be managed.
      *
      * - `"silent/log"`: The error will be caught and logged using the application's logging system,

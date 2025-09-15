@@ -11,6 +11,7 @@ const ScheduledTasks = new Map<string, Cron.ScheduledTask>();
 
 export default async function CronJobsHandler(Client: DiscordClient) {
   const CronJobPaths = GetFiles(Path.join(GetDirName(import.meta.url), "..", "Jobs"));
+  const MustOnlyWorkWhenAppIsOnlineJobs: string[] = [];
 
   for (const JobPath of CronJobPaths) {
     const JobData = (await import(JobPath)).default as CronJobFileDefReturn;
@@ -34,7 +35,12 @@ export default async function CronJobsHandler(Client: DiscordClient) {
           JobData.cron_opts
         );
 
-        CronTask.start();
+        if (JobData.cron_opts?.awaitAppOnline) {
+          MustOnlyWorkWhenAppIsOnlineJobs.push(JobFileName);
+        } else {
+          CronTask.start();
+        }
+
         ScheduledTasks.set(JobFileName, CronTask);
       } else {
         AppLogger.warn({
@@ -51,6 +57,22 @@ export default async function CronJobsHandler(Client: DiscordClient) {
         message: "File '%s' does not export a valid cron job object. Skipping scheduling.",
       });
     }
+  }
+
+  if (MustOnlyWorkWhenAppIsOnlineJobs.length > 0) {
+    Client.on("ready", function RunDependentJobs() {
+      MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
+        const Task = ScheduledTasks.get(JobFileName);
+        if (Task) Task.start();
+      });
+    });
+
+    Client.on("shardDisconnect", function PauseDependentJobs() {
+      MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
+        const Task = ScheduledTasks.get(JobFileName);
+        if (Task) Task.stop();
+      });
+    });
   }
 
   if (ScheduledTasks.size > 0) {
