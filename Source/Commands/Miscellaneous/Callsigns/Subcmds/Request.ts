@@ -2,9 +2,14 @@ import { type Guilds } from "@Typings/Utilities/Database.js";
 import { CallsignsEventLogger } from "@Utilities/Classes/CallsignsEventLogger.js";
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
+import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
 import { ServiceUnitTypes, DivisionBeats } from "@Resources/LAPDCallsigns.js";
 import { differenceInMilliseconds, milliseconds } from "date-fns";
 import { SlashCommandSubcommandBuilder, MessageFlags } from "discord.js";
+import {
+  CallsignValidationData,
+  GetCallsignValidationData,
+} from "@Utilities/Database/CallsignData.js";
 
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
@@ -14,19 +19,19 @@ import AppError from "@Utilities/Classes/AppError.js";
 const CallsignEventLogger = new CallsignsEventLogger();
 const DeniedRequestCooldown = milliseconds({ hours: 1 });
 const ExpiredCallsignCooldown = milliseconds({ minutes: 30 });
-const CancelledRequestCooldown = milliseconds({ hours: 30 });
+const CancelledRequestCooldown = milliseconds({ minutes: 30 });
 const ServiceUnitTypesNormalized = ServiceUnitTypes.map((u) => u.unit);
 const DivisionBeatIntegers = DivisionBeats.map((d) => d.num) as number[];
-
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
 /**
- * Validates the callsign format and availability.
+ * Validates the callsign format and availability using pre-fetched data.
  * @param Interaction - The interaction object.
  * @param Division - The division number (1-36).
  * @param UnitType - The unit type string.
  * @param BeatNum - The beat number.
+ * @param ValidationData - Pre-fetched callsign validation data.
  * @returns A promise resolving to `true` if an error response is sent due to invalid callsign,
  *          or `false` if the callsign is valid and available.
  */
@@ -34,7 +39,8 @@ export async function ValidateCallsignFormat(
   Interaction: SlashCommandInteraction<"cached">,
   Division: number,
   UnitType: string,
-  BeatNum: number
+  BeatNum: number,
+  ValidationData: CallsignValidationData
 ): Promise<boolean> {
   if (Division < 1 || Division > 36) {
     return new ErrorEmbed()
@@ -67,20 +73,11 @@ export async function ValidateCallsignFormat(
       .then(() => true);
   }
 
-  // Check if callsign already exists and is approved or pending
-  const FormattedBeatNum = BeatNum.toString().padStart(2, "0");
-  const ExistingCallsign = await CallsignModel.findOne({
-    "designation.division": Division,
-    "designation.unit_type": UnitType,
-    "designation.beat_num": FormattedBeatNum,
-    request_status: { $in: [GenericRequestStatuses.Approved, GenericRequestStatuses.Pending] },
-    guild: Interaction.guildId,
-    $or: [{ expiry: null }, { expiry: { $gt: Interaction.createdAt } }],
-  })
-    .lean()
-    .exec();
-
-  if (ExistingCallsign?.requester !== Interaction.user.id) {
+  if (
+    ValidationData.ExistingCallsign &&
+    ValidationData.ExistingCallsign.requester !== Interaction.user.id
+  ) {
+    const FormattedBeatNum = BeatNum.toString().padStart(2, "0");
     const CallsignString = `${Division}-${UnitType}-${FormattedBeatNum}`;
     return new ErrorEmbed()
       .useErrTemplate("CallsignNotAvailable", CallsignString)
@@ -171,25 +168,22 @@ export async function ValidateIdentifierPermissions(
 }
 
 /**
- * Checks if the user already has a pending or active callsign request.
+ * Checks if the user already has a pending or active callsign request using pre-fetched data.
  * @param Interaction - The interaction object.
+ * @param ValidationData - Pre-fetched callsign validation data.
  * @returns A promise resolving to `true` if an error response is sent due to existing request,
  *          or `false` if the user can submit a new request.
  */
 export async function CheckExistingCallsignRequests(
-  Interaction: SlashCommandInteraction<"cached">
+  Interaction: SlashCommandInteraction<"cached">,
+  ValidationData: CallsignValidationData
 ): Promise<boolean> {
-  const PendingRequest = await CallsignModel.findOne({
-    guild: Interaction.guildId,
-    requester: Interaction.user.id,
-    request_status: GenericRequestStatuses.Pending,
-  })
-    .lean()
-    .exec();
-
-  if (PendingRequest) {
+  if (ValidationData.PendingRequests.length > 0) {
     return new ErrorEmbed()
-      .useErrTemplate("CallsignAlreadyRequested")
+      .useErrTemplate(
+        "CallsignAlreadyRequested",
+        FormatCallsignDesignation(ValidationData.PendingRequests[0].designation)
+      )
       .replyToInteract(Interaction, true)
       .then(() => true);
   }
@@ -198,9 +192,10 @@ export async function CheckExistingCallsignRequests(
 }
 
 /**
- * Checks if a user has recently had a denied, cancelled, or expired callsign request,
+ * Checks if a user has recently had a denied, cancelled, or expired callsign request using pre-fetched data,
  * and responds with an appropriate error message if they're still in cooldown.
  * @param Interaction - The interaction object containing details about the command invocation.
+ * @param ValidationData - Pre-fetched callsign validation data.
  * @returns A promise that resolves to `false` if no recent cooldown applies,
  *          or `true` if an error message is sent due to an active cooldown.
  *
@@ -210,28 +205,14 @@ export async function CheckExistingCallsignRequests(
  * - If the user's most recent callsign has expired or was revoked within the last 1 hour, an error message is sent.
  */
 export async function HasRecentCallsignCooldown(
-  Interaction: SlashCommandInteraction<"cached">
+  Interaction: SlashCommandInteraction<"cached">,
+  ValidationData: CallsignValidationData
 ): Promise<boolean> {
-  const MostRecentCallsign = await CallsignModel.findOne(
-    {
-      guild: Interaction.guildId,
-      requester: Interaction.user.id,
-      request_status: {
-        $in: [
-          GenericRequestStatuses.Denied,
-          GenericRequestStatuses.Cancelled,
-          GenericRequestStatuses.Approved,
-        ],
-      },
-    },
-    null,
-    { sort: { requested_on: -1 }, limit: 1 }
-  ).then((Results) => Results);
-
+  const MostRecentCallsign = ValidationData.MostRecentCallsign;
   if (!MostRecentCallsign) return false;
   const Now = Interaction.createdAt;
 
-  // Check for denied request cooldown (2 hours)
+  // Check for denied request cooldown (1 hour):
   if (MostRecentCallsign.request_status === GenericRequestStatuses.Denied) {
     const ReviewTime = MostRecentCallsign.reviewed_on || MostRecentCallsign.requested_on;
     if (differenceInMilliseconds(Now, ReviewTime) < DeniedRequestCooldown) {
@@ -242,7 +223,7 @@ export async function HasRecentCallsignCooldown(
     }
   }
 
-  // Check for cancelled request cooldown (1 hour)
+  // Check for cancelled request cooldown (30 minutes):
   if (MostRecentCallsign.request_status === GenericRequestStatuses.Cancelled) {
     const ReviewTime = MostRecentCallsign.reviewed_on || MostRecentCallsign.requested_on;
     if (differenceInMilliseconds(Now, ReviewTime) < CancelledRequestCooldown) {
@@ -253,7 +234,7 @@ export async function HasRecentCallsignCooldown(
     }
   }
 
-  // Check for recently expired/revoked callsign cooldown (1 hour)
+  // Check for recently expired/revoked callsign cooldown (30 minutes):
   if (
     MostRecentCallsign.request_status === GenericRequestStatuses.Approved &&
     MostRecentCallsign.expiry
@@ -281,15 +262,29 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
   const BeatNum = Interaction.options.getInteger("beat-num", true);
   const RequestReason = Interaction.options.getString("reason", true);
 
-  // Checklist:
+  let UnitTypeUpper = UnitType.toUpperCase();
+  UnitTypeUpper = UnitTypeUpper === "AIR" ? "Air" : UnitTypeUpper;
+
+  const FormattedBeatNum = BeatNum.toString().padStart(2, "0");
+  const ValidationData = await GetCallsignValidationData(
+    Interaction.guildId,
+    Interaction.user.id,
+    Division,
+    UnitTypeUpper,
+    FormattedBeatNum,
+    Interaction.createdAt
+  );
+
+  // Checklist (using pre-fetched data):
   // 1. Check for cooldown restrictions
   // 2. Validate callsign format and availability
   // 3. Validate unit type permissions
   // 4. Validate identifier permissions
   // 5. Check for existing requests/callsigns
 
-  if (await HasRecentCallsignCooldown(Interaction)) return;
-  if (await ValidateCallsignFormat(Interaction, Division, UnitType, BeatNum)) return;
+  if (await HasRecentCallsignCooldown(Interaction, ValidationData)) return;
+  if (await ValidateCallsignFormat(Interaction, Division, UnitType, BeatNum, ValidationData))
+    return;
 
   const GuildSettings = await GetGuildSettings(Interaction.guildId);
   if (!GuildSettings) return new AppError({ template: "GuildConfigNotFound", showable: true });
@@ -298,14 +293,9 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
     return;
   if (await ValidateIdentifierPermissions(Interaction, GuildSettings.callsigns_module, BeatNum))
     return;
-  if (await CheckExistingCallsignRequests(Interaction)) return;
+  if (await CheckExistingCallsignRequests(Interaction, ValidationData)) return;
 
-  let UnitTypeUpper = UnitType.toUpperCase();
-  UnitTypeUpper = UnitTypeUpper === "AIR" ? "Air" : UnitTypeUpper;
-
-  const FormattedBeatNum = BeatNum.toString().padStart(2, "0");
-  const FormattedCallsign = `${Division}${UnitTypeUpper}-${FormattedBeatNum}`;
-
+  const ActiveCallsign = ValidationData.ActiveCallsign;
   const PendingCallsign = await CallsignModel.create({
     guild: Interaction.guildId,
     requester: Interaction.user.id,
@@ -319,11 +309,13 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
     },
   });
 
-  const RequestMsg = await CallsignEventLogger.SendRequest(Interaction, PendingCallsign);
-  if (RequestMsg) {
-    PendingCallsign.request_message = `${RequestMsg.channel.id}:${RequestMsg.id}`;
-    await PendingCallsign.save();
-  }
+  const FormattedCallsign = FormatCallsignDesignation(PendingCallsign.designation);
+  await CallsignEventLogger.SendRequest(Interaction, PendingCallsign, ActiveCallsign).then((PC) => {
+    if (PC) {
+      PendingCallsign.request_message = `${PC.channel.id}:${PC.id}`;
+      return PendingCallsign.save();
+    }
+  });
 
   return new InfoEmbed()
     .setTitle("Callsign Request Submitted")
