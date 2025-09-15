@@ -1,4 +1,4 @@
-import type { Options as ScheduleOptions } from "node-cron";
+import type { TaskOptions as ScheduleOptions } from "node-cron";
 
 /**
  * @note Each cron job will be automatically started even if not specified in cron options.
