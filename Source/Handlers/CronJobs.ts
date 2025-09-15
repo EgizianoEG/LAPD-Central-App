@@ -6,6 +6,7 @@ import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
 import Chalk from "chalk";
 import Cron from "node-cron";
 import Path from "node:path";
+
 const HandlerLabel = "Handlers:CronJobs";
 const ScheduledTasks = new Map<string, Cron.ScheduledTask>();
 
@@ -20,7 +21,7 @@ export default async function CronJobsHandler(Client: DiscordClient) {
 
     if (typeof JobData === "object") {
       if (typeof JobData.cron_func === "function") {
-        const CronTask = Cron.schedule(
+        const CronTask = Cron.createTask(
           JobData.cron_exp,
           async function CSFMask(Now) {
             try {
