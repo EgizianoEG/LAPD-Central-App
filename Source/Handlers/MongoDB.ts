@@ -125,14 +125,7 @@ async function SetupActiveShiftsChangeStream() {
     MongoDBCache.StreamChangeConnected.ActiveShifts = false;
   });
 
-  await ActiveShiftsStream.Start([
-    {
-      $match: {
-        "fullDocument.flag": ShiftFlags.Standard,
-      },
-    },
-  ]);
-
+  await ActiveShiftsStream.Start();
   return ActiveShiftsStream;
 }
 
