@@ -12,6 +12,23 @@ import {
   ModalSubmitInteraction,
 } from "discord.js";
 
+import {
+  ErrorContainer,
+  InfoContainer,
+  BaseExtraContainer,
+  UnauthorizedContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
+
+import {
+  Dedent,
+  FormatCallsignDesignation as FormatCallsign,
+} from "@Utilities/Strings/Formatters.js";
+
+import {
+  GetCallsignHistoryFor,
+  GetCallsignValidationData,
+} from "@Utilities/Database/CallsignData.js";
+
 import { Colors } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
 import { Callsigns } from "@Typings/Utilities/Database.js";
@@ -20,16 +37,21 @@ import { CallsignsEventLogger } from "@Utilities/Classes/CallsignsEventLogger.js
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { RandomString, GetErrorId } from "@Utilities/Strings/Random.js";
 import { CallsignMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
-import { ErrorEmbed, UnauthorizedEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { DivisionBeats, ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import * as Chrono from "chrono-node";
-import CallsignModel from "@Models/Callsign.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import CallsignModel from "@Models/Callsign.js";
+import * as Chrono from "chrono-node";
+import AppLogger from "@Utilities/Classes/AppLogger.js";
 
 type HCallsignDocument = Callsigns.HydratedCallsignDocument;
+type CSReviewResponse = {
+  pass: boolean;
+  validation_data: Awaited<ReturnType<typeof GetCallsignValidationData>> | null;
+};
+
 const CallsignEventLogger = new CallsignsEventLogger();
 const FunctionMap = {
   "callsign-approve": HandleCallsignApproval,
@@ -62,10 +84,11 @@ export default async function CallsignManagementHandlerWrapper(
       label: "Events:InteractionCreate:CallsignManagementHandler.ts",
       message: "Failed to handle callsign management button interaction;",
       error_id: ErrorId,
-      stack: Err.stack,
+      stack: Err?.stack,
+      error: Err,
     });
 
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("UnknownError")
       .setErrorId(ErrorId)
       .replyToInteract(Interaction, true);
@@ -84,11 +107,10 @@ export default async function CallsignManagementHandlerWrapper(
 async function CallsignManagementHandler(Interaction: ButtonInteraction<"cached">) {
   const [Action, , CallsignId] = Interaction.customId.split(":");
   const CallsignDocument = await CallsignModel.findById(CallsignId).exec();
-  if (await HandleCallsignReviewValidation(Interaction, CallsignDocument)) return;
 
   const HandlerFunction = FunctionMap[Action as keyof typeof FunctionMap];
   if (!HandlerFunction) {
-    return new ErrorEmbed().useErrTemplate("UnknownError").replyToInteract(Interaction, true);
+    return new ErrorContainer().useErrTemplate("UnknownError").replyToInteract(Interaction, true);
   }
 
   return HandlerFunction(Interaction, CallsignDocument!);
@@ -104,56 +126,54 @@ async function HandleCallsignAddInfo(
   Interaction: ButtonInteraction<"cached">,
   CallsignDocument: HCallsignDocument
 ) {
-  await Interaction.deferReply({ ephemeral: true });
+  await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const FormattedCallsign = CallsignEventLogger.FormatCallsign(CallsignDocument.designation);
-  const CallsignHistory = await CallsignEventLogger.GetCallsignHistory(
-    Interaction.guild,
-    CallsignDocument.designation
+  const FormattedCallsign = FormatCallsign(CallsignDocument.designation);
+  const CallsignHistory = await GetCallsignHistoryFor(
+    Interaction.guildId,
+    CallsignDocument.designation,
+    8
   );
 
-  const CallsignInfoEmbed = new InfoEmbed()
+  const CallsignHistoryStr: string[] = [];
+  const UnitTypeDetail =
+    ServiceUnitTypes.find((U) => U.unit === CallsignDocument.designation.unit_type)?.desc ??
+    "*Unknown*";
+
+  const DivisionName =
+    DivisionBeats.find((D) => D.num === CallsignDocument.designation.division)?.name ?? "*Unknown*";
+
+  for (const Record of CallsignHistory) {
+    const DateText = FormatTime(Record.reviewed_on!, "d");
+    const StatusText =
+      Record.request_status === GenericRequestStatuses.Approved ? "Approved" : "Denied";
+
+    const CurrentHolderSignal =
+      Record.request_status === GenericRequestStatuses.Approved &&
+      (!Record.expiry || Record.expiry > Interaction.createdAt)
+        ? " *(Current Holder)*"
+        : "";
+
+    CallsignHistoryStr.push(
+      `${userMention(Record.requester)} - ${StatusText} (${DateText})${CurrentHolderSignal}`
+    );
+  }
+
+  const CallsignInfoContainer = new InfoContainer()
     .setTitle(`Callsign Information: ${FormattedCallsign}`)
-    .addFields({
-      name: "Current Request",
-      value:
-        `**Requester:** ${userMention(CallsignDocument.requester)}\n` +
-        `**Reason:** ${CallsignDocument.request_reason}\n` +
-        `**Requested:** ${FormatTime(CallsignDocument.requested_on, "D")}`,
-    });
+    .setDescription(
+      Dedent(`        
+        **Designation:**
+        - **Division:** ${DivisionName} (${CallsignDocument.designation.division})
+        - **Unit Type:** ${UnitTypeDetail} (${CallsignDocument.designation.unit_type})
+        - **Beat Number:** ${CallsignDocument.designation.beat_num}
 
-  if (CallsignHistory.length > 0) {
-    const HistoryText = CallsignHistory.map((Record, Index) => {
-      const Status =
-        Record.request_status === GenericRequestStatuses.Approved ? "✅ Approved" : "❌ Denied";
-      const DateText = FormatTime(Record.requested_on, "d");
-      return `${Index + 1}. ${userMention(Record.requester)} - ${Status} (${DateText})`;
-    }).join("\n");
+        **Callsign History ${CallsignHistory.length ? `(${CallsignHistory.length})` : ""}:**
+        ${CallsignHistoryStr.length ? CallsignHistoryStr.join("\n") : "*There is no history available to view.*"}
+      `)
+    );
 
-    CallsignInfoEmbed.addFields({
-      name: "Callsign History",
-      value: HistoryText.length > 1024 ? `${HistoryText.substring(0, 1021)}...` : HistoryText,
-    });
-  } else {
-    CallsignInfoEmbed.addFields({
-      name: "Callsign History",
-      value: "This callsign has no previous history.",
-    });
-  }
-
-  // Check for currently active holder
-  const CurrentHolder = CallsignHistory.find(
-    (Record) => Record.request_status === GenericRequestStatuses.Approved && !Record.expiry
-  );
-
-  if (CurrentHolder) {
-    CallsignInfoEmbed.addFields({
-      name: "Current Holder",
-      value: `${userMention(CurrentHolder.requester)} (since ${FormatTime(CurrentHolder.reviewed_on || CurrentHolder.requested_on, "D")})`,
-    });
-  }
-
-  return CallsignInfoEmbed.replyToInteract(Interaction, true);
+  return CallsignInfoContainer.replyToInteract(Interaction, true);
 }
 
 /**
@@ -167,16 +187,19 @@ async function HandleCallsignApproval(
   Interaction: ButtonInteraction<"cached">,
   CallsignDocument: HCallsignDocument
 ) {
-  const FormattedCallsign = CallsignEventLogger.FormatCallsign(CallsignDocument.designation);
+  const FormattedCallsign = FormatCallsign(CallsignDocument.designation);
   const NotesModal = GetNotesModal(Interaction, "Approval", false);
   const NotesSubmission = await ShowModalAndAwaitSubmission(Interaction, NotesModal, 8 * 60_000);
   if (!NotesSubmission) return;
 
   const UpdatedDocument = await CallsignModel.findById(CallsignDocument._id).exec();
-  if (
-    (await HandleCallsignReviewValidation(NotesSubmission, UpdatedDocument, Interaction)) ||
-    !UpdatedDocument
-  ) {
+  const CallsignValidationResult = await HandleCallsignReviewValidation(
+    NotesSubmission,
+    UpdatedDocument,
+    Interaction
+  );
+
+  if (!CallsignValidationResult.pass || !UpdatedDocument) {
     return;
   }
 
@@ -188,16 +211,14 @@ async function HandleCallsignApproval(
   );
 
   if (VacancyValidation !== null) {
-    // Auto-denial was processed due to vacancy check
     return VacancyValidation;
   }
 
-  // Parse expiry date if provided
   const ExpiryInput = NotesSubmission.fields.getTextInputValue("expiry");
   const ParsedExpiry = ParseExpiryDate(ExpiryInput, Interaction.createdAt);
 
   if (ParsedExpiry.error_temp) {
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate(ParsedExpiry.error_temp as any)
       .replyToInteract(NotesSubmission, true);
   }
@@ -250,16 +271,19 @@ async function HandleCallsignDenial(
   Interaction: ButtonInteraction<"cached">,
   CallsignDocument: HCallsignDocument
 ) {
-  const FormattedCallsign = CallsignEventLogger.FormatCallsign(CallsignDocument.designation);
+  const FormattedCallsign = FormatCallsign(CallsignDocument.designation);
   const NotesModal = GetNotesModal(Interaction, "Denial", true);
   const NotesSubmission = await ShowModalAndAwaitSubmission(Interaction, NotesModal, 8 * 60_000);
   if (!NotesSubmission) return;
 
   const UpdatedDocument = await CallsignModel.findById(CallsignDocument._id).exec();
-  if (
-    (await HandleCallsignReviewValidation(NotesSubmission, UpdatedDocument, Interaction)) ||
-    !UpdatedDocument
-  ) {
+  const CallsignValidationResult = await HandleCallsignReviewValidation(
+    NotesSubmission,
+    UpdatedDocument,
+    Interaction
+  );
+
+  if (!CallsignValidationResult.pass || !UpdatedDocument) {
     return;
   }
 
@@ -277,7 +301,11 @@ async function HandleCallsignDenial(
   return Promise.all([
     UpdatedDocument.save(),
     NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
-    CallsignEventLogger.LogDenial(NotesSubmission, UpdatedDocument),
+    CallsignEventLogger.LogDenial(
+      NotesSubmission,
+      UpdatedDocument,
+      CallsignValidationResult.validation_data?.ActiveCallsign
+    ),
   ]);
 }
 // ---------------------------------------------------------------------------------------
@@ -291,7 +319,7 @@ async function HandleCallsignDenial(
 async function HandleUnauthorizedManagement(Interaction: ButtonInteraction<"cached">) {
   const GuildSettings = await GetGuildSettings(Interaction.guildId);
   if (!GuildSettings?.callsigns_module.enabled) {
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("CallsignsModuleDisabled")
       .replyToInteract(Interaction, true)
       .then(() => true);
@@ -303,7 +331,7 @@ async function HandleUnauthorizedManagement(Interaction: ButtonInteraction<"cach
     GuildSettings.callsigns_module.manager_roles.some((RoleId) => UserRoles.includes(RoleId));
 
   if (!HasManagementPermission) {
-    return new UnauthorizedEmbed()
+    return new UnauthorizedContainer()
       .useErrTemplate("UnauthorizedInteraction")
       .replyToInteract(Interaction, true)
       .then(() => true);
@@ -323,11 +351,12 @@ async function HandleCallsignReviewValidation(
   Interaction: ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">,
   RequestDocument?: HCallsignDocument | null,
   InitialInteraction: ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached"> = Interaction
-): Promise<boolean> {
+): Promise<CSReviewResponse> {
   const RequestHasToBeReviewed = RequestDocument?.request_status === GenericRequestStatuses.Pending;
+  const ValidationResponse: CSReviewResponse = { pass: false, validation_data: null };
 
   if (!RequestHasToBeReviewed) {
-    let UpdatedReqEmbed: EmbedBuilder | null = null;
+    let UpdatedReqContainer: BaseExtraContainer | null = null;
     const ReplyEmbed = new EmbedBuilder()
       .setColor(Colors.Error)
       .setTitle("Request Modified")
@@ -336,25 +365,32 @@ async function HandleCallsignReviewValidation(
       );
 
     if (RequestDocument) {
-      UpdatedReqEmbed = await CallsignEventLogger.GetRequestMessageEmbedWithStatus(
+      ValidationResponse.validation_data = await GetCallsignValidationData(
+        Interaction.guildId,
+        RequestDocument.requester,
+        RequestDocument.designation.division,
+        RequestDocument.designation.unit_type,
+        RequestDocument.designation.beat_num,
+        Interaction.createdAt
+      );
+
+      UpdatedReqContainer = await CallsignEventLogger.GetRequestMessageContainerWithStatus(
         Interaction.guild,
         RequestDocument,
-        RequestDocument.request_status
+        RequestDocument.request_status,
+        ValidationResponse.validation_data.ActiveCallsign
       );
     }
 
     const Tasks: Promise<any>[] = [];
-    if (UpdatedReqEmbed) {
+    if (UpdatedReqContainer) {
       await Interaction.deferUpdate().catch(() => null);
       Tasks.push(
-        Interaction.followUp({ embeds: [ReplyEmbed] }),
+        Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
         InitialInteraction.editReply({
-          content: null,
-          embeds: [UpdatedReqEmbed],
+          flags: MessageFlags.IsComponentsV2,
           message: RequestDocument?.request_message?.split(":")[1],
-          components: DisableMessageComponents(
-            InitialInteraction.message!.components.map((Comp) => Comp.toJSON())
-          ),
+          components: [UpdatedReqContainer],
         })
       );
     } else {
@@ -362,6 +398,7 @@ async function HandleCallsignReviewValidation(
       Tasks.push(
         Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
         InitialInteraction.editReply({
+          flags: MessageFlags.IsComponentsV2,
           components: DisableMessageComponents(
             InitialInteraction.message!.components.map((Comp) => Comp.toJSON())
           ),
@@ -369,8 +406,17 @@ async function HandleCallsignReviewValidation(
       );
     }
 
-    return Promise.all(Tasks).then(() => true);
+    return Promise.all(Tasks).then(() => ValidationResponse);
   } else if (RequestDocument) {
+    ValidationResponse.validation_data = await GetCallsignValidationData(
+      Interaction.guildId,
+      RequestDocument.requester,
+      RequestDocument.designation.division,
+      RequestDocument.designation.unit_type,
+      RequestDocument.designation.beat_num,
+      Interaction.createdAt
+    );
+
     const IsRequesterPresentMember = await Interaction.guild.members
       .fetch(RequestDocument.requester)
       .catch(() => null);
@@ -393,14 +439,19 @@ async function HandleCallsignReviewValidation(
       const Tasks: Promise<any>[] = [
         RequestDocument.save(),
         Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
-        CallsignEventLogger.LogCancellation(Interaction, RequestDocument),
+        CallsignEventLogger.LogCancellation(
+          Interaction,
+          RequestDocument,
+          ValidationResponse.validation_data?.ActiveCallsign
+        ),
       ];
 
-      return Promise.all(Tasks).then(() => true);
+      return Promise.all(Tasks).then(() => ValidationResponse);
     }
   }
 
-  return false;
+  ValidationResponse.pass = true;
+  return ValidationResponse;
 }
 
 /**
@@ -417,7 +468,7 @@ async function ValidateCallsignVacancy(
   Interaction: ButtonInteraction<"cached">,
   NotesSubmission: ModalSubmitInteraction<"cached">
 ): Promise<unknown[] | null> {
-  const FormattedCallsign = CallsignEventLogger.FormatCallsign(RequestDocument.designation);
+  const FormattedCallsign = FormatCallsign(RequestDocument.designation);
   const CurrentDate = Interaction.createdAt;
 
   // Check for any approved callsign with same designation that is still active
@@ -428,13 +479,17 @@ async function ValidateCallsignVacancy(
     $or: [{ expiry: null }, { expiry: { $gt: CurrentDate } }],
   }).exec();
 
-  // Auto-deny if callsign is already taken by someone else:
+  // Auto-deny if callsign is already taken:
   if (CurrentHolder && CurrentHolder.requester !== RequestDocument.requester) {
     const ExpiryInfo = CurrentHolder.expiry
       ? ` (expires ${FormatTime(CurrentHolder.expiry, "D")})`
       : "";
 
-    const AutoDenialReason = `Callsign is already assigned to ${userMention(CurrentHolder.requester)}${ExpiryInfo}.`;
+    const ResolvedUsername = Interaction.guild.members.cache.get(CurrentHolder.requester)?.user
+      .username;
+    const ResolvedUsernameText = ResolvedUsername ? `to @${ResolvedUsername}` : "";
+
+    const AutoDenialReason = `Callsign is already assigned ${ResolvedUsernameText}${ExpiryInfo}.`;
     const ReplyEmbed = new EmbedBuilder()
       .setColor(Colors.Error)
       .setTitle("Callsign Request Auto-Denied")
@@ -570,7 +625,7 @@ function GetNotesModal(
       .setMaxLength(40)
       .setLabel("Expiry Date (Optional)")
       .setCustomId("expiry")
-      .setPlaceholder("e.g., 'in 6 months'");
+      .setPlaceholder("e.g., 'in 2 weeks'");
 
     Modal.setComponents(
       new ActionRowBuilder<TextInputBuilder>().setComponents(NotesInput),
