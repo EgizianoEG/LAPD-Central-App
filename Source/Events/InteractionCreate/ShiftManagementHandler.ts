@@ -534,7 +534,7 @@ async function UpdateManagementPrompt(
           **Shift Overview:**
           >>> **Status:** (${Emojis.Offline}) Off-Duty
           **Shift Type:** \`${MostRecentFinishedShift.type}\`
-          **Shift Time:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}
+          **Shift Started:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}
         `);
       }
     } else if (PreviousAction === RecentShiftAction.BreakEnd && ActiveShift?.hasBreaks()) {
