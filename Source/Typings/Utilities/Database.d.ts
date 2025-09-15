@@ -1275,6 +1275,24 @@ export namespace Callsigns {
   type CallsignModel = Model<CallsignDocument, {}, {}, CallsignVirtuals>;
   type HydratedCallsignDocument = HydratedDocument<CallsignDocument, CallsignVirtuals>;
 
+  interface CallsignDesignation {
+    /**
+     * The geographical division of the callsign.
+     * An integer in the range (1-35).
+     */
+    division: number;
+
+    /**
+     * A string represents the unit or assignment the callsign belongs to.
+     */
+    unit_type: string;
+
+    /**
+     * A unique (or semi-unique) identifier for the callsign.
+     */
+    beat_num: string;
+  }
+
   interface CallsignDocument {
     _id: Types.ObjectId;
     guild: string;
@@ -1311,23 +1329,7 @@ export namespace Callsigns {
     /**
      * The designation of the callsign.
      */
-    designation: {
-      /**
-       * The geographical division of the callsign.
-       * An integer in the range (1-35).
-       */
-      division: number;
-
-      /**
-       * A string represents the unit or assignment the callsign belongs to.
-       */
-      unit_type: string;
-
-      /**
-       * A unique (or semi-unique) identifier for the callsign.
-       */
-      beat_num: string;
-    };
+    designation: CallsignDesignation;
   }
 
   interface CallsignVirtuals {
