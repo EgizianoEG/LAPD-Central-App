@@ -5,7 +5,7 @@ import AppLogger from "@Utilities/Classes/AppLogger.js";
 
 interface GetTempEmojiFromImgURLOptions {
   /** The URL of the image to use for the emoji. */
-  ImgURL: string;
+  ImgURLOrBuffer: string | Buffer;
 
   /** The duration in milliseconds until the emoji is considered "expired". This is appended to the emoji name as a timestamp. Default is 1 hour. */
   Expires?: number;
@@ -23,14 +23,14 @@ interface GetTempEmojiFromImgURLOptions {
  * @returns A promise that resolves with the created emoji object on success, or `null` if an error occurs during creation.
  */
 export default async function GetTempEmojiFromImgURL({
-  ImgURL,
+  ImgURLOrBuffer,
   Expires = milliseconds({ hours: 1 }),
   EmojiName = "unknown",
 }: GetTempEmojiFromImgURLOptions): Promise<ApplicationEmoji | null> {
   await DelayUntilReady(DiscordApp);
   try {
     return await DiscordApp.application!.emojis.create({
-      attachment: ImgURL,
+      attachment: ImgURLOrBuffer,
       name: `${EmojiName.slice(0, 11)}_temp_${Date.now() + Expires}`,
     });
   } catch (Err: unknown) {
