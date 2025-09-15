@@ -1,6 +1,7 @@
 import {
   Guild,
   spoiler,
+  Message,
   codeBlock,
   userMention,
   roleMention,
@@ -10,23 +11,25 @@ import {
   MessageFlags,
   ButtonBuilder,
   ImageURLOptions,
+  ColorResolvable,
   ActionRowBuilder,
   TextBasedChannel,
   ButtonInteraction,
   GuildBasedChannel,
+  TextDisplayBuilder,
   time as FormatTime,
   PermissionFlagsBits,
   ModalSubmitInteraction,
 } from "discord.js";
 
-import { Colors, Emojis, Images, Thumbs } from "@Config/Shared.js";
+import { FormatCallsignDesignation as FormatCallsign } from "@Utilities/Strings/Formatters.js";
+import { Colors, Emojis, Thumbs } from "@Config/Shared.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
+import { BaseExtraContainer } from "./ExtraContainers.js";
 import { Callsigns } from "@Typings/Utilities/Database.js";
-
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import CallsignModel from "@Models/Callsign.js";
 
-type CallsignDoc = Callsigns.HydratedCallsignDocument;
+type CallsignDoc = Callsigns.CallsignDocument;
 type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">;
 
 // ------------------------------------------------------------------------------------
@@ -112,58 +115,12 @@ export class CallsignsEventLogger {
   }
 
   /**
-   * Retrieves the profile image URL of a user in the specified guild.
-   * @param Guild - The guild where the user is located.
-   * @param UserId - The Discord ID of the user.
-   * @returns The user's profile image URL or a fallback image if the user cannot be fetched.
-   */
-  protected async GetUserProfileImageURL(Guild: Guild, UserId: string): Promise<string> {
-    try {
-      const GuildMember = await Guild.members.fetch(UserId);
-      return GuildMember.displayAvatarURL(this.ImgURLOpts);
-    } catch {
-      return "https://cdn.discordapp.com/embed/avatars/0.png";
-    }
-  }
-
-  /**
    * Concatenates multiple lines into a single string, filtering out null or undefined values.
    * @param Lines - The lines to concatenate.
    * @returns A single string with all valid lines joined by newlines.
    */
   protected ConcatenateLines(...Lines: (string | undefined | null)[]): string {
     return Lines.filter((Line) => Line != null).join("\n");
-  }
-
-  /**
-   * Retrieves the history of a specific callsign designation, including previous and current holders.
-   * @param Guild - The guild where the callsign history is being retrieved.
-   * @param Designation - The callsign designation to get history for.
-   * @returns A Promise resolving to an array of callsign documents sorted by request date (newest first).
-   */
-  async GetCallsignHistory(
-    Guild: Guild,
-    Designation: CallsignDoc["designation"]
-  ): Promise<CallsignDoc[]> {
-    return CallsignModel.find({
-      guild: Guild.id,
-      "designation.division": Designation.division,
-      "designation.unit_type": Designation.unit_type,
-      "designation.beat_num": Designation.beat_num,
-      request_status: { $in: ["Approved", "Denied"] },
-    })
-      .sort({ requested_on: -1 })
-      .limit(10)
-      .exec();
-  }
-
-  /**
-   * Formats a callsign designation into a readable string.
-   * @param Designation - The callsign designation object.
-   * @returns A formatted callsign string (e.g., "1A-12").
-   */
-  FormatCallsign(Designation: CallsignDoc["designation"]): string {
-    return `${Designation.division}${Designation.unit_type}-${Designation.beat_num}`;
   }
 
   /**
@@ -174,140 +131,169 @@ export class CallsignsEventLogger {
    *                         This determines whether the buttons should be disabled or not.
    * @returns An action row containing the management buttons.
    */
-  protected CreateManagementButtons(
-    UserId: string,
-    CallsignId: string,
-    CallsignReviewed: boolean = false
-  ): ActionRowBuilder<ButtonBuilder> {
+  CreateManagementButtons(CallsignDocument: CallsignDoc): ActionRowBuilder<ButtonBuilder> {
+    const { reviewed_on, requester: UserId, _id: CallsignId } = CallsignDocument;
+    const ButtonsDisabled =
+      !!reviewed_on || CallsignDocument.request_status === GenericRequestStatuses.Cancelled;
+
     return new ActionRowBuilder<ButtonBuilder>().setComponents(
       new ButtonBuilder()
         .setCustomId(`callsign-approve:${UserId}:${CallsignId}`)
         .setLabel("Approve")
         .setEmoji(Emojis.WhiteCheck)
-        .setDisabled(CallsignReviewed ?? false)
+        .setDisabled(ButtonsDisabled)
         .setStyle(ButtonStyle.Success),
       new ButtonBuilder()
         .setCustomId(`callsign-deny:${UserId}:${CallsignId}`)
         .setLabel("Deny")
         .setEmoji(Emojis.WhiteCross)
-        .setDisabled(CallsignReviewed ?? false)
+        .setDisabled(ButtonsDisabled)
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId(`callsign-info:${UserId}:${CallsignId}`)
         .setLabel("Additional Information")
         .setEmoji(Emojis.WhitePlus)
-        .setDisabled(CallsignReviewed ?? false)
+        .setDisabled(ButtonsDisabled)
         .setStyle(ButtonStyle.Secondary)
     );
   }
 
   /**
-   * Constructs a pre-defined embed for a callsign request.
-   * @param Opts - Options for constructing the embed:
-   * - `Type`: The type of the request (e.g., "Cancelled", "Pending").
+   * Constructs a pre-defined container for a callsign request.
+   * @param Opts - Options for constructing the container:
+   * - `RequestStatus`: The type of the request (e.g., "Cancelled", "Pending"). Defaults to "Pending".
    * - `Guild`: The guild where the request was made.
    * - `CallsignDocument`: The callsign document.
    * - `CancellationDate`: The date when the request was cancelled (if applicable).
-   * @returns A pre-configured embed for the request.
+   * - `CurrentlyAssigned`: The currently assigned callsign document, if any (for transfers).
+   * @returns A pre-configured container display component for the request.
    */
-  protected GetRequestEmbed(Opts: {
-    Type?: "Cancelled" | "Pending";
+  protected GetRequestContainer(Opts: {
+    RequestStatus?: keyof typeof GenericRequestStatuses;
     Guild?: Guild;
     CallsignDocument: CallsignDoc;
     CurrentlyAssigned?: CallsignDoc | null;
-    CancellationDate?: Date;
-  }): EmbedBuilder {
-    const { Type = "Pending", CallsignDocument, CancellationDate, CurrentlyAssigned } = Opts;
-    const FormattedCallsign = this.FormatCallsign(CallsignDocument.designation);
-    const Strikethrough = Type === "Cancelled" ? "~~" : "";
+    CancellationDate?: Date | null;
+  }): BaseExtraContainer {
+    const {
+      RequestStatus = "Pending",
+      CallsignDocument,
+      CancellationDate,
+      CurrentlyAssigned,
+    } = Opts;
+    const FormattedCallsign = FormatCallsign(CallsignDocument.designation);
+    const Strikethrough = RequestStatus === "Cancelled" ? "~~" : "";
+    const IsTransfer = !!CurrentlyAssigned;
     const CurrPrevCallsignText =
-      CurrentlyAssigned && CallsignDocument.request_status === GenericRequestStatuses.Approved
+      IsTransfer && CallsignDocument.request_status === GenericRequestStatuses.Approved
         ? "**Previous Callsign:**"
         : "**Current Callsign:**";
 
-    const Embed = new EmbedBuilder()
-      .setImage(Images.FooterDivider)
-      .setFooter({ text: `Reference ID: ${CallsignDocument._id}` })
-      .setColor(Type === "Cancelled" ? Colors.RequestDenied : Colors.RequestPending)
-      .setTitle(`${Type}  |  Callsign Request`)
+    const RequestContainer = new BaseExtraContainer()
+      .setTitle(`${RequestStatus}  |  Callsign ${IsTransfer ? "Transfer " : ""}Request`)
+      .setFooter(`Reference ID: \`${CallsignDocument._id}\``)
+      .setColor(RequestStatus === "Cancelled" ? Colors.RequestDenied : Colors.RequestPending)
       .setDescription(
         this.ConcatenateLines(
           `**Requester:** ${userMention(CallsignDocument.requester)}`,
-          `**Callsign:** ${Strikethrough}\`${FormattedCallsign}\`${Strikethrough}`,
-          CurrentlyAssigned
-            ? `${CurrPrevCallsignText} \`${this.FormatCallsign(CurrentlyAssigned.designation)}\``
+          `**${IsTransfer ? "Req. " : ""}Callsign:** ${Strikethrough}\`${FormattedCallsign}\`${Strikethrough}`,
+          IsTransfer
+            ? `${CurrPrevCallsignText} \`${FormatCallsign(CurrentlyAssigned.designation)}\``
             : null,
           `**Reason:** ${CallsignDocument.request_reason}`
         )
       );
 
     if (CancellationDate) {
-      Embed.setTimestamp(CancellationDate);
-      Embed.setFooter({
-        text: `Reference ID: ${CallsignDocument._id}; cancelled by requester on`,
-        iconURL: Opts.Guild?.members.cache
-          .get(CallsignDocument.requester)
-          ?.user.displayAvatarURL(this.ImgURLOpts),
-      });
+      RequestContainer.setTimestamp(CancellationDate, " ");
+      RequestContainer.setFooter(
+        `Reference ID: \`${CallsignDocument._id}\`; cancelled by requester on`
+      );
     }
 
-    return Embed;
+    return RequestContainer;
   }
 
   /**
-   * Generates a message embed for a callsign request with the specified status.
+   * Generates a message container for a callsign request with the specified status.
    * @param Guild - The guild where the request was made.
    * @param CallsignDocument - The updated callsign document.
    * @param RequestStatus - The status of the request ("Approved", "Denied", "Cancelled", or "Pending").
-   * @returns A Promise resolving to the configured embed for the request.
+   * @param CurrPrevAssigned - The currently assigned callsign document, if any (optional).
+   * @param [MgmtButtonsAttached=true] - Whether to attach management buttons to the request container.
+   *                                     Defaults to `true` and depends on the up-to-date document of the request.
+   * @returns A Promise resolving to the configured container for the request.
    */
-  async GetRequestMessageEmbedWithStatus(
+  async GetRequestMessageContainerWithStatus(
     Guild: Guild,
     CallsignDocument: CallsignDoc,
     RequestStatus: keyof typeof GenericRequestStatuses,
-    CurrPrevAssigned?: CallsignDoc | null
-  ): Promise<EmbedBuilder> {
-    const RequestEmbed = this.GetRequestEmbed({
+    CurrPrevAssigned?: CallsignDoc | null,
+    MgmtButtonsAttached: boolean = true
+  ): Promise<BaseExtraContainer> {
+    const {
+      _id: CallsignId,
+      reviewer: Reviewer,
+      requester: Requester,
+      reviewed_on: ReviewedOn,
+    } = CallsignDocument;
+
+    const IsCancelled = RequestStatus === GenericRequestStatuses.Cancelled;
+    const RequestContainer = this.GetRequestContainer({
       Guild,
-      Type: RequestStatus === "Cancelled" ? RequestStatus : "Pending",
       CallsignDocument,
-      CurrentlyAssigned: CurrPrevAssigned ?? undefined,
-      CancellationDate:
-        RequestStatus === "Cancelled" ? CallsignDocument.reviewed_on : (undefined as any),
-    }).setTimestamp(CallsignDocument.reviewed_on);
+      RequestStatus: IsCancelled ? "Cancelled" : RequestStatus,
+      CurrentlyAssigned: CurrPrevAssigned,
+      CancellationDate: IsCancelled ? ReviewedOn : null,
+    });
 
-    if (RequestStatus === GenericRequestStatuses.Approved && CallsignDocument.reviewed_on) {
-      const AvatarURL = await this.GetUserProfileImageURL(Guild, CallsignDocument.reviewer!);
-      RequestEmbed.setColor(Colors.RequestApproved)
-        .setTitle("Approved  |  Callsign Request")
-        .setFooter({
-          text: `Reference ID: ${CallsignDocument._id}; approved by @${CallsignDocument.reviewer} on`,
-          iconURL: AvatarURL,
-        });
-    } else if (RequestStatus === GenericRequestStatuses.Denied && CallsignDocument.reviewed_on) {
-      const AvatarURL = await this.GetUserProfileImageURL(Guild, CallsignDocument.reviewer!);
-      RequestEmbed.setColor(Colors.RequestDenied)
-        .setTitle("Denied  |  Callsign Request")
-        .setFooter({
-          text: `Reference ID: ${CallsignDocument._id}; denied by @${CallsignDocument.reviewer} on`,
-          iconURL: AvatarURL,
-        });
-    } else if (RequestStatus === GenericRequestStatuses.Cancelled) {
-      const AvatarURL = await this.GetUserProfileImageURL(Guild, CallsignDocument.requester);
-      const CancelledBy =
-        CallsignDocument.reviewer === CallsignDocument.requester
-          ? "requester"
-          : `@${CallsignDocument.reviewer}`;
-
-      RequestEmbed.setColor(Colors.RequestDenied)
-        .setTitle("Cancelled  |  Callsign Request")
-        .setFooter({
-          iconURL: AvatarURL,
-          text: `Reference ID: ${CallsignDocument._id}; cancelled by ${CancelledBy} on`,
-        });
+    if (MgmtButtonsAttached) {
+      RequestContainer.attachPromptActionRows(this.CreateManagementButtons(CallsignDocument));
     }
 
-    return RequestEmbed;
+    if (!ReviewedOn) {
+      return RequestContainer;
+    }
+
+    RequestContainer.setTimestamp(ReviewedOn, " ");
+    let Title = RequestContainer.title!.split("|")[1];
+    let Color: ColorResolvable;
+    let FooterText: string;
+
+    switch (RequestStatus) {
+      case GenericRequestStatuses.Approved: {
+        Title = `Approved  |${Title}`;
+        Color = Colors.RequestApproved;
+        FooterText = `approved by ${userMention(Reviewer!)} on`;
+        break;
+      }
+
+      case GenericRequestStatuses.Denied: {
+        Title = `Denied  |${Title}`;
+        Color = Colors.RequestDenied;
+        FooterText = `denied by ${userMention(Reviewer!)} on`;
+        break;
+      }
+
+      case GenericRequestStatuses.Cancelled: {
+        const CancelledBy = Reviewer === Requester ? "requester" : userMention(Reviewer!);
+        Title = `Cancelled  |${Title}`;
+        Color = Colors.RequestCancelled;
+        FooterText = `cancelled by ${CancelledBy} on`;
+        break;
+      }
+
+      default:
+        return RequestContainer;
+    }
+
+    RequestContainer.setTitle(Title)
+      .setColor(Color)
+      .setFooter({
+        text: `Reference ID: \`${CallsignId}\`; ${FooterText}`,
+      });
+
+    return RequestContainer;
   }
 
   /**
@@ -315,17 +301,19 @@ export class CallsignsEventLogger {
    * Also sends a DM notice to the requester if possible.
    * @param Interaction - The interaction originating from the requester.
    * @param PendingCallsign - The callsign document pending approval.
+   * @param CurrentlyAssigned - The currently assigned callsign document, if any.
    * @returns A Promise resolving to the sent request message if successful.
    */
   async SendRequest(
     Interaction: SlashCommandInteraction<"cached">,
     PendingCallsign: CallsignDoc,
     CurrentlyAssigned?: CallsignDoc | null
-  ): Promise<any> {
-    const FormattedCallsign = this.FormatCallsign(PendingCallsign.designation);
+  ): Promise<Message<true> | null> {
+    const FormattedCallsign = FormatCallsign(PendingCallsign.designation);
     const Requester = await Interaction.guild.members
       .fetch(PendingCallsign.requester)
       .catch(() => null);
+
     const RequestsChannel = await this.FetchLoggingChannel(Interaction.guild, "requests");
     const CallsignsModuleSettings = await GetGuildSettings(PendingCallsign.guild).then(
       (Settings) => Settings?.callsigns_module
@@ -339,10 +327,9 @@ export class CallsignsEventLogger {
         .setFooter({ text: `Reference ID: ${PendingCallsign._id}` })
         .setTitle("Callsign Request — Request Under Review")
         .setDescription(
-          this.ConcatenateLines(
-            `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(PendingCallsign.requested_on, "D")}, has been received and is waiting for a review by the management team.`,
+          `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(PendingCallsign.requested_on, "D")}, ` +
+            "has been received and is waiting for a review by the management team.\n\n" +
             "You will be notified via DM when there is an update regarding its status."
-          )
         )
         .setAuthor({
           name: Interaction.guild.name,
@@ -353,29 +340,35 @@ export class CallsignsEventLogger {
     }
 
     // Send the request message if a requests channel is set.
-    if (!RequestsChannel) return;
-    const RequestEmbed = this.GetRequestEmbed({
-      Type: "Pending",
-      CurrentlyAssigned,
-      CallsignDocument: PendingCallsign,
-    });
-
-    const ManagementComponents = this.CreateManagementButtons(
-      Interaction.user.id,
-      PendingCallsign._id.toString()
+    if (!RequestsChannel) return null;
+    const RequestComponents: any[] = [];
+    const RequestContainer = await this.GetRequestMessageContainerWithStatus(
+      Interaction.guild,
+      PendingCallsign,
+      GenericRequestStatuses.Pending,
+      CurrentlyAssigned
     );
 
-    // Handle role mentions if alert_on_request is enabled
+    // Handle role mentions if `alert_on_request` is enabled.
     const AlertRolesMentioned =
       CallsignsModuleSettings?.alert_on_request && CallsignsModuleSettings?.manager_roles?.length
         ? CallsignsModuleSettings.manager_roles.map(roleMention).join(", ")
         : "";
 
+    const MsgFlags = AlertRolesMentioned
+      ? MessageFlags.SuppressNotifications | MessageFlags.IsComponentsV2
+      : MessageFlags.IsComponentsV2;
+
+    RequestComponents.push(RequestContainer);
+    if (AlertRolesMentioned.length) {
+      RequestComponents.unshift(
+        new TextDisplayBuilder().setContent(`-# *${spoiler(AlertRolesMentioned)}*`)
+      );
+    }
+
     return RequestsChannel.send({
-      content: AlertRolesMentioned ? `-# *${spoiler(AlertRolesMentioned)}*` : undefined,
-      components: [ManagementComponents],
-      embeds: [RequestEmbed],
-      flags: AlertRolesMentioned ? MessageFlags.SuppressNotifications : undefined,
+      flags: MsgFlags,
+      components: RequestComponents,
       allowedMentions: {
         roles: CallsignsModuleSettings?.alert_on_request
           ? (CallsignsModuleSettings?.manager_roles ?? [])
@@ -397,7 +390,7 @@ export class CallsignsEventLogger {
     ApprovedRequest: CallsignDoc,
     PreviouslyAssigned?: CallsignDoc | null
   ): Promise<void> {
-    const FormattedCallsign = this.FormatCallsign(ApprovedRequest.designation);
+    const FormattedCallsign = FormatCallsign(ApprovedRequest.designation);
     const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members
       .fetch(ApprovedRequest.requester)
@@ -416,7 +409,7 @@ export class CallsignsEventLogger {
               ? `Your callsign is set to expire on ${FormatTime(ApprovedRequest.expiry, "F")} (${FormatTime(ApprovedRequest.expiry, "R")}).`
               : null,
             ApprovedRequest.reviewer_notes
-              ? `**Reviewer Notes:**\n${codeBlock(ApprovedRequest.reviewer_notes)}`
+              ? `\n**Reviewer Notes:**\n${codeBlock(ApprovedRequest.reviewer_notes)}`
               : null
           )
         )
@@ -442,11 +435,11 @@ export class CallsignsEventLogger {
               `**Requester:** ${userMention(ApprovedRequest.requester)}`,
               `**Callsign:** \`${FormattedCallsign}\``,
               PreviouslyAssigned
-                ? `**Previous Callsign:** \`${this.FormatCallsign(PreviouslyAssigned.designation)}\``
+                ? `**Previous Callsign:** \`${FormatCallsign(PreviouslyAssigned.designation)}\``
                 : null,
-              `**Requested:** ${FormatTime(ApprovedRequest.requested_on, "F")}`,
+              `**Requested:** ${FormatTime(ApprovedRequest.requested_on, "D")}`,
               ApprovedRequest.expiry
-                ? `**Expires:** ${FormatTime(ApprovedRequest.expiry, "F")}`
+                ? `**Expires:** ${FormatTime(ApprovedRequest.expiry, "D")}`
                 : null,
               `**Reason:** ${ApprovedRequest.request_reason}`
             ),
@@ -471,26 +464,17 @@ export class CallsignsEventLogger {
         ApprovedRequest.request_message
       );
 
-      const RequestEmbed = await this.GetRequestMessageEmbedWithStatus(
+      const RequestContainer = await this.GetRequestMessageContainerWithStatus(
         Interaction.guild,
         ApprovedRequest,
         GenericRequestStatuses.Approved,
         PreviouslyAssigned
       );
 
-      const ReviewActionButtons = this.CreateManagementButtons(
-        ApprovedRequest.requester,
-        ApprovedRequest._id.toString(),
-        true
-      );
-
-      await (RequestChannel as TextChannel).messages
-        .edit(MessageId, {
-          content: null,
-          embeds: [RequestEmbed],
-          components: [ReviewActionButtons],
-        })
-        .catch(() => null);
+      await (RequestChannel as TextChannel).messages.edit(MessageId, {
+        components: [RequestContainer],
+        flags: MessageFlags.IsComponentsV2,
+      });
     }
   }
 
@@ -501,8 +485,12 @@ export class CallsignsEventLogger {
    * @param DeniedRequest - The denied callsign document.
    * @returns A Promise resolving after the log and updates are completed.
    */
-  async LogDenial(Interaction: ManagementInteraction, DeniedRequest: CallsignDoc): Promise<void> {
-    const FormattedCallsign = this.FormatCallsign(DeniedRequest.designation);
+  async LogDenial(
+    Interaction: ManagementInteraction,
+    DeniedRequest: CallsignDoc,
+    CurrPrevCallsign?: CallsignDoc | null
+  ): Promise<void> {
+    const FormattedCallsign = FormatCallsign(DeniedRequest.designation);
     const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members
       .fetch(DeniedRequest.requester)
@@ -515,13 +503,10 @@ export class CallsignsEventLogger {
         .setFooter({ text: `Reference ID: ${DeniedRequest._id}` })
         .setTitle("Callsign Request — Denial Notice")
         .setDescription(
-          this.ConcatenateLines(
-            `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(DeniedRequest.requested_on, "D")}, has been denied.`,
-            "You may submit a new request if you believe this denial was made in error or if circumstances have changed.",
-            "",
-            "**The following note(s) were provided by the reviewer:**",
+          `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(DeniedRequest.requested_on, "D")}, has been denied.` +
+            "You may submit a new request if you believe this denial was made in error or if circumstances have changed." +
+            "\n\n**The following note(s) were provided by the reviewer:**" +
             codeBlock(DeniedRequest.reviewer_notes ?? "N/A")
-          )
         )
         .setAuthor({
           name: Interaction.guild.name,
@@ -543,8 +528,8 @@ export class CallsignsEventLogger {
             name: CallsignsEventLogger.RequestInfoFieldName,
             value: this.ConcatenateLines(
               `**Requester:** ${userMention(DeniedRequest.requester)}`,
-              `**Requested:** ${FormatTime(DeniedRequest.requested_on, "F")}`,
               `**Callsign:** \`${FormattedCallsign}\``,
+              `**Requested:** ${FormatTime(DeniedRequest.requested_on, "D")}`,
               `**Reason:** ${DeniedRequest.request_reason}`
             ),
           },
@@ -570,25 +555,17 @@ export class CallsignsEventLogger {
       );
 
       if (RequestChannel) {
-        const RequestEmbed = await this.GetRequestMessageEmbedWithStatus(
+        const RequestContainer = await this.GetRequestMessageContainerWithStatus(
           Interaction.guild,
           DeniedRequest,
-          GenericRequestStatuses.Denied
+          GenericRequestStatuses.Denied,
+          CurrPrevCallsign
         );
 
-        const ReviewActionButtons = this.CreateManagementButtons(
-          DeniedRequest.requester,
-          DeniedRequest._id.toString(),
-          true
-        );
-
-        await RequestChannel.messages
-          .edit(MessageId, {
-            content: null,
-            embeds: [RequestEmbed],
-            components: [ReviewActionButtons],
-          })
-          .catch(() => null);
+        await RequestChannel.messages.edit(MessageId, {
+          components: [RequestContainer],
+          flags: MessageFlags.IsComponentsV2,
+        });
       }
     }
   }
@@ -598,13 +575,15 @@ export class CallsignsEventLogger {
    * Also sends a DM notice to the requester and updates the request message if applicable.
    * @param Interaction - The interaction from the management staff or system cancelling the callsign.
    * @param CancelledRequest - The cancelled callsign document.
+   * @param CurrPrevCallsign - The currently or previously assigned callsign document, if any.
    * @returns A Promise resolving after the log and updates are completed.
    */
   async LogCancellation(
     Interaction: ManagementInteraction,
-    CancelledRequest: CallsignDoc
+    CancelledRequest: CallsignDoc,
+    CurrPrevCallsign?: CallsignDoc | null
   ): Promise<void> {
-    const FormattedCallsign = this.FormatCallsign(CancelledRequest.designation);
+    const FormattedCallsign = FormatCallsign(CancelledRequest.designation);
     const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members
       .fetch(CancelledRequest.requester)
@@ -631,8 +610,7 @@ export class CallsignsEventLogger {
         );
       } else {
         DMCancellationNotice.setDescription(
-          `Your callsign request for \`${FormattedCallsign}\` has been cancelled at your request. ` +
-            "There is no active callsign assignment on record for you at this time."
+          `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(CancelledRequest.requested_on, "D")}, has been cancelled at your demand. `
         );
       }
 
@@ -652,8 +630,8 @@ export class CallsignsEventLogger {
           name: CallsignsEventLogger.RequestInfoFieldName,
           value: this.ConcatenateLines(
             `**Requester:** ${userMention(CancelledRequest.requester)}`,
-            `**Requested:** ${FormatTime(CancelledRequest.requested_on, "D")}`,
             `**Callsign:** \`${FormattedCallsign}\``,
+            `**Requested:** ${FormatTime(CancelledRequest.requested_on, "D")}`,
             `**Reason:** ${CancelledRequest.request_reason}`
           ),
         });
@@ -677,23 +655,16 @@ export class CallsignsEventLogger {
       );
 
       if (!ReqMsgChannel) return;
-      const RequestEmbed = await this.GetRequestMessageEmbedWithStatus(
+      const RequestContainer = await this.GetRequestMessageContainerWithStatus(
         Interaction.guild,
         CancelledRequest,
-        GenericRequestStatuses.Cancelled
-      );
-
-      const ReviewActionButtons = this.CreateManagementButtons(
-        CancelledRequest.requester,
-        CancelledRequest._id.toString(),
-        true
+        GenericRequestStatuses.Cancelled,
+        CurrPrevCallsign
       );
 
       await ReqMsgChannel.messages
         .edit(ReqMsgId, {
-          content: null,
-          embeds: [RequestEmbed],
-          components: [ReviewActionButtons],
+          components: [RequestContainer],
         })
         .catch(() => null);
     }
