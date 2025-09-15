@@ -125,12 +125,12 @@ function CreateSingleTypeEmbeds(
     }
   } else {
     const [ListedShifts, AnnotationsIncluded] = ListShifts(ShiftData);
-    const ShiftCountText = TotalShifts.length > 1 ? ` - ${TotalShifts.length}` : ""
+    const ShiftCountText = ListedShifts.length > 1 ? ` - ${ListedShifts.length}` : "";
     HasBreakAnnotation = AnnotationsIncluded;
     Pages.push(
       CreateActiveShiftEmbed(
         Description,
-        [{ name: `Shifts - ${TotalShifts}`, value: ListedShifts.join("\n") }],
+        [{ name: `Shifts${ShiftCountText}`, value: ListedShifts.join("\n") }],
         HasBreakAnnotation
       )
     );
@@ -164,7 +164,7 @@ function ProcessMultiTypeShifts(
 
     for (const [ShiftType, ActiveShifts] of Object.entries(GroupedShifts)) {
       const [ListedShifts, AnnotationsIncluded] = ListShifts(ActiveShifts);
-      const ShiftsUnderTypeCountText = ActiveShifts.length > 1 ? ` - ${ActiveShifts.length}` : ""
+      const ShiftsUnderTypeCountText = ActiveShifts.length > 1 ? ` - ${ActiveShifts.length}` : "";
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
 
       Fields.push({
