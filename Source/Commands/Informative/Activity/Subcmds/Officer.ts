@@ -95,6 +95,7 @@ export async function ParseDateInputs(ReceivedInteract: SlashCommandInteraction<
 }
 
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
+  const ShiftTypeFilter = Interaction.options.getString("shift-type", false);
   const PrivateResponse = Interaction.options.getBoolean("private") ?? false;
   const DateFiltering = await ParseDateInputs(Interaction);
   let OfficerSelected = Interaction.options.getMember("officer");
@@ -139,6 +140,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     GetMainShiftsData({
       user: OfficerSelected.id,
       guild: Interaction.guildId,
+      type: ShiftTypeFilter || { $exists: true },
       start_timestamp: DateFiltering.since ? { $gte: DateFiltering.since } : { $exists: true },
       end_timestamp: DateFiltering.until ? { $lte: DateFiltering.until } : { $exists: true },
     }),
@@ -232,6 +234,14 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
           "The officer to inspect and show activity information for. Defaults to yourself."
         )
         .setRequired(false)
+    )
+    .addStringOption((Option) =>
+      Option.setName("shift-type")
+        .setDescription("A specific shift type to filter by.")
+        .setMinLength(3)
+        .setMaxLength(20)
+        .setRequired(false)
+        .setAutocomplete(true)
     )
     .addStringOption((Option) =>
       Option.setName("since")
