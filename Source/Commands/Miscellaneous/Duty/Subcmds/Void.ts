@@ -89,8 +89,9 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       }
 
       if (ButtonInteract.customId.includes("confirm-void")) {
-        const DelResponse = await ActiveShiftLatestVer.deleteOne().exec();
-        if (!DelResponse.acknowledged) {
+        const DeleteResponse = await ActiveShiftLatestVer.deleteOne().exec();
+
+        if (!DeleteResponse.acknowledged || DeleteResponse.deletedCount === 0) {
           return new ErrorContainer()
             .useErrTemplate("FailedToVoidShift")
             .replyToInteract(ButtonInteract, true);
