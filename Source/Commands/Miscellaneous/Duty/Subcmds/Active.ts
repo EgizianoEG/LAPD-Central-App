@@ -39,7 +39,7 @@ function GetDescriptionText(SelectedShiftTypes: string[]): string {
       SelectedShiftTypes.map((t) => inlineCode(t))
     )}.**`;
   }
-  return "**The server's current active shifts, categorized by type.**";
+  return "The server's current active shifts, categorized by type.";
 }
 
 /**
@@ -111,7 +111,6 @@ function CreateSingleTypeEmbeds(
       );
 
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
-
       const StartRange = PageIndex * ShiftsPerPage + 1;
       const EndRange = Math.min(StartRange + ShiftChunks[PageIndex].length - 1, TotalShifts);
       const FieldName = `Shifts ${StartRange}-${EndRange} of ${TotalShifts}`;
@@ -126,6 +125,7 @@ function CreateSingleTypeEmbeds(
     }
   } else {
     const [ListedShifts, AnnotationsIncluded] = ListShifts(ShiftData);
+    const ShiftCountText = TotalShifts.length > 1 ? ` - ${TotalShifts.length}` : ""
     HasBreakAnnotation = AnnotationsIncluded;
     Pages.push(
       CreateActiveShiftEmbed(
@@ -153,22 +153,22 @@ function ProcessMultiTypeShifts(
   const Pages: EmbedBuilder[] = [];
   let HasBreakAnnotation = false;
 
-  // Calculate total shifts
   const TotalShiftCount = Object.values(GroupedShifts).reduce(
     (Sum, Shifts) => Sum + Shifts.length,
     0
   );
 
-  // Simple case: all shifts fit on one page
+  // Simple case: all shifts fit on one page:
   if (TotalShiftCount <= ShiftsPerPage) {
     const Fields: Array<APIEmbedField> = [];
 
     for (const [ShiftType, ActiveShifts] of Object.entries(GroupedShifts)) {
       const [ListedShifts, AnnotationsIncluded] = ListShifts(ActiveShifts);
+      const ShiftsUnderTypeCountText = ActiveShifts.length > 1 ? ` - ${ActiveShifts.length}` : ""
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
 
       Fields.push({
-        name: `${ShiftType} - ${ActiveShifts.length}`,
+        name: `${ShiftType}${ShiftsUnderTypeCountText}`,
         value: ListedShifts.join("\n"),
       });
     }
@@ -177,7 +177,7 @@ function ProcessMultiTypeShifts(
     return Pages;
   }
 
-  // Complex case: pagination across types
+  // Complex case: pagination across types:
   const ShiftTypes = Object.keys(GroupedShifts);
   const RemainingShifts = { ...GroupedShifts };
   let CurrentTypeIndex = 0;
@@ -188,13 +188,13 @@ function ProcessMultiTypeShifts(
     let CurrentPageShiftCount = 0;
     let CurrentPageHasBreakAnnotation = false;
 
-    // Process shifts type by type until page is full or all processed
+    // Process shifts type by type until page is full or all processed.
     while (CurrentTypeIndex < ShiftTypes.length && CurrentPageShiftCount < ShiftsPerPage) {
       const CurrentType = ShiftTypes[CurrentTypeIndex];
       const RemainingTypeShifts = RemainingShifts[CurrentType] || [];
 
       if (RemainingTypeShifts.length === 0) {
-        // Move to next type if current one has no shifts
+        // Move to next type if current one has no shifts.
         CurrentTypeIndex++;
         continue;
       }
@@ -204,39 +204,29 @@ function ProcessMultiTypeShifts(
       const ShiftsToTake = Math.min(RemainingTypeShifts.length, AvailableSpace);
       const ShiftsToProcess = RemainingTypeShifts.slice(0, ShiftsToTake);
 
-      // Process this batch
       const [ListedShifts, AnnotationsIncluded] = ListShifts(ShiftsToProcess, ShiftsProcessed);
       CurrentPageHasBreakAnnotation = CurrentPageHasBreakAnnotation || AnnotationsIncluded;
-
-      // Update total break annotation flag
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
 
-      // Create field name
       const FieldName =
         ShiftsToTake === RemainingShifts[CurrentType].length
           ? CurrentType
           : `${CurrentType} - ${ShiftsToTake} of ${GroupedShifts[CurrentType].length}`;
 
-      // Add field to page
       CurrentPageFields.push({
         name: FieldName,
         value: ListedShifts.join("\n"),
       });
 
-      // Update tracking
       ShiftsProcessed += ShiftsToTake;
       CurrentPageShiftCount += ShiftsToTake;
-
-      // Remove processed shifts
       RemainingShifts[CurrentType] = RemainingTypeShifts.slice(ShiftsToTake);
 
-      // Move to next type if this one is done
       if (RemainingShifts[CurrentType].length === 0) {
         CurrentTypeIndex++;
       }
     }
 
-    // Create page with current fields
     if (CurrentPageFields.length > 0) {
       Pages.push(
         CreateActiveShiftEmbed(Description, CurrentPageFields, CurrentPageHasBreakAnnotation)
