@@ -185,7 +185,12 @@ async function HandleManualVerification(
     await ButtonInteract.deferUpdate();
     if (ButtonInteract.customId.includes("confirm-login")) {
       const CurrentAccountInfo = await GetUserInfo(AccountRobloxId);
-      if (CurrentAccountInfo.description.includes(SampleText)) {
+      const AboutText =
+        "description" in CurrentAccountInfo
+          ? CurrentAccountInfo.description
+          : CurrentAccountInfo.about;
+
+      if (AboutText?.includes(SampleText)) {
         await UpdateLinkedRobloxUser(CmdInteract, AccountRobloxId);
         ComponentCollector.stop("Confirmed");
 
