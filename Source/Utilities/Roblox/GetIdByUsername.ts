@@ -116,6 +116,7 @@ export default async function GetIdByUsername<Input extends string | string[]>(
     // Fallback approach: try using profile redirect for each username:
     AppLogger.error({
       label: LogLabel,
+      message: "Primary API request failed, initiating fallback method.",
       stack: Err.stack,
       error: Err,
     });
@@ -134,9 +135,9 @@ export default async function GetIdByUsername<Input extends string | string[]>(
       );
 
       const FinalResults = Array.isArray(Usernames) ? FallbackResults : FallbackResults[0];
-      const HasSuccessfulResults = Array.isArray(FinalResults)
-        ? (FinalResults as [number, string, boolean][]).some(([, , success]) => success)
-        : (FinalResults as [number, string, boolean])[2];
+      const HasSuccessfulResults = Array.isArray(Usernames)
+        ? FallbackResults.some(([, , success]) => success)
+        : FallbackResults[0][2];
 
       if (HasSuccessfulResults) {
         RobloxAPICache.IdByUsername.set(Stringified, FinalResults as UserIdLookupResult<Input>);
