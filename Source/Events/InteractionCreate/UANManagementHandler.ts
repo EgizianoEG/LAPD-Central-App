@@ -178,7 +178,7 @@ async function HandleNoticeReviewValidation(
     if (UpdatedReqEmbed) {
       await Interaction.deferUpdate().catch(() => null);
       Tasks.push(
-        Interaction.followUp({ embeds: [ReplyEmbed] }),
+        Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
         InitialInteraction.editReply({
           content: null,
           embeds: [UpdatedReqEmbed],

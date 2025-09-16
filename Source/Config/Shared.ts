@@ -60,11 +60,11 @@ const SharedData = {
     ShiftNatural: "#C2D1E6",
 
     // Cancelled color is only used in logging messages; leave requests uses LOARequestDenied when cancelled.
-    LOARequestCancelled: "#C2D1E6",
-    LOARequestEnded: "#CA2222",
-    LOARequestDenied: "#CA2222",
-    LOARequestPending: "#F2A265",
-    LOARequestApproved: "#227F46",
+    RequestCancelled: "#C2D1E6",
+    RequestEnded: "#CA2222",
+    RequestDenied: "#CA2222",
+    RequestPending: "#F2A265",
+    RequestApproved: "#227F46",
 
     ...DiscordColors,
   },

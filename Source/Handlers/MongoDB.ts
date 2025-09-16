@@ -134,7 +134,7 @@ async function ReloadGuildCache() {
   MongoDBCache.Guilds = new Collection<string, Guilds.GuildDocument>(
     InitialRunGuildDocuments.map((Doc) => [
       Doc._id,
-      defaultComposer<Guilds.GuildDocument>(BaseGuildDocument, Doc as Guilds.GuildDocument),
+      defaultComposer<Guilds.GuildDocument>(BaseGuildDocument, Doc),
     ])
   );
 

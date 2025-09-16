@@ -1,10 +1,10 @@
 /* eslint-disable sonarjs/cognitive-complexity */
 import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 import { AddStatutesRegexes, ATVCodesRegexes } from "@Resources/RegularExpressions.js";
+import { Callsigns, GuildCitations } from "@Typings/Utilities/Database.js";
 import { GuildMember, userMention } from "discord.js";
 import { format as FormatStr } from "node:util";
 import { DASignatureFormats } from "@Config/Constants.js";
-import { GuildCitations } from "@Typings/Utilities/Database.js";
 import { TitleCase } from "./Converters.js";
 import { Vehicles } from "@Typings/Resources.js";
 import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
@@ -828,6 +828,21 @@ export function Dedent(text: string): string {
  */
 export function EscapeRegExp(Str: string): string {
   return Str.replace(/[-[\]{}()*+!<=:?./\\^$|]/g, "\\$&");
+}
+
+/**
+ * Formats a callsign designation object into a string.
+ * @param Designation - The callsign designation object.
+ * @param SepBetweenAll - Whether to include the separator between all parts. Defaults to `true`.
+ * @param Separator - The string to use as a separator. Defaults to `"-"`.
+ * @returns The formatted callsign designation string.
+ */
+export function FormatCallsignDesignation(
+  Designation: Callsigns.CallsignDocument["designation"],
+  SepBetweenAll: boolean = true,
+  Separator: string = "-"
+): string {
+  return `${Designation.division}${SepBetweenAll ? Separator : ""}${Designation.unit_type}${Separator}${Designation.beat_num}`;
 }
 
 /**
