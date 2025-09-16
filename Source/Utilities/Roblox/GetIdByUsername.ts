@@ -116,15 +116,9 @@ export default async function GetIdByUsername<Input extends string | string[]>(
     // Fallback approach: try using profile redirect for each username:
     AppLogger.error({
       label: LogLabel,
-      message: "Primary API request failed, initiating fallback method.",
+      message: "Primary API request failed, initiating fallback method using profile redirects.",
       stack: Err.stack,
       error: Err,
-    });
-
-    AppLogger.debug({
-      label: LogLabel,
-      message: "Primary API failed, attempting fallback method using profile redirects",
-      details: { usernames: RequestArray },
     });
 
     try {
