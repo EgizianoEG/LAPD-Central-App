@@ -39,3 +39,8 @@ export const SignatureFormatResolved = {
   [DASignatureFormats.DiscordNicknameDiscordUsername]: "Discord Nickname + Discord Username",
   [DASignatureFormats.RobloxDisplayNameRobloxUsername]: "Roblox Display Name + Roblox Username",
 };
+
+export const RobloxOpenCloudAPIBaseURL = "https://apis.roblox.com";
+export const RobloxOpenCloudV2Routes = {
+  GetUser: (UserId: number | string) => `${RobloxOpenCloudAPIBaseURL}/cloud/v2/users/${UserId}`,
+};

@@ -6,7 +6,7 @@ export namespace APIResponses.Users {
     description: string;
 
     /** The date string showing the user's registration date (RFC 3339). */
-    created: string;
+    created: Date | string;
 
     /** Whether or not the user is banned. */
     isBanned: boolean;
@@ -14,7 +14,7 @@ export namespace APIResponses.Users {
     /** The display name in an external app. Unused, legacy attribute.
      * For now always `null` to avoid disrupting existing client code that may rely on it.
      * */
-    externalAppDisplayName: string | null;
+    externalAppDisplayName?: string | null;
 
     /** The user's verified badge status. */
     hasVerifiedBadge: boolean;
@@ -176,5 +176,94 @@ export namespace APITypes.Thumbnails {
       "420x420",
       "720x720",
     ];
+  }
+}
+
+export namespace OpenCloud.V2.Users {
+  /**
+   * Represents any registered user of Roblox.
+   * @see https://create.roblox.com/docs/cloud/features/users#/
+   */
+  interface GetUserResponse {
+    /**
+     * The resource path of the user.
+     * Format: users/{user_id}
+     * @example "users/123"
+     */
+    path: string;
+
+    /**
+     * The timestamp at which the user was created.
+     * @example "2023-07-05T12:34:56Z"
+     */
+    readonly createTime: string;
+
+    /**
+     * Unique ID that identifies a user in Roblox.
+     * @example "123456"
+     */
+    readonly id: string;
+
+    /**
+     * Unique username for a user in Roblox.
+     * @example "exampleUser"
+     */
+    name: string;
+
+    /**
+     * Display name for the user.
+     * @example "userDefinedName"
+     */
+    displayName: string;
+
+    /**
+     * User-defined information about themselves.
+     * @example "Example User's bio"
+     */
+    about?: string;
+
+    /**
+     * Current locale selected by the user. Returns IETF language code.
+     * @example "en-US"
+     */
+    locale: string;
+
+    /**
+     * Whether the user is a premium user.
+     * @example true
+     */
+    readonly premium?: boolean;
+
+    /**
+     * Specifies if the user is identity-verified.
+     * Requires API key / OAuth token with scope: `user.advanced:read`
+     * @example true
+     */
+    readonly idVerified?: boolean;
+
+    /**
+     * Social network profiles of a user.
+     * Requires API key / OAuth token with scope: `user.social:read`
+     */
+    socialNetworkProfiles?: {
+      /** Facebook profile URI. */
+      facebook?: string;
+      /** Twitter profile URI. */
+      twitter?: string;
+      /** YouTube profile URI. */
+      youtube?: string;
+      /** Twitch profile URI. */
+      twitch?: string;
+      /** Guilded profile URI. */
+      guilded?: string;
+      /** Visibility of the social network profiles. */
+      visibility?:
+        | "SOCIAL_NETWORK_VISIBILITY_UNSPECIFIED"
+        | "NO_ONE"
+        | "FRIENDS"
+        | "FRIENDS_AND_FOLLOWING"
+        | "FRIENDS_FOLLOWING_AND_FOLLOWERS"
+        | "EVERYONE";
+    };
   }
 }
