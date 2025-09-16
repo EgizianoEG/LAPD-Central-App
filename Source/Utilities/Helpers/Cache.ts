@@ -18,7 +18,7 @@ export const RobloxAPICache = {
     `${string}:${10 | 25 | 50 | 100}`,
     Awaited<ReturnType<typeof NobloxJs.searchUsers>>
   >({
-    ttl: 60 * 1000,
+    ttl: 5 * 60 * 1000,
     checkAgeOnGet: true,
   }),
 
