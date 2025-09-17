@@ -1,16 +1,16 @@
 import { type Guilds } from "@Typings/Utilities/Database.js";
-import { CallsignsEventLogger } from "@Utilities/Classes/CallsignsEventLogger.js";
 import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
 import { ServiceUnitTypes, DivisionBeats } from "@Resources/LAPDCallsigns.js";
 import { differenceInMilliseconds, milliseconds } from "date-fns";
-import { SlashCommandSubcommandBuilder, MessageFlags } from "discord.js";
+import { SlashCommandSubcommandBuilder, RepliableInteraction, MessageFlags } from "discord.js";
 import {
   CallsignValidationData,
   GetCallsignValidationData,
 } from "@Utilities/Database/CallsignData.js";
 
+import CallsignsEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import CallsignModel from "@Models/Callsign.js";
@@ -22,9 +22,10 @@ const ExpiredCallsignCooldown = milliseconds({ minutes: 30 });
 const CancelledRequestCooldown = milliseconds({ minutes: 30 });
 const ServiceUnitTypesNormalized = ServiceUnitTypes.map((u) => u.unit);
 const DivisionBeatIntegers = DivisionBeats.map((d) => d.num) as number[];
+
 // ---------------------------------------------------------------------------------------
-// Functions:
-// ----------
+// Validation Helpers:
+// -------------------
 /**
  * Validates the callsign format and availability using pre-fetched data.
  * @param Interaction - The interaction object.
@@ -36,7 +37,7 @@ const DivisionBeatIntegers = DivisionBeats.map((d) => d.num) as number[];
  *          or `false` if the callsign is valid and available.
  */
 export async function ValidateCallsignFormat(
-  Interaction: SlashCommandInteraction<"cached">,
+  Interaction: RepliableInteraction<"cached">,
   Division: number,
   UnitType: string,
   BeatNum: number,
@@ -74,8 +75,8 @@ export async function ValidateCallsignFormat(
   }
 
   if (
-    ValidationData.ExistingCallsign &&
-    ValidationData.ExistingCallsign.requester !== Interaction.user.id
+    ValidationData.existing_callsign &&
+    ValidationData.existing_callsign.requester !== Interaction.user.id
   ) {
     const FormattedBeatNum = BeatNum.toString().padStart(2, "0");
     const CallsignString = `${Division}-${UnitType}-${FormattedBeatNum}`;
@@ -178,11 +179,11 @@ export async function CheckExistingCallsignRequests(
   Interaction: SlashCommandInteraction<"cached">,
   ValidationData: CallsignValidationData
 ): Promise<boolean> {
-  if (ValidationData.PendingRequests.length > 0) {
+  if (ValidationData.pending_requests.length > 0) {
     return new ErrorEmbed()
       .useErrTemplate(
         "CallsignAlreadyRequested",
-        FormatCallsignDesignation(ValidationData.PendingRequests[0].designation)
+        FormatCallsignDesignation(ValidationData.pending_requests[0].designation)
       )
       .replyToInteract(Interaction, true)
       .then(() => true);
@@ -208,7 +209,7 @@ export async function HasRecentCallsignCooldown(
   Interaction: SlashCommandInteraction<"cached">,
   ValidationData: CallsignValidationData
 ): Promise<boolean> {
-  const MostRecentCallsign = ValidationData.MostRecentCallsign;
+  const MostRecentCallsign = ValidationData.most_recent_callsign;
   if (!MostRecentCallsign) return false;
   const Now = Interaction.createdAt;
 
@@ -295,7 +296,7 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
     return;
   if (await CheckExistingCallsignRequests(Interaction, ValidationData)) return;
 
-  const ActiveCallsign = ValidationData.ActiveCallsign;
+  const ActiveCallsign = ValidationData.active_callsign;
   const PendingCallsign = await CallsignModel.create({
     guild: Interaction.guildId,
     requester: Interaction.user.id,

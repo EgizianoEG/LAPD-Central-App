@@ -39,7 +39,7 @@ type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteractio
  * Event logger class for callsign requests, approvals, denials, and other related actions.
  * Handles logging to designated channels and sending notifications to users.
  */
-export class CallsignsEventLogger {
+export default class CallsignsEventLogger {
   protected readonly ImgURLOpts: ImageURLOptions = { size: 128 };
   private static readonly RequestInfoFieldName = "Request Info";
 

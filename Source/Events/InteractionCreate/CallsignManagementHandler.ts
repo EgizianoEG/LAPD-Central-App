@@ -33,7 +33,6 @@ import { Colors } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 import { ErrorMessages } from "@Resources/AppMessages.js";
-import { CallsignsEventLogger } from "@Utilities/Classes/CallsignsEventLogger.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { RandomString, GetErrorId } from "@Utilities/Strings/Random.js";
 import { CallsignMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
@@ -41,6 +40,7 @@ import { DivisionBeats, ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import CallsignsEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import CallsignModel from "@Models/Callsign.js";
 import * as Chrono from "chrono-node";
@@ -250,6 +250,8 @@ async function HandleCallsignApproval(
 
       await UpdatedDocument.save({ session: DBSession });
     });
+  } catch {
+    // Intentionally left blank.
   } finally {
     await DBSession.endSession();
   }
@@ -304,7 +306,7 @@ async function HandleCallsignDenial(
     CallsignEventLogger.LogDenial(
       NotesSubmission,
       UpdatedDocument,
-      CallsignValidationResult.validation_data?.ActiveCallsign
+      CallsignValidationResult.validation_data?.active_callsign
     ),
   ]);
 }
@@ -378,7 +380,7 @@ async function HandleCallsignReviewValidation(
         Interaction.guild,
         RequestDocument,
         RequestDocument.request_status,
-        ValidationResponse.validation_data.ActiveCallsign
+        ValidationResponse.validation_data.active_callsign
       );
     }
 
@@ -442,7 +444,7 @@ async function HandleCallsignReviewValidation(
         CallsignEventLogger.LogCancellation(
           Interaction,
           RequestDocument,
-          ValidationResponse.validation_data?.ActiveCallsign
+          ValidationResponse.validation_data?.active_callsign
         ),
       ];
 
@@ -557,7 +559,7 @@ async function ExpirePreviousCallsignsInTransaction(
  * @param ReferenceDate - The reference date to use for parsing (usually interaction creation time).
  * @returns An object with parsed date or error template name.
  */
-function ParseExpiryDate(
+export function ParseExpiryDate(
   ExpiryInput: string | null,
   ReferenceDate: Date
 ): { date: Date | null; error_temp?: keyof typeof ErrorMessages } {
