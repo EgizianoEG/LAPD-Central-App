@@ -24,17 +24,13 @@ import {
   FormatCallsignDesignation as FormatCallsign,
 } from "@Utilities/Strings/Formatters.js";
 
-import {
-  GetCallsignHistoryFor,
-  GetCallsignValidationData,
-} from "@Utilities/Database/CallsignData.js";
-
 import { Colors } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 import { ErrorMessages } from "@Resources/AppMessages.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { RandomString, GetErrorId } from "@Utilities/Strings/Random.js";
+import { GetCallsignValidationData } from "@Utilities/Database/CallsignData.js";
 import { CallsignMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
 import { DivisionBeats, ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 
@@ -129,11 +125,14 @@ async function HandleCallsignAddInfo(
   await Interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const FormattedCallsign = FormatCallsign(CallsignDocument.designation);
-  const CallsignHistory = await GetCallsignHistoryFor(
-    Interaction.guildId,
-    CallsignDocument.designation,
-    8
-  );
+  const CallsignHistory = await CallsignModel.find({
+    guild: Interaction.guildId,
+    request_status: { $in: ["Approved", "Denied"] },
+    designation: CallsignDocument.designation,
+  })
+    .sort({ requested_on: -1 })
+    .limit(8)
+    .exec();
 
   const CallsignHistoryStr: string[] = [];
   const UnitTypeDetail =
@@ -144,7 +143,8 @@ async function HandleCallsignAddInfo(
     DivisionBeats.find((D) => D.num === CallsignDocument.designation.division)?.name ?? "*Unknown*";
 
   for (const Record of CallsignHistory) {
-    const DateText = FormatTime(Record.reviewed_on!, "d");
+    const ReviewedText = FormatTime(Record.reviewed_on!, "d");
+    const ExpiryText = Record.expiry ? `:${FormatTime(Record.expiry, "d")}` : "";
     const StatusText =
       Record.request_status === GenericRequestStatuses.Approved ? "Approved" : "Denied";
 
@@ -155,21 +155,21 @@ async function HandleCallsignAddInfo(
         : "";
 
     CallsignHistoryStr.push(
-      `${userMention(Record.requester)} - ${StatusText} (${DateText})${CurrentHolderSignal}`
+      `${userMention(Record.requester)} - ${StatusText} (${ReviewedText}${ExpiryText})${CurrentHolderSignal}`
     );
   }
 
   const CallsignInfoContainer = new InfoContainer()
-    .setTitle(`Callsign Information: ${FormattedCallsign}`)
+    .setTitle(`Call Sign Information: \`${FormattedCallsign}\``)
     .setDescription(
       Dedent(`        
-        **Designation:**
-        - **Division:** ${DivisionName} (${CallsignDocument.designation.division})
-        - **Unit Type:** ${UnitTypeDetail} (${CallsignDocument.designation.unit_type})
-        - **Beat Number:** ${CallsignDocument.designation.beat_num}
+        **Designation**
+        > - **Division:** ${DivisionName} (${CallsignDocument.designation.division})
+        > - **Unit Type:** ${UnitTypeDetail} (${CallsignDocument.designation.unit_type})
+        > - **Beat Number:** ${CallsignDocument.designation.beat_num}
 
-        **Callsign History ${CallsignHistory.length ? `(${CallsignHistory.length})` : ""}:**
-        ${CallsignHistoryStr.length ? CallsignHistoryStr.join("\n") : "*There is no history available to view.*"}
+        **Recent Call Sign History**
+        > ${CallsignHistoryStr.length ? CallsignHistoryStr.join("\n> ") : "> *There is no history available to view.*"}
       `)
     );
 
@@ -225,9 +225,9 @@ async function HandleCallsignApproval(
 
   const ReplyEmbed = new EmbedBuilder()
     .setColor(Colors.Success)
-    .setTitle("Callsign Request Approved")
+    .setTitle("Call Sign Request Approved")
     .setDescription(
-      `Successfully approved the callsign request for \`${FormattedCallsign}\`.` +
+      `Successfully approved the call sign request for \`${FormattedCallsign}\`.` +
         (ParsedExpiry.date ? `\n**Expires:** ${FormatTime(ParsedExpiry.date, "D")}` : "")
     );
 
@@ -292,8 +292,8 @@ async function HandleCallsignDenial(
   await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
   const ReplyEmbed = new EmbedBuilder()
     .setColor(Colors.Success)
-    .setTitle("Callsign Request Denied")
-    .setDescription(`Successfully denied the callsign request for \`${FormattedCallsign}\`.`);
+    .setTitle("Call Sign Request Denied")
+    .setDescription(`Successfully denied the call sign request for \`${FormattedCallsign}\`.`);
 
   UpdatedDocument.request_status = GenericRequestStatuses.Denied;
   UpdatedDocument.reviewer = Interaction.user.id;
@@ -435,7 +435,7 @@ async function HandleCallsignReviewValidation(
         .setColor(Colors.Warning)
         .setTitle("Request Cancelled")
         .setDescription(
-          "This callsign request has been automatically cancelled because the requester is no longer a member of this server."
+          "This call sign request has been automatically cancelled because the requester is no longer a member of this server."
         );
 
       const Tasks: Promise<any>[] = [
@@ -491,12 +491,12 @@ async function ValidateCallsignVacancy(
       .username;
     const ResolvedUsernameText = ResolvedUsername ? `to @${ResolvedUsername}` : "";
 
-    const AutoDenialReason = `Callsign is already assigned ${ResolvedUsernameText}${ExpiryInfo}.`;
+    const AutoDenialReason = `Call sign is already assigned ${ResolvedUsernameText}${ExpiryInfo}.`;
     const ReplyEmbed = new EmbedBuilder()
       .setColor(Colors.Error)
-      .setTitle("Callsign Request Auto-Denied")
+      .setTitle("Call sign Request Auto-Denied")
       .setDescription(
-        `Cannot approve the callsign request for \`${FormattedCallsign}\` as it is already assigned to ${userMention(CurrentHolder.requester)}${ExpiryInfo}.\n` +
+        `Cannot approve the call sign request for \`${FormattedCallsign}\` as it is already assigned to ${userMention(CurrentHolder.requester)}${ExpiryInfo}.\n` +
           "The request has been automatically denied."
       );
 
@@ -605,7 +605,7 @@ function GetNotesModal(
   NotesRequired: boolean = false
 ) {
   const Modal = new ModalBuilder()
-    .setTitle(`Callsign ${ReviewOutcome}`)
+    .setTitle(`Call sign ${ReviewOutcome}`)
     .setCustomId(`callsign-rev-notes:${Interaction.user.id}:${RandomString(6)}`);
 
   const NotesInput = new TextInputBuilder()
