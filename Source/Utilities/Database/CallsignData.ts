@@ -1,13 +1,7 @@
 import { GenericRequestStatuses } from "@Config/Constants.js";
-import { Callsigns } from "@Typings/Utilities/Database.js";
+import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
 import CallsignModel from "@Models/Callsign.js";
-
-export interface CallsignValidationData {
-  ExistingCallsign: Callsigns.CallsignDocument | null;
-  PendingRequests: Callsigns.CallsignDocument[];
-  MostRecentCallsign: Callsigns.CallsignDocument | null;
-  ActiveCallsign: Callsigns.CallsignDocument | null;
-}
+export type CallsignValidationData = AggregationResults.CallsignsModel.GetCallsignValidationData;
 
 /**
  * Fetches all necessary callsign data in a single database query for validation.
@@ -17,7 +11,7 @@ export interface CallsignValidationData {
  * @param Division - The division number for the requested callsign.
  * @param UnitType - The unit type for the requested callsign.
  * @param BeatNum - The beat number for the requested callsign.
- * @param RequestTime - The time of the request, used for expiry checks.
+ * @param RequestTime - The time of the request, used for expiry checks. Defaults to current time.
  * @returns An object containing existing callsign, pending requests, most recent callsign, and active callsign.
  */
 export async function GetCallsignValidationData(
@@ -26,70 +20,79 @@ export async function GetCallsignValidationData(
   Division: number,
   UnitType: string,
   BeatNum: string,
-  RequestTime: Date
-): Promise<CallsignValidationData> {
-  const Result = await CallsignModel.aggregate([
-    {
-      $facet: {
-        ExistingCallsign: [
-          {
-            $match: {
-              guild: GuildId,
-              "designation.division": Division,
-              "designation.unit_type": UnitType,
-              "designation.beat_num": BeatNum,
-              request_status: {
-                $in: [GenericRequestStatuses.Approved, GenericRequestStatuses.Pending],
+  RequestTime: Date = new Date()
+): Promise<AggregationResults.CallsignsModel.GetCallsignValidationData> {
+  const Result =
+    await CallsignModel.aggregate<AggregationResults.CallsignsModel.GetCallsignValidationData>([
+      {
+        $facet: {
+          existing_callsign: [
+            {
+              $match: {
+                guild: GuildId,
+                "designation.division": Division,
+                "designation.unit_type": UnitType,
+                "designation.beat_num": BeatNum,
+                request_status: {
+                  $in: [GenericRequestStatuses.Approved, GenericRequestStatuses.Pending],
+                },
+                $or: [{ expiry: null }, { expiry: { $gt: RequestTime } }],
               },
-              $or: [{ expiry: null }, { expiry: { $gt: RequestTime } }],
             },
-          },
-          { $limit: 1 },
-        ],
+            { $limit: 1 },
+          ],
 
-        PendingRequests: [
-          {
-            $match: {
-              guild: GuildId,
-              requester: UserId,
-              request_status: GenericRequestStatuses.Pending,
+          pending_requests: [
+            {
+              $match: {
+                guild: GuildId,
+                requester: UserId,
+                request_status: GenericRequestStatuses.Pending,
+              },
             },
-          },
-        ],
+            { $sort: { requested_on: -1 } },
+            { $limit: 1 },
+          ],
 
-        MostRecentCallsign: [
-          {
-            $match: {
-              guild: GuildId,
-              requester: UserId,
+          most_recent_callsign: [
+            {
+              $match: {
+                guild: GuildId,
+                requester: UserId,
+              },
             },
-          },
-          { $sort: { requested_on: -1 } },
-          { $limit: 1 },
-        ],
+            { $sort: { requested_on: -1 } },
+            { $limit: 1 },
+          ],
 
-        ActiveCallsign: [
-          {
-            $match: {
-              guild: GuildId,
-              requester: UserId,
-              request_status: GenericRequestStatuses.Approved,
-              $or: [{ expiry: null }, { expiry: { $gt: RequestTime } }],
+          active_callsign: [
+            {
+              $match: {
+                guild: GuildId,
+                requester: UserId,
+                request_status: GenericRequestStatuses.Approved,
+                $or: [{ expiry: null }, { expiry: { $gt: RequestTime } }],
+              },
             },
-          },
-          { $limit: 1 },
-        ],
+            { $limit: 1 },
+          ],
+        },
       },
-    },
-  ]);
+      {
+        $project: {
+          previous_callsigns: "$previous_callsigns",
+          active_callsign: { $ifNull: [{ $arrayElemAt: ["$active_callsign", 0] }, null] },
+          existing_callsign: {
+            $ifNull: [{ $arrayElemAt: ["$existing_callsign", 0] }, null],
+          },
+          pending_callsign: {
+            $ifNull: [{ $arrayElemAt: ["$pending_requests", 0] }, null],
+          },
+        },
+      },
+    ]);
 
-  const Data = Result[0];
-  return {
-    ExistingCallsign: Data.ExistingCallsign[0] || null,
-    PendingRequests: Data.PendingRequests || [],
-    MostRecentCallsign: Data.MostRecentCallsign[0] || null,
-    ActiveCallsign: Data.ActiveCallsign[0] || null,
-  };
+  return Result[0];
 }
 
 /**
@@ -133,4 +136,76 @@ export async function GetCallsignHistoryFor(
     .sort({ requested_on: -1 })
     .limit(Limit)
     .exec();
+}
+
+/**
+ * Fetches comprehensive callsign data for a target user for administrative purposes.
+ * @param GuildId - The guild Id where the callsigns are located.
+ * @param TargetUserId - The Id of the user to fetch callsign data for.
+ * @param ComparisonDate - The date to use for expiry comparisons.
+ * @returns An object containing pending, active, and previous callsigns.
+ */
+export async function GetCallsignAdminData(
+  GuildId: string,
+  TargetUserId: string,
+  ComparisonDate: Date = new Date()
+): Promise<AggregationResults.CallsignsModel.GetCallsignAdminData> {
+  const Result =
+    await CallsignModel.aggregate<AggregationResults.CallsignsModel.GetCallsignAdminData>([
+      {
+        $facet: {
+          pending_callsign: [
+            {
+              $match: {
+                guild: GuildId,
+                requester: TargetUserId,
+                request_status: GenericRequestStatuses.Pending,
+              },
+            },
+            { $limit: 1 },
+          ],
+
+          active_callsign: [
+            {
+              $match: {
+                guild: GuildId,
+                requester: TargetUserId,
+                request_status: GenericRequestStatuses.Approved,
+                $or: [{ expiry: null }, { expiry: { $gt: ComparisonDate } }],
+              },
+            },
+            { $limit: 1 },
+          ],
+
+          previous_callsigns: [
+            {
+              $match: {
+                guild: GuildId,
+                requester: TargetUserId,
+                $or: [
+                  { request_status: GenericRequestStatuses.Denied },
+                  {
+                    request_status: GenericRequestStatuses.Approved,
+                    expiry: { $lte: ComparisonDate },
+                  },
+                ],
+              },
+            },
+            { $sort: { requested_on: -1 } },
+            { $limit: 10 },
+          ],
+        },
+      },
+      {
+        $project: {
+          previous_callsigns: "$previous_callsigns",
+          active_callsign: { $ifNull: [{ $arrayElemAt: ["$active_callsign", 0] }, null] },
+          pending_callsign: {
+            $ifNull: [{ $arrayElemAt: ["$pending_callsign", 0] }, null],
+          },
+        },
+      },
+    ]);
+
+  return Result[0];
 }

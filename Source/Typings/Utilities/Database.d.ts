@@ -1638,3 +1638,23 @@ export namespace AggregateResults {
     flag: ShiftFlags;
   }
 }
+
+export namespace AggregationResults.CallsignsModel {
+  interface GetCallsignValidationData {
+    pending_requests: Callsigns.CallsignDocument[];
+    active_callsign: Callsigns.CallsignDocument | null;
+    existing_callsign: Callsigns.CallsignDocument | null;
+    most_recent_callsign: Callsigns.CallsignDocument | null;
+  }
+
+  interface GetCallsignAdminData {
+    pending_callsign: Callsigns.CallsignDocument | null;
+    active_callsign: Callsigns.CallsignDocument | null;
+
+    /**
+     * A list of all previous callsigns the user has requested and been reviewed in the guild, excluding the current active callsign.
+     * This list is sorted by the most recent request date. Could be empty.
+     */
+    previous_callsigns: Callsigns.CallsignDocument[];
+  }
+}
