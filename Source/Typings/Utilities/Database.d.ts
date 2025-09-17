@@ -1342,12 +1342,6 @@ export namespace Callsigns {
      * E.g., `"1-A-123"`.
      */
     designation_str: string;
-
-    /**
-     * @virtual - Not stored in the database.
-     * Returns a boolean indicating whether the callsign is currently active.
-     */
-    is_active: boolean;
   }
 
   interface CallsignMethods {

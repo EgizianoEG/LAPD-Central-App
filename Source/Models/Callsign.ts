@@ -144,14 +144,6 @@ CallSignSchema.virtual("designation_str").get(function (this: Callsigns.Callsign
   return `${this.designation.division}-${this.designation.unit_type}-${this.designation.beat_num}`;
 });
 
-CallSignSchema.virtual("is_active").get(function (this: Callsigns.CallsignDocument) {
-  return (
-    this.reviewed_on !== null &&
-    this.request_status === GenericRequestStatuses.Approved &&
-    (this.expiry === null || this.expiry > new Date())
-  );
-});
-
 CallSignSchema.methods.is_active = function (
   this: Callsigns.CallsignDocument,
   now: Date = new Date()
