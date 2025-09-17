@@ -777,20 +777,20 @@ export const ErrorMessages = {
   CallsignsModuleDisabled: {
     Title: "Module Disabled",
     Description:
-      "The callsigns module is currently disabled. To handle or allocate callsigns, you'll need to activate the module first.",
+      "The call signs module is currently disabled. To handle or allocate call signs, you'll need to activate this module first.",
   },
 
   CallsignReqSendFailed: {
     Title: "Request Submission Failed",
     Description:
-      "Failed to send your callsign request. Please try again later or contact support if the issue persists.",
+      "Failed to send your call sign request. Please try again later or contact support if the issue persists.",
   },
 
   /**
    * @template {string} Callsign The callsign that was already requested.
    */
   CallsignAlreadyRequested: {
-    Title: "Callsign Already Requested",
+    Title: "Call Sign Already Requested",
     Description:
       "You already have a pending request for `%s`. Kindly wait for it to be reviewed or cancel it before submitting another.",
   },
@@ -799,9 +799,9 @@ export const ErrorMessages = {
    * @template {string} Callsign The callsign that was requested and is not available.
    */
   CallsignNotAvailable: {
-    Title: "Callsign Not Available",
+    Title: "Call Sign Not Available",
     Description:
-      "The requested callsign `%s` is already in use or reserved. Please choose a different designation.",
+      "The requested call sign `%s` is already in use or reserved. Please choose a different designation.",
   },
 
   /**
@@ -810,7 +810,7 @@ export const ErrorMessages = {
   CallsignUnitTypeRestricted: {
     Title: "Unit Type Restricted",
     Description:
-      "You do not have the required role to request a callsign of type `%s`. Contact a management staff if you believe this is an error.",
+      "You do not have the required role to request a call sign of type `%s`. Contact a management staff if you believe this is an error.",
   },
 
   /**
@@ -823,9 +823,9 @@ export const ErrorMessages = {
   },
 
   CallsignInvalidFormat: {
-    Title: "Invalid Callsign Format",
+    Title: "Invalid Call Sign Format",
     Description:
-      "Invalid callsign format. Ensure the division (1–36), unit type, and identifier are specified correctly.",
+      "Invalid call sign format. Ensure the division (1–36), unit type, and identifier are specified correctly.",
   },
 
   /**
@@ -849,18 +849,20 @@ export const ErrorMessages = {
   CallsignPreviouslyDenied: {
     Title: "Recent Denial Cooldown",
     Description:
-      "You recently had a callsign request denied. Please wait at least one hour before submitting another.",
+      "You recently had a call sign request denied. Please wait at least one hour before submitting another.",
   },
 
   CallsignPreviouslyCancelled: {
     Title: "Recent Cancellation Cooldown",
     Description:
-      "You recently cancelled a callsign request. Please wait 30 minutes before submitting another.",
+      "You recently cancelled a call sign request. Please wait 30 minutes before submitting another.",
   },
 
   CallsignRecentlyExpired: {
     Title: "Recent Expiry Cooldown",
     Description:
+      "Your previous call sign recently expired or was revoked. Please wait at least 30 minutes before submitting a new request.",
+  },
       "Your previous callsign recently expired or was revoked. Please wait at least 30 minutes before submitting a new request.",
   },
 
