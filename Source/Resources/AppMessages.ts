@@ -863,7 +863,23 @@ export const ErrorMessages = {
     Description:
       "Your previous call sign recently expired or was revoked. Please wait at least 30 minutes before submitting a new request.",
   },
-      "Your previous callsign recently expired or was revoked. Please wait at least 30 minutes before submitting a new request.",
+
+  CallsignRequestModified: {
+    Title: "Invalid Action",
+    Description:
+      "It seems like that this request has been already reviewed, modified, or cancelled. This action cannot be performed anymore.",
+  },
+
+  CallsignNotAssignedToRelease: {
+    Title: "Call Sign Not Assigned",
+    Description:
+      "Cannot take action or release this call sign anymore. It appears like it has already been released, expired, or revoked.",
+  },
+
+  CallsignCannotAssignNonStaffMember: {
+    Title: "Unable to Assign",
+    Description:
+      "The specified individual must be a current member and staff within the server to be assigned a call sign.",
   },
 
   SANoShiftsToModify: {

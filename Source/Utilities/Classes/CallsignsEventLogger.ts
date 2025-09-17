@@ -669,4 +669,183 @@ export class CallsignsEventLogger {
         .catch(() => null);
     }
   }
+
+  /**
+   * Logs the administrative release of an active callsign to the logging channel.
+   * Also sends a DM notice to the affected user.
+   * @param Interaction - The interaction from the management staff releasing the callsign.
+   * @param ReleasedCallsign - The released callsign document.
+   * @param Notes - Optional notes for the release.
+   * @returns A Promise resolving after the log and notifications are completed.
+   */
+  async LogAdministrativeRelease(
+    Interaction: ManagementInteraction,
+    ReleasedCallsign: CallsignDoc,
+    Notes?: string | null
+  ): Promise<void> {
+    if (
+      ReleasedCallsign.request_status !== GenericRequestStatuses.Approved ||
+      !ReleasedCallsign.reviewed_on
+    ) {
+      return;
+    }
+
+    const FormattedCallsign = FormatCallsign(ReleasedCallsign.designation);
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
+    const AffectedStaff = await Interaction.client.users
+      .fetch(ReleasedCallsign.requester)
+      .catch(() => null);
+
+    if (AffectedStaff) {
+      const DMReleaseNotice = new EmbedBuilder()
+        .setTimestamp(Interaction.createdAt)
+        .setColor(Colors.RequestDenied)
+        .setFooter({ text: `Reference ID: ${ReleasedCallsign._id}` })
+        .setTitle("Call Sign Administrative Release")
+        .setDescription(
+          this.ConcatenateLines(
+            `Your active call sign **\`${FormattedCallsign}\`** has been administratively released by management. You may submit a new callsign request if needed.`,
+            Notes ? `**\nRelease Notes:**\n${codeBlock(Notes)}` : null
+          )
+        )
+        .setAuthor({
+          name: Interaction.guild.name,
+          iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? undefined,
+        });
+
+      AffectedStaff.send({ embeds: [DMReleaseNotice] }).catch(() => null);
+    }
+
+    if (LogChannel) {
+      const LogEmbed = new EmbedBuilder()
+        .setColor(Colors.RequestCancelled)
+        .setTitle("Call Sign Administrative Release")
+        .setFooter({ text: `Reference ID: ${ReleasedCallsign._id}` })
+        .setTimestamp(Interaction.createdAt)
+        .addFields(
+          {
+            inline: true,
+            name: "Call Sign Info",
+            value: this.ConcatenateLines(
+              `**Designation:** \`${FormattedCallsign}\``,
+              `**Assigned On:** ${FormatTime(ReleasedCallsign.reviewed_on, "D")}`,
+              `**Affected Staff:** ${userMention(ReleasedCallsign.requester)}`
+            ),
+          },
+          {
+            inline: true,
+            name: "Release Info",
+            value: this.ConcatenateLines(
+              `**Released By:** ${userMention(Interaction.user.id)}`,
+              Notes ? `**Notes:**\n${Notes}` : "**Notes:** N/A"
+            ),
+          }
+        );
+
+      LogChannel.send({ embeds: [LogEmbed] }).catch(() => null);
+    }
+  }
+
+  /**
+   * Logs the administrative assignment of a callsign to the logging channel.
+   * Also sends a DM notice to the affected user. This is basically the same as an approval but without a request.
+   * @param Interaction - The interaction from the management staff assigning the callsign.
+   * @param AssignedCallsign - The assigned callsign document.
+   * @param PreviousCallsign - The previously assigned callsign document, if any and if this is a transfer.
+   * @returns A Promise resolving after the log and notifications are completed.
+   */
+  async LogAdministrativeAssignmentOrTransfer(
+    Interaction: ManagementInteraction,
+    AssignedCallsign: CallsignDoc,
+    PreviousCallsign?: CallsignDoc | null
+  ): Promise<void> {
+    if (AssignedCallsign.request_status !== GenericRequestStatuses.Approved) return;
+
+    const IsTransfer = PreviousCallsign?.request_status === GenericRequestStatuses.Approved;
+    const StatusText = IsTransfer ? "Transfer" : "Assignment";
+    const FormattedCallsign = FormatCallsign(AssignedCallsign.designation);
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
+    const AffectedStaff = await Interaction.guild.members
+      .fetch(AssignedCallsign.requester)
+      .catch(() => null);
+
+    if (AffectedStaff) {
+      let DescriptionText = "";
+
+      if (IsTransfer) {
+        const PreviousFormattedCallsign = FormatCallsign(PreviousCallsign.designation);
+        DescriptionText = `Your call sign has been administratively transferred from **\`${PreviousFormattedCallsign}\`** to **\`${FormattedCallsign}\`**.`;
+      } else {
+        DescriptionText = `You have been administratively assigned the call sign **\`${FormattedCallsign}\`**.`;
+      }
+
+      DescriptionText = this.ConcatenateLines(
+        DescriptionText,
+        AssignedCallsign.expiry
+          ? `This call sign is set to expire on ${FormatTime(AssignedCallsign.expiry, "F")} (${FormatTime(AssignedCallsign.expiry, "R")}).`
+          : null,
+        AssignedCallsign.reviewer_notes
+          ? `\n**Assignment Notes:**\n${codeBlock(AssignedCallsign.reviewer_notes)}`
+          : null
+      );
+
+      const DMAssignmentNotice = new EmbedBuilder()
+        .setTimestamp(Interaction.createdAt)
+        .setColor(Colors.RequestApproved)
+        .setFooter({ text: `Reference ID: ${AssignedCallsign._id}` })
+        .setTitle(`Administrative Call Sign ${StatusText}`)
+        .setDescription(DescriptionText)
+        .setAuthor({
+          name: Interaction.guild.name,
+          iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? undefined,
+        });
+
+      AffectedStaff.send({ embeds: [DMAssignmentNotice] }).catch(() => null);
+    }
+
+    if (LogChannel) {
+      const LogEmbed = new EmbedBuilder()
+        .setColor(Colors.RequestApproved)
+        .setTimestamp(Interaction.createdAt)
+        .setTitle(`Administrative Call Sign ${StatusText}`)
+        .setFooter({ text: `Assigned Ref. ID: ${AssignedCallsign._id}` })
+        .addFields(
+          {
+            inline: true,
+            name: "Call Sign Info",
+            value: this.ConcatenateLines(
+              `**Assigned To:** ${userMention(AssignedCallsign.requester)}`,
+              `**Designation:** \`${FormattedCallsign}\``,
+              AssignedCallsign.expiry
+                ? `**Expires:** ${FormatTime(AssignedCallsign.expiry, "R")}`
+                : "**Expires:** *Never*"
+            ),
+          },
+          {
+            inline: true,
+            name: "Assignment Info",
+            value: this.ConcatenateLines(
+              `**Assigned By:** ${userMention(Interaction.user.id)}`,
+              AssignedCallsign.reviewer_notes
+                ? `**Notes:** ${AssignedCallsign.reviewer_notes}`
+                : "**Notes:** *N/A*"
+            ),
+          }
+        );
+
+      if (PreviousCallsign?.request_status === GenericRequestStatuses.Approved) {
+        LogEmbed.addFields({
+          name: "Previous Call Sign",
+          value: this.ConcatenateLines(
+            `**Ref. ID:** \`${PreviousCallsign._id}\``,
+            `**Designation:** \`${FormatCallsign(PreviousCallsign.designation)}\``,
+            `**Approved On:** ${FormatTime(PreviousCallsign.reviewed_on!, "D")}`,
+            `**Approved By:** ${userMention(PreviousCallsign.reviewer!)}`
+          ),
+        });
+      }
+
+      LogChannel.send({ embeds: [LogEmbed] }).catch(() => null);
+    }
+  }
 }
