@@ -1272,8 +1272,11 @@ export namespace GuildIncidents {
 }
 
 export namespace Callsigns {
-  type CallsignModel = Model<CallsignDocument, {}, {}, CallsignVirtuals>;
-  type HydratedCallsignDocument = HydratedDocument<CallsignDocument, CallsignVirtuals>;
+  type CallsignModel = Model<CallsignDocument, {}, CallsignMethods, CallsignVirtuals>;
+  type HydratedCallsignDocument = HydratedDocument<
+    CallsignDocument,
+    CallsignVirtuals & CallsignMethods
+  >;
 
   interface CallsignDesignation {
     /**
@@ -1339,6 +1342,22 @@ export namespace Callsigns {
      * E.g., `"1-A-123"`.
      */
     designation_str: string;
+
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a boolean indicating whether the callsign is currently active.
+     */
+    is_active: boolean;
+  }
+
+  interface CallsignMethods {
+    /**
+     * Indicates whether the callsign is currently assigned and active.
+     * A callsign is considered active if it has not expired.
+     * @param [now=new Date()] - The current date to check against. Defaults to the current date.
+     * @alternative `is_active` virtual.
+     */
+    is_active(now: Date = new Date()): boolean;
   }
 }
 

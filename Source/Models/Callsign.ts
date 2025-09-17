@@ -3,7 +3,7 @@ import { ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 import { Schema, model } from "mongoose";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 
-const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.CallsignModel>({
+const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.CallsignModel>({
   guild: {
     type: String,
     index: true,
@@ -140,13 +140,32 @@ const CallsignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
   },
 });
 
-CallsignSchema.virtual("designation_str").get(function (this: Callsigns.CallsignDocument) {
+CallSignSchema.virtual("designation_str").get(function (this: Callsigns.CallsignDocument) {
   return `${this.designation.division}-${this.designation.unit_type}-${this.designation.beat_num}`;
 });
 
+CallSignSchema.virtual("is_active").get(function (this: Callsigns.CallsignDocument) {
+  return (
+    this.reviewed_on !== null &&
+    this.request_status === GenericRequestStatuses.Approved &&
+    (this.expiry === null || this.expiry > new Date())
+  );
+});
+
+CallSignSchema.methods.is_active = function (
+  this: Callsigns.CallsignDocument,
+  now: Date = new Date()
+) {
+  return (
+    this.reviewed_on !== null &&
+    this.request_status === GenericRequestStatuses.Approved &&
+    (this.expiry === null || this.expiry > now)
+  );
+};
+
 const CallsignModel = model<Callsigns.CallsignDocument, Callsigns.CallsignModel>(
   "Callsign",
-  CallsignSchema
+  CallSignSchema
 );
 
 export default CallsignModel;
