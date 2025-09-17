@@ -80,12 +80,12 @@ export async function GetCallsignValidationData(
       },
       {
         $project: {
-          previous_callsigns: "$previous_callsigns",
+          most_recent_callsign: { $ifNull: [{ $arrayElemAt: ["$most_recent_callsign", 0] }, null] },
           active_callsign: { $ifNull: [{ $arrayElemAt: ["$active_callsign", 0] }, null] },
           existing_callsign: {
             $ifNull: [{ $arrayElemAt: ["$existing_callsign", 0] }, null],
           },
-          pending_callsign: {
+          pending_request: {
             $ifNull: [{ $arrayElemAt: ["$pending_requests", 0] }, null],
           },
         },
@@ -93,27 +93,6 @@ export async function GetCallsignValidationData(
     ]);
 
   return Result[0];
-}
-
-/**
- * Fetches the callsign history for a specific user regardless of status.
- * @param GuildId - The Id of the guild to fetch the callsign history from.
- * @param UserId - The Id of the user to fetch the callsign history for.
- * @param Limit - The maximum number of history entries to return.
- * @returns An array of callsign history documents sorted by `requested_on` in descending order.
- */
-export async function GetCallsignHistoryForUser(
-  GuildId: string,
-  UserId: string,
-  Limit: number = 10
-): Promise<Callsigns.CallsignDocument[]> {
-  return CallsignModel.find({
-    guild: GuildId,
-    requester: UserId,
-  })
-    .limit(Limit)
-    .sort({ requested_on: -1 })
-    .exec();
 }
 
 /**

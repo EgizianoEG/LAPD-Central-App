@@ -1635,7 +1635,7 @@ export namespace AggregateResults {
 
 export namespace AggregationResults.CallsignsModel {
   interface GetCallsignValidationData {
-    pending_requests: Callsigns.CallsignDocument[];
+    pending_request: Callsigns.CallsignDocument | null;
     active_callsign: Callsigns.CallsignDocument | null;
     existing_callsign: Callsigns.CallsignDocument | null;
     most_recent_callsign: Callsigns.CallsignDocument | null;
