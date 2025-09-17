@@ -186,17 +186,17 @@ export class CallsignsEventLogger {
     const IsTransfer = !!CurrentlyAssigned;
     const CurrPrevCallsignText =
       IsTransfer && CallsignDocument.request_status === GenericRequestStatuses.Approved
-        ? "**Previous Callsign:**"
-        : "**Current Callsign:**";
+        ? "**Previous Designation:**"
+        : "**Current Designation:**";
 
     const RequestContainer = new BaseExtraContainer()
-      .setTitle(`${RequestStatus}  |  Callsign ${IsTransfer ? "Transfer " : ""}Request`)
+      .setTitle(`${RequestStatus}  |  Call Sign ${IsTransfer ? "Transfer " : ""}Request`)
       .setFooter(`Reference ID: \`${CallsignDocument._id}\``)
       .setColor(RequestStatus === "Cancelled" ? Colors.RequestDenied : Colors.RequestPending)
       .setDescription(
         this.ConcatenateLines(
           `**Requester:** ${userMention(CallsignDocument.requester)}`,
-          `**${IsTransfer ? "Req. " : ""}Callsign:** ${Strikethrough}\`${FormattedCallsign}\`${Strikethrough}`,
+          `**${IsTransfer ? "Req. " : ""}Designation:** ${Strikethrough}\`${FormattedCallsign}\`${Strikethrough}`,
           IsTransfer
             ? `${CurrPrevCallsignText} \`${FormatCallsign(CurrentlyAssigned.designation)}\``
             : null,
@@ -325,7 +325,7 @@ export class CallsignsEventLogger {
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestPending)
         .setFooter({ text: `Reference ID: ${PendingCallsign._id}` })
-        .setTitle("Callsign Request — Request Under Review")
+        .setTitle("Call Sign Request — Request Under Review")
         .setDescription(
           `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(PendingCallsign.requested_on, "D")}, ` +
             "has been received and is waiting for a review by the management team.\n\n" +
@@ -401,7 +401,7 @@ export class CallsignsEventLogger {
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestApproved)
         .setFooter({ text: `Reference ID: ${ApprovedRequest._id}` })
-        .setTitle("Callsign Request — Approval Notice")
+        .setTitle("Call Sign Request — Approval Notice")
         .setDescription(
           this.ConcatenateLines(
             `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(ApprovedRequest.requested_on, "D")}, has been approved.`,
@@ -425,7 +425,7 @@ export class CallsignsEventLogger {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestApproved)
-        .setTitle("Callsign Request Approval")
+        .setTitle("Call Sign Request Approval")
         .setFooter({ text: `Reference ID: ${ApprovedRequest._id}; approved on` })
         .addFields(
           {
@@ -433,9 +433,9 @@ export class CallsignsEventLogger {
             inline: true,
             value: this.ConcatenateLines(
               `**Requester:** ${userMention(ApprovedRequest.requester)}`,
-              `**Callsign:** \`${FormattedCallsign}\``,
+              `**Designation:** \`${FormattedCallsign}\``,
               PreviouslyAssigned
-                ? `**Previous Callsign:** \`${FormatCallsign(PreviouslyAssigned.designation)}\``
+                ? `**Previous Designation:** \`${FormatCallsign(PreviouslyAssigned.designation)}\``
                 : null,
               `**Requested:** ${FormatTime(ApprovedRequest.requested_on, "D")}`,
               ApprovedRequest.expiry
@@ -501,7 +501,7 @@ export class CallsignsEventLogger {
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestDenied)
         .setFooter({ text: `Reference ID: ${DeniedRequest._id}` })
-        .setTitle("Callsign Request — Denial Notice")
+        .setTitle("Call Sign Request — Denial Notice")
         .setDescription(
           `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(DeniedRequest.requested_on, "D")}, has been denied.` +
             "You may submit a new request if you believe this denial was made in error or if circumstances have changed." +
@@ -519,7 +519,7 @@ export class CallsignsEventLogger {
     if (LogChannel) {
       const LogEmbed = new EmbedBuilder()
         .setColor(Colors.RequestDenied)
-        .setTitle("Callsign Request Denial")
+        .setTitle("Call Sign Request Denial")
         .setFooter({ text: `Reference ID: ${DeniedRequest._id}; denied on` })
         .setTimestamp(Interaction.createdAt)
         .addFields(
@@ -528,7 +528,7 @@ export class CallsignsEventLogger {
             name: CallsignsEventLogger.RequestInfoFieldName,
             value: this.ConcatenateLines(
               `**Requester:** ${userMention(DeniedRequest.requester)}`,
-              `**Callsign:** \`${FormattedCallsign}\``,
+              `**Designation:** \`${FormattedCallsign}\``,
               `**Requested:** ${FormatTime(DeniedRequest.requested_on, "D")}`,
               `**Reason:** ${DeniedRequest.request_reason}`
             ),
@@ -594,7 +594,7 @@ export class CallsignsEventLogger {
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestCancelled)
         .setFooter({ text: `Reference ID: ${CancelledRequest._id}` })
-        .setTitle("Callsign Request — Cancellation Notice")
+        .setTitle("Call Sign Request — Cancellation Notice")
         .setAuthor({
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
@@ -621,7 +621,7 @@ export class CallsignsEventLogger {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestCancelled)
-        .setTitle("Callsign Request Cancellation")
+        .setTitle("Call Sign Request Cancellation")
         .setFooter({
           text: `Reference ID: ${CancelledRequest._id}; cancelled${CancelledRequest.reviewer === Interaction.client.user.id ? " automatically" : ""} on`,
         })
@@ -630,7 +630,7 @@ export class CallsignsEventLogger {
           name: CallsignsEventLogger.RequestInfoFieldName,
           value: this.ConcatenateLines(
             `**Requester:** ${userMention(CancelledRequest.requester)}`,
-            `**Callsign:** \`${FormattedCallsign}\``,
+            `**Designation:** \`${FormattedCallsign}\``,
             `**Requested:** ${FormatTime(CancelledRequest.requested_on, "D")}`,
             `**Reason:** ${CancelledRequest.request_reason}`
           ),
