@@ -1,8 +1,807 @@
-import { SlashCommandSubcommandBuilder } from "discord.js";
+/* eslint-disable sonarjs/no-duplicate-string */
+import {
+  SlashCommandSubcommandBuilder,
+  ModalSubmitInteraction,
+  InteractionResponse,
+  TextDisplayBuilder,
+  time as FormatTime,
+  ButtonInteraction,
+  TextInputBuilder,
+  ActionRowBuilder,
+  TextInputStyle,
+  ComponentType,
+  ButtonBuilder,
+  MessageFlags,
+  ModalBuilder,
+  userMention,
+  ButtonStyle,
+  inlineCode,
+  Message,
+  User,
+} from "discord.js";
+
+import {
+  GetCallsignAdminData,
+  GetCallsignValidationData,
+} from "@Utilities/Database/CallsignData.js";
+
+import {
+  BaseExtraContainer,
+  SuccessContainer,
+  ErrorContainer,
+} from "@Utilities/Classes/ExtraContainers.js";
+
+import { Colors, Emojis } from "@Config/Shared.js";
+import { RandomString } from "@Utilities/Strings/Random.js";
+import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
+import { ParseExpiryDate } from "Source/Events/InteractionCreate/CallsignManagementHandler.js";
+import { GenericRequestStatuses } from "@Config/Constants.js";
+import { ValidateCallsignFormat } from "./Request.js";
+import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
+import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
+
+import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import CSEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
+import CallsignModel from "@Models/Callsign.js";
+import AppLogger from "@Utilities/Classes/AppLogger.js";
+
+const FileLabel = "Commands:Miscellaneous:Callsigns:Subcmds:Admin";
+const CallsignsEventLogger = new CSEventLogger();
+const PreviousCSRecordsLimit = 4;
+const DesignationExamples = ["1-A-40", "12-K9-99", "7-SL-120", "3-G-78", "1-Air-05"];
+
+type CmdOrButtonCachedInteraction = SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">;
+interface ValidateAndParseCallsignDesignationReturn {
+  validation_data: AggregationResults.CallsignsModel.GetCallsignValidationData;
+  designation: {
+    division: number;
+    unit_type: string;
+    beat_num: string;
+  };
+}
+
+enum AdminActions {
+  CallsignApprove = "cs-admin-approve",
+  CallsignRelease = "cs-admin-release",
+  CallsignAssign = "cs-admin-assign",
+  CallsignDeny = "cs-admin-deny",
+}
+
 // ---------------------------------------------------------------------------------------
-// Logic & Handling:
+// Helpers:
+// --------
+/**
+ * Generates the callsign administration panel container.
+ * @param TargetStaff - The user whose callsign data should be displayed.
+ * @param CallsignData - The callsign data of the `TargetStaff`.
+ * @returns A container that displays the callsign data of the `TargetStaff`.
+ */
+function GetPanelContainer(
+  TargetStaff: User,
+  CallsignData: AggregationResults.CallsignsModel.GetCallsignAdminData
+): BaseExtraContainer {
+  const { pending_callsign, active_callsign, previous_callsigns } = CallsignData;
+  let PanelAccentColor = Colors.DarkBlue;
+
+  const TextDisplayContents: string[] = [];
+  const PreviousCallsignsFormatted = previous_callsigns.map((Callsign) => {
+    const FormattedDesignation = FormatCallsignDesignation(Callsign.designation);
+    const ReviewalDate = FormatTime(Callsign.reviewed_on as Date, "d");
+    const StatusText =
+      Callsign.request_status === GenericRequestStatuses.Denied ? "Denied" : "Expired";
+    return `${StatusText}: ${inlineCode(FormattedDesignation)} — ${ReviewalDate}`;
+  });
+
+  if (active_callsign) {
+    const FormattedDesignation = FormatCallsignDesignation(active_callsign.designation);
+    const ApprovedDate = FormatTime(active_callsign.reviewed_on!, "D");
+    const ExpiryText = active_callsign.expiry
+      ? `> **Expires:** ${FormatTime(active_callsign.expiry, "R")}`
+      : "";
+
+    PanelAccentColor = Colors.RequestApproved;
+    TextDisplayContents.push(
+      ConcatenateLines(
+        "**Assigned Call Sign**",
+        `> **Designation:** **${inlineCode(FormattedDesignation)}**`,
+        `> **Approved:** ${ApprovedDate}`,
+        `> **Approved By:** ${userMention(active_callsign.reviewer!)}`,
+        ExpiryText
+      )
+    );
+  }
+
+  if (pending_callsign) {
+    const FormattedDesignation = FormatCallsignDesignation(pending_callsign.designation);
+    const RequestedDate = FormatTime(pending_callsign.requested_on, "D");
+
+    PanelAccentColor = Colors.RequestPending;
+    TextDisplayContents.push(
+      ConcatenateLines(
+        "**Pending Request**",
+        `> **Designation:** **${inlineCode(FormattedDesignation)}**`,
+        `> **Requested:** ${RequestedDate}`,
+        `> **Reason:** ${pending_callsign.request_reason}`
+      )
+    );
+  }
+
+  if (!active_callsign && !pending_callsign) {
+    TextDisplayContents.push(
+      ConcatenateLines(
+        "**Call Sign Status**",
+        "> -# *This staff does not have an active or pending callsign request.*"
+      )
+    );
+  }
+
+  if (
+    PreviousCallsignsFormatted.length > 0 &&
+    PreviousCallsignsFormatted.length <= PreviousCSRecordsLimit
+  ) {
+    TextDisplayContents.push(
+      ConcatenateLines("**Previous Records**", ...PreviousCallsignsFormatted.map((L) => `> ${L}`))
+    );
+  } else if (PreviousCallsignsFormatted.length > PreviousCSRecordsLimit) {
+    TextDisplayContents.push(
+      ConcatenateLines(
+        "**Previous Records**",
+        ...PreviousCallsignsFormatted.slice(0, PreviousCSRecordsLimit).map((L) => `> ${L}`),
+        `> -# *... and ${PreviousCallsignsFormatted.length - PreviousCSRecordsLimit} more records*`
+      )
+    );
+  } else if (PreviousCallsignsFormatted.length === 0) {
+    TextDisplayContents.push(
+      ConcatenateLines("**Previous Records**", "> -# *There are no reviewed records to display.*")
+    );
+  }
+
+  const PanelContainer = new BaseExtraContainer()
+    .setTitle(`Callsign Administration for ${userMention(TargetStaff.id)}`, { no_sep: true })
+    .setColor(PanelAccentColor)
+    .setDescription(TextDisplayContents.shift());
+
+  if (TextDisplayContents.length > 0) {
+    PanelContainer.spliceComponents(
+      3,
+      0,
+      ...TextDisplayContents.map((C) => {
+        return new TextDisplayBuilder().setContent(C);
+      })
+    );
+  }
+
+  return PanelContainer;
+}
+
+/**
+ * Creates the action buttons for the callsign administration panel.
+ * @param Interaction - The interaction that triggered the panel.
+ * @param TargetUserId - The Id of the target user.
+ * @param PendingCallsign - The pending callsign document from the database, if any.
+ * @param ActiveCallsign - The active callsign document from the database, if any.
+ * @returns An array of action row components to be added to the panel.
+ */
+function GetPanelComponents(
+  Interaction: CmdOrButtonCachedInteraction,
+  TargetUserId: string,
+  PendingCallsign?: Callsigns.CallsignDocument | null,
+  ActiveCallsign?: Callsigns.CallsignDocument | null
+): ActionRowBuilder<ButtonBuilder>[] {
+  const ActionRows = [new ActionRowBuilder<ButtonBuilder>()];
+
+  if (PendingCallsign?.request_status === GenericRequestStatuses.Pending) {
+    ActionRows[0].addComponents(
+      new ButtonBuilder()
+        .setCustomId(
+          `${AdminActions.CallsignApprove}:${Interaction.user.id}:${PendingCallsign._id}:${TargetUserId}`
+        )
+        .setLabel("Approve Request")
+        .setEmoji(Emojis.WhiteCheck)
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId(
+          `${AdminActions.CallsignDeny}:${Interaction.user.id}:${PendingCallsign._id}:${TargetUserId}`
+        )
+        .setLabel("Deny Request")
+        .setEmoji(Emojis.WhiteCross)
+        .setStyle(ButtonStyle.Danger)
+    );
+  }
+
+  if (ActiveCallsign?.request_status === GenericRequestStatuses.Approved && PendingCallsign) {
+    ActionRows.push(
+      new ActionRowBuilder<ButtonBuilder>().setComponents(
+        new ButtonBuilder()
+          .setCustomId(
+            `${AdminActions.CallsignRelease}:${Interaction.user.id}:${ActiveCallsign._id}:${TargetUserId}`
+          )
+          .setLabel("Release Currently Assigned Callsign")
+          .setEmoji(Emojis.TagMinus)
+          .setStyle(ButtonStyle.Secondary)
+      )
+    );
+  }
+
+  if (ActiveCallsign?.request_status === GenericRequestStatuses.Approved && !PendingCallsign) {
+    ActionRows[0].addComponents(
+      new ButtonBuilder()
+        .setCustomId(
+          `${AdminActions.CallsignRelease}:${Interaction.user.id}:${ActiveCallsign._id}:${TargetUserId}`
+        )
+        .setLabel("Release Currently Assigned Callsign")
+        .setEmoji(Emojis.TagMinus)
+        .setStyle(ButtonStyle.Secondary),
+
+      new ButtonBuilder()
+        .setCustomId(`${AdminActions.CallsignAssign}:${Interaction.user.id}:0:${TargetUserId}`)
+        .setLabel("Transfer Callsign")
+        .setEmoji(Emojis.TagPlus)
+        .setStyle(ButtonStyle.Secondary)
+    );
+  }
+
+  if (!ActiveCallsign && !PendingCallsign) {
+    ActionRows[0].addComponents(
+      new ButtonBuilder()
+        .setCustomId(`${AdminActions.CallsignAssign}:${Interaction.user.id}:0:${TargetUserId}`)
+        .setLabel("Assign a Callsign")
+        .setEmoji(Emojis.TagPlus)
+        .setStyle(ButtonStyle.Success)
+    );
+  }
+
+  return ActionRows;
+}
+
+/**
+ * Creates a modal for collecting reviewer notes or assignment details during callsign management operations.
+ * @param Interaction - The button interaction triggering the modal.
+ * @param ModalType - The type of modal to create.
+ * @param NotesRequired - Whether notes are required for this action. Defaults to `false`.
+ * @returns A configured modal for data collection.
+ */
+function GetAdminModal(
+  Interaction: ButtonInteraction<"cached">,
+  ModalType: "Approval" | "Denial" | "Assignment" | "Release",
+  NotesRequired: boolean = false
+): ModalBuilder {
+  const Modal = new ModalBuilder()
+    .setTitle(`Callsign ${ModalType}`)
+    .setCustomId(`cs-admin-modal:${Interaction.user.id}:${RandomString(6)}`);
+
+  if (ModalType === "Assignment") {
+    Modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().setComponents(
+        new TextInputBuilder()
+          .setStyle(TextInputStyle.Short)
+          .setRequired(true)
+          .setMinLength(5)
+          .setMaxLength(10)
+          .setLabel("Callsign Designation (e.g., 1-A-40, 12-K9-99)")
+          .setCustomId("designation")
+          .setPlaceholder(
+            DesignationExamples[Math.floor(Math.random() * DesignationExamples.length)]
+          )
+      ),
+      new ActionRowBuilder<TextInputBuilder>().setComponents(
+        new TextInputBuilder()
+          .setStyle(TextInputStyle.Short)
+          .setRequired(false)
+          .setMinLength(2)
+          .setMaxLength(50)
+          .setLabel("Expiry Date (Optional)")
+          .setCustomId("expiry")
+          .setPlaceholder("In 3 weeks, 2025-12-31, etc.")
+      )
+    );
+  }
+
+  const NotesLabelPrefix = NotesRequired ? "Required" : "Optional";
+  Modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().setComponents(
+      new TextInputBuilder()
+        .setStyle(TextInputStyle.Short)
+        .setRequired(NotesRequired)
+        .setMinLength(3)
+        .setMaxLength(128)
+        .setLabel(`${ModalType} Notes`)
+        .setCustomId("notes")
+        .setPlaceholder(
+          ModalType === "Assignment"
+            ? `${NotesLabelPrefix} assignment notes...`
+            : `${NotesLabelPrefix} reviewal notes and/or comments...`
+        )
+    )
+  );
+
+  return Modal;
+}
+
+/**
+ * Validates and parses a callsign designation string.
+ * @param RecInteract - The administration interaction.
+ * @param Designation - The callsign designation string to validate and parse.
+ * @returns An object containing the parsed designation and validation data,
+ *          or `false` if validation fails and an error response is sent.
+ */
+async function ValidateAndParseCallsignDesignation(
+  RecInteract: ModalSubmitInteraction<"cached">,
+  Designation: string
+): Promise<ValidateAndParseCallsignDesignationReturn | false> {
+  const Parts = Designation.split(/\s*-\s*/);
+  const DivBeat = parseInt(Parts[0], 10);
+  const BeatNum = parseInt(Parts[2], 10);
+  let UnitType = Parts[1];
+
+  if (Parts.length !== 3 || isNaN(DivBeat) || isNaN(BeatNum) || !UnitType.length) {
+    return new ErrorContainer()
+      .useErrTemplate("CallsignInvalidFormat")
+      .replyToInteract(RecInteract, true)
+      .then(() => false);
+  }
+
+  UnitType = /^Air$/i.test(UnitType) ? "Air" : UnitType;
+  const BeatNumStr = BeatNum.toString().padStart(2, "0");
+  const ValidationData = await GetCallsignValidationData(
+    RecInteract.guildId,
+    RecInteract.user.id,
+    DivBeat,
+    UnitType,
+    BeatNumStr,
+    RecInteract.createdAt
+  );
+
+  if (
+    (await ValidateCallsignFormat(RecInteract, DivBeat, UnitType, BeatNum, ValidationData)) === true
+  ) {
+    return false;
+  }
+
+  return {
+    validation_data: ValidationData,
+    designation: {
+      division: DivBeat,
+      unit_type: UnitType,
+      beat_num: BeatNumStr,
+    },
+  };
+}
+
+/**
+ * Validates and parses an expiry date string.
+ * @param RecInteract - The interaction context.
+ * @param Expiry - The expiry date string to validate and parse.
+ * @returns A `Date` object if the expiry date is valid, `null` if no expiry is set,
+ *          or `false` if validation fails and an error response is sent.
+ */
+async function ValidateAndParseExpiryDate(
+  RecInteract: ModalSubmitInteraction<"cached">,
+  Expiry?: string | null
+): Promise<Date | null | false> {
+  if (!Expiry?.length) return null;
+  const ParseResult = ParseExpiryDate(Expiry, RecInteract.createdAt);
+
+  if (ParseResult.error_temp) {
+    return new ErrorContainer()
+      .useErrTemplate(ParseResult.error_temp)
+      .replyToInteract(RecInteract, true)
+      .then(() => false);
+  }
+
+  return ParseResult.date;
+}
+
+/**
+ * Retrieves the target user from the interaction.
+ * - If the interaction is a button, it retrieves the Id from the button custom Id.
+ * - If the interaction is a command, it retrieves the user from the "staff" option.
+ * @param Interaction - The interaction to retrieve the target user from.
+ * @returns The target user or an error embed response if the user is a bot or not found.
+ */
+async function GetTargetUser(
+  Interaction: CmdOrButtonCachedInteraction
+): Promise<User | InteractionResponse<boolean> | Message<boolean>> {
+  let Target: User | null = null;
+
+  if (Interaction.isButton()) {
+    const UserId = Interaction.customId.split(":")[3];
+    Target = await Interaction.client.users.fetch(UserId).catch(() => null);
+  } else if (Interaction.isCommand()) {
+    Target = Interaction.options.getUser("staff", true);
+  }
+
+  if (Target?.bot) {
+    return new ErrorContainer()
+      .useErrTemplate("BotMemberSelected")
+      .replyToInteract(Interaction, true, true);
+  } else if (!Target) {
+    return new ErrorContainer().useErrTemplate("UnknownError").replyToInteract(Interaction, true);
+  }
+
+  return Target;
+}
+
+/**
+ * A wrapper function that returns a single promise that eventually resolves to `true` after
+ * executing all promises in the array, regardless of their individual outcomes.
+ * @param Values
+ * @returns
+ */
+async function PromiseAllSettledThenTrue<T>(Values: T[]): Promise<boolean> {
+  await Promise.all(Values);
+  return true;
+}
+
+/**
+ * Concatenates multiple lines of text into a single string, filtering out any empty or null lines.
+ * @param Lines - The lines of text to concatenate.
+ * @returns A single string containing all non-empty lines, separated by newlines.
+ */
+function ConcatenateLines(...Lines: (string | undefined | null)[]): string {
+  return Lines.filter((L) => L != null && L.trim().length > 0)
+    .join("\n")
+    .trim();
+}
+
+// ---------------------------------------------------------------------------------------
+// Handlers:
+// ---------
+/**
+ * Handles administrative interactions from button clicks.
+ * @param ButtonInteract - The button interaction to handle.
+ * @param TargetUserId - The ID of the target user.
+ * @returns A promise that resolves to true if the interaction was handled and the prompt should be reinstated, or false otherwise.
+ */
+async function HandleAdministrativeInteraction(
+  ButtonInteract: ButtonInteraction<"cached">
+): Promise<boolean> {
+  const CustomId = ButtonInteract.customId;
+
+  if (CustomId.startsWith(AdminActions.CallsignApprove)) {
+    return HandleCallsignApprovalOrDenial(ButtonInteract, "Approval");
+  } else if (CustomId.startsWith(AdminActions.CallsignDeny)) {
+    return HandleCallsignApprovalOrDenial(ButtonInteract, "Denial");
+  } else if (CustomId.startsWith(AdminActions.CallsignRelease)) {
+    return HandleCallsignRelease(ButtonInteract);
+  } else if (CustomId.startsWith(AdminActions.CallsignAssign)) {
+    return HandleCallsignAssignment(ButtonInteract);
+  }
+
+  return ButtonInteract.deferUpdate().then(() => false);
+}
+
+/**
+ * Handles the review (approve/deny) of a pending callsign request.
+ * @param BtnInteract - The button interaction.
+ * @param ActionType - The type of action to perform ("Approval" or "Denial").
+ * @returns A promise that resolves to `true` if the action was handled and the prompt should be reinstated, or `false` otherwise.
+ */
+async function HandleCallsignApprovalOrDenial(
+  BtnInteract: ButtonInteraction<"cached">,
+  ActionType: "Approval" | "Denial"
+): Promise<boolean> {
+  const TCallsignId = BtnInteract.customId.split(":")[2];
+  let ReqCallsign = await CallsignModel.findById(TCallsignId).exec();
+
+  if (!ReqCallsign || ReqCallsign.request_status !== GenericRequestStatuses.Pending) {
+    return PromiseAllSettledThenTrue([
+      CmdCallback(BtnInteract),
+      new ErrorContainer()
+        .useErrTemplate("CallsignRequestModified")
+        .replyToInteract(BtnInteract, true),
+    ]);
+  }
+
+  const NotesModal = GetAdminModal(BtnInteract, ActionType, false);
+  const SubRespMsgFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
+  const SubmissionResponse = await ShowModalAndAwaitSubmission(BtnInteract, NotesModal, 8 * 60_000);
+
+  if (!SubmissionResponse) return false;
+  await SubmissionResponse.deferReply({
+    flags: SubRespMsgFlags,
+  });
+
+  ReqCallsign = await CallsignModel.findById(TCallsignId).exec();
+  if (!ReqCallsign || ReqCallsign.request_status !== GenericRequestStatuses.Pending) {
+    return PromiseAllSettledThenTrue([
+      CmdCallback(BtnInteract),
+      new ErrorContainer()
+        .useErrTemplate("CallsignRequestModified")
+        .replyToInteract(BtnInteract, true),
+    ]);
+  }
+
+  const NotesInput = SubmissionResponse.fields.getTextInputValue("notes") || null;
+  const FormattedDesignation = FormatCallsignDesignation(ReqCallsign.designation);
+  const ActionPerformed =
+    ActionType === "Approval" ? GenericRequestStatuses.Approved : GenericRequestStatuses.Denied;
+
+  ReqCallsign.request_status = ActionPerformed;
+  ReqCallsign.reviewer_notes = NotesInput;
+  ReqCallsign.reviewed_on = new Date();
+  ReqCallsign.reviewer = SubmissionResponse.user.id;
+
+  const RespContainer = new SuccessContainer()
+    .setTitle(`Callsign ${ActionPerformed}`)
+    .setDescription(
+      `Successfully ${ActionPerformed.toLowerCase()} ${userMention(
+        ReqCallsign.requester
+      )}'s callsign request for ${inlineCode(FormattedDesignation)}.`
+    );
+
+  await ReqCallsign.save();
+  return PromiseAllSettledThenTrue([
+    CmdCallback(BtnInteract),
+    CallsignsEventLogger[`Log${ActionType}`](SubmissionResponse, ReqCallsign),
+    SubmissionResponse.editReply({
+      components: [RespContainer],
+      flags: SubRespMsgFlags,
+    }),
+  ]);
+}
+
+/**
+ * Handles the release of an active callsign.
+ * @param BtnInteract - The button interaction.
+ * @param TargetUserId - The Id of the target user.
+ */
+async function HandleCallsignRelease(BtnInteract: ButtonInteraction<"cached">): Promise<boolean> {
+  const ActiveCallsignId = BtnInteract.customId.split(":")[2];
+  const TargetCallsign = await CallsignModel.findById(ActiveCallsignId).exec();
+
+  if (!TargetCallsign || !TargetCallsign.is_active(BtnInteract.createdAt)) {
+    return PromiseAllSettledThenTrue([
+      CmdCallback(BtnInteract),
+      new ErrorContainer()
+        .useErrTemplate("CallsignNotAssignedToRelease")
+        .replyToInteract(BtnInteract, true),
+    ]);
+  }
+
+  const NotesModal = GetAdminModal(BtnInteract, "Release", false);
+  const SubRespMsgFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
+  const SubmissionResponse = await ShowModalAndAwaitSubmission(BtnInteract, NotesModal, 8 * 60_000);
+
+  if (!SubmissionResponse) return false;
+  await SubmissionResponse.deferReply({
+    flags: SubRespMsgFlags,
+  });
+
+  const ReleasedCallsign = await CallsignModel.findOneAndUpdate(
+    {
+      _id: TargetCallsign._id,
+      request_status: GenericRequestStatuses.Approved,
+      $or: [{ expiry: null }, { expiry: { $gt: SubmissionResponse.createdAt } }],
+    },
+    {
+      expiry: SubmissionResponse.createdAt,
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!ReleasedCallsign) {
+    return PromiseAllSettledThenTrue([
+      CmdCallback(BtnInteract),
+      new ErrorContainer()
+        .useErrTemplate("CallsignNotAssignedToRelease")
+        .replyToInteract(BtnInteract, true),
+    ]);
+  }
+
+  const NotesInput = SubmissionResponse.fields.getTextInputValue("notes") || null;
+  const FormattedDesignation = FormatCallsignDesignation(TargetCallsign.designation);
+  const RespContainer = new SuccessContainer()
+    .setTitle("Callsign Released")
+    .setDescription(
+      `Successfully released ${userMention(TargetCallsign.requester)}'s call sign ${inlineCode(FormattedDesignation)}.`
+    );
+
+  return PromiseAllSettledThenTrue([
+    CmdCallback(BtnInteract),
+    CallsignsEventLogger.LogAdministrativeRelease(SubmissionResponse, TargetCallsign, NotesInput),
+    SubmissionResponse.editReply({
+      components: [RespContainer],
+      flags: SubRespMsgFlags,
+    }),
+  ]);
+}
+
+/**
+ * Handles the assignment of a new callsign to a user.
+ * @param BtnInteract - The button interaction.
+ * @param TargetUserId - The Id of the target user.
+ */
+async function HandleCallsignAssignment(
+  BtnInteract: ButtonInteraction<"cached">
+): Promise<boolean> {
+  const TargetUserId = BtnInteract.customId.split(":")[3];
+  const TargetMember = await BtnInteract.guild.members.fetch(TargetUserId).catch(() => null);
+  const IsRecognizedStaff = TargetMember
+    ? await UserHasPermsV2(TargetMember.user.id, BtnInteract.guildId, { staff: true })
+    : false;
+
+  if (!TargetMember || !IsRecognizedStaff) {
+    return PromiseAllSettledThenTrue([
+      CmdCallback(BtnInteract),
+      new ErrorContainer()
+        .useErrTemplate("CallsignCannotAssignNonStaffMember")
+        .replyToInteract(BtnInteract, true),
+    ]);
+  }
+
+  const AssignmentModal = GetAdminModal(BtnInteract, "Assignment", false);
+  const SubRespMsgFlags = MessageFlags.Ephemeral | MessageFlags.IsComponentsV2;
+  const SubmissionResponse = await ShowModalAndAwaitSubmission(
+    BtnInteract,
+    AssignmentModal,
+    8 * 60_000
+  );
+
+  if (!SubmissionResponse) return false;
+  await SubmissionResponse.deferReply({
+    flags: SubRespMsgFlags,
+  });
+
+  const DesignationInput = SubmissionResponse.fields.getTextInputValue("designation");
+  const ExpiryInput = SubmissionResponse.fields.getTextInputValue("expiry") || null;
+  const NotesInput = SubmissionResponse.fields.getTextInputValue("notes") || null;
+
+  const ParsedExpiryInput = await ValidateAndParseExpiryDate(SubmissionResponse, ExpiryInput);
+  const CallsignValidationResult = await ValidateAndParseCallsignDesignation(
+    SubmissionResponse,
+    DesignationInput
+  );
+
+  if (CallsignValidationResult === false || ParsedExpiryInput === false) {
+    return false;
+  }
+
+  const FormattedDesignation = FormatCallsignDesignation(CallsignValidationResult.designation);
+  const CallsignTransactionSession = await CallsignModel.startSession();
+  let PreviousActiveCallsign: Callsigns.HydratedCallsignDocument | null = null;
+  let AssignedCallsign: Callsigns.HydratedCallsignDocument | null = null;
+
+  try {
+    await CallsignTransactionSession.withTransaction(async () => {
+      const ExistingActiveCallsign = CallsignValidationResult.validation_data.active_callsign;
+
+      if (ExistingActiveCallsign) {
+        PreviousActiveCallsign = await CallsignModel.findByIdAndUpdate(
+          ExistingActiveCallsign._id,
+          { expiry: SubmissionResponse.createdAt },
+          { session: CallsignTransactionSession }
+        );
+      }
+
+      AssignedCallsign = new CallsignModel({
+        guild: BtnInteract.guildId,
+        requester: TargetUserId,
+        designation: CallsignValidationResult.designation,
+        request_message: null,
+
+        request_reason: "[Administrative Assignment]",
+        request_status: GenericRequestStatuses.Approved,
+        requested_on: SubmissionResponse.createdAt,
+        expiry: ParsedExpiryInput,
+
+        reviewer: SubmissionResponse.user.id,
+        reviewed_on: SubmissionResponse.createdAt,
+        reviewer_notes: NotesInput,
+      });
+
+      await AssignedCallsign.save({ session: CallsignTransactionSession });
+    });
+  } catch (Err: any) {
+    AppLogger.error({
+      label: FileLabel,
+      message: "An error occurred during callsign assignment transaction.",
+      stack: Err?.stack,
+      error: Err,
+    });
+  } finally {
+    await CallsignTransactionSession.endSession();
+  }
+
+  if (!AssignedCallsign) {
+    return PromiseAllSettledThenTrue([
+      CmdCallback(BtnInteract),
+      new ErrorContainer().useErrTemplate("AppError").replyToInteract(SubmissionResponse, true),
+    ]);
+  }
+
+  const RespContainer = new SuccessContainer()
+    .setTitle("Callsign Assigned")
+    .setDescription(
+      `Successfully assigned ${userMention(
+        (AssignedCallsign as Callsigns.CallsignDocument).requester
+      )} the call sign ${inlineCode(FormattedDesignation)}. ` +
+        (ParsedExpiryInput
+          ? `This call sign is set to expire ${FormatTime(ParsedExpiryInput, "R")}.`
+          : "")
+    );
+
+  return PromiseAllSettledThenTrue([
+    CmdCallback(BtnInteract),
+    SubmissionResponse.editReply({ components: [RespContainer], flags: SubRespMsgFlags }),
+    CallsignsEventLogger.LogAdministrativeAssignmentOrTransfer(
+      SubmissionResponse,
+      AssignedCallsign as Callsigns.CallsignDocument,
+      PreviousActiveCallsign as Callsigns.CallsignDocument | null
+    ),
+  ]);
+}
+
+// ---------------------------------------------------------------------------------------
+// Initial Handling:
 // -----------------
-async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {}
+async function CmdCallback(Interaction: CmdOrButtonCachedInteraction) {
+  const TargetUser = await GetTargetUser(Interaction);
+  if (!(TargetUser instanceof User)) return;
+  if (!Interaction.deferred || !Interaction.replied) {
+    if (Interaction.isButton()) await Interaction.deferUpdate().catch(() => null);
+    else await Interaction.deferReply();
+  }
+
+  const CallsignData = await GetCallsignAdminData(Interaction.guildId, TargetUser.id, new Date());
+  console.log(CallsignData);
+
+  const PanelContainer = GetPanelContainer(TargetUser, CallsignData);
+  const PanelComponents = GetPanelComponents(
+    Interaction,
+    TargetUser.id,
+    CallsignData.pending_callsign,
+    CallsignData.active_callsign
+  );
+
+  if (PanelComponents.length > 0) {
+    PanelContainer.attachPromptActionRows(PanelComponents);
+  }
+
+  const AdminPanelMessage = await Interaction.editReply({
+    message: Interaction.isButton() ? Interaction.message.id : undefined,
+    components: [PanelContainer],
+    flags: MessageFlags.IsComponentsV2,
+  });
+
+  const CompActionCollector = AdminPanelMessage.createMessageComponentCollector({
+    time: 12.5 * 60 * 1000,
+    filter: (I) => I.user.id === Interaction.user.id,
+    componentType: ComponentType.Button,
+  });
+
+  CompActionCollector.on("collect", async function OnCSAdminAction(BtnInteract) {
+    try {
+      const ActionHandled = await HandleAdministrativeInteraction(BtnInteract);
+      if (ActionHandled === true) {
+        CompActionCollector.stop("PromptReinstated");
+      }
+    } catch (Err: any) {
+      AppLogger.error({
+        message: "An error occurred while handling administrative interaction.",
+        label: FileLabel,
+        stack: Err?.stack,
+        error: Err,
+      });
+
+      return new ErrorContainer().useErrTemplate("AppError").replyToInteract(BtnInteract, true);
+    }
+  });
+
+  CompActionCollector.on("end", async function OnCSAdminEnd(Collected, Reason) {
+    if (/\w{1,10}Delete/.test(Reason) || Reason === "PromptReinstated") return;
+
+    const LastInteract = Collected.last() ?? Interaction;
+    await LastInteract.editReply({
+      components: DisableMessageComponents(AdminPanelMessage.components.map((C) => C.toJSON())),
+      message: AdminPanelMessage.id,
+    }).catch(() => null);
+  });
+}
 
 // ---------------------------------------------------------------------------------------
 // Command Structure:
@@ -11,7 +810,12 @@ const CommandObject = {
   callback: CmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("admin")
-    .setDescription("Administrate individual callsigns."),
+    .setDescription("Manage and administer an individual officer's call sign.")
+    .addUserOption((Option) =>
+      Option.setName("staff")
+        .setDescription("The staff to administrate their call sign.")
+        .setRequired(true)
+    ),
 };
 
 // ---------------------------------------------------------------------------------------
