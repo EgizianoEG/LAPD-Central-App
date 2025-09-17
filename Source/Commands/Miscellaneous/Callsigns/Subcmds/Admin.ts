@@ -748,8 +748,6 @@ async function CmdCallback(Interaction: CmdOrButtonCachedInteraction) {
   }
 
   const CallsignData = await GetCallsignAdminData(Interaction.guildId, TargetUser.id, new Date());
-  console.log(CallsignData);
-
   const PanelContainer = GetPanelContainer(TargetUser, CallsignData);
   const PanelComponents = GetPanelComponents(
     Interaction,
