@@ -196,9 +196,9 @@ export default class CallsignsEventLogger {
       .setDescription(
         this.ConcatenateLines(
           `**Requester:** ${userMention(CallsignDocument.requester)}`,
-          `**${IsTransfer ? "Req. " : ""}Designation:** ${Strikethrough}\`${FormattedCallsign}\`${Strikethrough}`,
+          `**${IsTransfer ? "Req. " : ""}Designation:** ${Strikethrough}**\`${FormattedCallsign}\`**${Strikethrough}`,
           IsTransfer
-            ? `${CurrPrevCallsignText} \`${FormatCallsign(CurrentlyAssigned.designation)}\``
+            ? `${CurrPrevCallsignText} **\`${FormatCallsign(CurrentlyAssigned.designation)}\`**`
             : null,
           `**Reason:** ${CallsignDocument.request_reason}`
         )
@@ -327,7 +327,7 @@ export default class CallsignsEventLogger {
         .setFooter({ text: `Reference ID: ${PendingCallsign._id}` })
         .setTitle("Call Sign Request — Request Under Review")
         .setDescription(
-          `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(PendingCallsign.requested_on, "D")}, ` +
+          `Your call sign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(PendingCallsign.requested_on, "D")}, ` +
             "has been received and is waiting for a review by the management team.\n\n" +
             "You will be notified via DM when there is an update regarding its status."
         )
@@ -404,9 +404,9 @@ export default class CallsignsEventLogger {
         .setTitle("Call Sign Request — Approval Notice")
         .setDescription(
           this.ConcatenateLines(
-            `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(ApprovedRequest.requested_on, "D")}, has been approved.`,
+            `Your call sign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(ApprovedRequest.requested_on, "D")}, has been approved.`,
             ApprovedRequest.expiry
-              ? `Your callsign is set to expire on ${FormatTime(ApprovedRequest.expiry, "F")} (${FormatTime(ApprovedRequest.expiry, "R")}).`
+              ? `Your call sign is set to expire on ${FormatTime(ApprovedRequest.expiry, "F")} (${FormatTime(ApprovedRequest.expiry, "R")}).`
               : null,
             ApprovedRequest.reviewer_notes
               ? `\n**Reviewer Notes:**\n${codeBlock(ApprovedRequest.reviewer_notes)}`
@@ -503,7 +503,7 @@ export default class CallsignsEventLogger {
         .setFooter({ text: `Reference ID: ${DeniedRequest._id}` })
         .setTitle("Call Sign Request — Denial Notice")
         .setDescription(
-          `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(DeniedRequest.requested_on, "D")}, has been denied.` +
+          `Your call sign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(DeniedRequest.requested_on, "D")}, has been denied.` +
             "You may submit a new request if you believe this denial was made in error or if circumstances have changed." +
             "\n\n**The following note(s) were provided by the reviewer:**" +
             codeBlock(DeniedRequest.reviewer_notes ?? "N/A")
@@ -602,7 +602,7 @@ export default class CallsignsEventLogger {
 
       if (CancelledRequest.reviewed_on && CancelledRequest.reviewer) {
         DMCancellationNotice.setDescription(
-          `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(CancelledRequest.requested_on, "D")}, ` +
+          `Your callsign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(CancelledRequest.requested_on, "D")}, ` +
             `has been cancelled${CancelledRequest.reviewer === Interaction.client.user.id ? " automatically" : ""} on ${FormatTime(Interaction.createdAt, "d")}.` +
             (CancelledRequest.reviewer_notes
               ? `\n\n**Reason:**\n${codeBlock(CancelledRequest.reviewer_notes)}`
@@ -610,7 +610,7 @@ export default class CallsignsEventLogger {
         );
       } else {
         DMCancellationNotice.setDescription(
-          `Your callsign request for \`${FormattedCallsign}\`, submitted on ${FormatTime(CancelledRequest.requested_on, "D")}, has been cancelled at your demand. `
+          `Your callsign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(CancelledRequest.requested_on, "D")}, has been cancelled at your demand.`
         );
       }
 
@@ -699,12 +699,12 @@ export default class CallsignsEventLogger {
     if (AffectedStaff) {
       const DMReleaseNotice = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
-        .setColor(Colors.RequestDenied)
+        .setColor(Colors.RequestCancelled)
         .setFooter({ text: `Reference ID: ${ReleasedCallsign._id}` })
         .setTitle("Call Sign Administrative Release")
         .setDescription(
           this.ConcatenateLines(
-            `Your active call sign **\`${FormattedCallsign}\`** has been administratively released by management. You may submit a new callsign request if needed.`,
+            `Your active call sign **\`${FormattedCallsign}\`** has been administratively released by management. You may submit a new call sign request if needed.`,
             Notes ? `**\nRelease Notes:**\n${codeBlock(Notes)}` : null
           )
         )
