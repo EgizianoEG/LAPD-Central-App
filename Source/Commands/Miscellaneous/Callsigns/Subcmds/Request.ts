@@ -1,7 +1,7 @@
 import { type Guilds } from "@Typings/Utilities/Database.js";
-import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
+import { ErrorContainer, InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
 import { ServiceUnitTypes, DivisionBeats } from "@Resources/LAPDCallsigns.js";
 import { differenceInMilliseconds, milliseconds } from "date-fns";
 import { SlashCommandSubcommandBuilder, RepliableInteraction, MessageFlags } from "discord.js";
@@ -44,7 +44,7 @@ export async function ValidateCallsignFormat(
   ValidationData: CallsignValidationData
 ): Promise<boolean> {
   if (Division < 1 || Division > 36) {
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("CallsignInvalidFormat")
       .replyToInteract(Interaction, true)
       .then(() => true);
@@ -54,21 +54,21 @@ export async function ValidateCallsignFormat(
   UnitType = UnitType === "AIR" ? "Air" : UnitType;
 
   if (!ServiceUnitTypesNormalized.includes(UnitType)) {
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("CallsignInvalidUnitType", UnitType)
       .replyToInteract(Interaction, true)
       .then(() => true);
   }
 
   if (BeatNum < 1 || BeatNum > 999) {
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("CallsignInvalidFormat")
       .replyToInteract(Interaction, true)
       .then(() => true);
   }
 
   if (!DivisionBeatIntegers.includes(Division)) {
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("CallsignInvalidDivision", Division)
       .replyToInteract(Interaction, true)
       .then(() => true);
@@ -80,7 +80,7 @@ export async function ValidateCallsignFormat(
   ) {
     const FormattedBeatNum = BeatNum.toString().padStart(2, "0");
     const CallsignString = `${Division}-${UnitType}-${FormattedBeatNum}`;
-    return new ErrorEmbed()
+    return new ErrorContainer()
       .useErrTemplate("CallsignNotAvailable", CallsignString)
       .replyToInteract(Interaction, true)
       .then(() => true);
@@ -113,7 +113,7 @@ export async function ValidateUnitTypePermissions(
     );
 
     if (!HasRequiredRole) {
-      return new ErrorEmbed()
+      return new ErrorContainer()
         .useErrTemplate("CallsignUnitTypeRestricted", UnitTypeUpper)
         .replyToInteract(Interaction, true)
         .then(() => true);
@@ -143,7 +143,7 @@ export async function ValidateIdentifierPermissions(
     // Check if the beat number falls within this restriction range
     if (BeatNum >= MinRange && BeatNum <= MaxRange) {
       if (Restriction.exclude.includes(BeatNum)) {
-        return new ErrorEmbed()
+        return new ErrorContainer()
           .useErrTemplate("CallsignIdentifierRestricted", BeatNum.toString())
           .replyToInteract(Interaction, true)
           .then(() => true);
@@ -156,7 +156,7 @@ export async function ValidateIdentifierPermissions(
         );
 
         if (!HasRequiredRole && !Restriction.allow.includes(BeatNum)) {
-          return new ErrorEmbed()
+          return new ErrorContainer()
             .useErrTemplate("CallsignIdentifierRestricted", BeatNum.toString())
             .replyToInteract(Interaction, true)
             .then(() => true);
@@ -179,11 +179,11 @@ export async function CheckExistingCallsignRequests(
   Interaction: SlashCommandInteraction<"cached">,
   ValidationData: CallsignValidationData
 ): Promise<boolean> {
-  if (ValidationData.pending_requests.length > 0) {
-    return new ErrorEmbed()
+  if (ValidationData.pending_request) {
+    return new ErrorContainer()
       .useErrTemplate(
         "CallsignAlreadyRequested",
-        FormatCallsignDesignation(ValidationData.pending_requests[0].designation)
+        FormatCallsignDesignation(ValidationData.pending_request.designation)
       )
       .replyToInteract(Interaction, true)
       .then(() => true);
@@ -217,7 +217,7 @@ export async function HasRecentCallsignCooldown(
   if (MostRecentCallsign.request_status === GenericRequestStatuses.Denied) {
     const ReviewTime = MostRecentCallsign.reviewed_on || MostRecentCallsign.requested_on;
     if (differenceInMilliseconds(Now, ReviewTime) < DeniedRequestCooldown) {
-      return new ErrorEmbed()
+      return new ErrorContainer()
         .useErrTemplate("CallsignPreviouslyDenied")
         .replyToInteract(Interaction, true)
         .then(() => true);
@@ -228,7 +228,7 @@ export async function HasRecentCallsignCooldown(
   if (MostRecentCallsign.request_status === GenericRequestStatuses.Cancelled) {
     const ReviewTime = MostRecentCallsign.reviewed_on || MostRecentCallsign.requested_on;
     if (differenceInMilliseconds(Now, ReviewTime) < CancelledRequestCooldown) {
-      return new ErrorEmbed()
+      return new ErrorContainer()
         .useErrTemplate("CallsignPreviouslyCancelled")
         .replyToInteract(Interaction, true)
         .then(() => true);
@@ -242,7 +242,7 @@ export async function HasRecentCallsignCooldown(
   ) {
     const ExpiryTime = MostRecentCallsign.expiry;
     if (ExpiryTime < Now && differenceInMilliseconds(Now, ExpiryTime) < ExpiredCallsignCooldown) {
-      return new ErrorEmbed()
+      return new ErrorContainer()
         .useErrTemplate("CallsignRecentlyExpired")
         .replyToInteract(Interaction, true)
         .then(() => true);
@@ -318,7 +318,7 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
     }
   });
 
-  return new InfoEmbed()
+  return new InfoContainer()
     .setTitle("Callsign Request Submitted")
     .setDescription(
       `Your request for callsign \`${FormattedCallsign}\` has been submitted for approval. ` +
