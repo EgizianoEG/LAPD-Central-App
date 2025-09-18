@@ -882,6 +882,12 @@ export const ErrorMessages = {
       "The specified individual must be a current member and staff within the server to be assigned a call sign.",
   },
 
+  CallsignNotFound: {
+    Title: "Call Sign Not Found",
+    Description:
+      "The specified call sign could not be found in the database. It may have been deleted or never existed.",
+  },
+
   NoPendingCallsignToCancel: {
     Title: "No Pending Request",
     Description:
@@ -1306,5 +1312,15 @@ export const InfoMessages = {
     Title: "Successfully Linked",
     Description:
       "Your Roblox account, %s, has successfully been verified and linked to the application. You may now remove the sample text from your profile description.",
+  },
+
+  CallsignsListNoRecordsWithActiveStatus: {
+    Title: "No Call Signs Found",
+    Description: "There are currently no active call sign records in this server.",
+  },
+
+  CallsignsListNoRecordsWithPendingStatus: {
+    Title: "No Call Signs Found",
+    Description: "There are currently no call sign records pending approval in this server.",
   },
 };
