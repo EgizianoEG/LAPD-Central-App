@@ -61,6 +61,8 @@ export default async function HandleCallsignStatusUpdates(
               if (Username) {
                 NewNickname = NewNickname.replace(/{roblox_username}/i, Username);
               }
+            } else {
+              NewNickname = NewNickname.replace(/{roblox_username}/i, "");
             }
           }
 
