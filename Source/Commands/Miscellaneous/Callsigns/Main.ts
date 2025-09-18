@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 
 import {
+  AutocompleteBeatNumber,
   AutocompleteDivisionBeat,
   AutocompleteServiceUnitType,
 } from "@Utilities/Autocompletion/CallsignsDesgnations.js";
@@ -44,9 +45,21 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
   const SubcommandName = Interaction.options.getSubcommand();
 
   if (SubcommandName === "request" && name === "unit-type") {
-    return Interaction.respond(AutocompleteServiceUnitType(value));
+    return Interaction.respond(
+      await AutocompleteServiceUnitType(value, Interaction.guildId, Interaction.member)
+    );
   } else if (SubcommandName === "request" && name === "division") {
     return Interaction.respond(AutocompleteDivisionBeat(value));
+  } else if (SubcommandName === "request" && name === "beat-num") {
+    const Division = Interaction.options.getInteger("division", false);
+    return Interaction.respond(
+      await AutocompleteBeatNumber(
+        value,
+        Interaction.guildId,
+        Interaction.member,
+        Division?.toString()
+      )
+    );
   }
 }
 
