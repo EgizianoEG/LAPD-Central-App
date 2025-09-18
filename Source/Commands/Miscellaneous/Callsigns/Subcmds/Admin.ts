@@ -32,10 +32,15 @@ import {
   ErrorContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
-import { Colors, Emojis } from "@Config/Shared.js";
+import {
+  ParseExpiryDate,
+  HandleUnauthorizedManagement,
+} from "Source/Events/InteractionCreate/CallsignManagementHandler.js";
+
 import { RandomString } from "@Utilities/Strings/Random.js";
+import { Colors, Emojis } from "@Config/Shared.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
-import { ParseExpiryDate } from "Source/Events/InteractionCreate/CallsignManagementHandler.js";
+
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { ValidateCallsignFormat } from "./Request.js";
 import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
@@ -773,6 +778,9 @@ async function HandleCallsignAssignment(
 // Initial Handling:
 // -----------------
 async function CmdCallback(Interaction: CmdOrButtonCachedInteraction) {
+  const IsUnauthorized = await HandleUnauthorizedManagement(Interaction);
+  if (IsUnauthorized) return;
+
   const TargetUser = await GetTargetUser(Interaction);
   if (!(TargetUser instanceof User)) return;
   if (!Interaction.deferred && !Interaction.replied) {

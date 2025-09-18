@@ -28,6 +28,7 @@ import { Colors } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 import { ErrorMessages } from "@Resources/AppMessages.js";
+import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { RandomString, GetErrorId } from "@Utilities/Strings/Random.js";
 import { GetCallsignValidationData } from "@Utilities/Database/CallsignData.js";
@@ -245,7 +246,7 @@ async function HandleCallsignApproval(
 
       UpdatedDocument.reviewer = Interaction.user.id;
       UpdatedDocument.reviewed_on = Interaction.createdAt;
-      UpdatedDocument.request_status = GenericRequestStatuses.Approved as any;
+      UpdatedDocument.request_status = GenericRequestStatuses.Approved;
       UpdatedDocument.reviewer_notes = NotesSubmission.fields.getTextInputValue("notes") || null;
       UpdatedDocument.expiry = ParsedExpiry.date;
 
@@ -318,9 +319,11 @@ async function HandleCallsignDenial(
 /**
  * Validates if the user has management permissions to perform callsign management actions.
  * @param Interaction - The button interaction to validate permissions for.
- * @returns A Promise resolving to true if user is unauthorized (action blocked), false otherwise.
+ * @returns A Promise resolving to `true` if user is unauthorized (action blocked), `false` otherwise.
  */
-async function HandleUnauthorizedManagement(Interaction: ButtonInteraction<"cached">) {
+export async function HandleUnauthorizedManagement(
+  Interaction: ButtonInteraction<"cached"> | SlashCommandInteraction<"cached">
+) {
   const GuildSettings = await GetGuildSettings(Interaction.guildId);
   if (!GuildSettings?.callsigns_module.enabled) {
     return new ErrorContainer()
@@ -331,8 +334,9 @@ async function HandleUnauthorizedManagement(Interaction: ButtonInteraction<"cach
 
   const UserRoles = Interaction.member.roles.cache.map((Role) => Role.id);
   const HasManagementPermission =
-    GuildSettings.callsigns_module.manager_roles.length === 0 ||
-    GuildSettings.callsigns_module.manager_roles.some((RoleId) => UserRoles.includes(RoleId));
+    (await UserHasPermsV2(Interaction.user.id, Interaction.guildId, { management: true })) ||
+    (GuildSettings.callsigns_module.manager_roles.length !== 0 &&
+      GuildSettings.callsigns_module.manager_roles.some((RoleId) => UserRoles.includes(RoleId)));
 
   if (!HasManagementPermission) {
     return new UnauthorizedContainer()

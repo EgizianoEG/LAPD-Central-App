@@ -62,9 +62,7 @@ const CommandObject: SlashCommandObject = {
       $all_other: 5,
     },
     user_perms: {
-      list: { management: true },
-      admin: { management: true },
-      $all_other: { staff: true },
+      staff: true,
     },
   },
 

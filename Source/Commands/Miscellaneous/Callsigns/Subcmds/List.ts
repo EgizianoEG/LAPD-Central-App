@@ -29,6 +29,7 @@ import {
 import { Emojis } from "@Config/Shared.js";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
+import { HandleUnauthorizedManagement } from "Source/Events/InteractionCreate/CallsignManagementHandler.js";
 import { isValidObjectId, RootFilterQuery } from "mongoose";
 
 import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
@@ -191,6 +192,9 @@ async function HandleCallsignDetailsView(DetailsInteract: MessageComponentIntera
 // Command Handling:
 // -----------------
 async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
+  const IsUnauthorized = await HandleUnauthorizedManagement(Interaction);
+  if (IsUnauthorized) return;
+
   const IsPrivate = Interaction.options.getBoolean("private", false) ?? false;
   const QueryFilter: RootFilterQuery<Callsigns.CallsignDocument> = {
     guild: Interaction.guildId,
