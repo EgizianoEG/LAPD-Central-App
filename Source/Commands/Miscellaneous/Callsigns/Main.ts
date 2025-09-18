@@ -70,7 +70,7 @@ const CommandObject: SlashCommandObject = {
 
   data: new SlashCommandBuilder()
     .setName("callsign")
-    .setDescription("Callsign management commands.")
+    .setDescription("Call sign management commands.")
     .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setContexts(InteractionContextType.Guild),
 };
