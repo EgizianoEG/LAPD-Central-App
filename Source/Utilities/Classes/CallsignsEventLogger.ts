@@ -278,7 +278,7 @@ export default class CallsignsEventLogger {
       case GenericRequestStatuses.Cancelled: {
         const CancelledBy = Reviewer === Requester ? "requester" : userMention(Reviewer!);
         Title = `Cancelled  |${Title}`;
-        Color = Colors.RequestCancelled;
+        Color = Colors.RequestDenied;
         FooterText = `cancelled by ${CancelledBy} on`;
         break;
       }
@@ -390,6 +390,10 @@ export default class CallsignsEventLogger {
     ApprovedRequest: CallsignDoc,
     PreviouslyAssigned?: CallsignDoc | null
   ): Promise<void> {
+    if (ApprovedRequest.request_status !== GenericRequestStatuses.Approved) {
+      return;
+    }
+
     const FormattedCallsign = FormatCallsign(ApprovedRequest.designation);
     const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members
@@ -490,6 +494,10 @@ export default class CallsignsEventLogger {
     DeniedRequest: CallsignDoc,
     CurrPrevCallsign?: CallsignDoc | null
   ): Promise<void> {
+    if (DeniedRequest.request_status !== GenericRequestStatuses.Denied) {
+      return;
+    }
+
     const FormattedCallsign = FormatCallsign(DeniedRequest.designation);
     const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members
@@ -583,6 +591,14 @@ export default class CallsignsEventLogger {
     CancelledRequest: CallsignDoc,
     CurrPrevCallsign?: CallsignDoc | null
   ): Promise<void> {
+    if (
+      CancelledRequest.request_status !== GenericRequestStatuses.Cancelled ||
+      !(CancelledRequest.reviewed_on && CancelledRequest.reviewer)
+    ) {
+      return;
+    }
+
+    const IsSelfCancelled = CancelledRequest.reviewer === CancelledRequest.requester;
     const FormattedCallsign = FormatCallsign(CancelledRequest.designation);
     const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
     const Requester = await Interaction.guild.members
@@ -603,14 +619,10 @@ export default class CallsignsEventLogger {
       if (CancelledRequest.reviewed_on && CancelledRequest.reviewer) {
         DMCancellationNotice.setDescription(
           `Your callsign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(CancelledRequest.requested_on, "D")}, ` +
-            `has been cancelled${CancelledRequest.reviewer === Interaction.client.user.id ? " automatically" : ""} on ${FormatTime(Interaction.createdAt, "d")}.` +
+            `has been cancelled${IsSelfCancelled ? "" : " automatically"}${IsSelfCancelled ? " at your demand" : ""}.` +
             (CancelledRequest.reviewer_notes
               ? `\n\n**Reason:**\n${codeBlock(CancelledRequest.reviewer_notes)}`
               : "")
-        );
-      } else {
-        DMCancellationNotice.setDescription(
-          `Your callsign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(CancelledRequest.requested_on, "D")}, has been cancelled at your demand.`
         );
       }
 
@@ -618,12 +630,18 @@ export default class CallsignsEventLogger {
     }
 
     if (LogChannel) {
+      const CancelledByText = IsSelfCancelled
+        ? " by requester"
+        : CancelledRequest.reviewer === Interaction.client.user.id
+          ? " automatically"
+          : "";
+
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestCancelled)
         .setTitle("Call Sign Request Cancellation")
         .setFooter({
-          text: `Reference ID: ${CancelledRequest._id}; cancelled${CancelledRequest.reviewer === Interaction.client.user.id ? " automatically" : ""} on`,
+          text: `Reference ID: ${CancelledRequest._id}; cancelled${CancelledByText} on`,
         })
         .addFields({
           inline: true,
