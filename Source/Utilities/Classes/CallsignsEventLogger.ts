@@ -583,13 +583,13 @@ export default class CallsignsEventLogger {
    * Also sends a DM notice to the requester and updates the request message if applicable.
    * @param Interaction - The interaction from the management staff or system cancelling the callsign.
    * @param CancelledRequest - The cancelled callsign document.
-   * @param CurrPrevCallsign - The currently or previously assigned callsign document, if any.
+   * @param CurrentlyAssigned - The currently assigned callsign document, if any.
    * @returns A Promise resolving after the log and updates are completed.
    */
   async LogCancellation(
     Interaction: ManagementInteraction,
     CancelledRequest: CallsignDoc,
-    CurrPrevCallsign?: CallsignDoc | null
+    CurrentlyAssigned?: CallsignDoc | null
   ): Promise<void> {
     if (
       CancelledRequest.request_status !== GenericRequestStatuses.Cancelled ||
@@ -630,6 +630,7 @@ export default class CallsignsEventLogger {
     }
 
     if (LogChannel) {
+      const TransferStatus = CurrentlyAssigned ? " Transfer" : "";
       const CancelledByText = IsSelfCancelled
         ? " by requester"
         : CancelledRequest.reviewer === Interaction.client.user.id
@@ -639,7 +640,7 @@ export default class CallsignsEventLogger {
       const LogEmbed = new EmbedBuilder()
         .setTimestamp(Interaction.createdAt)
         .setColor(Colors.RequestCancelled)
-        .setTitle("Call Sign Request Cancellation")
+        .setTitle(`Call Sign${TransferStatus} Request Cancellation`)
         .setFooter({
           text: `Reference ID: ${CancelledRequest._id}; cancelled${CancelledByText} on`,
         })
@@ -677,7 +678,7 @@ export default class CallsignsEventLogger {
         Interaction.guild,
         CancelledRequest,
         GenericRequestStatuses.Cancelled,
-        CurrPrevCallsign
+        CurrentlyAssigned
       );
 
       await ReqMsgChannel.messages
