@@ -358,6 +358,7 @@ const CommandObject = {
         .setMinValue(1)
         .setMaxValue(999)
         .setRequired(true)
+        .setAutocomplete(true)
     )
     .addStringOption((Opt) =>
       Opt.setName("reason")
