@@ -179,7 +179,17 @@ export async function GetCallsignAdminData(
               $match: {
                 guild: GuildId,
                 requester: TargetUserId,
-                request_status: { $ne: GenericRequestStatuses.Pending },
+                $or: [
+                  {
+                    request_status: GenericRequestStatuses.Approved,
+                    expiry: { $lte: ComparisonDate },
+                  },
+                  {
+                    request_status: {
+                      $in: [GenericRequestStatuses.Denied, GenericRequestStatuses.Cancelled],
+                    },
+                  },
+                ],
               },
             },
             { $sort: { requested_on: -1 } },
