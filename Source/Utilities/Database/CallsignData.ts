@@ -1,5 +1,5 @@
 import { GenericRequestStatuses } from "@Config/Constants.js";
-import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
+import { AggregationResults } from "@Typings/Utilities/Database.js";
 import CallsignModel from "@Models/Callsign.js";
 export type CallsignValidationData = AggregationResults.CallsignsModel.GetCallsignValidationData;
 
@@ -93,28 +93,6 @@ export async function GetCallsignValidationData(
     ]);
 
   return Result[0];
-}
-
-/**
- * Retrieves the history of a specific callsign designation, including previous and current holders.
- * @param Guild - The guild where the callsign history is being retrieved.
- * @param Designation - The callsign designation to get history for.
- * @param Limit - The maximum number of history entries to return (default is `10`).
- * @returns A Promise resolving to an array of callsign documents sorted by request date (newest first).
- */
-export async function GetCallsignHistoryFor(
-  GuildId: string,
-  Designation: Callsigns.CallsignDesignation,
-  Limit: number = 10
-): Promise<Callsigns.CallsignDocument[]> {
-  return CallsignModel.find({
-    guild: GuildId,
-    designation: Designation,
-    request_status: { $in: ["Approved", "Denied"] },
-  })
-    .sort({ requested_on: -1 })
-    .limit(Limit)
-    .exec();
 }
 
 /**
