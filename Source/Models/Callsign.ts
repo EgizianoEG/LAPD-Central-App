@@ -1,3 +1,4 @@
+import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 import { Schema, model } from "mongoose";
@@ -141,7 +142,7 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
 });
 
 CallSignSchema.virtual("designation_str").get(function (this: Callsigns.CallsignDocument) {
-  return `${this.designation.division}-${this.designation.unit_type}-${this.designation.beat_num}`;
+  return FormatCallsignDesignation(this.designation);
 });
 
 CallSignSchema.methods.is_active = function (
