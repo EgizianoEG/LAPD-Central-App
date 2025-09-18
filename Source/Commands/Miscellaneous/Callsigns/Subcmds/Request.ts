@@ -335,10 +335,10 @@ const CommandObject = {
   callback: CmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("request")
-    .setDescription("File a callsign request.")
+    .setDescription("File a call sign request.")
     .addIntegerOption((Opt) =>
       Opt.setName("division")
-        .setDescription("Geographical division number for the callsign (1-36).")
+        .setDescription("Geographical division number for the call sign (1-36).")
         .setMinValue(1)
         .setMaxValue(36)
         .setRequired(true)
@@ -361,7 +361,7 @@ const CommandObject = {
     )
     .addStringOption((Opt) =>
       Opt.setName("reason")
-        .setDescription("The reason for requesting this callsign.")
+        .setDescription("The reason for requesting this call sign.")
         .setMinLength(3)
         .setMaxLength(128)
         .setRequired(true)
