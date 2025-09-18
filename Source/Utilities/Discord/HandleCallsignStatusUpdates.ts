@@ -1,5 +1,6 @@
 import { FormatCallsignDesignation as FormatDesignation } from "@Utilities/Strings/Formatters.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
+import { PermissionFlagsBits } from "discord.js";
 import { getUsernameFromId } from "noblox.js";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 
@@ -27,6 +28,9 @@ export default async function HandleCallsignStatusUpdates(
       if (!Object.hasOwn(CallsignsByGuild, GuildId)) continue;
       const Guild = await ClientInst.guilds.fetch(GuildId);
       if (!Guild) continue;
+
+      const AppMember = await Guild.members.fetchMe().catch(() => null);
+      if (!AppMember?.permissions.has(PermissionFlagsBits.ManageNicknames)) continue;
 
       const GuildSettings = await GetGuildSettings(GuildId);
       if (!GuildSettings?.callsigns_module.update_nicknames) continue;
