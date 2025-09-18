@@ -15,6 +15,7 @@ import {
   ModalBuilder,
   userMention,
   ButtonStyle,
+  GuildMember,
   inlineCode,
   Message,
   User,
@@ -42,11 +43,12 @@ import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import CSEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
 import CallsignModel from "@Models/Callsign.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 
-const FileLabel = "Commands:Miscellaneous:Callsigns:Subcmds:Admin";
+const FileLabel = "Cmds:Misc:Callsigns:Subcmds:Admin";
 const CallsignsEventLogger = new CSEventLogger();
 const PreviousCSRecordsLimit = 4;
 const DesignationExamples = ["1-A-40", "12-K9-99", "7-SL-120", "3-G-78", "1-Air-05"];
@@ -75,23 +77,35 @@ enum AdminActions {
  * Generates the callsign administration panel container.
  * @param TargetStaff - The user whose callsign data should be displayed.
  * @param CallsignData - The callsign data of the `TargetStaff`.
+ * @param [PanelTarget="Admin"] - Specifies whether the panel is for "Admin" or "Management" purposes. Defaults to "Admin".
+ * @param [IncludeCancelledHistory=false] - Whether to include cancelled callsign requests in the history. Defaults to `false`.
  * @returns A container that displays the callsign data of the `TargetStaff`.
  */
-function GetPanelContainer(
-  TargetStaff: User,
-  CallsignData: AggregationResults.CallsignsModel.GetCallsignAdminData
+export function GetAdminOrMgmtPanelContainer(
+  TargetStaff: User | GuildMember,
+  CallsignData: AggregationResults.CallsignsModel.GetCallsignAdminData,
+  PanelTarget: "Admin" | "Management" = "Admin",
+  IncludeCancelledHistory: boolean = false
 ): BaseExtraContainer {
-  const { pending_callsign, active_callsign, previous_callsigns } = CallsignData;
+  const { pending_callsign, active_callsign, callsign_history } = CallsignData;
   let PanelAccentColor = Colors.DarkBlue;
 
   const TextDisplayContents: string[] = [];
-  const PreviousCallsignsFormatted = previous_callsigns.map((Callsign) => {
-    const FormattedDesignation = FormatCallsignDesignation(Callsign.designation);
-    const ReviewalDate = FormatTime(Callsign.reviewed_on as Date, "d");
-    const StatusText =
-      Callsign.request_status === GenericRequestStatuses.Denied ? "Denied" : "Expired";
-    return `${StatusText}: ${inlineCode(FormattedDesignation)} — ${ReviewalDate}`;
-  });
+  const PreviousCallsignsFormatted = callsign_history
+    .filter((CS) => {
+      if (IncludeCancelledHistory) return CS.request_status !== GenericRequestStatuses.Pending;
+      return (
+        CS.request_status !== GenericRequestStatuses.Cancelled &&
+        CS.request_status !== GenericRequestStatuses.Pending
+      );
+    })
+    .map((Callsign) => {
+      const FormattedDesignation = FormatCallsignDesignation(Callsign.designation);
+      const ReviewalDate = FormatTime(Callsign.reviewed_on as Date, "d");
+      const ExpiryText = Callsign.expiry ? `:${FormatTime(Callsign.expiry, "d")}` : "";
+      const StatusText = ExpiryText.length ? "Expired" : Callsign.request_status;
+      return `${StatusText}: ${inlineCode(FormattedDesignation)} — ${ReviewalDate}${ExpiryText}`;
+    });
 
   if (active_callsign) {
     const FormattedDesignation = FormatCallsignDesignation(active_callsign.designation);
@@ -115,11 +129,12 @@ function GetPanelContainer(
   if (pending_callsign) {
     const FormattedDesignation = FormatCallsignDesignation(pending_callsign.designation);
     const RequestedDate = FormatTime(pending_callsign.requested_on, "D");
+    const TransferStatus = active_callsign ? " Transfer" : "";
 
     PanelAccentColor = Colors.RequestPending;
     TextDisplayContents.push(
       ConcatenateLines(
-        "**Pending Request**",
+        `**Pending${TransferStatus} Request**`,
         `> **Designation:** **${inlineCode(FormattedDesignation)}**`,
         `> **Requested:** ${RequestedDate}`,
         `> **Reason:** ${pending_callsign.request_reason}`
@@ -131,7 +146,10 @@ function GetPanelContainer(
     TextDisplayContents.push(
       ConcatenateLines(
         "**Call Sign Status**",
-        "> -# *This staff does not have an active or pending callsign request.*"
+        PanelTarget === "Admin"
+          ? "*This staff does not have an active or pending call sign request.*"
+          : "You currently have no assigned or pending call sign request to manage.\n" +
+              `You may request one using the ${MentionCmdByName("callsign request")} command.`
       )
     );
   }
@@ -148,7 +166,7 @@ function GetPanelContainer(
       ConcatenateLines(
         "**Previous Records**",
         ...PreviousCallsignsFormatted.slice(0, PreviousCSRecordsLimit).map((L) => `> ${L}`),
-        `> -# *... and ${PreviousCallsignsFormatted.length - PreviousCSRecordsLimit} more records*`
+        `> -# *... and ${PreviousCallsignsFormatted.length - PreviousCSRecordsLimit} more record(s)*`
       )
     );
   } else if (PreviousCallsignsFormatted.length === 0) {
@@ -158,9 +176,18 @@ function GetPanelContainer(
   }
 
   const PanelContainer = new BaseExtraContainer()
-    .setTitle(`Callsign Administration for ${userMention(TargetStaff.id)}`, { no_sep: true })
     .setColor(PanelAccentColor)
     .setDescription(TextDisplayContents.shift());
+
+  if (PanelTarget === "Admin") {
+    PanelContainer.setTitle(`Call Sign Administration for ${userMention(TargetStaff.id)}`, {
+      no_sep: true,
+    });
+  } else {
+    PanelContainer.setTitle("Call Sign Management", {
+      no_sep: true,
+    });
+  }
 
   if (TextDisplayContents.length > 0) {
     PanelContainer.spliceComponents(
@@ -218,7 +245,7 @@ function GetPanelComponents(
           .setCustomId(
             `${AdminActions.CallsignRelease}:${Interaction.user.id}:${ActiveCallsign._id}:${TargetUserId}`
           )
-          .setLabel("Release Currently Assigned Callsign")
+          .setLabel("Release Currently Assigned Call Sign")
           .setEmoji(Emojis.TagMinus)
           .setStyle(ButtonStyle.Secondary)
       )
@@ -231,7 +258,7 @@ function GetPanelComponents(
         .setCustomId(
           `${AdminActions.CallsignRelease}:${Interaction.user.id}:${ActiveCallsign._id}:${TargetUserId}`
         )
-        .setLabel("Release Currently Assigned Callsign")
+        .setLabel("Release Currently Assigned Call Sign")
         .setEmoji(Emojis.TagMinus)
         .setStyle(ButtonStyle.Secondary),
 
@@ -247,7 +274,7 @@ function GetPanelComponents(
     ActionRows[0].addComponents(
       new ButtonBuilder()
         .setCustomId(`${AdminActions.CallsignAssign}:${Interaction.user.id}:0:${TargetUserId}`)
-        .setLabel("Assign a Callsign")
+        .setLabel("Assign a Call Sign")
         .setEmoji(Emojis.TagPlus)
         .setStyle(ButtonStyle.Success)
     );
@@ -427,11 +454,24 @@ async function GetTargetUser(
 /**
  * A wrapper function that returns a single promise that eventually resolves to `true` after
  * executing all promises in the array, regardless of their individual outcomes.
+ * @remarks This function also logs any errors encountered during the execution of the promises.
  * @param Values
  * @returns
  */
-async function PromiseAllSettledThenTrue<T>(Values: T[]): Promise<boolean> {
-  await Promise.all(Values);
+export async function PromiseAllSettledThenTrue<T>(Values: T[]): Promise<true> {
+  const Results = await Promise.allSettled(Values);
+
+  for (const Res of Results) {
+    if (Res.status === "rejected") {
+      AppLogger.error({
+        label: FileLabel,
+        message: "A promise in 'PromiseAllSettledThenTrue' was rejected.",
+        stack: Res.reason?.stack,
+        error: Res.reason,
+      });
+    }
+  }
+
   return true;
 }
 
@@ -525,11 +565,11 @@ async function HandleCallsignApprovalOrDenial(
   ReqCallsign.reviewer = SubmissionResponse.user.id;
 
   const RespContainer = new SuccessContainer()
-    .setTitle(`Callsign ${ActionPerformed}`)
+    .setTitle(`Call Sign ${ActionPerformed}`)
     .setDescription(
       `Successfully ${ActionPerformed.toLowerCase()} ${userMention(
         ReqCallsign.requester
-      )}'s callsign request for ${inlineCode(FormattedDesignation)}.`
+      )}'s call sign request for ${inlineCode(FormattedDesignation)}.`
     );
 
   await ReqCallsign.save();
@@ -596,7 +636,7 @@ async function HandleCallsignRelease(BtnInteract: ButtonInteraction<"cached">): 
   const NotesInput = SubmissionResponse.fields.getTextInputValue("notes") || null;
   const FormattedDesignation = FormatCallsignDesignation(TargetCallsign.designation);
   const RespContainer = new SuccessContainer()
-    .setTitle("Callsign Released")
+    .setTitle("Call Sign Released")
     .setDescription(
       `Successfully released ${userMention(TargetCallsign.requester)}'s call sign ${inlineCode(FormattedDesignation)}.`
     );
@@ -715,7 +755,7 @@ async function HandleCallsignAssignment(
   }
 
   const RespContainer = new SuccessContainer()
-    .setTitle("Callsign Assigned")
+    .setTitle("Call Sign Assigned")
     .setDescription(
       `Successfully assigned ${userMention(
         (AssignedCallsign as Callsigns.CallsignDocument).requester
@@ -742,13 +782,13 @@ async function HandleCallsignAssignment(
 async function CmdCallback(Interaction: CmdOrButtonCachedInteraction) {
   const TargetUser = await GetTargetUser(Interaction);
   if (!(TargetUser instanceof User)) return;
-  if (!Interaction.deferred || !Interaction.replied) {
+  if (!Interaction.deferred && !Interaction.replied) {
     if (Interaction.isButton()) await Interaction.deferUpdate().catch(() => null);
     else await Interaction.deferReply();
   }
 
   const CallsignData = await GetCallsignAdminData(Interaction.guildId, TargetUser.id, new Date());
-  const PanelContainer = GetPanelContainer(TargetUser, CallsignData);
+  const PanelContainer = GetAdminOrMgmtPanelContainer(TargetUser, CallsignData);
   const PanelComponents = GetPanelComponents(
     Interaction,
     TargetUser.id,
@@ -774,8 +814,8 @@ async function CmdCallback(Interaction: CmdOrButtonCachedInteraction) {
 
   CompActionCollector.on("collect", async function OnCSAdminAction(BtnInteract) {
     try {
-      const ActionHandled = await HandleAdministrativeInteraction(BtnInteract);
-      if (ActionHandled === true) {
+      const PanelReinstated = await HandleAdministrativeInteraction(BtnInteract);
+      if (PanelReinstated === true) {
         CompActionCollector.stop("PromptReinstated");
       }
     } catch (Err: any) {
