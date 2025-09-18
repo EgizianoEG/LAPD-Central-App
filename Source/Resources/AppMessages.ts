@@ -882,6 +882,12 @@ export const ErrorMessages = {
       "The specified individual must be a current member and staff within the server to be assigned a call sign.",
   },
 
+  NoPendingCallsignToCancel: {
+    Title: "No Pending Request",
+    Description:
+      "You have no pending call sign request to cancel at the moment. The panel has been updated to reflect the current status.",
+  },
+
   SANoShiftsToModify: {
     Title: "No Shifts To Modify",
     Description:
