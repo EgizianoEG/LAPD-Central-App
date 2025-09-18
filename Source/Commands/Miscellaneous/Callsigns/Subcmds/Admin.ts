@@ -42,6 +42,7 @@ import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
 import { ConcatenateLines, FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleCallsignStatusUpdates from "@Utilities/Discord/HandleCallsignStatusUpdates.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import CSEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
@@ -565,6 +566,7 @@ async function HandleCallsignApprovalOrDenial(
   return PromiseAllSettledThenTrue([
     CmdCallback(BtnInteract),
     CallsignsEventLogger[`Log${ActionType}`](SubmissionResponse, ReqCallsign),
+    ActionType === "Approval" && HandleCallsignStatusUpdates(BtnInteract.client, ReqCallsign),
     SubmissionResponse.editReply({
       components: [RespContainer],
       flags: SubRespMsgFlags,
@@ -633,6 +635,7 @@ async function HandleCallsignRelease(BtnInteract: ButtonInteraction<"cached">): 
   return PromiseAllSettledThenTrue([
     CmdCallback(BtnInteract),
     CallsignsEventLogger.LogAdministrativeRelease(SubmissionResponse, TargetCallsign, NotesInput),
+    HandleCallsignStatusUpdates(BtnInteract.client, ReleasedCallsign),
     SubmissionResponse.editReply({
       components: [RespContainer],
       flags: SubRespMsgFlags,
@@ -757,6 +760,7 @@ async function HandleCallsignAssignment(
   return PromiseAllSettledThenTrue([
     CmdCallback(BtnInteract),
     SubmissionResponse.editReply({ components: [RespContainer], flags: SubRespMsgFlags }),
+    HandleCallsignStatusUpdates(BtnInteract.client, AssignedCallsign),
     CallsignsEventLogger.LogAdministrativeAssignmentOrTransfer(
       SubmissionResponse,
       AssignedCallsign as Callsigns.CallsignDocument,

@@ -35,6 +35,7 @@ import { CallsignMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
 import { DivisionBeats, ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleCallsignStatusUpdates from "@Utilities/Discord/HandleCallsignStatusUpdates.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import CallsignsEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
@@ -258,6 +259,7 @@ async function HandleCallsignApproval(
 
   return Promise.all([
     NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
+    HandleCallsignStatusUpdates(NotesSubmission.client, UpdatedDocument),
     CallsignEventLogger.LogApproval(NotesSubmission, UpdatedDocument, PreviousCallsign),
   ]);
 }
