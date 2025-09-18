@@ -1,12 +1,12 @@
 import { FormatCallsignDesignation as FormatDesignation } from "@Utilities/Strings/Formatters.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { PermissionFlagsBits } from "discord.js";
-import { getUsernameFromId } from "noblox.js";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
+import Noblox from "noblox.js";
 const FileLabel = "Utilities:Discord:HandleCallsignStatusUpdates";
 
 /**
@@ -57,7 +57,7 @@ export default async function HandleCallsignStatusUpdates(
           if (/{roblox_username}/i.test(NewNickname)) {
             const LinkedAccount = await IsLoggedIn({ user: { id: Member.id }, guildId: GuildId });
             if (LinkedAccount > 0) {
-              const Username = await getUsernameFromId(LinkedAccount).catch(() => null);
+              const Username = await Noblox.getUsernameFromId(LinkedAccount).catch(() => null);
               if (Username) {
                 NewNickname = NewNickname.replace(/{roblox_username}/i, Username);
               }
