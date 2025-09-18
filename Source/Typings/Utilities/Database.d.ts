@@ -1315,22 +1315,44 @@ export namespace Callsigns {
     /** The current status of the request. */
     request_status: keyof typeof GenericRequestStatuses;
 
-    /** The Id of the person who reviewed this request. */
+    /**
+     * The Id of the person who reviewed this request.
+     *
+     * @remarks
+     * - This field is `null` if the request is still pending and hasn't been reviewed yet.
+     * - This field is set to the `requester`'s value if the request was cancelled by the requester themselves.
+     * - This field is set to a management staff's Id if the request was approved or denied by them.
+     */
     reviewer: string | null;
 
-    /** Any provided notes for the approval/denial of this request. */
+    /**
+     * Any provided notes for the approval/denial of this request.
+     */
     reviewer_notes: string | null;
+
+    /**
+     * The date when this request was reviewed.
+     *
+     * @remarks
+     * - This field is `null` if the request is still pending and hasn't been reviewed yet.
+     * - This field is set to the date when the request was cancelled by the requester themselves.
+     * - This field is set to the date when a management staff approved or denied the request.
+     */
     reviewed_on: Date | null;
 
     /**
-     * The expiry date of this callsign if it was approved.
-     * This field will be set to a date when the callsign requester/holder has changed callsigns,
-     * no longer considered staff, the request/callsign was managed manually, or, possibly in the feature, if there is considered a temporary callsign.
+     * The expiry date of this call sign.
+     *
+     * @remarks
+     * - This field is `null` if the callsign hasn't or isn't set to expire.
+     * - This field is set to a date in the future when the callsign is set to expire.
+     * - This field is set to the date when the callsign was revoked if it was revoked/released/transferred to another.
      */
     expiry: Date | null;
 
     /**
      * The designation of the callsign.
+     * E.g., `{ division: 1, unit_type: "A", beat_num: "123" }` which represents the callsign `"1-A-123"`.
      */
     designation: CallsignDesignation;
   }
