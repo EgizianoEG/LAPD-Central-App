@@ -47,11 +47,25 @@ export default async function HandleCallsignStatusUpdates(
           Callsign.reviewed_on;
 
         if (IsAssignment) {
+          // First, check if the member already has a callsign prefix and clean it
+          const CurrentNickname = Member.nickname ?? Member.displayName;
+          const PrefixRegex = GenerateCallsignPrefixRegex(
+            GuildSettings.callsigns_module.nickname_format
+          );
+
+          let BaseNickname = CurrentNickname;
+          if (PrefixRegex?.test(CurrentNickname)) {
+            const CleanedNickname = CurrentNickname.replace(PrefixRegex, "").trim();
+            if (CleanedNickname && CleanedNickname !== CurrentNickname) {
+              BaseNickname = CleanedNickname;
+            }
+          }
+
           let NewNickname = GuildSettings.callsigns_module.nickname_format
             .replace(/{division}/i, CSDesignation.division.toString())
             .replace(/{unit_type}/i, CSDesignation.unit_type.toString())
             .replace(/{beat_num}/i, CSDesignation.beat_num.toString())
-            .replace(/{nickname}/i, Member.nickname ?? Member.displayName)
+            .replace(/{nickname}/i, BaseNickname)
             .replace(/{display_name}/i, Member.displayName);
 
           if (/{roblox_username}/i.test(NewNickname)) {
