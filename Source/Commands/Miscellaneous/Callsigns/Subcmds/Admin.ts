@@ -38,8 +38,8 @@ import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ParseExpiryDate } from "Source/Events/InteractionCreate/CallsignManagementHandler.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { ValidateCallsignFormat } from "./Request.js";
-import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
 import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
+import { ConcatenateLines, FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
@@ -473,17 +473,6 @@ export async function PromiseAllSettledThenTrue<T>(Values: T[]): Promise<true> {
   }
 
   return true;
-}
-
-/**
- * Concatenates multiple lines of text into a single string, filtering out any empty or null lines.
- * @param Lines - The lines of text to concatenate.
- * @returns A single string containing all non-empty lines, separated by newlines.
- */
-function ConcatenateLines(...Lines: (string | undefined | null)[]): string {
-  return Lines.filter((L) => L != null && L.trim().length > 0)
-    .join("\n")
-    .trim();
 }
 
 // ---------------------------------------------------------------------------------------

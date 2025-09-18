@@ -818,6 +818,17 @@ export function Dedent(text: string): string {
 }
 
 /**
+ * Concatenates multiple lines of text into a single string, filtering out any empty or `null` lines.
+ * @param Lines - The lines of text to concatenate.
+ * @returns A single string containing all non-empty lines, separated by newlines.
+ */
+export function ConcatenateLines(...Lines: (string | undefined | null)[]): string {
+  return Lines.filter((L) => L != null && L.trim().length > 0)
+    .join("\n")
+    .trim();
+}
+
+/**
  * Escapes special characters in a string so that it can be used in a regular expression.
  * @see {@link https://stackoverflow.com/q/3561493 Stack Overflow Reference}
  * @param Str - The string to escape.

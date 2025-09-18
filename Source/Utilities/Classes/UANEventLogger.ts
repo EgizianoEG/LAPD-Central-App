@@ -23,8 +23,8 @@ import {
   ModalSubmitInteraction,
 } from "discord.js";
 
+import { ReadableDuration, Dedent, ConcatenateLines } from "@Utilities/Strings/Formatters.js";
 import { Colors, Emojis, Images, Thumbs } from "@Config/Shared.js";
-import { ReadableDuration, Dedent } from "@Utilities/Strings/Formatters.js";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { addMilliseconds } from "date-fns";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
@@ -149,15 +149,6 @@ export class BaseUserActivityNoticeLogger {
   }
 
   /**
-   * Concatenates multiple lines into a single string, filtering out null or undefined values.
-   * @param Lines - The lines to concatenate.
-   * @returns A single string with all valid lines joined by newlines.
-   */
-  protected ConcatenateLines(...Lines: (string | undefined | null)[]): string {
-    return Lines.filter(Boolean).join("\n");
-  }
-
-  /**
    * Generates a quota reduction text for reduced activity notices.
    * @param NoticeDocument - The activity notice document.
    * @returns A formatted string representing the quota reduction, or `undefined` if not applicable.
@@ -233,7 +224,7 @@ export class BaseUserActivityNoticeLogger {
 
     if (Opts.Type === "Pending" || Opts.Type === "Cancelled") {
       Embed.setDescription(
-        this.ConcatenateLines(
+        ConcatenateLines(
           `**Requester:** ${userMention(RequesterId)}`,
           this.GetQuotaReductionText(Opts.NoticeDocument),
           `**Duration:** ${Opts.NoticeDocument.duration_hr}`,
@@ -432,7 +423,7 @@ export class BaseUserActivityNoticeLogger {
           {
             inline: true,
             name: "Request Info",
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Requester:** ${userMention(ApprovedRequest.user)}`,
               this.GetQuotaReductionText(ApprovedRequest),
               `**Duration:** ${ApprovedRequest.duration_hr}`,
@@ -536,7 +527,7 @@ export class BaseUserActivityNoticeLogger {
           {
             inline: true,
             name: "Request Info",
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Requester:** ${userMention(DeniedRequest.user)}`,
               this.GetQuotaReductionText(DeniedRequest),
               `**Duration:** ${DeniedRequest.duration_hr}`,
@@ -650,7 +641,7 @@ export class BaseUserActivityNoticeLogger {
         .addFields({
           inline: true,
           name: "Request Info",
-          value: this.ConcatenateLines(
+          value: ConcatenateLines(
             `**Requester:** ${userMention(CancelledRequest.user)}`,
             this.GetQuotaReductionText(CancelledRequest),
             `**Duration:** ${CancelledRequest.duration_hr}`,
@@ -743,7 +734,7 @@ export class BaseUserActivityNoticeLogger {
             {
               inline: true,
               name: "Request Info",
-              value: this.ConcatenateLines(
+              value: ConcatenateLines(
                 `**Requester:** ${userMention(NoticeDocument.user)}`,
                 this.GetQuotaReductionText(NoticeDocument),
                 `**Duration:** ${NoticeDocument.duration_hr}`,
@@ -834,7 +825,7 @@ export class BaseUserActivityNoticeLogger {
         .addFields({
           inline: true,
           name: `${LeaveOrRAText} Info`,
-          value: this.ConcatenateLines(
+          value: ConcatenateLines(
             `**Requester:** ${userMention(NoticeDocument.user)}`,
             `**Org. Duration:** ${NoticeDocument.original_duration_hr}`,
             `**${LeaveOrRAText} Duration:** ${NoticeDocument.duration_hr}`,

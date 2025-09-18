@@ -22,7 +22,11 @@ import {
   ModalSubmitInteraction,
 } from "discord.js";
 
-import { FormatCallsignDesignation as FormatCallsign } from "@Utilities/Strings/Formatters.js";
+import {
+  ConcatenateLines,
+  FormatCallsignDesignation as FormatCallsign,
+} from "@Utilities/Strings/Formatters.js";
+
 import { Colors, Emojis, Thumbs } from "@Config/Shared.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { BaseExtraContainer } from "./ExtraContainers.js";
@@ -115,15 +119,6 @@ export default class CallsignsEventLogger {
   }
 
   /**
-   * Concatenates multiple lines into a single string, filtering out null or undefined values.
-   * @param Lines - The lines to concatenate.
-   * @returns A single string with all valid lines joined by newlines.
-   */
-  protected ConcatenateLines(...Lines: (string | undefined | null)[]): string {
-    return Lines.filter((Line) => Line != null).join("\n");
-  }
-
-  /**
    * Creates a set of management buttons for approving, denying, or requesting additional information about a callsign request.
    * @param UserId - The ID of the user who submitted the callsign request.
    * @param CallsignId - The ID of the callsign request.
@@ -194,7 +189,7 @@ export default class CallsignsEventLogger {
       .setFooter(`Reference ID: \`${CallsignDocument._id}\``)
       .setColor(RequestStatus === "Cancelled" ? Colors.RequestDenied : Colors.RequestPending)
       .setDescription(
-        this.ConcatenateLines(
+        ConcatenateLines(
           `**Requester:** ${userMention(CallsignDocument.requester)}`,
           `**${IsTransfer ? "Req. " : ""}Designation:** ${Strikethrough}**\`${FormattedCallsign}\`**${Strikethrough}`,
           IsTransfer
@@ -407,7 +402,7 @@ export default class CallsignsEventLogger {
         .setFooter({ text: `Reference ID: ${ApprovedRequest._id}` })
         .setTitle("Call Sign Request — Approval Notice")
         .setDescription(
-          this.ConcatenateLines(
+          ConcatenateLines(
             `Your call sign request for **\`${FormattedCallsign}\`**, submitted on ${FormatTime(ApprovedRequest.requested_on, "D")}, has been approved.`,
             ApprovedRequest.expiry
               ? `Your call sign is set to expire on ${FormatTime(ApprovedRequest.expiry, "F")} (${FormatTime(ApprovedRequest.expiry, "R")}).`
@@ -435,7 +430,7 @@ export default class CallsignsEventLogger {
           {
             name: CallsignsEventLogger.RequestInfoFieldName,
             inline: true,
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Requester:** ${userMention(ApprovedRequest.requester)}`,
               `**Designation:** \`${FormattedCallsign}\``,
               PreviouslyAssigned
@@ -451,7 +446,7 @@ export default class CallsignsEventLogger {
           {
             name: "Approval Info",
             inline: true,
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Approver**: ${userMention(Interaction.user.id)}`,
               `**Notes:** ${ApprovedRequest.reviewer_notes ?? "*N/A*"}`
             ),
@@ -534,7 +529,7 @@ export default class CallsignsEventLogger {
           {
             inline: true,
             name: CallsignsEventLogger.RequestInfoFieldName,
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Requester:** ${userMention(DeniedRequest.requester)}`,
               `**Designation:** \`${FormattedCallsign}\``,
               `**Requested:** ${FormatTime(DeniedRequest.requested_on, "D")}`,
@@ -544,7 +539,7 @@ export default class CallsignsEventLogger {
           {
             inline: true,
             name: "Denial Info",
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Denier**: ${userMention(Interaction.user.id)}`,
               "**Notes:**",
               DeniedRequest.reviewer_notes ?? "*N/A*"
@@ -647,7 +642,7 @@ export default class CallsignsEventLogger {
         .addFields({
           inline: true,
           name: CallsignsEventLogger.RequestInfoFieldName,
-          value: this.ConcatenateLines(
+          value: ConcatenateLines(
             `**Requester:** ${userMention(CancelledRequest.requester)}`,
             `**Designation:** \`${FormattedCallsign}\``,
             `**Requested:** ${FormatTime(CancelledRequest.requested_on, "D")}`,
@@ -722,7 +717,7 @@ export default class CallsignsEventLogger {
         .setFooter({ text: `Reference ID: ${ReleasedCallsign._id}` })
         .setTitle("Call Sign Administrative Release")
         .setDescription(
-          this.ConcatenateLines(
+          ConcatenateLines(
             `Your active call sign **\`${FormattedCallsign}\`** has been administratively released by management. You may submit a new call sign request if needed.`,
             Notes ? `**\nRelease Notes:**\n${codeBlock(Notes)}` : null
           )
@@ -745,7 +740,7 @@ export default class CallsignsEventLogger {
           {
             inline: true,
             name: "Call Sign Info",
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Designation:** \`${FormattedCallsign}\``,
               `**Assigned On:** ${FormatTime(ReleasedCallsign.reviewed_on, "D")}`,
               `**Affected Staff:** ${userMention(ReleasedCallsign.requester)}`
@@ -754,7 +749,7 @@ export default class CallsignsEventLogger {
           {
             inline: true,
             name: "Release Info",
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Released By:** ${userMention(Interaction.user.id)}`,
               Notes ? `**Notes:**\n${Notes}` : "**Notes:** N/A"
             ),
@@ -798,7 +793,7 @@ export default class CallsignsEventLogger {
         DescriptionText = `You have been administratively assigned the call sign **\`${FormattedCallsign}\`**.`;
       }
 
-      DescriptionText = this.ConcatenateLines(
+      DescriptionText = ConcatenateLines(
         DescriptionText,
         AssignedCallsign.expiry
           ? `This call sign is set to expire on ${FormatTime(AssignedCallsign.expiry, "F")} (${FormatTime(AssignedCallsign.expiry, "R")}).`
@@ -832,7 +827,7 @@ export default class CallsignsEventLogger {
           {
             inline: true,
             name: "Call Sign Info",
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Assigned To:** ${userMention(AssignedCallsign.requester)}`,
               `**Designation:** \`${FormattedCallsign}\``,
               AssignedCallsign.expiry
@@ -843,7 +838,7 @@ export default class CallsignsEventLogger {
           {
             inline: true,
             name: "Assignment Info",
-            value: this.ConcatenateLines(
+            value: ConcatenateLines(
               `**Assigned By:** ${userMention(Interaction.user.id)}`,
               AssignedCallsign.reviewer_notes
                 ? `**Notes:** ${AssignedCallsign.reviewer_notes}`
@@ -855,7 +850,7 @@ export default class CallsignsEventLogger {
       if (PreviousCallsign?.request_status === GenericRequestStatuses.Approved) {
         LogEmbed.addFields({
           name: "Previous Call Sign",
-          value: this.ConcatenateLines(
+          value: ConcatenateLines(
             `**Ref. ID:** \`${PreviousCallsign._id}\``,
             `**Designation:** \`${FormatCallsign(PreviousCallsign.designation)}\``,
             `**Approved On:** ${FormatTime(PreviousCallsign.reviewed_on!, "D")}`,
