@@ -184,7 +184,7 @@ export async function AutocompleteBeatNumber(
     TargetDivision,
     Member,
     GuildSettings,
-    24
+    14
   );
 
   Suggestions.push(...NearbySuggestions);
