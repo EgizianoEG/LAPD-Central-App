@@ -1650,5 +1650,8 @@ export namespace AggregationResults.CallsignsModel {
      * This list is sorted by the most recent request date. Could be empty.
      */
     previous_callsigns: Callsigns.CallsignDocument[];
+
+    /** A list of all callsign requests the user has made in the guild, excluding pending requests. Sorted by most recent first. */
+    callsign_history: Callsigns.CallsignDocument[];
   }
 }

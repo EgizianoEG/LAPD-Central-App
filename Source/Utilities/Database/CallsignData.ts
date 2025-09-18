@@ -173,11 +173,24 @@ export async function GetCallsignAdminData(
             { $sort: { requested_on: -1 } },
             { $limit: 10 },
           ],
+
+          callsign_history: [
+            {
+              $match: {
+                guild: GuildId,
+                requester: TargetUserId,
+                request_status: { $ne: GenericRequestStatuses.Pending },
+              },
+            },
+            { $sort: { requested_on: -1 } },
+            { $limit: 25 },
+          ],
         },
       },
       {
         $project: {
           previous_callsigns: "$previous_callsigns",
+          callsign_history: "$callsign_history",
           active_callsign: { $ifNull: [{ $arrayElemAt: ["$active_callsign", 0] }, null] },
           pending_callsign: {
             $ifNull: [{ $arrayElemAt: ["$pending_callsign", 0] }, null],
