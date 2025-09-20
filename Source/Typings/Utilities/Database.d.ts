@@ -255,6 +255,8 @@ export namespace Guilds {
       /**
        * A list of roles whose members are authorized to approve and/or manage callsign requests.
        * However, members with application or server management permissions can still approve and manage these requests.
+       * @remarks
+       * - A maximum of 6 roles can be set.
        */
       manager_roles: string[];
 
@@ -310,7 +312,8 @@ export namespace Guilds {
        * Supports template strings with the following placeholders:
        * - `{division}`
        * - `{unit_type}`
-       * - `{identifier}`
+       * - `{beat_num}`
+       * - `{roblox_username}`; falls back to an empty string if not linked.
        * - `{display_name}`
        * - `{nickname}`; falls back to `{display_name}` if not set.
        *

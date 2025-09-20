@@ -312,7 +312,11 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         type: [String],
         default: [],
         required: true,
-        validate: ArrayOfSnowflakesValidator,
+        validate: {
+          message: "Expected an array of valid snowflake Ids of length 0-6.",
+          validator: (arr: string[]) =>
+            ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 6,
+        },
       },
 
       alert_on_request: {
