@@ -60,6 +60,7 @@ import { Dedent } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns/milliseconds";
 import { Colors, Emojis } from "@Config/Shared.js";
+import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import { clone, isDeepEqual } from "remeda";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
@@ -205,11 +206,11 @@ const CTAIds = {
     ModuleEnabled: `${ConfigTopics.CallsignsConfiguration}-me`,
     RequestsChannel: `${ConfigTopics.CallsignsConfiguration}-rc`,
     LogChannel: `${ConfigTopics.CallsignsConfiguration}-lc`,
-    ManagerRoles: `${ConfigTopics.CallsignsConfiguration}-mr`,
+    ManagerRoles: `${ConfigTopics.CallsignsConfiguration}-mgr`,
     AlertOnRequest: `${ConfigTopics.CallsignsConfiguration}-aor`,
     NicknameFormat: `${ConfigTopics.CallsignsConfiguration}-nf`,
-    BeatNumRestrictions: `${ConfigTopics.CallsignsConfiguration}-bnr`,
-    AutoRenameOnReviewal: `${ConfigTopics.CallsignsConfiguration}-ara`,
+    BeatNumberRestrictions: `${ConfigTopics.CallsignsConfiguration}-bnr`,
+    AutoRenameOnApproval: `${ConfigTopics.CallsignsConfiguration}-ara`,
     UnitTypeRoleRestrictions: `${ConfigTopics.CallsignsConfiguration}-utrr`,
   },
 } as const;
@@ -407,44 +408,45 @@ const ConfigTopicsExplanations = {
     ],
   },
   [ConfigTopics.CallsignsConfiguration]: {
-    Title: "Callsigns Module Configuration",
+    Title: "Call Signs Module Configuration",
     Settings: [
       {
         Name: "Module Enabled",
-        Description: "Controls whether callsigns features are available.",
+        Description: "Controls whether call signs commands and features are available.",
       },
       {
         Name: "Requests Destination",
         Description:
-          "The channel or thread where all callsign-related requests will be sent for approval. " +
+          "The channel or thread where all call sign-related requests will be sent for approval. " +
           "This setting is optional; however, requests will require explicit manual review by management using administrative slash commands.",
       },
       {
         Name: "Logging Destination",
         Description:
-          "The channel or thread where all callsign-related logs such as assignment changes and approvals will be sent.",
+          "The channel or thread where all call sign-related logs such as assignment changes and approvals will be sent.",
       },
       {
-        Name: "Callsign Manager Roles",
+        Name: "Manager Roles",
         Description:
-          "Anyone with these configured roles is authorized to approve, manage, and oversee callsign requests. " +
+          "Anyone with these configured roles is authorized to administer, manage, and oversee call sign requests. " +
           "Additionally, staff considered management or those with management app permissions can also take action.",
       },
       {
         Name: "Alert on New Request",
         Description:
-          "Controls whether manager roles are notified when a new callsign request is made and posted in the requests destination.",
+          "Controls whether manager roles are notified when a new call sign request is made and posted in the requests destination.",
       },
       {
-        Name: "Auto-Rename on Callsign Assignment",
+        Name: "Auto-Rename on Assignment",
         Description:
-          "Determines whether assigned personnel are automatically renamed to their approved callsign based on the configured nickname format.",
+          "Determines whether assigned personnel are automatically renamed to their approved call sign based on the configured nickname format." +
+          "Keep in mind that this will truncate the nickname if it exceeds Discord's character limit after applying the format.",
       },
       {
         Name: "Nickname Format",
         Description:
-          "The format to use when updating members' nicknames with their assigned callsigns, if applicable.\n" +
-          "Supported placeholders: ${nickname}, ${division}, ${identifier}, and ${unit_type}.",
+          "The format to use when updating members' nicknames with their assigned call signs, if auto-renaming is enabled.\n" +
+          "Supported tags and placeholders:\n`{nickname}`, `{display_name}`, `{roblox_username}`, `{division}`, `{beat_num}`, and `{unit_type}`.",
       },
       {
         Name: "Unit Type Role-based Restrictions",
@@ -453,9 +455,9 @@ const ConfigTopicsExplanations = {
           "This ensures that only qualified personnel can submit requests for specialized units.",
       },
       {
-        Name: "Beat Number Restrictions",
+        Name: "Beat Number Role-based Restrictions",
         Description:
-          "Define specific rules for assigning callsign beat numbers based on roles. These restrictions ensure that only qualified members can request certain beat numbers.",
+          "Define specific rules for assigning call sign beat numbers based on roles. These restrictions ensure that only qualified members can request certain beat numbers.",
       },
     ],
   },
@@ -1304,7 +1306,93 @@ function GetCallsignsModuleConfigComponents(
       `${CTAIds[ConfigTopics.CallsignsConfiguration].LogChannel}:${Interaction.user.id}`
     );
 
-  return [ModuleEnabledAR, RequestsDestinationButton, LogDestAccessoryButton] as const;
+  const ManagerRolesSelectMenuAR = new ActionRowBuilder<RoleSelectMenuBuilder>().setComponents(
+    new RoleSelectMenuBuilder()
+      .setCustomId(
+        `${CTAIds[ConfigTopics.CallsignsConfiguration].ManagerRoles}:${Interaction.user.id}`
+      )
+      .setMinValues(0)
+      .setMaxValues(6)
+      .setPlaceholder("Select up to 6 manager roles...")
+      .setDefaultRoles(CSModuleConfig.manager_roles)
+  );
+
+  const AlertOnNewRequestsAR = new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+    new StringSelectMenuBuilder()
+      .setPlaceholder("Alerts Enabled/Disabled")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .setCustomId(
+        `${CTAIds[ConfigTopics.CallsignsConfiguration].AlertOnRequest}:${Interaction.user.id}`
+      )
+      .setOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Enabled")
+          .setValue("true")
+          .setDescription("Send an alert when a new call sign request is made.")
+          .setDefault(CSModuleConfig.alert_on_request),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Disabled")
+          .setValue("false")
+          .setDescription("Do not send alerts for new call sign requests.")
+          .setDefault(!CSModuleConfig.alert_on_request)
+      )
+  );
+
+  const AutoRenameOnAssignmentAR = new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+    new StringSelectMenuBuilder()
+      .setPlaceholder("Auto-Rename Enabled/Disabled")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .setCustomId(
+        `${CTAIds[ConfigTopics.CallsignsConfiguration].AutoRenameOnApproval}:${Interaction.user.id}`
+      )
+      .setOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Enabled")
+          .setValue("true")
+          .setDescription("Automatically rename on assignment, if applicable.")
+          .setDefault(CSModuleConfig.update_nicknames),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Disabled")
+          .setValue("false")
+          .setDescription("Do not automatically rename.")
+          .setDefault(!CSModuleConfig.update_nicknames)
+      )
+  );
+
+  const NicknameFormatAccessoryBtn = new ButtonBuilder()
+    .setLabel("Set Nickname Format")
+    .setStyle(ButtonStyle.Secondary)
+    .setCustomId(
+      `${CTAIds[ConfigTopics.CallsignsConfiguration].NicknameFormat}:${Interaction.user.id}`
+    );
+
+  const SetUnitTypeRoleBasedRestrictionsAccessoryBtn = new ButtonBuilder()
+    .setLabel("Set Restrictions")
+    .setStyle(ButtonStyle.Secondary)
+    .setCustomId(
+      `${CTAIds[ConfigTopics.CallsignsConfiguration].UnitTypeRoleRestrictions}:${Interaction.user.id}`
+    );
+
+  const SetBeatNumberRestrictionsAccessoryBtn = new ButtonBuilder()
+    .setLabel("Set Restrictions")
+    .setStyle(ButtonStyle.Secondary)
+    .setCustomId(
+      `${CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions}:${Interaction.user.id}`
+    );
+
+  return [
+    ModuleEnabledAR,
+    RequestsDestinationButton,
+    LogDestAccessoryButton,
+    ManagerRolesSelectMenuAR,
+    AlertOnNewRequestsAR,
+    AutoRenameOnAssignmentAR,
+    NicknameFormatAccessoryBtn,
+    SetUnitTypeRoleBasedRestrictionsAccessoryBtn,
+    SetBeatNumberRestrictionsAccessoryBtn,
+  ] as const;
 }
 
 function GetShowConfigurationsPageComponents(
@@ -1346,7 +1434,7 @@ function GetShowConfigurationsPageComponents(
 }
 
 // ---------------------------------------------------------------------------------------
-// Containers Getters:
+// Container Getters:
 // -------------------
 function GetBasicConfigContainers(
   SelectInteract: ModulePromptUpdateSupportedInteraction<"cached">,
@@ -1832,6 +1920,7 @@ function GetCallsignsModuleConfigContainers(
   SelectInteract: ModulePromptUpdateSupportedInteraction<"cached">,
   CSModuleConfig: GuildSettings["callsigns_module"]
 ) {
+  const SettingsInfo = ConfigTopicsExplanations[ConfigTopics.CallsignsConfiguration].Settings;
   const ModuleTitleText = new TextDisplayBuilder().setContent(
     `### ${ConfigTopicsExplanations[ConfigTopics.CallsignsConfiguration].Title}`
   );
@@ -1841,9 +1930,18 @@ function GetCallsignsModuleConfigContainers(
     CSModuleConfig
   );
 
-  const CurrentlyConfiguredChannels = {
-    Log: CSModuleConfig.log_channel ? `<#${CSModuleConfig.log_channel}>` : "None",
-    Requests: CSModuleConfig.requests_channel ? `<#${CSModuleConfig.requests_channel}>` : "None",
+  const CurrentlyConfiguredTexts = {
+    LogChannel: CSModuleConfig.log_channel ? `<#${CSModuleConfig.log_channel}>` : "None",
+    RequestsChannel: CSModuleConfig.requests_channel
+      ? `<#${CSModuleConfig.requests_channel}>`
+      : "None",
+
+    ManagerRoles: CSModuleConfig.manager_roles.length
+      ? CSModuleConfig.manager_roles.map(roleMention).join(", ")
+      : "*None*",
+
+    UTRSet: CSModuleConfig.unit_type_restrictions.length || "*None*",
+    BNRSet: CSModuleConfig.beat_restrictions.length || "*None*",
   };
 
   const Page_1 = new ContainerBuilder()
@@ -1853,8 +1951,8 @@ function GetCallsignsModuleConfigContainers(
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         Dedent(`
-          1. **${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[0].Name}**
-          ${ConfigTopicsExplanations[ConfigTopics.ReducedActivityConfiguration].Settings[0].Description}
+          1. **${SettingsInfo[0].Name}**
+          ${SettingsInfo[0].Description}
         `)
       )
     )
@@ -1866,9 +1964,9 @@ function GetCallsignsModuleConfigContainers(
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             Dedent(`
-              2. **${ConfigTopicsExplanations[ConfigTopics.CallsignsConfiguration].Settings[1].Name}**
-              **Currently Configured:** ${CurrentlyConfiguredChannels.Requests}
-              ${ConfigTopicsExplanations[ConfigTopics.CallsignsConfiguration].Settings[1].Description}
+              2. **${SettingsInfo[1].Name}**
+              **Currently Configured:** ${CurrentlyConfiguredTexts.RequestsChannel}
+              ${SettingsInfo[1].Description}
             `)
           )
         )
@@ -1880,15 +1978,96 @@ function GetCallsignsModuleConfigContainers(
         .addTextDisplayComponents(
           new TextDisplayBuilder().setContent(
             Dedent(`
-              3. **${ConfigTopicsExplanations[ConfigTopics.CallsignsConfiguration].Settings[2].Name}**
-              **Currently Configured:** ${CurrentlyConfiguredChannels.Log}
-              ${ConfigTopicsExplanations[ConfigTopics.CallsignsConfiguration].Settings[2].Description}
+              3. **${SettingsInfo[2].Name}**
+              **Currently Configured:** ${CurrentlyConfiguredTexts.LogChannel}
+              ${SettingsInfo[2].Description}
             `)
           )
         )
     );
 
-  return [Page_1] as const;
+  const Page_2 = new ContainerBuilder()
+    .setId(2)
+    .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ModuleTitleText)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          4. **${SettingsInfo[3].Name}**
+          ${SettingsInfo[3].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(CallsignsModuleInteractComponents[3])
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          5. **${SettingsInfo[4].Name}**
+          ${SettingsInfo[4].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(CallsignsModuleInteractComponents[4])
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          6. **${SettingsInfo[5].Name}**
+          ${SettingsInfo[5].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(CallsignsModuleInteractComponents[5]);
+
+  const Page_3 = new ContainerBuilder()
+    .setId(3)
+    .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ModuleTitleText)
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(CallsignsModuleInteractComponents[6])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              7. **${SettingsInfo[6].Name}**
+              **Currently Configured:** \`${CSModuleConfig.nickname_format}\`
+              ${SettingsInfo[6].Description}
+            `)
+          )
+        )
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(CallsignsModuleInteractComponents[7])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              8. **${SettingsInfo[7].Name}**
+              **Restrictions Set:** \`${CurrentlyConfiguredTexts.UTRSet}\`
+              ${SettingsInfo[7].Description}
+            `)
+          )
+        )
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(CallsignsModuleInteractComponents[8])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              9. **${SettingsInfo[8].Name}**
+              **Restrictions Set:** \`${CurrentlyConfiguredTexts.BNRSet}\`
+              ${SettingsInfo[8].Description}
+            `)
+          )
+        )
+    );
+
+  return [Page_1, Page_2, Page_3] as const;
 }
 
 function GetAdditionalConfigContainers(
@@ -2060,6 +2239,29 @@ function GetCSDutyActivitiesContent(GuildSettings: GuildSettings): string {
     ${CitationLogChannels.length ? ListFormatter.format(CitationLogChannels) : "*None*"}
     **Arrest Log Channel${ArrestLogChannels.length > 1 ? "s" : ""}:** 
     ${ArrestLogChannels.length ? ListFormatter.format(ArrestLogChannels) : "*None*"}
+  `);
+}
+
+function GetCSCallsignsModuleContent(GuildSettings: GuildSettings): string {
+  const MSettings = GuildSettings.callsigns_module;
+  const ManagerRolesMentioned = ListFormatter.format(MSettings.manager_roles.map(roleMention));
+
+  const LogsDest = MSettings.log_channel ? channelMention(MSettings.log_channel) : "None";
+  const RequestsDest = MSettings.requests_channel
+    ? channelMention(MSettings.requests_channel)
+    : "None";
+
+  return Dedent(`
+    >>> **Module Enabled:** ${MSettings.enabled ? "Yes" : "No"}
+    **New Requests Notifications:** ${MSettings.alert_on_request ? "Enabled" : "Disabled"}
+    **Assignment Auto-Renaming:** ${MSettings.update_nicknames ? "Enabled" : "Disabled"}
+
+    **Requests Destination:** ${RequestsDest}
+    **Logs Destination:** ${LogsDest}
+    **Manager Role(s):** ${ManagerRolesMentioned.length ? ManagerRolesMentioned : "None"}
+    **Nickname Format:** \`${MSettings.nickname_format}\`
+    **Unit Type Restrictions:** ${MSettings.unit_type_restrictions.length} Set
+    **Beat Number Restrictions:** ${MSettings.beat_restrictions.length} Set
   `);
 }
 
@@ -3047,12 +3249,14 @@ async function HandleCallsignsModuleConfigPageInteracts(
   RecInteract: CollectedInteraction<"cached">,
   MState: ModuleState<GuildSettings["callsigns_module"]>
 ): Promise<boolean> {
+  const ActionMap = CTAIds[ConfigTopics.CallsignsConfiguration];
   const CustomId = RecInteract.customId;
+
   if (RecInteract.isButton()) {
-    if (CustomId.startsWith(CTAIds[ConfigTopics.CallsignsConfiguration].LogChannel)) {
+    if (CustomId.startsWith(ActionMap.LogChannel)) {
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
-        CTAIds[ConfigTopics.CallsignsConfiguration].LogChannel,
+        ActionMap.LogChannel,
         "Callsigns Log",
         MState.ModuleConfig.log_channel
       );
@@ -3063,10 +3267,10 @@ async function HandleCallsignsModuleConfigPageInteracts(
       }
     }
 
-    if (CustomId.startsWith(CTAIds[ConfigTopics.CallsignsConfiguration].RequestsChannel)) {
+    if (CustomId.startsWith(ActionMap.RequestsChannel)) {
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
-        CTAIds[ConfigTopics.CallsignsConfiguration].RequestsChannel,
+        ActionMap.RequestsChannel,
         "Callsigns Requests",
         MState.ModuleConfig.requests_channel
       );
@@ -3076,26 +3280,53 @@ async function HandleCallsignsModuleConfigPageInteracts(
         return true;
       }
     }
+
+    if (CustomId.startsWith(ActionMap.NicknameFormat)) {
+      const InputFormat = await HandleCallsignNicknameFormatSetBtnInteract(
+        RecInteract,
+        MState.ModuleConfig.nickname_format
+      );
+
+      if (InputFormat !== MState.ModuleConfig.nickname_format) {
+        MState.ModuleConfig.nickname_format = InputFormat;
+        return true;
+      }
+
+      return false;
+    }
+
+    if (CustomId.startsWith(ActionMap.UnitTypeRoleRestrictions)) {
+      // TODO.
+    }
+
+    if (CustomId.startsWith(ActionMap.BeatNumberRestrictions)) {
+      // TODO.
+    }
   }
 
-  if (
-    RecInteract.isStringSelectMenu() &&
-    CustomId.startsWith(CTAIds[ConfigTopics.CallsignsConfiguration].ModuleEnabled)
-  ) {
+  if (RecInteract.isStringSelectMenu() && CustomId.startsWith(ActionMap.ModuleEnabled)) {
     MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
-  } else if (
-    RecInteract.isStringSelectMenu() &&
-    CustomId.startsWith(CTAIds[ConfigTopics.CallsignsConfiguration].AutoRenameOnReviewal)
-  ) {
+  }
+
+  if (RecInteract.isStringSelectMenu() && CustomId.startsWith(ActionMap.AutoRenameOnApproval)) {
     MState.ModuleConfig.update_nicknames = RecInteract.values[0] === "true";
+  }
+
+  if (RecInteract.isRoleSelectMenu() && CustomId.startsWith(ActionMap.ManagerRoles)) {
+    MState.ModuleConfig.manager_roles = RecInteract.values.filter(
+      (Id) => !RecInteract.guild.roles.cache.get(Id)?.managed
+    );
+
+    return !ArraysAreEqual(MState.ModuleConfig.manager_roles, RecInteract.values);
   }
 
   RecInteract.deferUpdate().catch(() => null);
   return false;
 }
+
 // ---------------------------------------------------------------------------------------
-// Configuration Handlers:
-// -----------------------
+// Specific Config Helpers & Handlers:
+// -----------------------------------
 async function HandleUANActivePrefixBtnInteract(
   RecInteract: ButtonInteraction<"cached">,
   MState: ModuleState<GuildSettings["leave_notices"] | GuildSettings["reduced_activity"]>
@@ -3410,6 +3641,40 @@ async function HandleDefaultShiftQuotaBtnInteract(
   }
 }
 
+async function HandleCallsignNicknameFormatSetBtnInteract(
+  BtnInteract: ButtonInteraction<"cached">,
+  CurrentFormat: string
+): Promise<string> {
+  const InputModal = new ModalBuilder()
+    .setTitle("Callsign Nickname Format")
+    .setCustomId(CTAIds[ConfigTopics.CallsignsConfiguration].NicknameFormat + RandomString(4))
+    .setComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
+        new TextInputBuilder()
+          .setStyle(TextInputStyle.Paragraph)
+          .setValue(CurrentFormat)
+          .setLabel("Nickname Format")
+          .setPlaceholder(
+            "ex., {division}{unit_type}-{beat_num} | {nickname}\n\n" +
+              "Supported Tags/Placeholders:\n{division}, {unit_type}, {beat_num}, {nickname}, {display_name}, and {roblox_username}"
+          )
+          .setCustomId("format")
+          .setRequired(true)
+          .setMinLength(10)
+          .setMaxLength(70)
+      )
+    );
+
+  const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 5 * 60 * 1000);
+  if (!ModalSubmission) return CurrentFormat;
+  ModalSubmission.deferUpdate().catch(() => null);
+
+  return ModalSubmission.fields.getTextInputValue("format");
+}
+
+// ---------------------------------------------------------------------------------------
+// Config Topic Selection:
+// -----------------------
 async function HandleBasicConfigSelection(SelectInteract: StringSelectMenuInteraction<"cached">) {
   const GuildConfig = await GetGuildSettings(SelectInteract.guildId);
   if (GuildConfig) {
@@ -3759,6 +4024,10 @@ async function HandleConfigShowSelection(
     {
       Title: "Additional Configuration",
       Content: GetCSAdditionalConfigContent(GuildConfig),
+    },
+    {
+      Title: "Call Signs Module",
+      Content: GetCSCallsignsModuleContent(GuildConfig),
     },
   ];
 
