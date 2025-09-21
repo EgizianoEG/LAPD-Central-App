@@ -279,13 +279,29 @@ export namespace Guilds {
       requests_channel?: string | null;
 
       /**
+       * When `true`, all unit types are restricted by default unless explicitly allowed
+       * through `unit_type_restrictions`.
+       * @default false
+       */
+      unit_type_whitelist: boolean;
+
+      /**
        * Restrictions on unit types based on roles (e.g., specific roles required for "W" type units).
-       * Set to an empty array to remove all restrictions (Default);
-       *
        * @default []
        */
       unit_type_restrictions: {
+        _id: Types.ObjectId;
         unit_type: string;
+
+        /**
+         * The roles that are permitted to request the specified unit type.
+         * @remarks
+         * **Behavior depends on `unit_type_whitelist` setting:**
+         * - When `unit_type_whitelist` is `false` (blacklist mode): An empty array means this unit type has no role restrictions - anyone can request it.
+         * - When `unit_type_whitelist` is `true` (whitelist mode): An empty array means this unit type is completely restricted - no one can request it.
+         * - When populated with role Ids: Only users with at least one of these roles can request this unit type.
+         * @default []
+         */
         permitted_roles: string[];
       }[];
 
@@ -297,14 +313,9 @@ export namespace Guilds {
        * @default []
        */
       beat_restrictions: {
+        _id: Types.ObjectId;
         range: [number, number];
         permitted_roles: string[];
-
-        /** Allow certain identifier values; override the companion restrictions such as `exclude`. */
-        allow: number[];
-
-        /** Exclude certain identifier values within the `range`. */
-        exclude: number[];
       }[];
 
       /**

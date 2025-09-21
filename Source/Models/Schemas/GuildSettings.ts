@@ -339,12 +339,17 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         match: SnowflakeIdValidationN1,
       },
 
+      unit_type_whitelist: {
+        type: Boolean,
+        default: false,
+        required: true,
+      },
+
       unit_type_restrictions: {
         default: [],
         required: true,
         type: [
           {
-            _id: false,
             unit_type: {
               type: String,
               required: true,
@@ -366,7 +371,6 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         required: true,
         type: [
           {
-            _id: false,
             range: {
               type: [Number],
               required: true,
@@ -381,16 +385,6 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
               default: [],
               required: true,
               validate: ArrayOfSnowflakesValidator,
-            },
-            allow: {
-              type: [Number],
-              default: [],
-              required: true,
-            },
-            exclude: {
-              type: [Number],
-              default: [],
-              required: true,
             },
           },
         ],

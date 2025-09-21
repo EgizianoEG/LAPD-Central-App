@@ -92,22 +92,54 @@ export async function ValidateCallsignFormat(
 /**
  * Validates if the user has permission to request the specified unit type.
  * @param Interaction - The interaction object.
+ * @param ModuleSettings - The callsigns module settings containing unit type restrictions.
  * @param UnitType - The unit type to validate.
  * @returns A promise resolving to `true` if an error response is sent due to restricted unit type,
  *          or `false` if the user has permission.
+ *
+ * @remarks
+ * **Whitelist Mode (`unit_type_whitelist: true`):**
+ * - All unit types are restricted by default unless explicitly added to `unit_type_restrictions`
+ * - If a unit type is in the whitelist with empty `permitted_roles`, it's available to everyone
+ * - If it has specific roles in `permitted_roles`, only users with those roles can request it
+ *
+ * **Blacklist Mode (`unit_type_whitelist: false`):**
+ * - All unit types are allowed by default
+ * - Only unit types with non-empty `permitted_roles` arrays require specific roles
+ * - Unit types not in `unit_type_restrictions` are unrestricted
  */
 export async function ValidateUnitTypePermissions(
   Interaction: SlashCommandInteraction<"cached">,
   ModuleSettings: Guilds.GuildSettings["callsigns_module"],
   UnitType: string
 ): Promise<boolean> {
+  const UserRoles = Interaction.member.roles.cache.map((Role) => Role.id);
   const UnitTypeUpper = UnitType.toUpperCase();
   const UnitTypeRestriction = ModuleSettings.unit_type_restrictions.find(
     (Restriction) => Restriction.unit_type === UnitTypeUpper
   );
 
-  if (UnitTypeRestriction && UnitTypeRestriction.permitted_roles.length > 0) {
-    const UserRoles = Interaction.member.roles.cache.map((Role) => Role.id);
+  if (ModuleSettings.unit_type_whitelist) {
+    if (!UnitTypeRestriction) {
+      return new ErrorContainer()
+        .useErrTemplate("CallsignUnitTypeRestricted", UnitTypeUpper)
+        .replyToInteract(Interaction, true)
+        .then(() => true);
+    }
+
+    if (UnitTypeRestriction.permitted_roles.length > 0) {
+      const HasRequiredRole = UnitTypeRestriction.permitted_roles.some((RoleId) =>
+        UserRoles.includes(RoleId)
+      );
+
+      if (!HasRequiredRole) {
+        return new ErrorContainer()
+          .useErrTemplate("CallsignUnitTypeRestricted", UnitTypeUpper)
+          .replyToInteract(Interaction, true)
+          .then(() => true);
+      }
+    }
+  } else if (UnitTypeRestriction && UnitTypeRestriction.permitted_roles.length > 0) {
     const HasRequiredRole = UnitTypeRestriction.permitted_roles.some((RoleId) =>
       UserRoles.includes(RoleId)
     );
@@ -140,27 +172,18 @@ export async function ValidateIdentifierPermissions(
   for (const Restriction of ModuleSettings.beat_restrictions) {
     const [MinRange, MaxRange] = Restriction.range;
 
-    // Check if the beat number falls within this restriction range
-    if (BeatNum >= MinRange && BeatNum <= MaxRange) {
-      if (Restriction.exclude.includes(BeatNum)) {
+    // Check if the beat number falls within this restriction range and
+    // if the user has required roles for this range
+    if (BeatNum >= MinRange && BeatNum <= MaxRange && Restriction.permitted_roles.length > 0) {
+      const HasRequiredRole = Restriction.permitted_roles.some((RoleId) =>
+        MemberRoles.includes(RoleId)
+      );
+
+      if (!HasRequiredRole) {
         return new ErrorContainer()
           .useErrTemplate("CallsignIdentifierRestricted", BeatNum.toString())
           .replyToInteract(Interaction, true)
           .then(() => true);
-      }
-
-      // Check if user has required roles for this range
-      if (Restriction.permitted_roles.length > 0) {
-        const HasRequiredRole = Restriction.permitted_roles.some((RoleId) =>
-          MemberRoles.includes(RoleId)
-        );
-
-        if (!HasRequiredRole && !Restriction.allow.includes(BeatNum)) {
-          return new ErrorContainer()
-            .useErrTemplate("CallsignIdentifierRestricted", BeatNum.toString())
-            .replyToInteract(Interaction, true)
-            .then(() => true);
-        }
       }
     }
   }

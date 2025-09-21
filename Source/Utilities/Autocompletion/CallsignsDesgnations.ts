@@ -200,26 +200,46 @@ export async function AutocompleteBeatNumber(
  * @param Member - The guild member to check restrictions against.
  * @param GuildSettings - The guild settings containing unit type restrictions.
  * @returns `true` if the unit type is restricted for the user, `false` otherwise.
+ *
+ * @remarks
+ * **Whitelist Mode (`unit_type_whitelist: true`):**
+ * - All unit types are restricted by default unless explicitly added to `unit_type_restrictions`
+ * - If a unit type is in the whitelist with empty `permitted_roles`, it's available to everyone
+ * - If it has specific roles in `permitted_roles`, only users with those roles can use it
+ *
+ * **Blacklist Mode (`unit_type_whitelist: false`):**
+ * - All unit types are allowed by default
+ * - Only unit types with non-empty `permitted_roles` arrays require specific roles
+ * - Unit types not in `unit_type_restrictions` are unrestricted
  */
 function IsUnitTypeRestricted(
   UnitType: string,
   Member: GuildMember,
   GuildSettings: Guilds.GuildSettings
 ): boolean {
-  const UnitTypeRestrictions = GuildSettings.callsigns_module.unit_type_restrictions;
-  if (!UnitTypeRestrictions.length) return false;
-
+  const CSModuleSettings = GuildSettings.callsigns_module;
+  const UnitTypeRestrictions = CSModuleSettings.unit_type_restrictions;
   const MemberRoleIds = Member.roles.cache.map((role) => role.id);
-  for (const Restriction of UnitTypeRestrictions) {
-    if (Restriction.unit_type === UnitType) {
-      const HasPermittedRole = Restriction.permitted_roles.some((roleId) =>
+  const UnitTypeRestriction = UnitTypeRestrictions.find(
+    (restriction) => restriction.unit_type === UnitType
+  );
+
+  if (CSModuleSettings.unit_type_whitelist) {
+    if (!UnitTypeRestriction) {
+      return true;
+    }
+
+    if (UnitTypeRestriction.permitted_roles.length > 0) {
+      const HasPermittedRole = UnitTypeRestriction.permitted_roles.some((roleId) =>
         MemberRoleIds.includes(roleId)
       );
-
-      if (!HasPermittedRole) {
-        return true;
-      }
+      return !HasPermittedRole;
     }
+  } else if (UnitTypeRestriction && UnitTypeRestriction.permitted_roles.length > 0) {
+    const HasPermittedRole = UnitTypeRestriction.permitted_roles.some((roleId) =>
+      MemberRoleIds.includes(roleId)
+    );
+    return !HasPermittedRole;
   }
 
   return false;
@@ -244,19 +264,9 @@ function IsBeatNumberRestricted(
   for (const Restriction of BeatRestrictions) {
     const [MinRange, MaxRange] = Restriction.range;
 
-    // Check if beat number falls within this restriction range
+    // Check if beat number falls within this restriction range and
+    // if the user has any of the permitted roles for this range
     if (BeatNumber >= MinRange && BeatNumber <= MaxRange) {
-      // Check if the beat number is explicitly allowed (overrides restrictions)
-      if (Restriction.allow.includes(BeatNumber)) {
-        return false;
-      }
-
-      // Check if the beat number is explicitly excluded
-      if (Restriction.exclude.includes(BeatNumber)) {
-        return true;
-      }
-
-      // Check if user has any of the permitted roles for this range
       const HasPermittedRole = Restriction.permitted_roles.some((roleId) =>
         MemberRoleIds.includes(roleId)
       );
