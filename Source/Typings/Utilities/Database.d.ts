@@ -315,6 +315,12 @@ export namespace Guilds {
       beat_restrictions: {
         _id: Types.ObjectId;
         range: [number, number];
+
+        /**
+         * The roles that are permitted to request call sign beats within the specified range (inclusive).
+         * An empty array means that this range cannot be requested by anyone.
+         * @default []
+         */
         permitted_roles: string[];
       }[];
 

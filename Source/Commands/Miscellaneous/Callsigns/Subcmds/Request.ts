@@ -174,12 +174,12 @@ export async function ValidateIdentifierPermissions(
 
     // Check if the beat number falls within this restriction range and
     // if the user has required roles for this range
-    if (BeatNum >= MinRange && BeatNum <= MaxRange && Restriction.permitted_roles.length > 0) {
+    if (BeatNum >= MinRange && BeatNum <= MaxRange) {
       const HasRequiredRole = Restriction.permitted_roles.some((RoleId) =>
         MemberRoles.includes(RoleId)
       );
 
-      if (!HasRequiredRole) {
+      if (!HasRequiredRole || Restriction.permitted_roles.length === 0) {
         return new ErrorContainer()
           .useErrTemplate("CallsignIdentifierRestricted", BeatNum.toString())
           .replyToInteract(Interaction, true)

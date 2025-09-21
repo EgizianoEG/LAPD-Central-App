@@ -271,7 +271,7 @@ function IsBeatNumberRestricted(
         MemberRoleIds.includes(roleId)
       );
 
-      if (!HasPermittedRole) {
+      if (!HasPermittedRole || Restriction.permitted_roles.length === 0) {
         return true;
       }
     }
