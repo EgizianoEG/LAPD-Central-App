@@ -89,6 +89,7 @@ interface PagePaginationOptions {
  * Handles the pagination process for a given embeds array.
  * @param {PagePaginationOptions} options - The options for the pagination handler.
  * @returns This function/handler does not return anything and it handles pagination on its own.
+ * @throws {RangeError} If the `pages` array is empty.
  */
 export default async function HandlePagePagination({
   pages: Pages,
@@ -99,11 +100,15 @@ export default async function HandlePagePagination({
   cv2_comp_listener: CV2CompListener = undefined,
   context,
 }: PagePaginationOptions): Promise<void> {
-  let CurrPageIndex = 0;
+  if (Pages.length === 0) {
+    throw new RangeError("The 'pages' array must contain at least one embed or container.");
+  }
+
   const IsComponentsV2Pagination = Pages[0] instanceof ContainerBuilder;
   const NavigationButtons = GetPredefinedNavButtons(Interact, Pages.length, true, true);
   const NavigationButtonIds = NavigationButtons.components.map((Btn) => Btn.data.custom_id);
   let MsgFlags: MessageFlagsResolvable | undefined = Ephemeral ? MessageFlags.Ephemeral : undefined;
+  let CurrPageIndex = 0;
 
   if (IsComponentsV2Pagination) {
     MsgFlags = MsgFlags ? MsgFlags | MessageFlags.IsComponentsV2 : MessageFlags.IsComponentsV2;
