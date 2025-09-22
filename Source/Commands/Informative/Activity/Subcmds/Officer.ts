@@ -150,6 +150,10 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   const QuotaMetText =
     typeof ShiftsData.quota_met === "boolean" ? `- Quota Met: ${QuotaMetYesNo}` : "";
 
+  const FrequentShiftText = ShiftTypeFilter?.length
+    ? ""
+    : `- Frequent Shift: \`${ShiftsData.frequent_shift_type}\``;
+
   const FormattedRobloxName = TargetRUserInfo
     ? FormatUsername(TargetRUserInfo, false, true)
     : "*Not Linked*";
@@ -171,7 +175,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         name: "**Shift Statistics**",
         value: Dedent(`
           ${QuotaMetText}
-          - Frequent Shift: \`${ShiftsData.frequent_shift_type}\`
+          ${FrequentShiftText}
           - Shifts Completed: \`${ShiftsData.shift_count}\`
           - On-Duty Duration
             - Total: ${ShiftsData.total_onduty}
