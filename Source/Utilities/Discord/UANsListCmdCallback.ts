@@ -10,7 +10,7 @@ import {
 } from "discord.js";
 
 import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
-import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
+import UANModel from "@Models/UserActivityNotice.js";
 import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 
 /**
@@ -35,13 +35,18 @@ export default async function UANListCmdCallback(
     Object.assign(QueryFilter, { end_date: { $gt: Interaction.createdAt }, early_end_date: null });
   }
 
-  const NoticeRecords = await LeaveOfAbsenceModel.find(QueryFilter, {
-    user: 1,
-    end_date: 1,
-    request_date: 1,
-  })
-    .lean()
-    .exec();
+  const NoticeRecords = await UANModel.find(
+    QueryFilter,
+    {
+      user: 1,
+      end_date: 1,
+      request_date: 1,
+    },
+    {
+      sort: DesiredStatus === "Active" ? { end_date: 1 } : { request_date: 1 },
+      lean: true,
+    }
+  );
 
   if (NoticeRecords.length === 0) {
     if (DesiredStatus === "Active") {
