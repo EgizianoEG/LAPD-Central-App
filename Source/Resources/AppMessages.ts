@@ -801,7 +801,7 @@ export const ErrorMessages = {
   LogIncidentInvalidAttachments: {
     Title: "Invalid Attachment(s)",
     Description:
-      "One or more of the provided attachments are invalid. Please provide up to 10 static image attachments with `.png`, `.jpg`, or `.jpeg` extensions.",
+      "One or more of the provided attachments are invalid. Please provide up to 10 static image attachments with `.png`, `.jpg`, `.jpeg`, or `.webp` extensions.",
   },
 
   LogIncidentInvalidType: {

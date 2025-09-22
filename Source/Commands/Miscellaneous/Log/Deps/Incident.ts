@@ -240,7 +240,7 @@ async function GetCmdProvidedDetails(
     CmdInteract.options.resolved?.attachments?.map((Attachment) => Attachment) || [];
 
   const FilteredAttachments = ProvidedAttachments.filter((Attachment) => {
-    if (!Attachment.contentType?.match(/^image[/\\](?:png|jpg|jpeg)/i)) {
+    if (!Attachment.contentType?.match(/^image[/\\](?:png|jpg|jpeg|webp)/i)) {
       return false;
     }
 
