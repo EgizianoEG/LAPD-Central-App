@@ -241,20 +241,15 @@ export const ErrorMessages = {
   },
 
   /**
-   * Roblox account not linked (for shift management command; "duty manage")
-   */
-  SMRobloxUserNotLinked: {
-    Title: "Hold On!",
-    Description: "To manage shifts, you must first link your Roblox account.",
-  },
-
-  /**
    * Roblox account not linked (general usage)
    */
   RobloxUserNotLinked: {
     Title: "Hold On!",
     get Description() {
-      return `You must link your Roblox account using the ${MentionCmdByName("log-in")} command before using this command.`;
+      return (
+        `You must link your Roblox account before using this command. Use the ${MentionCmdByName("log-in")} command to get started.\n` +
+        "For guidance, please refer to [the documentation page](https://lapd-central-app.gitbook.io/documentation/guides-and-how-to/other-guides/linking-roblox-account)."
+      );
     },
   },
 
