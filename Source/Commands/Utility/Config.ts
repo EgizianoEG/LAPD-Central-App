@@ -29,6 +29,7 @@ import {
   RoleSelectMenuBuilder,
   InteractionContextType,
   StringSelectMenuBuilder,
+  InteractionResponseType,
   ChannelSelectMenuBuilder,
   InteractionUpdateOptions,
   UserSelectMenuInteraction,
@@ -62,18 +63,21 @@ import { milliseconds } from "date-fns/milliseconds";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
+import { isValidObjectId } from "mongoose";
 import { clone, isDeepEqual } from "remeda";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
 import AwaitMessageWithTimeout from "@Utilities/Discord/MessageCreateListener.js";
+import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import ParseDuration from "parse-duration";
 import GuildModel from "@Models/Guild.js";
 import DHumanize from "humanize-duration";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
+import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
 
 // ---------------------------------------------------------------------------------------
 // Constants, Types, & Enums:
@@ -3842,6 +3846,64 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
   return ModalSubmission.fields.getTextInputValue("format");
 }
 
+async function ModalPromptBeatNumRuleAdd(
+  SelectInteract: StringSelectMenuInteraction<"cached">,
+  _MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars
+  const _InputModalJSON = {
+    type: InteractionResponseType.Modal,
+    data: {
+      title: "Add Beat Number Restriction",
+      custom_id:
+        CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions + RandomString(4),
+      components: [
+        {
+          type: ComponentType.TextDisplay,
+          content: Dedent(`
+              Provide the details below to add a new beat number restriction. \
+              Submitting this form will create the restriction locally to the \
+              current prompt session, you would have to confirm and then save \
+              the changes on the module config panel afterwards to enforce it.
+          `),
+        },
+        {
+          type: 18, // ComponentType.LABEL
+          label: "Choose a Range",
+          description:
+            "The range is inclusive and must be between 1-999; the format for the range is 'start-end'.",
+          component: {
+            type: ComponentType.TextInput,
+            custom_id: "range",
+            minLength: 3,
+            maxLength: 7,
+            required: true,
+            style: TextInputStyle.Short,
+            placeholder: "Ex., 100-199 or 1-99",
+          },
+        },
+        {
+          type: 18, // ComponentType.LABEL
+          label: "Range Permitted Roles",
+          description:
+            "Select the roles of which holders are permitted to use this beat number range.",
+          component: {
+            type: ComponentType.RoleSelect,
+            custom_id: "roles",
+            placeholder: "Select roles permitted to use this range...",
+            max_values: 10,
+            min_values: 0,
+            required: false,
+          },
+        },
+      ],
+    },
+  };
+
+  // To be completed once discord.js package support
+  // select menus, text display, and labels inside modals.
+}
+
 async function ModalPromptBeatNumRuleRemove(
   SelectInteract: StringSelectMenuInteraction<"cached">,
   MStateObj: ModuleState<GuildSettings["callsigns_module"]>
@@ -3937,31 +3999,41 @@ async function PromptBeatNumRestrictionsMod(
         case "list": {
           const Pages = GetCSBeatNumRestrictionsListContainers(MStateObjCopy);
           if (Pages.length === 0) {
-            return new InfoContainer()
+            await new InfoContainer()
               .useInfoTemplate("CallsignBeatNumNoRestrictionsToList")
               .replyToInteract(SelectInteract, true, true);
           }
 
-          return HandlePagePagination({
+          HandlePagePagination({
             interact: SelectInteract,
             pagination_timeout: 8 * 60 * 1000,
             pages: Pages,
             context: FileLabel,
             ephemeral: true,
           });
+          break;
         }
         case "add":
-          return await ModalPromptBeatNumRuleAdd(SelectInteract, MStateObjCopy);
+          await ModalPromptBeatNumRuleAdd(SelectInteract, MStateObjCopy);
+          break;
         case "remove":
-          return await ModalPromptBeatNumRuleRemove(SelectInteract, MStateObjCopy);
+          await ModalPromptBeatNumRuleRemove(SelectInteract, MStateObjCopy);
+          break;
         case "clear":
-          return await HandleBeatNumRulesClear(SelectInteract, MStateObjCopy);
+          await HandleBeatNumRulesClear(SelectInteract, MStateObjCopy);
+          break;
         case "discard":
-          return ActionsCollector.stop("ChangesDismissed");
+          ActionsCollector.stop("ChangesDismissed");
+          break;
         case "confirm":
         default:
-          return ActionsCollector.stop("ChangesConfirmed");
+          ActionsCollector.stop("ChangesConfirmed");
       }
+
+      return await SelectInteract.editReply({
+        message: PromptMessage.id,
+        components: [PromptContainer],
+      });
     } catch (Err: any) {
       AppLogger.error({
         message: "Something went wrong while handling callsign beats restriction modifications;",
