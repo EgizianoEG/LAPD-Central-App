@@ -212,6 +212,7 @@ const CTAIds = {
     BeatNumberRestrictions: `${ConfigTopics.CallsignsConfiguration}-bnr`,
     AutoRenameOnApproval: `${ConfigTopics.CallsignsConfiguration}-ara`,
     UnitTypeRoleRestrictions: `${ConfigTopics.CallsignsConfiguration}-utrr`,
+    UnitTypeRoleRestrictionsMode: `${ConfigTopics.CallsignsConfiguration}-utrm`,
   },
 } as const;
 
@@ -443,10 +444,16 @@ const ConfigTopicsExplanations = {
           "Keep in mind that this will truncate the nickname if it exceeds Discord's character limit after applying the format.",
       },
       {
+        Name: "Unit Type Restrictions Mode",
+        Description:
+          "Choose how unit type restrictions work:\n" +
+          "- **Whitelist Mode:** Only unit types you've specifically configured are allowed for requests. All others are blocked.\n" +
+          "- **Blacklist Mode:** All unit types are allowed by default. Only those you configure will have role requirements.",
+      },
+      {
         Name: "Nickname Format",
         Description:
-          "The format to use when updating members' nicknames with their assigned call signs, if auto-renaming is enabled.\n" +
-          "Supported tags and placeholders:\n`{nickname}`, `{display_name}`, `{roblox_username}`, `{division}`, `{beat_num}`, and `{unit_type}`.",
+          "The format to use when updating members' nicknames with their assigned call signs, if auto-renaming is enabled.",
       },
       {
         Name: "Unit Type Role-based Restrictions",
@@ -614,6 +621,44 @@ async function UpdateConfigPrompt<T extends SettingsResolvable>(
 // ---------------------------------------------------------------------------------------
 // Component Getters:
 // ------------------
+function GetCSBeatNumRestrictionsPromptComps(BtnInteract: ButtonInteraction<"cached">) {
+  return new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(
+        `${CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions}-am:${BtnInteract.user.id}`
+      )
+      .setPlaceholder("Select an action...")
+      .setMinValues(0)
+      .setMaxValues(1)
+      .setOptions(
+        new StringSelectMenuOptionBuilder()
+          .setValue("add")
+          .setLabel("Add New Restriction")
+          .setDescription("Add a new beat number restriction rule."),
+        new StringSelectMenuOptionBuilder()
+          .setValue("remove")
+          .setLabel("Remove Existing Restriction")
+          .setDescription("Remove an existing beat number restriction rule by its ID."),
+        new StringSelectMenuOptionBuilder()
+          .setValue("clear")
+          .setLabel("Clear All Restrictions")
+          .setDescription("Remove all existing beat number restriction rules."),
+        new StringSelectMenuOptionBuilder()
+          .setValue("list")
+          .setLabel("List All Restrictions")
+          .setDescription("List all existing saved and unsaved restrictions."),
+        new StringSelectMenuOptionBuilder()
+          .setValue("confirm")
+          .setLabel("Confirm Current Restrictions")
+          .setDescription("Confirm currently set rules and return to module config."),
+        new StringSelectMenuOptionBuilder()
+          .setValue("discard")
+          .setLabel("Cancel Changes")
+          .setDescription("Discard all changes and return to module config.")
+      )
+  );
+}
+
 function GetChannelSelectionPromptComponents(
   Interact: MessageComponentInteraction<"cached">,
   TargetConfig: ConfigTopicsCompIds,
@@ -733,8 +778,8 @@ function GetConfigTopicsDropdownMenu(
           .setDescription("Set arrest, citation, and incident log channels and more.")
           .setValue(ConfigTopics.DutyActivitiesConfiguration),
         new StringSelectMenuOptionBuilder()
-          .setLabel("Callsigns Module Configuration")
-          .setDescription("Set and modify callsign module settings.")
+          .setLabel("Call Signs Module Configuration")
+          .setDescription("Set and modify call signs module settings.")
           .setValue(ConfigTopics.CallsignsConfiguration),
         new StringSelectMenuOptionBuilder()
           .setLabel("Additional Configurations")
@@ -1361,6 +1406,28 @@ function GetCallsignsModuleConfigComponents(
       )
   );
 
+  const UnitTypeRestrictionsModeAR = new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+    new StringSelectMenuBuilder()
+      .setPlaceholder("Unit Type Restrictions Mode")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .setCustomId(
+        `${CTAIds[ConfigTopics.CallsignsConfiguration].UnitTypeRoleRestrictionsMode}:${Interaction.user.id}`
+      )
+      .setOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Whitelist")
+          .setValue("true")
+          .setDescription("Only allow specific unit types, as per configured.")
+          .setDefault(CSModuleConfig.unit_type_whitelist),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Blacklist")
+          .setValue("false")
+          .setDescription("Allow all unit types except specific ones.")
+          .setDefault(!CSModuleConfig.unit_type_whitelist)
+      )
+  );
+
   const NicknameFormatAccessoryBtn = new ButtonBuilder()
     .setLabel("Set Nickname Format")
     .setStyle(ButtonStyle.Secondary)
@@ -1389,6 +1456,7 @@ function GetCallsignsModuleConfigComponents(
     ManagerRolesSelectMenuAR,
     AlertOnNewRequestsAR,
     AutoRenameOnAssignmentAR,
+    UnitTypeRestrictionsModeAR,
     NicknameFormatAccessoryBtn,
     SetUnitTypeRoleBasedRestrictionsAccessoryBtn,
     SetBeatNumberRestrictionsAccessoryBtn,
@@ -1938,10 +2006,10 @@ function GetCallsignsModuleConfigContainers(
 
     ManagerRoles: CSModuleConfig.manager_roles.length
       ? CSModuleConfig.manager_roles.map(roleMention).join(", ")
-      : "*None*",
+      : "None",
 
-    UTRSet: CSModuleConfig.unit_type_restrictions.length || "*None*",
-    BNRSet: CSModuleConfig.beat_restrictions.length || "*None*",
+    UTRSet: CSModuleConfig.unit_type_restrictions.length || "None",
+    BNRSet: CSModuleConfig.beat_restrictions.length || "None",
   };
 
   const Page_1 = new ContainerBuilder()
@@ -2025,19 +2093,15 @@ function GetCallsignsModuleConfigContainers(
     .setId(3)
     .setAccentColor(AccentColor)
     .addTextDisplayComponents(ModuleTitleText)
-    .addSectionComponents(
-      new SectionBuilder()
-        .setButtonAccessory(CallsignsModuleInteractComponents[6])
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            Dedent(`
-              7. **${SettingsInfo[6].Name}**
-              **Currently Configured:** \`${CSModuleConfig.nickname_format}\`
-              ${SettingsInfo[6].Description}
-            `)
-          )
-        )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          7. **${SettingsInfo[6].Name}**
+          ${SettingsInfo[6].Description}
+        `)
+      )
     )
+    .addActionRowComponents(CallsignsModuleInteractComponents[6])
     .addSeparatorComponents(new SeparatorBuilder().setDivider())
     .addSectionComponents(
       new SectionBuilder()
@@ -2046,7 +2110,7 @@ function GetCallsignsModuleConfigContainers(
           new TextDisplayBuilder().setContent(
             Dedent(`
               8. **${SettingsInfo[7].Name}**
-              **Restrictions Set:** \`${CurrentlyConfiguredTexts.UTRSet}\`
+              **Currently Configured:** \`${CSModuleConfig.nickname_format}\`
               ${SettingsInfo[7].Description}
             `)
           )
@@ -2060,14 +2124,32 @@ function GetCallsignsModuleConfigContainers(
           new TextDisplayBuilder().setContent(
             Dedent(`
               9. **${SettingsInfo[8].Name}**
-              **Restrictions Set:** \`${CurrentlyConfiguredTexts.BNRSet}\`
+              **Restrictions Set:** ${CurrentlyConfiguredTexts.UTRSet}
               ${SettingsInfo[8].Description}
             `)
           )
         )
     );
 
-  return [Page_1, Page_2, Page_3] as const;
+  const Page_4 = new ContainerBuilder()
+    .setId(4)
+    .setAccentColor(AccentColor)
+    .addTextDisplayComponents(ModuleTitleText)
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(CallsignsModuleInteractComponents[9])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              10. **${SettingsInfo[9].Name}**
+              **Restrictions Set:** ${CurrentlyConfiguredTexts.BNRSet}
+              ${SettingsInfo[9].Description}
+            `)
+          )
+        )
+    );
+
+  return [Page_1, Page_2, Page_3, Page_4] as const;
 }
 
 function GetAdditionalConfigContainers(
@@ -2153,6 +2235,84 @@ function GetChannelOrThreadSelPromptContainer(
     )
     .setFooter("*This prompt will timeout in 5 minutes if no selection or action is made.*")
     .attachPromptActionRows([...PromptComponents]);
+}
+
+function GetCSBeatNumRestrictionsPromptContainer(
+  RecInteract: ButtonInteraction<"cached">,
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+): BaseExtraContainer {
+  const ActionSelectMenu = GetCSBeatNumRestrictionsPromptComps(RecInteract);
+  const PromptContainer = new BaseExtraContainer()
+    .setColor(Colors.DarkGrey)
+    .setTitle("Call Signs Module: Beat Number Restrictions")
+    .setDescription(
+      Dedent(`
+        Use the dropdown menu below to manage beat number restrictions for the call signs module. \
+        You can add new restrictions, remove existing ones, view all current restrictions, or confirm changes and return to the module config.
+
+        **Currently Configured:** \`${MStateObj.ModuleConfig.beat_restrictions.length}\` restriction${MStateObj.ModuleConfig.beat_restrictions.length === 1 ? "" : "s"}.
+      `)
+    )
+    .setFooter(
+      "This prompt will timeout in 10 minutes. Remember to save your changes in the main configuration menu afterwards."
+    );
+
+  return PromptContainer.attachPromptActionRows(ActionSelectMenu);
+}
+
+function GetCSBeatNumRestrictionsListContainers(
+  CSModuleState: ModuleState<GuildSettings["callsigns_module"]>
+): BaseExtraContainer[] {
+  const BeatNumRestrictions = CSModuleState.OriginalConfig.beat_restrictions;
+  const BeatNumRuleChunks = Chunks(CSModuleState.ModuleConfig.beat_restrictions, 3);
+  const Pages: BaseExtraContainer[] = [];
+
+  for (const RulesSet of BeatNumRuleChunks) {
+    const RuleDisplayTexts: string[] = [];
+    const PageContainer = new BaseExtraContainer().setColor(Colors.DarkGrey).setTitle(
+      Dedent(`
+        Call Signs Module: Beat Number Restrictions
+        Showing ${RulesSet.length} of ${CSModuleState.ModuleConfig.beat_restrictions.length} total restriction${CSModuleState.ModuleConfig.beat_restrictions.length === 1 ? "" : "s"}.  
+      `)
+    );
+
+    for (const Rule of RulesSet) {
+      const OriginalRule = BeatNumRestrictions.find((ORule) => ORule._id === Rule._id);
+      let RuleStatus: string;
+
+      if (!OriginalRule) {
+        RuleStatus = "New";
+      } else if (isDeepEqual(Rule, OriginalRule)) {
+        RuleStatus = "Saved";
+      } else {
+        RuleStatus = "Updated";
+      }
+
+      const PermittedRolesText = Rule.permitted_roles.length
+        ? ListFormatter.format(Rule.permitted_roles.map(roleMention))
+        : "*None - Cannot be requested*";
+
+      RuleDisplayTexts.push(
+        Dedent(`
+          **ID:** \`${Rule._id}\`
+          > **Status:** ${RuleStatus}
+          > **Beat Range:** \`${Rule.range[0]} - ${Rule.range[1]}\`
+          > **Permitted Roles:** ${PermittedRolesText}
+        `)
+      );
+    }
+
+    RuleDisplayTexts.forEach((RDT, Index) => {
+      PageContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(RDT));
+      if (Index !== RuleDisplayTexts.length - 1) {
+        PageContainer.addSeparatorComponents(new SeparatorBuilder().setDivider());
+      }
+    });
+
+    Pages.push(PageContainer);
+  }
+
+  return Pages;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -2701,8 +2861,10 @@ async function HandleCallsignsModuleDBSave(
         [`${MPath}.requests_channel`]: MState.ModuleConfig.requests_channel,
         [`${MPath}.nickname_format`]: MState.ModuleConfig.nickname_format,
         [`${MPath}.update_nicknames`]: MState.ModuleConfig.update_nicknames,
+        [`${MPath}.alert_on_request`]: MState.ModuleConfig.alert_on_request,
+        [`${MPath}.unit_type_whitelist`]: MState.ModuleConfig.unit_type_whitelist,
+        [`${MPath}.beat_restrictions`]: MState.ModuleConfig.beat_restrictions,
         [`${MPath}.unit_type_restrictions`]: MState.ModuleConfig.unit_type_restrictions,
-        [`${MPath}.identifier_restrictions`]: MState.ModuleConfig.beat_restrictions,
       },
     },
     {
@@ -2729,19 +2891,20 @@ async function HandleCallsignsModuleDBSave(
       : "`None`";
 
     return Dedent(`
-      Successfully set/updated the app's callsigns module configuration.
+      Successfully set/updated the app's call signs module configuration.
 
       **Current Configuration:**
       - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
       - **Requests Channel:** ${SetRequestsChannel}
       - **Log Channel:** ${SetLogChannel}
       - **Manager Roles:** ${UpdatedSettings.manager_roles.length ? ListFormatter.format(UpdatedSettings.manager_roles.map(roleMention)) : "`None`"}
-      - **Alert on New Request:** ${UpdatedSettings.alert_on_request ? "Enabled" : "Disabled"}
+      - **Alert on New Requests:** ${UpdatedSettings.alert_on_request ? "Enabled" : "Disabled"}
 
       - **Nickname Format:** \`${UpdatedSettings.nickname_format}\`
       - **Auto-Rename on Approval:** ${UpdatedSettings.update_nicknames ? "Enabled" : "Disabled"}
+      - **Unit Type Rules Mode:** ${UpdatedSettings.unit_type_whitelist ? "Whitelist" : "Blacklist"}
       - **Unit Type Restrictions:** ${UpdatedSettings.unit_type_restrictions?.length ? `${UpdatedSettings.unit_type_restrictions.length} restriction(s) set` : "`None`"}
-      - **Identifier Restrictions:** ${UpdatedSettings.beat_restrictions?.length ? `${UpdatedSettings.beat_restrictions.length} restriction(s) set` : "`None`"}
+      - **Beat Number Restrictions:** ${UpdatedSettings.beat_restrictions?.length ? `${UpdatedSettings.beat_restrictions.length} restriction(s) set` : "`None`"}
     `);
   } else {
     return null;
@@ -3257,7 +3420,7 @@ async function HandleCallsignsModuleConfigPageInteracts(
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
         ActionMap.LogChannel,
-        "Callsigns Log",
+        "Call Signs Log",
         MState.ModuleConfig.log_channel
       );
 
@@ -3271,7 +3434,7 @@ async function HandleCallsignsModuleConfigPageInteracts(
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
         ActionMap.RequestsChannel,
-        "Callsigns Requests",
+        "Call Sign Requests",
         MState.ModuleConfig.requests_channel
       );
 
@@ -3300,7 +3463,10 @@ async function HandleCallsignsModuleConfigPageInteracts(
     }
 
     if (CustomId.startsWith(ActionMap.BeatNumberRestrictions)) {
-      // TODO.
+      const UpdatedRestrictions = await PromptBeatNumRestrictionsMod(RecInteract, MState);
+      if (UpdatedRestrictions.length !== MState.ModuleConfig.beat_restrictions.length) {
+        return true;
+      }
     }
   }
 
@@ -3310,6 +3476,13 @@ async function HandleCallsignsModuleConfigPageInteracts(
 
   if (RecInteract.isStringSelectMenu() && CustomId.startsWith(ActionMap.AutoRenameOnApproval)) {
     MState.ModuleConfig.update_nicknames = RecInteract.values[0] === "true";
+  }
+
+  if (
+    RecInteract.isStringSelectMenu() &&
+    CustomId.startsWith(ActionMap.UnitTypeRoleRestrictionsMode)
+  ) {
+    MState.ModuleConfig.unit_type_whitelist = RecInteract.values[0] === "true";
   }
 
   if (RecInteract.isRoleSelectMenu() && CustomId.startsWith(ActionMap.ManagerRoles)) {
@@ -3646,7 +3819,7 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
   CurrentFormat: string
 ): Promise<string> {
   const InputModal = new ModalBuilder()
-    .setTitle("Callsign Nickname Format")
+    .setTitle("Call Sign Nickname Format")
     .setCustomId(CTAIds[ConfigTopics.CallsignsConfiguration].NicknameFormat + RandomString(4))
     .setComponents(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
@@ -3654,10 +3827,7 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
           .setStyle(TextInputStyle.Paragraph)
           .setValue(CurrentFormat)
           .setLabel("Nickname Format")
-          .setPlaceholder(
-            "ex., {division}{unit_type}-{beat_num} | {nickname}\n\n" +
-              "Supported Tags/Placeholders:\n{division}, {unit_type}, {beat_num}, {nickname}, {display_name}, and {roblox_username}"
-          )
+          .setPlaceholder("ex., {division}-{unit_type}-{beat_num} | {nickname}")
           .setCustomId("format")
           .setRequired(true)
           .setMinLength(10)
@@ -3670,6 +3840,148 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
   ModalSubmission.deferUpdate().catch(() => null);
 
   return ModalSubmission.fields.getTextInputValue("format");
+}
+
+async function ModalPromptBeatNumRuleRemove(
+  SelectInteract: StringSelectMenuInteraction<"cached">,
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+) {
+  const InputIdModal = new ModalBuilder()
+    .setTitle("Call Signs: Beat Number Restriction Removal")
+    .setCustomId(
+      CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions +
+        "-remove-" +
+        RandomString(6)
+    )
+    .setComponents(
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
+        new TextInputBuilder()
+          .setStyle(TextInputStyle.Paragraph)
+          .setLabel("Restriction ID")
+          .setPlaceholder("The ID of the restriction to remove, use the list option to view IDs.")
+          .setCustomId("id")
+          .setRequired(true)
+          .setMinLength(24)
+          .setMaxLength(24)
+      )
+    );
+
+  const ModalSubmission = await ShowModalAndAwaitSubmission(
+    SelectInteract,
+    InputIdModal,
+    5 * 60 * 1000
+  );
+
+  if (!ModalSubmission) return;
+  const InputId = ModalSubmission.fields.getTextInputValue("id");
+  const ExistingIndex = MStateObj.ModuleConfig.beat_restrictions.findIndex(
+    (R) => R._id.toString() === InputId
+  );
+
+  if (!isValidObjectId(InputId)) {
+    return new ErrorContainer()
+      .useErrTemplate("Invalid24HexaID")
+      .replyToInteract(ModalSubmission, true);
+  }
+
+  if (ExistingIndex === -1) {
+    return new ErrorContainer()
+      .useErrTemplate("CallsignBeatNumRestrictionNotFound")
+      .replyToInteract(ModalSubmission, true);
+  }
+
+  MStateObj.ModuleConfig.beat_restrictions.splice(ExistingIndex, 1);
+  return new SuccessContainer()
+    .useTemplate("CallsignBeatNumRestrictionRemoved")
+    .replyToInteract(ModalSubmission, true);
+}
+
+async function HandleBeatNumRulesClear(
+  SelectInteract: StringSelectMenuInteraction<"cached">,
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+) {
+  if (MStateObj.ModuleConfig.beat_restrictions.length === 0) {
+    return new InfoContainer()
+      .useInfoTemplate("CallsignBeatNumNoRestrictionsToClear")
+      .replyToInteract(SelectInteract, true, true);
+  }
+
+  MStateObj.ModuleConfig.beat_restrictions = [];
+  return new SuccessContainer()
+    .useTemplate("CallsignBeatNumAllRestrictionsCleared")
+    .replyToInteract(SelectInteract, true, true);
+}
+
+async function PromptBeatNumRestrictionsMod(
+  BtnInteract: ButtonInteraction<"cached">,
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+): Promise<GuildSettings["callsigns_module"]["beat_restrictions"]> {
+  const PromptContainer = GetCSBeatNumRestrictionsPromptContainer(BtnInteract, MStateObj);
+  const MStateObjCopy = clone(MStateObj);
+  const PromptMessage = await BtnInteract.reply({
+    withResponse: true,
+    components: [PromptContainer],
+    flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+  }).then((IR) => IR.resource!.message! as Message<true>);
+
+  const ActionsCollector = PromptMessage.createMessageComponentCollector({
+    componentType: ComponentType.StringSelect,
+    filter: (I) => I.user.id === BtnInteract.user.id,
+    time: 10 * 60 * 1000,
+  });
+
+  ActionsCollector.on("collect", async (SelectInteract) => {
+    const Selected = SelectInteract.values[0];
+    try {
+      switch (Selected) {
+        case "list": {
+          const Pages = GetCSBeatNumRestrictionsListContainers(MStateObjCopy);
+          if (Pages.length === 0) {
+            return new InfoContainer()
+              .useInfoTemplate("CallsignBeatNumNoRestrictionsToList")
+              .replyToInteract(SelectInteract, true, true);
+          }
+
+          return HandlePagePagination({
+            interact: SelectInteract,
+            pagination_timeout: 8 * 60 * 1000,
+            pages: Pages,
+            context: FileLabel,
+            ephemeral: true,
+          });
+        }
+        case "add":
+          return await ModalPromptBeatNumRuleAdd(SelectInteract, MStateObjCopy);
+        case "remove":
+          return await ModalPromptBeatNumRuleRemove(SelectInteract, MStateObjCopy);
+        case "clear":
+          return await HandleBeatNumRulesClear(SelectInteract, MStateObjCopy);
+        case "discard":
+          return ActionsCollector.stop("ChangesDismissed");
+        case "confirm":
+        default:
+          return ActionsCollector.stop("ChangesConfirmed");
+      }
+    } catch (Err: any) {
+      AppLogger.error({
+        message: "Something went wrong while handling callsign beats restriction modifications;",
+        label: FileLabel,
+        stack: Err?.stack,
+        error: Err,
+      });
+    }
+  });
+
+  return new Promise<GuildSettings["callsigns_module"]["beat_restrictions"]>((resolve) => {
+    ActionsCollector.on("end", (Collected, EndReason) => {
+      const LastInteract = Collected.last() ?? BtnInteract;
+      LastInteract.deleteReply().catch(() => null);
+
+      return EndReason.includes("Confirmed")
+        ? resolve(MStateObjCopy.ModuleConfig.beat_restrictions)
+        : resolve(MStateObj.ModuleConfig.beat_restrictions);
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------------------

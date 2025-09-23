@@ -894,6 +894,18 @@ export const ErrorMessages = {
       "You have no pending call sign request to cancel at the moment. The panel has been updated to reflect the current status.",
   },
 
+  CallsignBeatNumRestrictionNotFound: {
+    Title: "Not Found",
+    Description:
+      "The beat number restriction you are trying to modify could not be found in the database. It may have been deleted or never existed.",
+  },
+
+  Invalid24HexaID: {
+    Title: "Invalid ID",
+    Description:
+      "The ID provided is invalid. Please ensure it is a valid 24-character hexadecimal string.",
+  },
+
   SANoShiftsToModify: {
     Title: "No Shifts To Modify",
     Description:
@@ -1322,5 +1334,30 @@ export const InfoMessages = {
   CallsignsListNoRecordsWithPendingStatus: {
     Title: "No Call Signs Found",
     Description: "There are currently no call sign records pending approval in this server.",
+  },
+
+  CallsignBeatNumNoRestrictionsToList: {
+    Title: "No Restrictions Found",
+    Description: "There are currently no beat number restrictions set up to display.",
+  },
+
+  CallsignBeatNumRestrictionRemoved: {
+    Title: "Restriction Removed",
+    Description:
+      "The beat number restriction has been successfully removed. " +
+      "Kindly note that this is not yet saved to database and module config until you confirm and then save the changes in the *main* configuration prompt.",
+  },
+
+  CallsignBeatNumNoRestrictionsToClear: {
+    Title: "No Restrictions Found",
+    Description:
+      "There are currently no beat number restrictions set up to clear. No changes were made.",
+  },
+
+  CallsignBeatNumAllRestrictionsCleared: {
+    Title: "All Restrictions Cleared",
+    Description:
+      "All beat number restrictions have been successfully cleared. " +
+      "Kindly note that this is not yet saved to database and module config until you confirm *and then* save the changes in the *main* configuration prompt.",
   },
 };
