@@ -8,6 +8,54 @@ export type UserIdLookupResult<Input> = Input extends string[]
   : [number, string, boolean];
 
 /**
+ * Fallback method to get a user Id by using profile URL redirects.
+ * @param Username - The Roblox username to get the Id for.
+ * @returns A tuple containing the user Id, username, and success status.
+ */
+async function GetIdByProfileRedirect(Username: string): Promise<[number, string, boolean]> {
+  try {
+    const Response = await Axios.get(
+      `https://www.roblox.com/users/profile?username=${encodeURIComponent(Username)}`,
+      {
+        validateStatus: (status) => status === 302 || status === 301,
+        maxRedirects: 0,
+        timeout: 8_000,
+      }
+    );
+
+    const LocationHeader = Response.headers.location as string | undefined;
+    if (!LocationHeader) {
+      return [0, "", false];
+    }
+
+    // Extract user Id from the redirect URL
+    // Expected format: https://www.roblox.com/users/{userId}/profile
+    const UrlParts = LocationHeader.split("/");
+    const UserIdIndex = UrlParts.findIndex((Part) => Part === "users") + 1;
+
+    if (UserIdIndex === 0 || UserIdIndex >= UrlParts.length) {
+      return [0, "", false];
+    }
+
+    const UserId = parseInt(UrlParts[UserIdIndex], 10);
+    if (isNaN(UserId) || UserId <= 0) {
+      return [0, "", false];
+    }
+
+    // We don't have the exact username from this method, so we'll use the input.
+    return [UserId, Username, true];
+  } catch (Err: any) {
+    AppLogger.error({
+      label: "Utils:Roblox:GetIdByProfileRedirect",
+      stack: Err.stack,
+      error: Err,
+    });
+
+    return [0, "", false];
+  }
+}
+
+/**
  * Primarily retrieves the Roblox user Id(s) of the given username(s).
  * @param Usernames - The Roblox username(s) to get the Id(s) for. Can be a string or an array of strings.
  * @param ExcludeBanned - Whether to exclude banned users from the response and results. `false` by default.
@@ -35,6 +83,7 @@ export default async function GetIdByUsername<Input extends string | string[]>(
 ): Promise<UserIdLookupResult<Input>> {
   const RequestArray: string[] = Array.isArray(Usernames) ? Usernames : [Usernames];
   const Stringified: string = RequestArray.toString();
+  const LogLabel = "Utils:Roblox:GetIdFromUsername";
 
   if (RobloxAPICache.IdByUsername.has(Stringified)) {
     return RobloxAPICache.IdByUsername.get(Stringified) as UserIdLookupResult<Input>;
@@ -64,13 +113,40 @@ export default async function GetIdByUsername<Input extends string | string[]>(
 
     return FinalResults as UserIdLookupResult<Input>;
   } catch (Err: any) {
+    // Fallback approach: try using profile redirect for each username:
     AppLogger.error({
-      label: "Utils:Roblox:GetIdFromUsername",
+      label: LogLabel,
+      message: "Primary API request failed, initiating fallback method using profile redirects.",
       stack: Err.stack,
-      message: Err.message,
-      details: { ...Err },
+      error: Err,
     });
 
-    return (Array.isArray(Usernames) ? [] : [0, "", false]) as any;
+    try {
+      const FallbackResults = await Promise.all(
+        RequestArray.map(async (Username) => {
+          return GetIdByProfileRedirect(Username);
+        })
+      );
+
+      const FinalResults = Array.isArray(Usernames) ? FallbackResults : FallbackResults[0];
+      const HasSuccessfulResults = Array.isArray(Usernames)
+        ? FallbackResults.some(([, , success]) => success)
+        : FallbackResults[0][2];
+
+      if (HasSuccessfulResults) {
+        RobloxAPICache.IdByUsername.set(Stringified, FinalResults as UserIdLookupResult<Input>);
+      }
+
+      return FinalResults as UserIdLookupResult<Input>;
+    } catch (FallbackErr: any) {
+      AppLogger.error({
+        message: "Fallback method also failed.",
+        stack: FallbackErr.stack,
+        error: FallbackErr,
+        label: LogLabel,
+      });
+
+      return (Array.isArray(Usernames) ? [] : [0, "", false]) as any;
+    }
   }
 }

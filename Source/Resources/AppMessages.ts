@@ -129,6 +129,15 @@ export const ErrorMessages = {
   },
 
   /**
+   * @template InputShiftTypeName The name of the shift type provided by the user.
+   */
+  ShiftTypeDeletionFailed: {
+    Title: "Deletion Failed",
+    Description:
+      "The shift type `%s` could not be deleted as expected. If the issue persists, please contact support.",
+  },
+
+  /**
    *
    */
   MaximumShiftTypesReached: {
@@ -232,20 +241,15 @@ export const ErrorMessages = {
   },
 
   /**
-   * Roblox account not linked (for shift management command; "duty manage")
-   */
-  SMRobloxUserNotLinked: {
-    Title: "Hold On!",
-    Description: "To manage shifts, you must first link your Roblox account.",
-  },
-
-  /**
    * Roblox account not linked (general usage)
    */
   RobloxUserNotLinked: {
     Title: "Hold On!",
     get Description() {
-      return `You must link your Roblox account using the ${MentionCmdByName("log-in")} command before using this command.`;
+      return (
+        `You must link your Roblox account before using this command. Use the ${MentionCmdByName("log-in")} command to get started.\n` +
+        "For guidance, please refer to [the documentation page](https://lapd-central-app.gitbook.io/documentation/guides-and-how-to/other-guides/linking-roblox-account)."
+      );
     },
   },
 
@@ -924,7 +928,7 @@ export const ErrorMessages = {
   LogIncidentInvalidAttachments: {
     Title: "Invalid Attachment(s)",
     Description:
-      "One or more of the provided attachments are invalid. Please provide up to 10 static image attachments with `.png`, `.jpg`, or `.jpeg` extensions.",
+      "One or more of the provided attachments are invalid. Please provide up to 10 static image attachments with `.png`, `.jpg`, `.jpeg`, or `.webp` extensions.",
   },
 
   LogIncidentInvalidType: {
@@ -1084,6 +1088,17 @@ export const ErrorMessages = {
     Title: "No Entries Found",
     Description:
       "The duty import file contained no valid entries that could be processed. Make sure the entries in the file are correctly formatted and try again.",
+  },
+
+  DutyImportFileTooLarge: {
+    Title: "File Too Large",
+    Description: "The uploaded file exceeds the maximum allowed size of one megabyte (1MB).",
+  },
+
+  DutyImportFContentTooLarge: {
+    Title: "Content Too Large",
+    Description:
+      "The uploaded file's content is too large to process. Try splitting it into smaller chunks and uploading them separately.",
   },
 
   ActionRequiresMemberPresence: {

@@ -3793,8 +3793,24 @@ async function HandleDefaultShiftQuotaBtnInteract(
     );
 
   if (CurrentQuota) {
-    const FormattedDuration = FormatDuration(CurrentQuota);
-    InputModal.components[0].components[0].setValue(FormattedDuration);
+    let FormattedDuration: string = FormatDuration(CurrentQuota);
+    if (FormattedDuration.length > 20) {
+      FormattedDuration = FormattedDuration.replace("and", "");
+      if (FormattedDuration.length > 20) {
+        FormattedDuration = FormattedDuration.replace(/ ?week(s)?/g, "w")
+          .replace(/ ?year(s)?/g, "y")
+          .replace(/ ?month(s)?/g, "mo")
+          .replace(/ ?minute(s)?/g, "min")
+          .replace(/ ?second(s)?/g, "s")
+          .replace(/ ?hour(s)?/g, "h")
+          .replace(/ ?day(s)?/g, "d");
+      }
+    }
+
+    FormattedDuration = FormattedDuration.length <= 20 ? FormattedDuration : "";
+    if (FormattedDuration.length <= 20 && FormattedDuration.length > 0) {
+      InputModal.components[0].components[0].setValue(FormattedDuration);
+    }
   }
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 8 * 60 * 1000);

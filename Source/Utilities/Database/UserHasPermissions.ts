@@ -71,14 +71,14 @@ export async function UserHasPermsV2<UType extends string | string[]>(
 
   const Guild = Client.guilds.cache.get(GuildId);
   if (typeof User === "string") {
-    const GuildMember = Guild?.members.cache.get(User);
+    const GuildMember = await Guild?.members.fetch(User);
     if (!GuildMember) return false as any;
     const Result = CheckPerms(await GetDBRolePerms(GuildId), Permissions, GuildMember);
     return Result[0] as UHPV2Return<UType>;
   } else if (Array.isArray(User)) {
     const Results: Record<string, boolean> = {};
     for (const UserId of User) {
-      const GuildMember = Guild?.members.cache.get(UserId);
+      const GuildMember = await Guild?.members.fetch(UserId);
       if (!GuildMember) {
         Results[UserId] = false;
         continue;

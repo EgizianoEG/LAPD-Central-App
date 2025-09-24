@@ -23,8 +23,8 @@ export default async function AutocompleteShiftType(
   const ShiftTypes = await GetGuildSettings(GuildId).then((Settings) => {
     if (!Settings) return [];
     return Settings.shift_management.shift_types
-      .map((ShiftType) => ShiftType.name)
-      .sort((a, b) => a.localeCompare(b));
+      .toSorted((a, b) => a.created_on.getTime() - b.created_on.getTime())
+      .map((ShiftType) => ShiftType.name);
   });
 
   if (!ShiftTypes.length) {

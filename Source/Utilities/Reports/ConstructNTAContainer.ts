@@ -1,6 +1,6 @@
+import { APIResponses, OpenCloud } from "@Typings/External/Roblox.js";
 import { Dedent, FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
-import { APIResponses } from "@Typings/External/Roblox.js";
 import { UpperFirst } from "@Utilities/Strings/Converters.js";
 import {
   time,
@@ -15,7 +15,10 @@ import {
 
 export default function ConstructNTAContainer(
   CitationData: Omit<GuildCitations.AnyCitationData, "img_url">,
-  AdditionalViolatorInfo: APIResponses.Users.GetUserResponse | string,
+  AdditionalViolatorInfo:
+    | APIResponses.Users.GetUserResponse
+    | OpenCloud.V2.Users.GetUserResponse
+    | string,
   CitationImgURL: string
 ) {
   const IssuedOnYearSuffix = new Date(CitationData.issued_on).getFullYear().toString().slice(-2);

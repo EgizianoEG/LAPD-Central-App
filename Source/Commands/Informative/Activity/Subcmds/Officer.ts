@@ -95,6 +95,7 @@ export async function ParseDateInputs(ReceivedInteract: SlashCommandInteraction<
 }
 
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
+  const ShiftTypeFilter = Interaction.options.getString("shift-type", false);
   const PrivateResponse = Interaction.options.getBoolean("private") ?? false;
   const DateFiltering = await ParseDateInputs(Interaction);
   let OfficerSelected = Interaction.options.getMember("officer");
@@ -139,6 +140,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     GetMainShiftsData({
       user: OfficerSelected.id,
       guild: Interaction.guildId,
+      type: ShiftTypeFilter || { $exists: true },
       start_timestamp: DateFiltering.since ? { $gte: DateFiltering.since } : { $exists: true },
       end_timestamp: DateFiltering.until ? { $lte: DateFiltering.until } : { $exists: true },
     }),
@@ -147,6 +149,10 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   const QuotaMetYesNo = ShiftsData.quota_met ? "Yes" : "No";
   const QuotaMetText =
     typeof ShiftsData.quota_met === "boolean" ? `- Quota Met: ${QuotaMetYesNo}` : "";
+
+  const FrequentShiftText = ShiftTypeFilter?.length
+    ? ""
+    : `- Frequent Shift: \`${ShiftsData.frequent_shift_type}\``;
 
   const FormattedRobloxName = TargetRUserInfo
     ? FormatUsername(TargetRUserInfo, false, true)
@@ -169,7 +175,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         name: "**Shift Statistics**",
         value: Dedent(`
           ${QuotaMetText}
-          - Frequent Shift: \`${ShiftsData.frequent_shift_type}\`
+          ${FrequentShiftText}
           - Shifts Completed: \`${ShiftsData.shift_count}\`
           - On-Duty Duration
             - Total: ${ShiftsData.total_onduty}
@@ -232,6 +238,14 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
           "The officer to inspect and show activity information for. Defaults to yourself."
         )
         .setRequired(false)
+    )
+    .addStringOption((Option) =>
+      Option.setName("shift-type")
+        .setDescription("A specific shift type to filter by.")
+        .setMinLength(3)
+        .setMaxLength(20)
+        .setRequired(false)
+        .setAutocomplete(true)
     )
     .addStringOption((Option) =>
       Option.setName("since")

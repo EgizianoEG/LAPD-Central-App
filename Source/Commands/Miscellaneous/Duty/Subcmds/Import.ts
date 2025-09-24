@@ -1,6 +1,8 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import { DutyLeaderboardEntryRegex } from "@Resources/RegularExpressions.js";
+import { randomInt as RandomInteger } from "node:crypto";
 import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
+import { DutyLeaderboardEntryRegex } from "@Resources/RegularExpressions.js";
+import { Dedent, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
 import {
   SlashCommandSubcommandBuilder,
@@ -21,7 +23,6 @@ import {
   WarnContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
 
-import { Dedent, ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
 import ResolveUsernamesToIds from "@Utilities/Discord/ResolveDiscordUsernames.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
@@ -45,6 +46,8 @@ type LeaderboardEntry = {
 
 const FileLabel = "Commands:Miscellaneous:Duty:Import";
 const LineRegex = DutyLeaderboardEntryRegex;
+const MaxFileSize = 1 * 1024 * 1024; // 1MB
+const MaxContentSize = 1.5 * 1024 * 1024; // 1.5MB
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
@@ -52,11 +55,21 @@ async function IsAttachmentExtensionValid(
   Interaction: SlashCommandInteraction<"cached">,
   DataFile: Attachment
 ): Promise<boolean> {
-  if (DataFile.name.endsWith(".txt")) return true;
-  return new ErrorContainer()
-    .useErrTemplate("AttachmentMustBeTextFile")
-    .replyToInteract(Interaction, true)
-    .then(() => false);
+  if (!DataFile.name.endsWith(".txt")) {
+    return new ErrorContainer()
+      .useErrTemplate("AttachmentMustBeTextFile")
+      .replyToInteract(Interaction, true)
+      .then(() => false);
+  }
+
+  if (DataFile.size > MaxFileSize) {
+    return new ErrorContainer()
+      .useErrTemplate("DutyImportFileTooLarge")
+      .replyToInteract(Interaction, true)
+      .then(() => false);
+  }
+
+  return true;
 }
 
 async function AwaitImportConfirmation(
@@ -137,26 +150,57 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   });
 
   try {
-    const FileContent = await (await fetch(UploadedFile.url)).text();
+    const FileContent = await (
+      await fetch(UploadedFile.url, {
+        signal: AbortSignal.timeout(30_000),
+      })
+    ).text();
+
+    if (new Blob([FileContent]).size > MaxContentSize) {
+      throw new AppError({ template: "DutyImportFContentTooLarge", showable: true });
+    }
+
     const FileEntries = FileContent.split(/\r?\n/)
       .map((Line) => Line.trim())
       .filter((Line) => Line.length > 0)
-      .map((Line) => (Line.match(LineRegex)?.groups as LeaderboardEntry) ?? null)
+      .filter((Line) => Line.length <= 1000)
+      .slice(0, 5000)
+      .map((Line) => {
+        try {
+          return (Line.match(LineRegex)?.groups as LeaderboardEntry) ?? null;
+        } catch (RegexError: any) {
+          AppLogger.warn({
+            message: "Regex processing failed for line",
+            line: Line.substring(0, 100),
+            error: RegexError,
+            stack: RegexError?.stack,
+            label: FileLabel,
+          });
+
+          return null;
+        }
+      })
       .filter(
         (Entry) =>
           Entry &&
           "hr_time" in Entry &&
           "username" in Entry &&
+          Entry.username.length >= 2 &&
+          Entry.username.length <= 32 &&
+          /^[a-zA-Z0-9_.]+$/.test(Entry.username) &&
           !Entry.hr_time.trim().match(/^0\s*?seconds$/i)
       )
       .map((Entry) => {
+        if (!Entry) return null;
         if (!Entry.duty_ms && Entry.hr_time) {
           Entry.duty_ms = Math.round(Math.abs(ParseDuration(Entry.hr_time, "millisecond") ?? 0));
         } else if (typeof Entry.duty_ms === "string") {
           Entry.duty_ms = parseInt(Entry.duty_ms, 10);
         }
+
         return Entry as LeaderboardEntry & { duty_ms: number };
-      });
+      })
+      .filter((Entry): Entry is LeaderboardEntry & { duty_ms: number } => Entry !== null);
 
     if (FileEntries.length === 0) {
       return ConfirmationInteract.editReply({
@@ -178,26 +222,60 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       }
     });
 
-    const SanitizedShiftEntries = FileEntries.filter((Entry) => Entry.user_id && Entry.duty_ms).map(
-      (Entry) => ({
-        user: Entry.user_id!,
-        guild: Interaction.guild.id,
-        flag: ShiftFlags.Imported,
-        type: ShiftType,
-        start_timestamp: ConfirmationInteract.createdAt,
-        end_timestamp: ConfirmationInteract.createdAt,
-        durations: {
-          on_duty_mod: Entry.duty_ms,
-        },
-      })
-    );
+    // Group entries by `user_id` and aggregate duty times for duplicate usernames:
+    const UserDutyMap = new Map<string, number>();
+    const ValidEntries = FileEntries.filter((Entry) => Entry.user_id && Entry.duty_ms);
+
+    ValidEntries.forEach((Entry) => {
+      const UserId = Entry.user_id!;
+      const CurrentDuty = UserDutyMap.get(UserId) || 0;
+      UserDutyMap.set(UserId, CurrentDuty + Entry.duty_ms);
+    });
+
+    // Shift entries with unique timestamps to avoid ID collisions:
+    let ShiftIds: string[] = [];
+    let SanitizedShiftEntries: {
+      _id: string;
+      user: string;
+      guild: string;
+      flag: ShiftFlags;
+      type: string;
+      start_timestamp: number;
+      end_timestamp: number;
+      durations: { on_duty_mod: number };
+    }[] = [];
+
+    do {
+      SanitizedShiftEntries = Array.from(UserDutyMap.entries()).map(
+        ([UserId, TotalDutyMs], index) => {
+          const ShiftIdEpoch =
+            Date.now() + index * RandomInteger(1, 50) + index + RandomInteger(10, 99);
+
+          return {
+            _id: `${ShiftIdEpoch}${RandomInteger(10, 99)}`.slice(0, 15),
+            user: UserId,
+            guild: Interaction.guild.id,
+            flag: ShiftFlags.Imported,
+            type: ShiftType,
+            start_timestamp: Date.now() + index,
+            end_timestamp: Date.now() + index,
+            durations: {
+              on_duty_mod: TotalDutyMs,
+            },
+          };
+        }
+      );
+
+      ShiftIds = SanitizedShiftEntries.map((Entry) => Entry._id);
+    } while (new Set(ShiftIds).size !== SanitizedShiftEntries.length);
 
     const DataParsed = {
       UsersTotal: FileEntries.length,
       ShiftsOfType: ShiftType,
       SourceFileURL: UploadedFile.url,
-      TotalShiftTime: FileEntries.reduce((Acc, Entry) => Acc + Entry.duty_ms, 0),
-      UnresolvedUsers: FileEntries.length - SanitizedShiftEntries.length,
+      TotalShiftTime: Array.from(UserDutyMap.values()).reduce((Acc, DutyMs) => Acc + DutyMs, 0),
+      UnresolvedUsers: FileEntries.length - ValidEntries.length,
+      UniqueUsersImported: UserDutyMap.size,
       ShiftsTotal: FileEntries.reduce((Acc, Entry) => {
         return typeof Entry.shift_count === "string"
           ? Acc + parseInt(Entry.shift_count, 10)
@@ -212,13 +290,14 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
     try {
       await ShiftModel.insertMany(SanitizedShiftEntries);
-    } catch (dbError: any) {
+    } catch (DBError: any) {
       const ErrorId = GetErrorId();
       AppLogger.error({
         message: "Failed to import duty data into the database.",
         error_id: ErrorId,
         label: FileLabel,
-        stack: dbError.stack,
+        stack: DBError.stack,
+        error: DBError,
       });
 
       return new ErrorContainer()
@@ -235,7 +314,8 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         .setDescription(
           Dedent(`
             The duty time import has been completed successfully. The following is a summary of the imported data:
-            - **Total Staff:** ${DataParsed.UsersTotal}${UnresolvedUsersText}
+            - **Unique Staff Imported:** ${DataParsed.UniqueUsersImported}
+            - **Total Staff in File:** ${DataParsed.UsersTotal}${UnresolvedUsersText}
             - **Under Shift Type:** ${DataParsed.ShiftsOfType}
             - **Total Shift Time:** ${ReadableDuration(DataParsed.TotalShiftTime)}
           `)
@@ -257,6 +337,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       error_id: ErrorId,
       label: FileLabel,
       stack: Err.stack,
+      error: Err,
     });
   }
 }

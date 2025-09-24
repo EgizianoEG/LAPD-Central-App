@@ -23,7 +23,12 @@ export default async function CreateActivityReport(
   const SheetOneTableTitle = Util.format("%s\nActivity Report%s", Opts.guild.name, ShiftTypeText);
 
   const FirstSheetName = GetFirstSheetName(Opts.until ?? new Date(), Opts.after);
-  const RowEndIndex = ReportData.records.length === 1 ? 13 : ReportData.records.length + 10;
+  const RowStartIndex = 11;
+  const RowEndIndex = Math.max(
+    ReportData.records.length === 1 ? 13 : ReportData.records.length + 10,
+    RowStartIndex + 1
+  );
+
   const CSpreadsheet = await SheetsAPI.spreadsheets.get({
     spreadsheetId: Copy.data.id!,
   });
@@ -94,7 +99,7 @@ export default async function CreateActivityReport(
             range: {
               sheetId: RecordsSheetId,
               dimension: "ROWS",
-              startIndex: 11, // Insert after the 11th row (0-based index)
+              startIndex: RowStartIndex,
               endIndex: RowEndIndex,
             },
           },

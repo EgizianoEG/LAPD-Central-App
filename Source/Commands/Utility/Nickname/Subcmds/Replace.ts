@@ -203,7 +203,7 @@ async function ProcessBatchedReplacements(
         ProcessedCount,
         TotalMembers,
         TotalReplaced,
-        BatchIndex,
+        BatchIndex + 1,
         Batches.length,
         `Operation cancelled at ${userMention(OperationCancelledBy)}'s request.`
       );
@@ -299,7 +299,8 @@ async function ProcessBatchedReplacements(
     TotalFailed += CurrentBatch.length - BatchSuccesses;
     ProcessedCount += CurrentBatch.length;
 
-    if (BatchSuccesses <= BatchSize / 2) {
+    const EffectiveBatchSize = CurrentBatch.length;
+    if (BatchIndex < Batches.length - 1 && BatchSuccesses <= Math.floor(EffectiveBatchSize / 2)) {
       await UpdateProgressMessage(
         ButtonInteract,
         ProcessedCount,
@@ -456,6 +457,7 @@ async function HandleReplacementConfirmation(
     FinalRespEmbed = new ErrorEmbed().useErrTemplate("NicknameReplaceNoReplacementsMade");
   } else {
     FinalRespEmbed = new SuccessEmbed()
+      .setThumbnail(null)
       .setTitle(
         EarlyTermination
           ? TerminationReason?.includes("Cancelled")
@@ -472,6 +474,7 @@ async function HandleReplacementConfirmation(
                 : "Process terminated early."
               : "Process completed successfully."
           }**${EarlyTermination ? `\n**Reason:** ${TerminationReason}` : ""}
+
           **Here is a summary of the results:**
           > - Members Matched: \`${MatchingMembers.size}\`
           > - Members Eligible: \`${EligibleMembers.size}\`
@@ -572,7 +575,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
   const InputRegex = CmdInteract.options.getString("regex", true);
   const InputRFlag = CmdInteract.options.getString("flags", false);
   const RoleFilter = CmdInteract.options.getRole("role-filter", false);
-  const InputReplacement = CmdInteract.options.getString("replacement", true);
+  const InputReplacement = CmdInteract.options.getString("replacement", true).replace(/%s$/, " ");
   const AppMember = await CmdInteract.guild.members.fetchMe();
 
   if (RoleFilter && RoleFilter.comparePositionTo(AppMember.roles.highest) >= 0) {
@@ -693,7 +696,9 @@ const CommandObject = {
     )
     .addStringOption((Opt) =>
       Opt.setName("replacement")
-        .setDescription("The replacement string or expression.")
+        .setDescription(
+          "The replacement string or expression. Type '%s' for trailing spaces if needed."
+        )
         .setMinLength(2)
         .setMaxLength(35)
         .setRequired(true)

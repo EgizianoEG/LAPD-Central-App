@@ -43,14 +43,24 @@ export default async function DeleteShiftType(Name: string, GuildId: string) {
       showable: true,
     });
   } else {
-    return GuildModel.updateOne(
+    const Result = await GuildModel.updateOne(
       { _id: GuildId },
-      { $pull: { "shift_management.shift_types": { name: Name } } },
+      { $pull: { "settings.shift_management.shift_types": { name: Name } } },
       {
         upsert: true,
         runValidators: true,
         setDefaultsOnInsert: true,
       }
     );
+
+    if (Result.modifiedCount === 0) {
+      throw new AppError({
+        template: "ShiftTypeDeletionFailed",
+        template_args: [Name],
+        showable: true,
+      });
+    }
+
+    return Result;
   }
 }

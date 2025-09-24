@@ -500,7 +500,7 @@ async function UpdateManagementPrompt(
   );
 
   let ShiftOverviewDesc = "";
-  const MgmtEmbedTitle = `### Shift Management: \`${ShiftType}\` type`;
+  const MgmtEmbedTitle = `Shift Management: \`${ShiftType}\` type`;
   const MgmtPromptMainDesc = Dedent(`
     > **Shift Count:** \`${MemberShiftsData.shift_count}\`
     > **Total On-Duty Time:** ${MemberShiftsData.total_onduty}
@@ -534,7 +534,7 @@ async function UpdateManagementPrompt(
           **Shift Overview:**
           >>> **Status:** (${Emojis.Offline}) Off-Duty
           **Shift Type:** \`${MostRecentFinishedShift.type}\`
-          **Shift Time:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}
+          **Shift Started:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}
         `);
       }
     } else if (PreviousAction === RecentShiftAction.BreakEnd && ActiveShift?.hasBreaks()) {

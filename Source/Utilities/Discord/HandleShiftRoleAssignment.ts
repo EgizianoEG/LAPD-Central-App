@@ -33,7 +33,7 @@ export default async function HandleShiftRoleAssignment(
     }
 
     if (Array.isArray(UserId) && UserId.length > 0) {
-      return Promise.all(
+      return await Promise.all(
         UserId.map(async (User) => {
           const GuildMember = await TargetGuild.members.fetch(User);
           if (!GuildMember) return;
@@ -43,12 +43,12 @@ export default async function HandleShiftRoleAssignment(
     } else if (typeof UserId === "string") {
       const GuildMember = await TargetGuild.members.fetch(UserId);
       if (!GuildMember) return;
-      return HandleSingleUserRoleAssignment(RASettings, GuildMember, CurrentStatus);
+      return await HandleSingleUserRoleAssignment(RASettings, GuildMember, CurrentStatus);
     }
   } catch (Err: unknown) {
     AppLogger.error({
       message: "Unexpected error occurred while handling shift role assignment.",
-      error: { ...(Err as Error) },
+      error: Err,
       stack: (Err as Error).stack,
     });
   }
@@ -82,27 +82,23 @@ async function HandleSingleUserRoleAssignment(
       (Role): Role is Role => !!Role && HasSufficientPermissions(AppMember, GuildMember, Role)
     );
 
-  const CurrentRoles = GuildMember.roles.cache
+  let ModReason: string;
+  const ModifiedRoles = GuildMember.roles.cache
     .filter((Role) => ![...OnDutyRoles, ...OnBreakRoles].some((R) => R.id === Role.id))
     .map((Role) => Role);
 
-  const RolesToSet: Role[] = [...CurrentRoles];
-  let Reason: string;
-
-  if (CurrentStatus === "on-duty") {
-    if (OnDutyRoles.length === 0) return;
-    RolesToSet.push(...OnDutyRoles);
-    Reason = "Member is on an active shift and on duty.";
+  if (CurrentStatus === "on-duty" && OnDutyRoles.length !== 0) {
+    ModifiedRoles.push(...OnDutyRoles);
+    ModReason = "Member is on an active shift and on duty.";
   } else if (CurrentStatus === "on-break") {
-    if (OnBreakRoles.length === 0) return;
-    RolesToSet.push(...OnBreakRoles);
-    Reason = "Member has started a shift break.";
+    ModifiedRoles.push(...OnBreakRoles);
+    ModReason = "Member has started a shift break.";
   } else {
-    if (OnDutyRoles.length === 0 && OnBreakRoles.length === 0) return;
-    Reason = "Member is now off duty and no longer on shift.";
+    ModReason = "Member is now off duty and no longer on shift.";
   }
 
-  return GuildMember.roles.set(RolesToSet, Reason);
+  if (OnBreakRoles.length === 0 && OnDutyRoles.length === 0) return;
+  return GuildMember.roles.set(ModifiedRoles, ModReason);
 }
 
 /**
@@ -132,6 +128,6 @@ export function HasSufficientPermissions(
     .toArray()
     .filter((Perm) => RiskyRolePermissions.includes(PermissionFlagsBits[Perm]));
 
-  // Return true if the role has risky permissions and the member has those permissions already.
+  // Only return true if the role has risky permissions and the member has those permissions already.
   return RoleRiskyPerms.every((Perm) => TargetMember.permissions.has(PermissionFlagsBits[Perm]));
 }

@@ -16,10 +16,10 @@ export default async function GenerateNextSequentialIncidentNumber(
   if (MongoDBCache.StreamChangeConnected.Guilds === true)
     GuildDocument = MongoDBCache.Guilds.get(GuildId) ?? null;
 
-  GuildDocument ??= await GuildModel.findById(GuildId).lean();
-  const MostRecentIncNum = GuildDocument?.logs.incidents.most_recent_num;
+  GuildDocument ??= (await GuildModel.findById(GuildId).lean()) as Guilds.GuildDocument;
+  const MostRecentIncNum = GuildDocument.logs.incidents.most_recent_num;
 
-  if (MostRecentIncNum?.startsWith(CurrentYearSuffix)) {
+  if (MostRecentIncNum.startsWith(CurrentYearSuffix)) {
     const NextSequence = parseInt(MostRecentIncNum.split("-")[1], 10) + 1;
     return `${CurrentYearSuffix}-${NextSequence.toString().padStart(5, "0")}`;
   } else {

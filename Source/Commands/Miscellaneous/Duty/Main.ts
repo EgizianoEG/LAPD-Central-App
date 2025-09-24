@@ -48,7 +48,7 @@ async function IsAuthorizedCmdUsage(Interaction: SlashCommandInteraction<"cached
     const LinkedRobloxUser = await HasRobloxLinked(Interaction);
     if (!LinkedRobloxUser) {
       return new ErrorEmbed()
-        .useErrTemplate("SMRobloxUserNotLinked")
+        .useErrTemplate("RobloxUserNotLinked")
         .replyToInteract(Interaction, true)
         .then(() => false);
     }

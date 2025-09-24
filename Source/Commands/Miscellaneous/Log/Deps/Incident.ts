@@ -240,7 +240,7 @@ async function GetCmdProvidedDetails(
     CmdInteract.options.resolved?.attachments?.map((Attachment) => Attachment) || [];
 
   const FilteredAttachments = ProvidedAttachments.filter((Attachment) => {
-    if (!Attachment.contentType?.match(/^image[/\\](?:png|jpg|jpeg)/i)) {
+    if (!Attachment.contentType?.match(/^image[/\\](?:png|jpg|jpeg|webp)/i)) {
       return false;
     }
 
@@ -347,11 +347,13 @@ async function PrepareIncidentData(
     suspects: ModalSubmission.fields
       .getTextInputValue("suspects")
       .split(ListSplitRegex)
+      .map((Name) => Name.trim())
       .filter(Boolean),
 
     victims: ModalSubmission.fields
       .getTextInputValue("victims")
       .split(ListSplitRegex)
+      .map((Name) => Name.trim())
       .filter(Boolean),
 
     reported_on: ModalSubmission.createdAt,
