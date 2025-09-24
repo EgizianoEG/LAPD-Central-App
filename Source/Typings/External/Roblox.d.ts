@@ -127,7 +127,7 @@ export namespace APIResponses.OmniSearch {
   interface UserSearchResult {
     contentGroupType: string;
     contents: UserContent[];
-    topicId: string;
+    topicId: "OrganicUser";
   }
 
   interface UserContent {
