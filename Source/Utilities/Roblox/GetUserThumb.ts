@@ -125,7 +125,7 @@ export default async function GetUserThumbnail<
 
   async function FetchThumbnails(UserIdList: number[]) {
     try {
-      const response = await Axios.request<APIResponses.Thumbnails.ThumbnailResponse>({
+      const Response = await Axios.request<APIResponses.Thumbnails.ThumbnailResponse>({
         url: `/v1/users/${Endpoint}`,
         baseURL: "https://thumbnails.roblox.com",
         params: {
@@ -136,7 +136,7 @@ export default async function GetUserThumbnail<
         },
       });
 
-      return response.data.data;
+      return Response.data.data;
     } catch (Err) {
       AppLogger.error({
         label: "Utilities:Roblox:GetUserThumbnail",
