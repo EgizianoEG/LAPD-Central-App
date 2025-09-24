@@ -531,7 +531,7 @@ async function UpdateManagementPrompt(
             : "";
 
         ShiftOverviewDesc = Dedent(`
-          **Shift Overview:**
+          **Shift Overview**
           >>> **Status:** (${Emojis.Offline}) Off-Duty
           **Shift Type:** \`${MostRecentFinishedShift.type}\`
           **Shift Started:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}
