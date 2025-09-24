@@ -748,7 +748,7 @@ async function GetActiveShiftAndShiftDataContainer(
       },
       {
         type: ComponentType.TextDisplay,
-        content: `**Statistics Summary:**\n${StatisticsTextSummary}`,
+        content: `**Statistics Summary**\n${StatisticsTextSummary}`,
       }
     );
 
@@ -772,7 +772,7 @@ async function GetActiveShiftAndShiftDataContainer(
 
     RespContainer.addTextDisplayComponents({
       type: ComponentType.TextDisplay,
-      content: `**Active Shift:**\n${ActiveShiftTextSummary}`,
+      content: `**Active Shift**\n${ActiveShiftTextSummary}`,
     });
   } else if (RecentlyEndedShift) {
     const TotalBreakTime = RecentlyEndedShift.hasBreaks()
@@ -790,7 +790,7 @@ async function GetActiveShiftAndShiftDataContainer(
 
     RespContainer.addTextDisplayComponents({
       type: ComponentType.TextDisplay,
-      content: `**Previous Shift:**\n${EndedShiftTextSummary}`,
+      content: `**Previous Shift**\n${EndedShiftTextSummary}`,
     });
   }
 
@@ -1149,7 +1149,7 @@ async function HandleUserShiftsWipe(
       );
 
     if (WipeResult.deletedCount === 0) {
-      return ConfirmationInteract.editReply({
+      return await ConfirmationInteract.editReply({
         components: [new InfoContainer().useInfoTemplate("NoShiftsWipedFU")],
       });
     }
