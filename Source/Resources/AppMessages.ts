@@ -518,7 +518,7 @@ export const ErrorMessages = {
 
   ShiftCreationDurationTooLong: {
     Title: "Duration Too Long",
-    Description: "The specified duration exceeds the maximum allowed shift length of 1 month.",
+    Description: "The specified duration exceeds the maximum allowed shift length of 14 days.",
   },
 
   NoRecentShifts: {

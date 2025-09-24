@@ -418,9 +418,13 @@ async function HandleShiftTimeSet(
     return new ErrorEmbed()
       .useErrTemplate("UnknownDurationExp")
       .replyToInteract(ModalSubmission, true);
-  } else if (RoundedDuration < 30_000) {
+  } else if (RoundedDuration < milliseconds({ seconds: 30 })) {
     return new ErrorEmbed()
       .useErrTemplate("ShortTypedDuration")
+      .replyToInteract(ModalSubmission, true);
+  } else if (RoundedDuration > milliseconds({ days: 14 })) {
+    return new ErrorEmbed()
+      .useErrTemplate("ShiftCreationDurationTooLong")
       .replyToInteract(ModalSubmission, true);
   }
 
@@ -471,7 +475,7 @@ async function HandleShiftTimeAddSub(
       ? `Successfully added an extra \`${ReadableDuration(RoundedDuration)}\` of on-duty time to the shift.`
       : `Successfully subtracted \`${ReadableDuration(RoundedDuration)}\` of on-duty time from the shift.`;
 
-  if (!ParsedDuration) {
+  if (ParsedDuration == null) {
     return new ErrorEmbed()
       .useErrTemplate("UnknownDurationExp")
       .replyToInteract(ModalSubmission, true);
@@ -750,8 +754,8 @@ async function GetActiveShiftAndShiftDataContainer(
 
   if (ActiveShift) {
     const StatusText = ActiveShift.hasBreakActive()
-      ? `${Emojis.Idle} On-Break`
-      : `${Emojis.Online} On-Duty`;
+      ? `(${Emojis.Idle}) On-Break`
+      : `(${Emojis.Online}) On-Duty`;
 
     const TotalBreakTime = ActiveShift.hasBreaks()
       ? `**Break Time:** ${ReadableDuration(ActiveShift.durations.on_break)}`
@@ -1001,7 +1005,7 @@ async function HandleShiftCreation(
       .replyToInteract(ModalSubmission, true);
   }
 
-  if (RoundedDuration > milliseconds({ months: 1 })) {
+  if (RoundedDuration > milliseconds({ days: 14 })) {
     return new ErrorEmbed()
       .useErrTemplate("ShiftCreationDurationTooLong")
       .replyToInteract(ModalSubmission, true);
