@@ -86,24 +86,23 @@ export default async function SlashCommandHandler(
       );
     }
   } catch (Err: any) {
-    const ErrorId = GetErrorId();
-    AppLogger.error({
-      message: "An error occurred while executing slash command %o;",
-      label: FileLogLabel,
-      error_id: ErrorId,
-      stack: Err.stack,
-      error: { ...Err },
-      splat: [FullCmdName],
-      cmd_options: Interaction.options,
-    });
-
     if (Err instanceof AppError && Err.is_showable) {
       await new ErrorEmbed()
         .setTitle(Err.title)
-        .setErrorId(ErrorId)
         .setDescription(Err.message)
         .replyToInteract(Interaction, true);
     } else {
+      const ErrorId = GetErrorId();
+      AppLogger.error({
+        message: "An error occurred while executing slash command %o;",
+        label: FileLogLabel,
+        error_id: ErrorId,
+        stack: Err.stack,
+        error: { ...Err },
+        splat: [FullCmdName],
+        cmd_options: Interaction.options,
+      });
+
       await new ErrorEmbed()
         .useErrTemplate("AppError")
         .setErrorId(ErrorId)
