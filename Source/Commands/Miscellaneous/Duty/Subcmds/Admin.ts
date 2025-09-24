@@ -565,24 +565,22 @@ async function WipeUserShifts(
     type: ShiftType || { $exists: true },
   };
 
-  const TData: { totalTime: number }[] = await ShiftModel.aggregate([
+  const TData = await ShiftModel.aggregate<{ total_time: number; shift_count: number }>([
     { $match: QueryFilter },
     {
       $group: {
         _id: null,
-        totalTime: {
+        shift_count: { $sum: 1 },
+        total_time: {
           $sum: {
             $add: ["$durations.on_duty", "$durations.on_duty_mod"],
           },
         },
       },
     },
-    {
-      $unset: ["_id"],
-    },
   ]);
 
-  if (!TData[0] || TData[0].totalTime <= 0) {
+  if (!TData[0] || TData[0].shift_count === 0) {
     return {
       totalTime: 0,
       deletedCount: 0,
@@ -591,7 +589,7 @@ async function WipeUserShifts(
   }
 
   return ShiftModel.deleteMany(QueryFilter).then((DResult: any) => {
-    DResult.totalTime = TData[0]?.totalTime ?? 0;
+    DResult.totalTime = TData[0]?.total_time ?? 0;
     return DResult as Mongoose.mongo.DeleteResult & { totalTime: number };
   });
 }
