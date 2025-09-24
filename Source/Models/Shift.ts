@@ -1,15 +1,9 @@
-import ShiftInstFuncs, {
-  UpdateShiftDurations,
-  PreShiftModelDelete,
-  PreShiftDocDelete,
-  StartNewShift,
-} from "./Functions/ShiftModel.js";
-
-import { Shifts } from "@Typings/Utilities/Database.js";
-import { Schema, model } from "mongoose";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { randomInt as RandomInteger } from "node:crypto";
 import ShiftDurations from "./Schemas/ShiftDurations.js";
+import ShiftInstFuncs, { UpdateShiftDurations, StartNewShift } from "./Functions/ShiftModel.js";
+import { randomInt as RandomInteger } from "node:crypto";
+import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { Schema, model } from "mongoose";
+import { Shifts } from "@Typings/Utilities/Database.js";
 
 enum ShiftFlags {
   /** Auto-generated/created by the system (e.g., scheduled shifts). Future usage 🤔? */
@@ -144,18 +138,6 @@ ShiftSchema.virtual("on_duty_time").get(function () {
 ShiftSchema.virtual("on_break_time").get(function () {
   // Unpredictable behavior; may return `undefined` randomly out of nowhere.
   return ReadableDuration(this.durations.on_break, { largest: 3 });
-});
-
-ShiftSchema.pre("deleteOne", { query: false, document: true }, function (next) {
-  return PreShiftDocDelete.call(this, next);
-});
-
-ShiftSchema.pre("deleteOne", { query: true, document: false }, function (next) {
-  return PreShiftModelDelete.call(this, "one", next);
-});
-
-ShiftSchema.pre("deleteMany", function (next) {
-  return PreShiftModelDelete.call(this, "many", next);
 });
 
 ShiftSchema.pre("save", function (next) {
