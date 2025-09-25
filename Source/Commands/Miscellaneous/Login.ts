@@ -12,6 +12,7 @@ import {
   InteractionContextType,
   AutocompleteInteraction,
   ApplicationIntegrationType,
+  ApplicationCommandOptionChoiceData,
 } from "discord.js";
 
 import {
@@ -245,7 +246,7 @@ async function HandleManualVerification(
  */
 async function Autocomplete(Interaction: AutocompleteInteraction): Promise<void> {
   const { name, value } = Interaction.options.getFocused(true);
-  let Suggestions: { name: string; value: string }[];
+  let Suggestions: ApplicationCommandOptionChoiceData[];
 
   if (name === "username") {
     Suggestions = await AutocompleteUsername(value);
