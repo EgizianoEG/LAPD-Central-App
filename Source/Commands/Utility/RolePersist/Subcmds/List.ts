@@ -87,7 +87,6 @@ function GetRecordPages(
           .addTextDisplayComponents(new TextDisplayBuilder({ content: DataItem[1] }))
           .setButtonAccessory(
             new ButtonBuilder()
-              .setLabel(" ")
               .setEmoji(Emojis.WhiteInfo)
               .setCustomId(`rp-view:${CmdInteraction.user.id}:${DataItem[0]}`)
               .setStyle(ButtonStyle.Secondary)

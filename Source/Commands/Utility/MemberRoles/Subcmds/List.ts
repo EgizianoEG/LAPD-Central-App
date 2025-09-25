@@ -75,7 +75,6 @@ function GetSavePages(
           .addTextDisplayComponents(new TextDisplayBuilder({ content: DataItem[1] }))
           .setButtonAccessory(
             new ButtonBuilder()
-              .setLabel(" ")
               .setEmoji(Emojis.WhiteInfo)
               .setCustomId(`mrs-view:${CmdInteraction.user.id}:${DataItem[0]}`)
               .setStyle(ButtonStyle.Secondary)
