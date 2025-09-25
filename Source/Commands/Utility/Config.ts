@@ -57,7 +57,7 @@ import {
   SignatureFormatResolved,
 } from "@Config/Constants.js";
 
-import { Dedent } from "@Utilities/Strings/Formatters.js";
+import { ConcatenateLines, Dedent } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns/milliseconds";
 import { Colors, Emojis } from "@Config/Shared.js";
@@ -625,7 +625,11 @@ async function UpdateConfigPrompt<T extends SettingsResolvable>(
 // ---------------------------------------------------------------------------------------
 // Component Getters:
 // ------------------
-function GetCSBeatNumRestrictionsPromptComps(BtnInteract: ButtonInteraction<"cached">) {
+function GetCSBeatNumRestrictionsPromptComps(
+  BtnInteract: ButtonInteraction<"cached">,
+  IsUnitType: boolean
+) {
+  const ScopeLabel = IsUnitType ? "unit type" : "beat number";
   return new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
     new StringSelectMenuBuilder()
       .setCustomId(
@@ -638,15 +642,15 @@ function GetCSBeatNumRestrictionsPromptComps(BtnInteract: ButtonInteraction<"cac
         new StringSelectMenuOptionBuilder()
           .setValue("add")
           .setLabel("Add New Restriction")
-          .setDescription("Add a new beat number restriction rule."),
+          .setDescription(`Add a new ${ScopeLabel} restriction rule.`),
         new StringSelectMenuOptionBuilder()
           .setValue("remove")
           .setLabel("Remove Existing Restriction")
-          .setDescription("Remove an existing beat number restriction rule by its ID."),
+          .setDescription(`Remove an existing ${ScopeLabel} restriction rule by its ID.`),
         new StringSelectMenuOptionBuilder()
           .setValue("clear")
           .setLabel("Clear All Restrictions")
-          .setDescription("Remove all existing beat number restriction rules."),
+          .setDescription(`Remove all existing ${ScopeLabel} restriction rules.`),
         new StringSelectMenuOptionBuilder()
           .setValue("list")
           .setLabel("List All Restrictions")
@@ -2241,20 +2245,26 @@ function GetChannelOrThreadSelPromptContainer(
     .attachPromptActionRows([...PromptComponents]);
 }
 
-function GetCSBeatNumRestrictionsPromptContainer(
+function GetCSBeatOrUnitTypeRestrictionsPromptContainer(
   RecInteract: ButtonInteraction<"cached">,
-  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
+  IsUnitType: boolean
 ): BaseExtraContainer {
-  const ActionSelectMenu = GetCSBeatNumRestrictionsPromptComps(RecInteract);
+  const TypeScopeLabel = IsUnitType ? "Unit Type" : "Beat Number";
+  const ScopeRestrictionsCount = IsUnitType
+    ? MStateObj.ModuleConfig.unit_type_restrictions.length
+    : MStateObj.ModuleConfig.beat_restrictions.length;
+
+  const ActionSelectMenu = GetCSBeatNumRestrictionsPromptComps(RecInteract, IsUnitType);
   const PromptContainer = new BaseExtraContainer()
     .setColor(Colors.DarkGrey)
-    .setTitle("Call Signs Module: Beat Number Restrictions")
+    .setTitle(`Call Signs Module: ${TypeScopeLabel} Restrictions`)
     .setDescription(
       Dedent(`
-        Use the dropdown menu below to manage beat number restrictions for the call signs module. \
+        Use the dropdown menu below to manage ${TypeScopeLabel.toLowerCase()} restrictions for the call signs module. \
         You can add new restrictions, remove existing ones, view all current restrictions, or confirm changes and return to the module config.
 
-        **Currently Configured:** \`${MStateObj.ModuleConfig.beat_restrictions.length}\` restriction${MStateObj.ModuleConfig.beat_restrictions.length === 1 ? "" : "s"}.
+        **Currently Configured:** \`${ScopeRestrictionsCount}\` restriction${ScopeRestrictionsCount === 1 ? "" : "s"}.
       `)
     )
     .setFooter(
@@ -2264,24 +2274,36 @@ function GetCSBeatNumRestrictionsPromptContainer(
   return PromptContainer.attachPromptActionRows(ActionSelectMenu);
 }
 
-function GetCSBeatNumRestrictionsListContainers(
-  CSModuleState: ModuleState<GuildSettings["callsigns_module"]>
+function GetCSBeatOrUnitTypeRestrictionsListContainers(
+  CSModuleState: ModuleState<GuildSettings["callsigns_module"]>,
+  IsUnitType: boolean
 ): BaseExtraContainer[] {
-  const BeatNumRestrictions = CSModuleState.OriginalConfig.beat_restrictions;
-  const BeatNumRuleChunks = Chunks(CSModuleState.ModuleConfig.beat_restrictions, 3);
-  const Pages: BaseExtraContainer[] = [];
+  const Restrictions = IsUnitType
+    ? CSModuleState.ModuleConfig.unit_type_restrictions
+    : CSModuleState.ModuleConfig.beat_restrictions;
 
-  for (const RulesSet of BeatNumRuleChunks) {
+  type UnitTypeRestriction = (typeof CSModuleState.ModuleConfig.unit_type_restrictions)[number];
+  type BeatNumberRestriction = (typeof CSModuleState.ModuleConfig.beat_restrictions)[number];
+  type RestrictionObj = (typeof Restrictions)[number];
+
+  const Pages: BaseExtraContainer[] = [];
+  const RestrictionsChunks = Chunks(Restrictions as RestrictionObj[], 3);
+
+  for (const RulesSet of RestrictionsChunks) {
     const RuleDisplayTexts: string[] = [];
+    const ScopeRestrictionsCount = IsUnitType
+      ? CSModuleState.ModuleConfig.unit_type_restrictions.length
+      : CSModuleState.ModuleConfig.beat_restrictions.length;
+
     const PageContainer = new BaseExtraContainer().setColor(Colors.DarkGrey).setTitle(
       Dedent(`
-        Call Signs Module: Beat Number Restrictions
-        Showing ${RulesSet.length} of ${CSModuleState.ModuleConfig.beat_restrictions.length} total restriction${CSModuleState.ModuleConfig.beat_restrictions.length === 1 ? "" : "s"}.  
+        Call Signs Module: ${IsUnitType ? "Unit Type" : "Beat Number"} Restrictions
+        Showing ${RulesSet.length} of ${ScopeRestrictionsCount} total restriction${ScopeRestrictionsCount === 1 ? "" : "s"}.  
       `)
     );
 
     for (const Rule of RulesSet) {
-      const OriginalRule = BeatNumRestrictions.find((ORule) => ORule._id === Rule._id);
+      const OriginalRule = Restrictions.find((ORule) => ORule._id === Rule._id);
       let RuleStatus: string;
 
       if (!OriginalRule) {
@@ -2297,12 +2319,14 @@ function GetCSBeatNumRestrictionsListContainers(
         : "*None - Cannot be requested*";
 
       RuleDisplayTexts.push(
-        Dedent(`
-          **ID:** \`${Rule._id}\`
-          > **Status:** ${RuleStatus}
-          > **Beat Range:** \`${Rule.range[0]} - ${Rule.range[1]}\`
-          > **Permitted Roles:** ${PermittedRolesText}
-        `)
+        ConcatenateLines(
+          `**ID:** \`${Rule._id}\``,
+          `> **Status:** ${RuleStatus}`,
+          IsUnitType
+            ? `> **Unit Type:** \`${(Rule as UnitTypeRestriction).unit_type}\``
+            : `> **Beat Range:** \`${(Rule as BeatNumberRestriction).range.join(" - ")}\``,
+          `> **Permitted Roles:** ${PermittedRolesText}`
+        )
       );
     }
 
@@ -3463,11 +3487,24 @@ async function HandleCallsignsModuleConfigPageInteracts(
     }
 
     if (CustomId.startsWith(ActionMap.UnitTypeRoleRestrictions)) {
-      // TODO.
+      const UpdatedRestrictions = await PromptBeatOrUnitRestrictionsMod(
+        RecInteract,
+        MState,
+        "unit"
+      );
+
+      if (UpdatedRestrictions.length !== MState.ModuleConfig.unit_type_restrictions.length) {
+        return true;
+      }
     }
 
     if (CustomId.startsWith(ActionMap.BeatNumberRestrictions)) {
-      const UpdatedRestrictions = await PromptBeatNumRestrictionsMod(RecInteract, MState);
+      const UpdatedRestrictions = await PromptBeatOrUnitRestrictionsMod(
+        RecInteract,
+        MState,
+        "beat"
+      );
+
       if (UpdatedRestrictions.length !== MState.ModuleConfig.beat_restrictions.length) {
         return true;
       }
@@ -3862,22 +3899,32 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
   return ModalSubmission.fields.getTextInputValue("format");
 }
 
-async function ModalPromptBeatNumRuleAdd(
+async function ModalPromptBeatOrUnitTypeRuleAdd(
   SelectInteract: StringSelectMenuInteraction<"cached">,
-  _MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+  _MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
+  _IsUnitType: boolean
 ): Promise<void> {
+  const ScopeLabel = _IsUnitType ? "Unit Type" : "Beat Number";
+  const ModalId =
+    CTAIds[ConfigTopics.CallsignsConfiguration][
+      _IsUnitType ? "UnitTypeRoleRestrictions" : "BeatNumberRestrictions"
+    ] +
+    "add:" +
+    SelectInteract.user.id +
+    ":" +
+    RandomString(6);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars
   const _InputModalJSON = {
     type: InteractionResponseType.Modal,
     data: {
-      title: "Add Beat Number Restriction",
-      custom_id:
-        CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions + RandomString(4),
+      title: `Add ${ScopeLabel} Restriction`,
+      custom_id: ModalId,
       components: [
         {
           type: ComponentType.TextDisplay,
           content: Dedent(`
-              Provide the details below to add a new beat number restriction. \
+              Provide the details below to add a new ${ScopeLabel.toLowerCase()} restriction. \
               Submitting this form will create the restriction locally to the \
               current prompt session, you would have to confirm and then save \
               the changes on the module config panel afterwards to enforce it.
@@ -3898,15 +3945,29 @@ async function ModalPromptBeatNumRuleAdd(
             placeholder: "Ex., 100-199 or 1-99",
           },
         },
+        // {
+        //   type: 18, // ComponentType.LABEL
+        //   label: "Choose a Unit Type",
+        //   description:
+        //     "Type in a valid LAPD unit type in the text box below to restrict it to certain roles.",
+        //   component: {
+        //     type: ComponentType.TextInput,
+        //     custom_id: "unit_type",
+        //     minLength: 1,
+        //     maxLength: 3,
+        //     required: true,
+        //     style: TextInputStyle.Short,
+        //     placeholder: "Ex., 'K9' or 'SL'",
+        //   },
+        // },
         {
           type: 18, // ComponentType.LABEL
           label: "Range Permitted Roles",
-          description:
-            "Select the roles of which holders are permitted to use this beat number range.",
+          description: `Select the roles of which holders are permitted to use this ${_IsUnitType ? "unit type" : "beat number range"}.`,
           component: {
             type: ComponentType.RoleSelect,
             custom_id: "roles",
-            placeholder: "Select roles permitted to use this range...",
+            placeholder: "Select roles permitted for this restriction...",
             max_values: 10,
             min_values: 0,
             required: false,
@@ -3920,17 +3981,19 @@ async function ModalPromptBeatNumRuleAdd(
   // select menus, text display, and labels inside modals.
 }
 
-async function ModalPromptBeatNumRuleRemove(
+async function ModalPromptBeatOrUnitTypeRuleRemove(
   SelectInteract: StringSelectMenuInteraction<"cached">,
-  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
+  IsUnitType: boolean
 ) {
+  const ScopeLabel = IsUnitType ? "Unit Type" : "Beat Number";
+  const ModalBaseId =
+    CTAIds[ConfigTopics.CallsignsConfiguration][
+      IsUnitType ? "UnitTypeRoleRestrictions" : "BeatNumberRestrictions"
+    ];
   const InputIdModal = new ModalBuilder()
-    .setTitle("Call Signs: Beat Number Restriction Removal")
-    .setCustomId(
-      CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions +
-        "-remove-" +
-        RandomString(6)
-    )
+    .setTitle(`Call Signs: ${ScopeLabel} Restriction Removal`)
+    .setCustomId(ModalBaseId + "-remove:" + SelectInteract.user.id + RandomString(6))
     .setComponents(
       new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
         new TextInputBuilder()
@@ -3964,37 +4027,47 @@ async function ModalPromptBeatNumRuleRemove(
 
   if (ExistingIndex === -1) {
     return new ErrorContainer()
-      .useErrTemplate("CallsignBeatNumRestrictionNotFound")
+      .useErrTemplate("CallsignBeatOrUnitTypeRestrictionNotFound")
       .replyToInteract(ModalSubmission, true);
   }
 
   MStateObj.ModuleConfig.beat_restrictions.splice(ExistingIndex, 1);
   return new SuccessContainer()
-    .useTemplate("CallsignBeatNumRestrictionRemoved")
+    .useTemplate("CallsignBeatOrUnitTypeRestrictionRemoved", ScopeLabel.toLowerCase())
     .replyToInteract(ModalSubmission, true);
 }
 
-async function HandleBeatNumRulesClear(
+async function HandleBeatNumOrUnitTypeRulesClear(
   SelectInteract: StringSelectMenuInteraction<"cached">,
-  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
+  IsUnitType: boolean
 ) {
-  if (MStateObj.ModuleConfig.beat_restrictions.length === 0) {
+  const ScopeLabel = IsUnitType ? "unit type" : "beat number";
+  const RestrictionsKey = IsUnitType ? "unit_type_restrictions" : "beat_restrictions";
+  if (MStateObj.ModuleConfig[RestrictionsKey].length === 0) {
     return new InfoContainer()
-      .useInfoTemplate("CallsignBeatNumNoRestrictionsToClear")
+      .useInfoTemplate("CallsignBeatNumOrUnitTypeNoRestrictionsToClear", ScopeLabel)
       .replyToInteract(SelectInteract, true, true);
   }
 
-  MStateObj.ModuleConfig.beat_restrictions = [];
+  MStateObj.ModuleConfig[RestrictionsKey] = [];
   return new SuccessContainer()
-    .useTemplate("CallsignBeatNumAllRestrictionsCleared")
+    .useTemplate("CallsignBeatOrUnitTypeRestrictionsCleared", ScopeLabel)
     .replyToInteract(SelectInteract, true, true);
 }
 
-async function PromptBeatNumRestrictionsMod(
+async function PromptBeatOrUnitRestrictionsMod(
   BtnInteract: ButtonInteraction<"cached">,
-  MStateObj: ModuleState<GuildSettings["callsigns_module"]>
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
+  Scope: "beat" | "unit"
 ): Promise<GuildSettings["callsigns_module"]["beat_restrictions"]> {
-  const PromptContainer = GetCSBeatNumRestrictionsPromptContainer(BtnInteract, MStateObj);
+  const ScopeIsUnitType = Scope === "unit";
+  const PromptContainer = GetCSBeatOrUnitTypeRestrictionsPromptContainer(
+    BtnInteract,
+    MStateObj,
+    ScopeIsUnitType
+  );
+
   const MStateObjCopy = clone(MStateObj);
   const PromptMessage = await BtnInteract.reply({
     withResponse: true,
@@ -4013,10 +4086,14 @@ async function PromptBeatNumRestrictionsMod(
     try {
       switch (Selected) {
         case "list": {
-          const Pages = GetCSBeatNumRestrictionsListContainers(MStateObjCopy);
+          const Pages = GetCSBeatOrUnitTypeRestrictionsListContainers(
+            MStateObjCopy,
+            ScopeIsUnitType
+          );
+
           if (Pages.length === 0) {
             await new InfoContainer()
-              .useInfoTemplate("CallsignBeatNumNoRestrictionsToList")
+              .useInfoTemplate("CallsignNoRestrictionsToList")
               .replyToInteract(SelectInteract, true, true);
           }
 
@@ -4030,13 +4107,13 @@ async function PromptBeatNumRestrictionsMod(
           break;
         }
         case "add":
-          await ModalPromptBeatNumRuleAdd(SelectInteract, MStateObjCopy);
+          await ModalPromptBeatOrUnitTypeRuleAdd(SelectInteract, MStateObjCopy, ScopeIsUnitType);
           break;
         case "remove":
-          await ModalPromptBeatNumRuleRemove(SelectInteract, MStateObjCopy);
+          await ModalPromptBeatOrUnitTypeRuleRemove(SelectInteract, MStateObjCopy, ScopeIsUnitType);
           break;
         case "clear":
-          await HandleBeatNumRulesClear(SelectInteract, MStateObjCopy);
+          await HandleBeatNumOrUnitTypeRulesClear(SelectInteract, MStateObjCopy, ScopeIsUnitType);
           break;
         case "discard":
           ActionsCollector.stop("ChangesDismissed");
@@ -4052,7 +4129,7 @@ async function PromptBeatNumRestrictionsMod(
       });
     } catch (Err: any) {
       AppLogger.error({
-        message: "Something went wrong while handling callsign beats restriction modifications;",
+        message: "Something went wrong while handling callsign restrictions modification;",
         label: FileLabel,
         stack: Err?.stack,
         error: Err,

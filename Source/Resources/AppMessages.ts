@@ -898,10 +898,13 @@ export const ErrorMessages = {
       "You have no pending call sign request to cancel at the moment. The panel has been updated to reflect the current status.",
   },
 
-  CallsignBeatNumRestrictionNotFound: {
+  /**
+   * @template {string} ScopeLabel - The scope label of the restriction.
+   */
+  CallsignBeatOrUnitTypeRestrictionNotFound: {
     Title: "Not Found",
     Description:
-      "The beat number restriction you are trying to modify could not be found in the database. It may have been deleted or never existed.",
+      "The %s restriction you are trying to modify could not be found in the database. It may have been deleted or never existed.",
   },
 
   Invalid24HexaID: {
@@ -1351,28 +1354,36 @@ export const InfoMessages = {
     Description: "There are currently no call sign records pending approval in this server.",
   },
 
-  CallsignBeatNumNoRestrictionsToList: {
+  CallsignNoRestrictionsToList: {
     Title: "No Restrictions Found",
-    Description: "There are currently no beat number restrictions set up to display.",
+    Description: "There are currently no restrictions set up to display.",
   },
 
-  CallsignBeatNumRestrictionRemoved: {
+  /**
+   * @template {string} ScopeLabel - The scope label of the restriction that was removed (e.g., "beat number", "unit type").
+   */
+  CallsignBeatOrUnitTypeRestrictionRemoved: {
     Title: "Restriction Removed",
     Description:
-      "The beat number restriction has been successfully removed. " +
+      "The %s restriction has been successfully removed. " +
       "Kindly note that this is not yet saved to database and module config until you confirm and then save the changes in the *main* configuration prompt.",
   },
 
-  CallsignBeatNumNoRestrictionsToClear: {
+  /**
+   * @template {string} ScopeLabel - The scope label of the restrictions being cleared.
+   */
+  CallsignBeatNumOrUnitTypeNoRestrictionsToClear: {
     Title: "No Restrictions Found",
-    Description:
-      "There are currently no beat number restrictions set up to clear. No changes were made.",
+    Description: "There are currently no %s restrictions set up to clear. No changes were made.",
   },
 
-  CallsignBeatNumAllRestrictionsCleared: {
+  /**
+   * @template {string} ScopeLabel - The scope label of the restrictions cleared.
+   */
+  CallsignBeatOrUnitTypeRestrictionsCleared: {
     Title: "All Restrictions Cleared",
     Description:
-      "All beat number restrictions have been successfully cleared. " +
+      "All %s restrictions have been successfully cleared. " +
       "Kindly note that this is not yet saved to database and module config until you confirm *and then* save the changes in the *main* configuration prompt.",
   },
 };
