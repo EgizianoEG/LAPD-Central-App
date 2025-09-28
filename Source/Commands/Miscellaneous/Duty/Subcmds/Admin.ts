@@ -617,13 +617,22 @@ async function RetrieveShiftRecordsAsContainers(
   return Chunks(ShiftData, 2).map((Chunk) => {
     const Descriptions = Chunk.map((Data) => {
       const Started = FormatTime(Math.round(Data.started / 1000), "f");
-      const Ended =
-        typeof Data.ended === "string"
-          ? Data.ended
-          : FormatTime(Math.round(Data.started / 1000), "T");
+      let ShiftFlag = "";
+      let Ended: string;
 
-      const AdminFlag = Data.flag === ShiftFlags.Administrative ? " (Manually Added)" : "";
-      const ShiftIdLine = `**Shift ID:** \`${Data._id}\`${AdminFlag}`;
+      if (typeof Data.ended === "string") {
+        Ended = Data.ended;
+      } else {
+        Ended = FormatTime(Math.round(Data.ended / 1000), "T");
+      }
+
+      if (Data.flag === ShiftFlags.Administrative) {
+        ShiftFlag = "(Manually Added)";
+      } else if (Data.flag === ShiftFlags.Imported) {
+        ShiftFlag = "(Imported)";
+      }
+
+      const ShiftIdLine = `**Shift ID:** \`${Data._id}\` ${ShiftFlag}`;
       if (ShiftType) {
         return Dedent(`
           - ${ShiftIdLine}
