@@ -13,6 +13,7 @@ import Mongoose from "mongoose";
 
 const FileLabel = "Handlers:MongoDB";
 const BaseGuildDocument: Guilds.GuildDocument = new GuildModel().toObject();
+Mongoose.Schema.Types.String.checkRequired((v: string | null | undefined) => v != null);
 
 export default async function MongoDBHandler() {
   const DatabaseURI = MongoDB.URI.replace(
