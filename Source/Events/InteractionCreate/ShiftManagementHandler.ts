@@ -171,7 +171,7 @@ async function HandleShiftOnAction(
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
-        error: { ...Result.reason },
+        error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
     });
@@ -258,7 +258,7 @@ async function HandleShiftBreakToggleAction(
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
-        error: { ...Result.reason },
+        error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
     });
@@ -321,7 +321,7 @@ async function HandleShiftOffAction(
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
-        error: { ...Result.reason },
+        error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
     });
