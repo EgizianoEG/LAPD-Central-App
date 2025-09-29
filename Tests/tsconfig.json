@@ -10,9 +10,9 @@
     /* Modules */
     "baseUrl": "./",
     "rootDir": "../",
-    "module": "ES2022",
+    "module": "nodenext",
     "types": ["node", "jest"],
-    "moduleResolution": "Node",
+    "moduleResolution": "nodenext",
     "typeRoots": ["../node_modules/@types", "../Source/Typings"],
     "paths": {
       "@Cmds/*": ["./../Source/Commands/*"],
