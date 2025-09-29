@@ -20,6 +20,7 @@
 * [Shift Module](guides-and-how-to/shift-module/README.md)
   * [Shift Management](guides-and-how-to/shift-module/shift-management.md)
   * [Shift Administration](guides-and-how-to/shift-module/shift-administration.md)
+  * [Sheets Activity Report](guides-and-how-to/shift-module/sheets-activity-report.md)
 * [Leave Notices Module](guides-and-how-to/leave-notices-module/README.md)
   * [Requesting a Leave of Absenece](guides-and-how-to/leave-notices-module/requesting-a-leave-of-absenece.md)
   * [Leave of Absence Management](guides-and-how-to/leave-notices-module/leave-of-absence-management.md)
@@ -29,8 +30,7 @@
   * [Logging a Citation](guides-and-how-to/duty-activities-and-logging/logging-a-citation.md)
   * [Logging an Arrest](guides-and-how-to/duty-activities-and-logging/logging-an-arrest.md)
 * [Other Guides](guides-and-how-to/other-guides/README.md)
-  * [Linking Roblox Account](guides-and-how-to/other-guides/linking-roblox-account.md)
-  * [Sheets Activity Report](guides-and-how-to/other-guides/sheets-activity-report.md)
+  * [Linking a Roblox Account](guides-and-how-to/other-guides/linking-a-roblox-account.md)
   * [Server Data Deletion](guides-and-how-to/other-guides/server-data-deletion.md)
 
 ## Miscellaneous

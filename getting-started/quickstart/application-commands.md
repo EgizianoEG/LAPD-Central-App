@@ -61,7 +61,7 @@ The **Administrator** permission takes precedence over all other permissions, su
 
 ## Slash Commands
 
-Below is a categorized list of all commands available through the LAPD Central application, divided into sections for organization and more readability. The 'Ephemeral' field under each command title indicates whether the command's response is ephemeral (private) or non-ephemeral (public) within the server channel for _normal_ responses.
+Below is a categorized list of all commands available through the LAPD Central application, divided into sections and modules for organization and more readability. The 'ephemeral' or 'private' fields under each applicable command title indicates whether the command's response is ephemeral (private) or non-ephemeral (public) within the server channel for _normal_ responses.
 
 ### Informative Commands
 
@@ -85,34 +85,30 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Command:** `/weather [units: "metric" or "imperial"] [private:Boolean]` \
   **Ephemeral:** Optional\
   **Description:** Provides weather information for the city of Los Angeles at the time of execution, sourcing data from [OpenWeather](https://openweathermap.org/).
-*   **MDT Lookup&#x20;**<mark style="color:blue;">**(\*)**</mark>\
-    **Command:** `/mdt lookup <name:Text>` \
-    **Ephemeral:** No\
-    **Description:** Provides recent violations or arrests to the target person by their Roblox username.
-
-    (_TODO: integration of a new warrant system and module to provide warrant status, recently owned vehicle, and last known location.)_
+* **MDT Lookup&#x20;**<mark style="color:blue;">**(\*)**</mark>\
+  **Command:** `/mdt lookup <name:Text>` \
+  **Ephemeral:** No\
+  **Description:** Provides recent violations or arrests to the target person by their Roblox username.
 * **MDT Incident Search&#x20;**<mark style="color:blue;">**(\*)**</mark>\
   **Command:** `/mdt search incident <incident-num:Number>` \
   **Ephemeral:** Yes\
   **Description:** Returns the incident report information formatted and organized in an embed. This command is used in-case wanted to avoid going through a bunch of records in the log channel and get the details straight forward.
 * **MDT Citation Search&#x20;**<mark style="color:blue;">**(\*)**</mark>\
-  **Command:** `/mdt search citation <citation-num:Number>` \
+  **Command:** `/mdt search citation <citation-num:Text>` \
   **Ephemeral:** Yes\
-  **Description:** Returns information regarding a logged notice to appear citation in the database just by its number, date, or other details.
+  **Description:** Returns information regarding a logged notice to appear citation in the database; just by its number, date, or other details as seen in the autocomplete suggestions.
 * **MDT Arrest Search&#x20;**<mark style="color:blue;">**(\*)**</mark>\
   **Command:** `/mdt search arrest <booking-num:Number>` \
   **Ephemeral:** Yes\
   **Description:** Returns information regarding a logged arrest in the database just by the booking number.
 * **Officer Activity&#x20;**<mark style="color:blue;">**(\*)**</mark>\
-  **Command:** `/activity for <officer:User> [since:DateTime] [private:Boolean]` \
+  **Command:** `/activity for [officer:User] [since:DateTime] [to:DateTime] [private:Boolean]` \
   **Ephemeral:** Optional\
-  **Description:** Provides activity information for a certain officer (server member), detailing their total shift time, arrests, citations, and reported incidents. The `since` parameter is optional and can be used to specify the timeframe for the activity data requested.
+  **Description:** Provides activity information for a certain officer, detailing their total shift time, arrests, citations, reported incidents, and more. The `since` and `to` parameters/fields are optional and can be used to specify the timeframe for the activity data requested.
 * **Activity Report&#x20;**<mark style="color:green;">**(\*)**</mark>\
-  **Command:** `/activity report <since:DateTimeText> [time-requirement:Time] [shit-type:Text] [include-nicknames:Boolean] [private:Boolean]` \
+  **Command:** `/activity report <since:DateTime> [to:DateTime] [time-requirement:Duration] [shit-type:Text] [include-nicknames:Boolean] [private:Boolean]` \
   **Ephemeral:** Optional\
-  **Description:** Provides an online-accessible Google Spreadsheet file that details each officer's total shift time, arrests made, arrests assisted, citations issued, quota completion status, and other relevant information.
-
-
+  **Description:** Provides an organized online-accessible Google Spreadsheet file that details each officer's total shift time, arrests made, arrests assisted, citations issued, quota completion status, and other relevant information.
 
 ***
 
@@ -131,9 +127,9 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Ephemeral:** Yes\
   **Description:** Voids and deletes the currently active shift for the one who is executing the command. It would log a shift void execution and will not delete any logs for that shift but only delete it from database records.
 * **Duty Leaderboard&#x20;**<mark style="color:blue;">**(\*)**</mark>\
-  **Command:** `/duty leaderboard [type:Text] [since:DateTimeExpression]` \
+  **Command:** `/duty leaderboard [type:Text] [since:DateTimeExpression]`\
   **Ephemeral:** No\
-  **Description:** Lists all staff members who have shift time for exact shif type or for all shift types with their time in descending order. Members who are considered staff but do not have shift time are disregarded from the list.
+  **Description:** Lists all staff members who have shift time for exact shift type or for all shift types with their time in descending order. Members who are considered staff but do not have shift time are disregarded from the list.
 * **Duty End All&#x20;**<mark style="color:green;">**(\*)**</mark>\
   **Command:** `/duty end-all [type:Text]` \
   **Ephemeral:** No\
@@ -160,8 +156,6 @@ Below is a categorized list of all commands available through the LAPD Central a
     **Ephemeral:** No\
     **Description:** Returns a prompt to delete a duty shift type with the provided name and make it inaccessible for usage by staff members.
 
-
-
 ***
 
 ### Leave Notices Module
@@ -182,8 +176,6 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Command:** `/loa admin <member:User>` \
   **Ephemeral:** No\
   **Description:** Provides the ability to manage and administer other members' leave of absence, including placing somebody on a leave without making them request one, early end a leave of absence, and approving or denying a request.
-
-
 
 ***
 
@@ -206,8 +198,6 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Ephemeral:** No\
   **Description:** Same behavior as LoA administration with additional part of quota reduction.
 
-
-
 ***
 
 ### Duty Activities Module
@@ -229,7 +219,26 @@ Below is a categorized list of all commands available through the LAPD Central a
   **Ephemeral:** Yes (Prompt)\
   **Description:** Allows staff members to log the arrests they make while being on-duty.
 
+***
 
+### Call Signs Module <sup><sub>_<mark style="color:$success;">(Since v1.7)</mark>_<sub></sup>
+
+* **Call Sign Request&#x20;**<mark style="color:blue;">**(\*)**</mark>\
+  **Command:** `/callsign request <division:Integer> <unit-type:String> <beat-num:Integer> <reason:String>` \
+  **Ephemeral:** Yes\
+  **Description:** Allows staff to file a call sign designation request, forwarding it to management staff for approval.
+* **Call Sign Manage&#x20;**<mark style="color:blue;">**(\*)**</mark>\
+  **Command:** `/callsign manage` \
+  **Ephemeral:** Yes\
+  **Description:** Allows staff to see their currently and previously reviewed call sign requests. In addition, it allows them to cancel a currently pending one.
+* **Call Sign Administration&#x20;**<mark style="color:green;">**(\*)**</mark>\
+  **Command:** `/callsign admin <staff:User>`\
+  **Ephemeral:** Yes\
+  **Description:** Allows management to review a pending call sign request, release a currently assigned one, or administratively assign one for a specified staff.
+* **Call Sign Listing&#x20;**<mark style="color:green;">**(\*)**</mark>\
+  **Command:** `/callsign list [status:Pending/Active] [private:Boolean]` \
+  **Ephemeral:** Yes\
+  **Description:** Lists currently assigned call signs and/or pending approval ones.
 
 ***
 

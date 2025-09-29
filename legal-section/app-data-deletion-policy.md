@@ -1,16 +1,5 @@
 ---
 icon: shredder
-layout:
-  title:
-    visible: true
-  description:
-    visible: false
-  tableOfContents:
-    visible: true
-  outline:
-    visible: true
-  pagination:
-    visible: true
 ---
 
 # App Data Deletion Policy

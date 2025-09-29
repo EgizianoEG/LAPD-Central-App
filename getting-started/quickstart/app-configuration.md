@@ -1,30 +1,23 @@
 ---
 icon: gear
-layout:
-  title:
-    visible: true
-  description:
-    visible: false
-  tableOfContents:
-    visible: true
-  outline:
-    visible: true
-  pagination:
-    visible: true
 ---
 
 # App Configuration
 
 The application can be configured directly using the [`/config`](application-commands.md#utility-and-miscellaneous-commands) slash command.\
-You’ll be prompted to select a module (feature) to enable or customize, with in-app guidance and detailed explanations provided at each step or setting.
+You’ll be prompted to select a module (feature combination) to enable or customize, with in-app guidance and detailed explanations provided at each step, setting, or prompt.
 
 As a result, there’s no need to repeat all configuration details on this page — most settings are self-explanatory within the interface itself. Thank you for your understanding.
 
 > _“The best documentation is the one you don't need.”_ — _(some developer's wisdom)_
 
-{% tabs %}
+{% tabs fullWidth="false" %}
 {% tab title="Module Selection" %}
-<figure><img src="../../.gitbook/assets/module-config-selection.png" alt="" width="503"><figcaption><p>Configuration Topic/Module Selection</p></figcaption></figure>
+<figure><picture><source srcset="../../.gitbook/assets/config-selection-dark.png" media="(prefers-color-scheme: dark)"><img src="../../.gitbook/assets/config-selection-light.png" alt=""></picture><figcaption><p>Configuration Topic/Module Selection</p></figcaption></figure>
+{% endtab %}
+
+{% tab title="Basic Configuration" %}
+
 {% endtab %}
 
 {% tab title="LOA Module" %}
