@@ -1443,9 +1443,11 @@ function GetCallsignsModuleConfigComponents(
       `${CTAIds[ConfigTopics.CallsignsConfiguration].NicknameFormat}:${Interaction.user.id}`
     );
 
+  // TODO: Enable when modal prompts are completed.
   const SetUnitTypeRoleBasedRestrictionsAccessoryBtn = new ButtonBuilder()
     .setLabel("Set Restrictions")
     .setStyle(ButtonStyle.Secondary)
+    .setDisabled(true)
     .setCustomId(
       `${CTAIds[ConfigTopics.CallsignsConfiguration].UnitTypeRoleRestrictions}:${Interaction.user.id}`
     );
@@ -1453,6 +1455,7 @@ function GetCallsignsModuleConfigComponents(
   const SetBeatNumberRestrictionsAccessoryBtn = new ButtonBuilder()
     .setLabel("Set Restrictions")
     .setStyle(ButtonStyle.Secondary)
+    .setDisabled(true)
     .setCustomId(
       `${CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions}:${Interaction.user.id}`
     );
@@ -3899,6 +3902,8 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
   return ModalSubmission.fields.getTextInputValue("format");
 }
 
+// TODO: Complete once discord.js package support
+// select menus, text display, and labels inside modals.
 async function ModalPromptBeatOrUnitTypeRuleAdd(
   SelectInteract: StringSelectMenuInteraction<"cached">,
   _MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
