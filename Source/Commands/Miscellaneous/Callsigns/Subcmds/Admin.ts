@@ -438,7 +438,7 @@ async function ValidateAndParseExpiryDate(
  */
 async function GetTargetUser(
   Interaction: CmdOrButtonCachedInteraction
-): Promise<User | InteractionResponse<boolean> | Message<boolean>> {
+): Promise<User | InteractionResponse<boolean> | Message<boolean> | null> {
   let Target: User | null = null;
 
   if (Interaction.isButton()) {
