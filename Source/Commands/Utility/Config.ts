@@ -457,20 +457,22 @@ const ConfigTopicsExplanations = {
       {
         Name: "Nickname Format",
         Description:
-          "The format to use when updating members' nicknames with their assigned call signs, if auto-renaming is enabled.",
+          "The format to use when updating members' nicknames with their assigned call signs, if auto-renaming is enabled.\n\n" +
+          "-# **Supported Tags:**\n" +
+          "-# > `{division}`, `{unit_type}`, `{beat_num}`, `{nickname}`, `{display_name}`, `{roblox_username}`",
       },
       {
         Name: "Unit Type Role-based Restrictions",
         Description:
           "If a unit type is associated with specific roles, only members holding at least one of those roles can request that unit type. " +
           "This ensures that only qualified personnel can submit requests for specialized units.\n" +
-          "**Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
+          "-# > **Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
       },
       {
         Name: "Beat Number Role-based Restrictions",
         Description:
           "Define specific rules for assigning call sign beat numbers based on roles. These restrictions ensure that only qualified members can request certain beat numbers.\n" +
-          "**Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
+          "-# > **Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
       },
     ],
   },
