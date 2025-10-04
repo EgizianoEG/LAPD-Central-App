@@ -60,11 +60,11 @@ const SharedData = {
     ShiftNatural: "#C2D1E6",
 
     // Cancelled color is only used in logging messages; leave requests uses LOARequestDenied when cancelled.
-    LOARequestCancelled: "#C2D1E6",
-    LOARequestEnded: "#CA2222",
-    LOARequestDenied: "#CA2222",
-    LOARequestPending: "#F2A265",
-    LOARequestApproved: "#227F46",
+    RequestCancelled: "#C2D1E6",
+    RequestEnded: "#CA2222",
+    RequestDenied: "#CA2222",
+    RequestPending: "#F2A265",
+    RequestApproved: "#227F46",
 
     ...DiscordColors,
   },
@@ -103,6 +103,9 @@ const SharedData = {
     FileEdit: "<:FileEdit:1185790827809738803>",
     FileDelete: "<:FileDelete:1185785834058813480>",
     Trash: "<:Trash:1185785496757088286>",
+
+    TagPlus: "<:TagPlus128:1417907227045396542>",
+    TagMinus: "<:TagMinus128:1417907224642195488>",
     LoadingGrey: "<a:DualRingGrey:1354207612706623741>",
     LoadingBlue: "<a:DualRingBlue:1294539916759400448>",
     LoadingGold: "<a:DualRingGold:1294539933754855425>",

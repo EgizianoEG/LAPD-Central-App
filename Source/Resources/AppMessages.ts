@@ -778,6 +778,141 @@ export const ErrorMessages = {
       "The reduced activity module is currently disabled. You cannot request, manage, or administer reduced activity notices without it being enabled.",
   },
 
+  CallsignsModuleDisabled: {
+    Title: "Module Disabled",
+    Description:
+      "The call signs module is currently disabled. To handle or allocate call signs, you'll need to activate this module first.",
+  },
+
+  CallsignReqSendFailed: {
+    Title: "Request Submission Failed",
+    Description:
+      "Failed to send your call sign request. Please try again later or contact support if the issue persists.",
+  },
+
+  /**
+   * @template {string} Callsign The callsign that was already requested.
+   */
+  CallsignAlreadyRequested: {
+    Title: "Call Sign Already Requested",
+    Description:
+      "You already have a pending request for `%s`. Kindly wait for it to be reviewed or cancel it before submitting another.",
+  },
+
+  /**
+   * @template {string} Callsign The callsign that was requested and is not available.
+   */
+  CallsignNotAvailable: {
+    Title: "Call Sign Not Available",
+    Description:
+      "The requested call sign `%s` is already in use or reserved. Please choose a different designation.",
+  },
+
+  /**
+   * @template {string} UnitType The unit type that is restricted.
+   */
+  CallsignUnitTypeRestricted: {
+    Title: "Unit Type Restricted",
+    Description:
+      "You do not have the required role to request a call sign of type `%s`. Contact a management staff if you believe this is an error.",
+  },
+
+  /**
+   * @template {string} Identifier The identifier that is restricted.
+   */
+  CallsignIdentifierRestricted: {
+    Title: "Identifier Restricted",
+    Description:
+      "The identifier `%s` is restricted and cannot be requested with your current role permissions.",
+  },
+
+  CallsignInvalidFormat: {
+    Title: "Invalid Call Sign Format",
+    Description:
+      "Invalid call sign format. Ensure the division (1–36), unit type, and identifier are specified correctly.",
+  },
+
+  /**
+   * @template {string} UnitType The unit type that is invalid.
+   */
+  CallsignInvalidUnitType: {
+    Title: "Invalid Unit Type",
+    Description:
+      "The input unit type, `%s`, is invalid. Ensure you are using a valid unit type from the autocomplete suggestions, if possible.",
+  },
+
+  /**
+   * @template {number} DivisionBeat The division beat that is invalid.
+   */
+  CallsignInvalidDivision: {
+    Title: "Invalid Division Beat",
+    Description:
+      "The input division beat, `%i`, is invalid. Ensure you are selecting a valid beat from the autocomplete suggestions, if possible.",
+  },
+
+  CallsignPreviouslyDenied: {
+    Title: "Recent Denial Cooldown",
+    Description:
+      "You recently had a call sign request denied. Please wait at least one hour before submitting another.",
+  },
+
+  CallsignPreviouslyCancelled: {
+    Title: "Recent Cancellation Cooldown",
+    Description:
+      "You recently cancelled a call sign request. Please wait 30 minutes before submitting another.",
+  },
+
+  CallsignRecentlyExpired: {
+    Title: "Recent Expiry Cooldown",
+    Description:
+      "Your previous call sign recently expired or was revoked. Please wait at least 30 minutes before submitting a new request.",
+  },
+
+  CallsignRequestModified: {
+    Title: "Invalid Action",
+    Description:
+      "It seems like that this request has been already reviewed, modified, or cancelled. This action cannot be performed anymore.",
+  },
+
+  CallsignNotAssignedToRelease: {
+    Title: "Call Sign Not Assigned",
+    Description:
+      "Cannot take action or release this call sign anymore. It appears like it has already been released, expired, or revoked.",
+  },
+
+  CallsignCannotAssignNonStaffMember: {
+    Title: "Unable to Assign",
+    Description:
+      "The specified individual must be a current member and staff within the server to be assigned a call sign.",
+  },
+
+  CallsignNotFound: {
+    Title: "Call Sign Not Found",
+    Description:
+      "The specified call sign could not be found in the database. It may have been deleted or never existed.",
+  },
+
+  NoPendingCallsignToCancel: {
+    Title: "No Pending Request",
+    Description:
+      "You have no pending call sign request to cancel at the moment. The panel has been updated to reflect the current status.",
+  },
+
+  /**
+   * @template {string} ScopeLabel - The scope label of the restriction.
+   */
+  CallsignBeatOrUnitTypeRestrictionNotFound: {
+    Title: "Not Found",
+    Description:
+      "The %s restriction you are trying to modify could not be found in the database. It may have been deleted or never existed.",
+  },
+
+  Invalid24HexaID: {
+    Title: "Invalid ID",
+    Description:
+      "The ID provided is invalid. Please ensure it is a valid 24-character hexadecimal string.",
+  },
+
   SANoShiftsToModify: {
     Title: "No Shifts To Modify",
     Description:
@@ -1214,5 +1349,48 @@ export const InfoMessages = {
     Title: "Successfully Linked",
     Description:
       "Your Roblox account, %s, has successfully been verified and linked to the application. You may now remove the sample text from your profile description.",
+  },
+
+  CallsignsListNoRecordsWithActiveStatus: {
+    Title: "No Call Signs Found",
+    Description: "There are currently no active call sign records in this server.",
+  },
+
+  CallsignsListNoRecordsWithPendingStatus: {
+    Title: "No Call Signs Found",
+    Description: "There are currently no call sign records pending approval in this server.",
+  },
+
+  CallsignNoRestrictionsToList: {
+    Title: "No Restrictions Found",
+    Description: "There are currently no restrictions set up to display.",
+  },
+
+  /**
+   * @template {string} ScopeLabel - The scope label of the restriction that was removed (e.g., "beat number", "unit type").
+   */
+  CallsignBeatOrUnitTypeRestrictionRemoved: {
+    Title: "Restriction Removed",
+    Description:
+      "The %s restriction has been successfully removed. " +
+      "Kindly note that this is not yet saved to database and module config until you confirm and then save the changes in the *main* configuration prompt.",
+  },
+
+  /**
+   * @template {string} ScopeLabel - The scope label of the restrictions being cleared.
+   */
+  CallsignBeatNumOrUnitTypeNoRestrictionsToClear: {
+    Title: "No Restrictions Found",
+    Description: "There are currently no %s restrictions set up to clear. No changes were made.",
+  },
+
+  /**
+   * @template {string} ScopeLabel - The scope label of the restrictions cleared.
+   */
+  CallsignBeatOrUnitTypeRestrictionsCleared: {
+    Title: "All Restrictions Cleared",
+    Description:
+      "All %s restrictions have been successfully cleared. " +
+      "Kindly note that this is not yet saved to database and module config until you confirm *and then* save the changes in the *main* configuration prompt.",
   },
 };

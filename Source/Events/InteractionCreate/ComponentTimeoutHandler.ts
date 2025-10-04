@@ -5,6 +5,7 @@ import { differenceInMilliseconds } from "date-fns";
 import { InfoEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { MessageFlags, ComponentType, BaseInteraction } from "discord.js";
 import {
+  CallsignMgmtCustomIdRegex,
   DutyManagementBtnCustomIdRegex,
   UserActivityNoticeMgmtCustomIdRegex,
 } from "@Resources/RegularExpressions.js";
@@ -12,6 +13,7 @@ import {
 const UnauthorizedUsageIgnoredCompsWithCustomIds: RegExp[] = [
   UserActivityNoticeMgmtCustomIdRegex,
   DutyManagementBtnCustomIdRegex,
+  CallsignMgmtCustomIdRegex,
 ];
 
 /**

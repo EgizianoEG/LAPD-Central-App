@@ -1,10 +1,10 @@
 /* eslint-disable sonarjs/cognitive-complexity */
 import { IsValidDiscordId, IsValidRobloxUsername } from "@Utilities/Helpers/Validators.js";
 import { AddStatutesRegexes, ATVCodesRegexes } from "@Resources/RegularExpressions.js";
+import { Callsigns, GuildCitations } from "@Typings/Utilities/Database.js";
 import { GuildMember, userMention } from "discord.js";
 import { format as FormatStr } from "node:util";
 import { DASignatureFormats } from "@Config/Constants.js";
-import { GuildCitations } from "@Typings/Utilities/Database.js";
 import { TitleCase } from "./Converters.js";
 import { Vehicles } from "@Typings/Resources.js";
 import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
@@ -818,6 +818,17 @@ export function Dedent(text: string): string {
 }
 
 /**
+ * Concatenates multiple lines of text into a single string, filtering out any empty or `null` lines.
+ * @param Lines - The lines of text to concatenate.
+ * @returns A single string containing all non-empty lines, separated by newlines.
+ */
+export function ConcatenateLines(...Lines: (string | undefined | null)[]): string {
+  return Lines.filter((L) => L != null && L.trim().length > 0)
+    .join("\n")
+    .trim();
+}
+
+/**
  * Escapes special characters in a string so that it can be used in a regular expression.
  * @see {@link https://stackoverflow.com/q/3561493 Stack Overflow Reference}
  * @param Str - The string to escape.
@@ -828,6 +839,22 @@ export function Dedent(text: string): string {
  */
 export function EscapeRegExp(Str: string): string {
   return Str.replace(/[-[\]{}()*+!<=:?./\\^$|]/g, "\\$&");
+}
+
+/**
+ * Formats a callsign designation object into a string.
+ * @param Designation - The callsign designation object.
+ * @param SepBetweenAll - Whether to include the separator between all parts. Defaults to `true`.
+ *                        Only the first separator (between division and unit type) will be omitted if set to `false`.
+ * @param Separator - The string to use as a separator. Defaults to `"-"`.
+ * @returns The formatted callsign designation string.
+ */
+export function FormatCallsignDesignation(
+  Designation: Callsigns.CallsignDocument["designation"],
+  SepBetweenAll: boolean = true,
+  Separator: string = "-"
+): string {
+  return `${Designation.division}${SepBetweenAll ? Separator : ""}${Designation.unit_type}${Separator}${Designation.beat_num}`;
 }
 
 /**

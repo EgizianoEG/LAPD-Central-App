@@ -1,8 +1,9 @@
 import { isAfter } from "date-fns";
-import { Schema, model } from "mongoose";
+import { Schema, model, Model } from "mongoose";
 import GSettingsSchema from "./Schemas/GuildSettings.js";
+import type { Guilds } from "@Typings/Utilities/Database.js";
 
-const GuildSchema = new Schema({
+const GuildSchema = new Schema<Guilds.GuildDocument>({
   _id: {
     type: String,
     required: true,
@@ -106,5 +107,5 @@ const GuildSchema = new Schema({
 GuildSchema.set("_id", false);
 GuildSchema.set("optimisticConcurrency", true);
 
-const GuildModel = model("Guild", GuildSchema);
+const GuildModel = model<Guilds.GuildDocument, Model<Guilds.GuildDocument>>("Guild", GuildSchema);
 export default GuildModel;

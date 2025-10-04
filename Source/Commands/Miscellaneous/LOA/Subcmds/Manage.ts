@@ -164,7 +164,7 @@ async function GetManagementEmbedAndLOA(Interaction: PromptInteractType) {
   });
 
   if (ActiveOrPendingLOA?.reviewed_by && ActiveOrPendingLOA.is_active) {
-    ReplyEmbed.setColor(Colors.LOARequestApproved).addFields({
+    ReplyEmbed.setColor(Colors.RequestApproved).addFields({
       inline: true,
       name: "Active Leave" + (ActiveOrPendingLOA.is_manageable === true ? "" : " (Unmanageable)"),
       value: Dedent(`
@@ -176,7 +176,7 @@ async function GetManagementEmbedAndLOA(Interaction: PromptInteractType) {
       `),
     });
   } else if (ActiveOrPendingLOA?.status === "Pending") {
-    ReplyEmbed.setColor(Colors.LOARequestPending).addFields({
+    ReplyEmbed.setColor(Colors.RequestPending).addFields({
       inline: true,
       name: "Pending Leave",
       value: Dedent(`
@@ -196,7 +196,7 @@ async function GetManagementEmbedAndLOA(Interaction: PromptInteractType) {
   const HasPendingExtension =
     ActiveOrPendingLOA?.is_active && ActiveOrPendingLOA.extension_request?.status === "Pending";
   if (HasPendingExtension) {
-    ReplyEmbed.setColor(Colors.LOARequestPending).addFields({
+    ReplyEmbed.setColor(Colors.RequestPending).addFields({
       inline: true,
       name: "Pending Extension",
       value: Dedent(`

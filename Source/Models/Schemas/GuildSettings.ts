@@ -1,6 +1,8 @@
 import { Schema } from "mongoose";
 import { DASignatureFormats } from "@Config/Constants.js";
+import { ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
 import ShiftTypeSchema from "./ShiftType.js";
+import type { Guilds } from "@Typings/Utilities/Database.js";
 
 const SnowflakeIdValidationN1: [RegExp, string] = [
   /^\d{15,22}$/,
@@ -22,7 +24,7 @@ const ArrayOfSnowflakesValidator = {
  * Represents the schema for guild settings in the database.
  * @see @Typings/Utilities/Database.js for schema documentation.
  */
-const GuildSettings = new Schema({
+const GuildSettings = new Schema<Guilds.GuildSettings>({
   require_authorization: {
     type: Boolean,
     default: true,
@@ -233,7 +235,7 @@ const GuildSettings = new Schema({
         type: [String],
         default: [],
         required: true,
-        match: {
+        validate: {
           message: "Expected an array of valid snowflake Ids of length 0-3.",
           validator: (arr: string[]) =>
             ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 3,
@@ -286,11 +288,119 @@ const GuildSettings = new Schema({
         type: [String],
         default: [],
         required: true,
-        match: {
+        validate: {
           message: "Expected an array of valid snowflake Ids of length 0-3.",
           validator: (arr: string[]) =>
             ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 3,
         },
+      },
+    },
+  },
+
+  callsigns_module: {
+    _id: false,
+    default: {},
+    required: true,
+    type: {
+      enabled: {
+        type: Boolean,
+        default: false,
+        required: true,
+      },
+
+      manager_roles: {
+        type: [String],
+        default: [],
+        required: true,
+        validate: {
+          message: "Expected an array of valid snowflake Ids of length 0-6.",
+          validator: (arr: string[]) =>
+            ArrayOfSnowflakesValidator.validator(arr) && arr.length <= 6,
+        },
+      },
+
+      alert_on_request: {
+        type: Boolean,
+        default: false,
+        required: true,
+      },
+
+      log_channel: {
+        type: String,
+        default: null,
+        required: false,
+        match: SnowflakeIdValidationN1,
+      },
+
+      requests_channel: {
+        type: String,
+        default: null,
+        required: false,
+        match: SnowflakeIdValidationN1,
+      },
+
+      unit_type_whitelist: {
+        type: Boolean,
+        default: false,
+        required: true,
+      },
+
+      unit_type_restrictions: {
+        default: [],
+        required: true,
+        type: [
+          {
+            unit_type: {
+              type: String,
+              required: true,
+              enum: ServiceUnitTypes.map((u) => u.unit),
+              trim: true,
+            },
+            permitted_roles: {
+              type: [String],
+              default: [],
+              required: true,
+              validate: ArrayOfSnowflakesValidator,
+            },
+          },
+        ],
+      },
+
+      beat_restrictions: {
+        default: [],
+        required: true,
+        type: [
+          {
+            range: {
+              type: [Number],
+              required: true,
+              validate: {
+                validator: (arr: number[]) => arr.length === 2 && arr[0] <= arr[1],
+                message:
+                  "Range must be an array of two numbers where the first is less than or equal to the second.",
+              },
+            },
+            permitted_roles: {
+              type: [String],
+              default: [],
+              required: true,
+              validate: ArrayOfSnowflakesValidator,
+            },
+          },
+        ],
+      },
+
+      nickname_format: {
+        type: String,
+        default: "{division}{unit_type}-{identifier} | {nickname}",
+        required: true,
+        trim: true,
+      },
+
+      update_nicknames: {
+        type: Boolean,
+        default: false,
+        required: true,
       },
     },
   },
