@@ -40,6 +40,13 @@ export const SignatureFormatResolved = {
   [DASignatureFormats.RobloxDisplayNameRobloxUsername]: "Roblox Display Name + Roblox Username",
 };
 
+export const GenericRequestStatuses = {
+  Denied: "Denied",
+  Pending: "Pending",
+  Approved: "Approved",
+  Cancelled: "Cancelled",
+} as const;
+
 export const RobloxOpenCloudAPIBaseURL = "https://apis.roblox.com";
 export const RobloxOpenCloudV2Routes = {
   GetUser: (UserId: number | string) => `${RobloxOpenCloudAPIBaseURL}/cloud/v2/users/${UserId}`,

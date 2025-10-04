@@ -1,4 +1,4 @@
-import type { Options as ScheduleOptions } from "node-cron";
+import type { TaskOptions as ScheduleOptions } from "node-cron";
 
 /**
  * @note Each cron job will be automatically started even if not specified in cron options.
@@ -29,6 +29,13 @@ export interface CronJobFileDefReturn {
   cron_func?: (arg0?: Date | "manual" | "init", arg1?: DiscordClient) => any | Promise<any>;
 
   cron_opts?: ScheduleOptions & {
+    /**
+     * If set to `true`, the cron job will be running only after the Discord client is fully online and ready.
+     * This ensures that any operations dependent on the Discord client can be executed without issues.
+     * If set to `false` or omitted, the cron job may run even if the Discord client is not yet ready.
+     */
+    awaitAppOnline?: boolean;
+
     /**
      * Defines how unhandled errors in the cron function should be managed.
      *

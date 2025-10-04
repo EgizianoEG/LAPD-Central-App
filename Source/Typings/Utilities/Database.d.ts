@@ -1,7 +1,7 @@
+import type { DASignatureFormats, GenericRequestStatuses } from "@Config/Constants.ts";
 import type { IncidentTypes, IncidentStatusesFlattened } from "@Resources/IncidentConstants.ts";
 import type { Types, HydratedDocument, Model } from "mongoose";
 import type { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.ts";
-import type { DASignatureFormats } from "@Config/Constants.ts";
 import type { ShiftFlags } from "@Models/Shift.ts";
 import type { Overwrite } from "utility-types";
 import type {
@@ -243,6 +243,107 @@ export namespace Guilds {
        * The role(s) that will be mentioned and notified when a new RA request is posted.
        */
       alert_roles: string[];
+    };
+
+    callsigns_module: {
+      /**
+       * Indicates whether the callsigns module is active. Defaults to `false`.
+       * If disabled, staff members will be unable to use any functionality of this module.
+       */
+      enabled: boolean;
+
+      /**
+       * A list of roles whose members are authorized to approve and/or manage callsign requests.
+       * However, members with application or server management permissions can still approve and manage these requests.
+       * @remarks
+       * - A maximum of 6 roles can be set.
+       */
+      manager_roles: string[];
+
+      /** Whether or not to notify members with the roles in `manager_roles` when a new callsign request is submitted. */
+      alert_on_request: boolean;
+
+      /**
+       * The channel where callsign changes will be logged.
+       * @default null
+       */
+      log_channel?: string | null;
+
+      /**
+       * The channel designated for submitting callsign requests.
+       * If set to `null`, staff members can still submit requests, but management staff
+       * will need to be notified manually via slash commands.
+       *
+       * @default null
+       */
+      requests_channel?: string | null;
+
+      /**
+       * When `true`, all unit types are restricted by default unless explicitly allowed
+       * through `unit_type_restrictions`.
+       * @default false
+       */
+      unit_type_whitelist: boolean;
+
+      /**
+       * Restrictions on unit types based on roles (e.g., specific roles required for "W" type units).
+       * @default []
+       */
+      unit_type_restrictions: {
+        _id: Types.ObjectId;
+        unit_type: string;
+
+        /**
+         * The roles that are permitted to request the specified unit type.
+         * @remarks
+         * **Behavior depends on `unit_type_whitelist` setting:**
+         * - When `unit_type_whitelist` is `false` (blacklist mode): An empty array means this unit type has no role restrictions - anyone can request it.
+         * - When `unit_type_whitelist` is `true` (whitelist mode): An empty array means this unit type is completely restricted - no one can request it.
+         * - When populated with role Ids: Only users with at least one of these roles can request this unit type.
+         * @default []
+         */
+        permitted_roles: string[];
+      }[];
+
+      /**
+       * Restrictions on identifier/beat-number values based on roles (e.g., specific roles required for certain identifier ranges).
+       * For example, members with sergeant roles may request callsigns that fall within a specific numeric range.
+       *
+       * There are no restrictions (empty array) as a default.
+       * @default []
+       */
+      beat_restrictions: {
+        _id: Types.ObjectId;
+        range: [number, number];
+
+        /**
+         * The roles that are permitted to request call sign beats within the specified range (inclusive).
+         * An empty array means that this range cannot be requested by anyone.
+         * @default []
+         */
+        permitted_roles: string[];
+      }[];
+
+      /**
+       * The format to apply on requester nicknames when a callsign request is approved.
+       * Supports template strings with the following placeholders:
+       * - `{division}`
+       * - `{unit_type}`
+       * - `{beat_num}`
+       * - `{roblox_username}`; falls back to an empty string if not linked.
+       * - `{display_name}`
+       * - `{nickname}`; falls back to `{display_name}` if not set.
+       *
+       * This only works if `update_nicknames` option is enabled.
+       * @default {division}{unit_type}-{identifier} | {nickname}
+       */
+      nickname_format: string;
+
+      /**
+       * Whether to automatically update nicknames to align with the set format when callsigns gets approved.
+       * @default false
+       */
+      update_nicknames: boolean;
     };
   }
 
@@ -594,11 +695,11 @@ export namespace GuildProfiles {
 export namespace UserActivityNotice {
   type NoticeType = "LeaveOfAbsence" | "ReducedActivity";
   type NoticeStatus = "Pending" | "Approved" | "Denied" | "Cancelled";
-  type NoticeModel = Model<UserActivityNoticeDocument, {}, DocumentMethods, DocumentVirtuals>;
+  type NoticeModel = Model<UserActivityNoticeDocument, {}, DocumentMethods, ActivityNoticeVirtuals>;
   type ANHDwInst = InstanceType<typeof UserActivityNoticeModel>;
   type ActivityNoticeHydratedDocument = HydratedDocument<
-    UserActivityNotice.UserActivityNoticeDocument,
-    DocumentVirtuals & DocumentMethods
+    UserActivityNoticeDocument,
+    ActivityNoticeVirtuals & DocumentMethods
   >;
 
   interface DocumentMethods {
@@ -621,7 +722,7 @@ export namespace UserActivityNotice {
     ): Promise<OldFallback extends true ? ANHDwInst : ANHDwInst | null>;
   }
 
-  interface DocumentVirtuals {
+  interface ActivityNoticeVirtuals {
     /**
      * @virtual - Not stored in the database.
      * Indicates whether the activity notice is currently active.
@@ -1190,6 +1291,118 @@ export namespace GuildIncidents {
   }
 }
 
+export namespace Callsigns {
+  type CallsignModel = Model<CallsignDocument, {}, CallsignMethods, CallsignVirtuals>;
+  type HydratedCallsignDocument = HydratedDocument<
+    CallsignDocument,
+    CallsignVirtuals & CallsignMethods
+  >;
+
+  interface CallsignDesignation {
+    /**
+     * The geographical division of the callsign.
+     * An integer in the range (1-35).
+     */
+    division: number;
+
+    /**
+     * A string represents the unit or assignment the callsign belongs to.
+     */
+    unit_type: string;
+
+    /**
+     * A unique (or semi-unique) identifier for the callsign.
+     */
+    beat_num: string;
+  }
+
+  interface CallsignDocument {
+    _id: Types.ObjectId;
+    guild: string;
+
+    /** The Id of the person who made the request. */
+    requester: string;
+
+    /** The date when the request was made. */
+    requested_on: Date;
+
+    /** The message associated with the request for later updates. Format: `[ChannelId]:[MessageId]`. */
+    request_message: string | null;
+
+    /** The reason for the request. */
+    request_reason: string;
+
+    /** The current status of the request. */
+    request_status: keyof typeof GenericRequestStatuses;
+
+    /**
+     * The Id of the person who reviewed this request.
+     *
+     * @remarks
+     * - This field is `null` if the request is still pending and hasn't been reviewed yet.
+     * - This field is set to the `requester`'s value if the request was cancelled by the requester themselves.
+     * - This field is set to a management staff's Id if the request was approved or denied by them.
+     */
+    reviewer: string | null;
+
+    /**
+     * Any provided notes for the approval/denial of this request.
+     */
+    reviewer_notes: string | null;
+
+    /**
+     * The date when this request was reviewed.
+     *
+     * @remarks
+     * - This field is `null` if the request is still pending and hasn't been reviewed yet.
+     * - This field is set to the date when the request was cancelled by the requester themselves.
+     * - This field is set to the date when a management staff approved or denied the request.
+     */
+    reviewed_on: Date | null;
+
+    /**
+     * The expiry date of this call sign.
+     *
+     * @remarks
+     * - This field is `null` if the callsign hasn't or isn't set to expire.
+     * - This field is set to a date in the future when the callsign is set to expire.
+     * - This field is set to the date when the callsign was revoked if it was revoked/released/transferred to another.
+     */
+    expiry: Date | null;
+
+    /**
+     * Indicates whether the expiry of this callsign has been notified to the user and guild or not.
+     * @default false
+     */
+    expiry_notified: boolean;
+
+    /**
+     * The designation of the callsign.
+     * E.g., `{ division: 1, unit_type: "A", beat_num: "123" }` which represents the callsign `"1-A-123"`.
+     */
+    designation: CallsignDesignation;
+  }
+
+  interface CallsignVirtuals {
+    /**
+     * @virtual - Not stored in the database.
+     * Returns a formatted string representing the callsign designation.
+     * E.g., `"1-A-123"`.
+     */
+    designation_str: string;
+  }
+
+  interface CallsignMethods {
+    /**
+     * Indicates whether the callsign is currently assigned and active.
+     * A callsign is considered active if it has not expired.
+     * @param [now=new Date()] - The current date to check against. Defaults to the current date.
+     * @alternative `is_active` virtual.
+     */
+    is_active(now: Date = new Date()): boolean;
+  }
+}
+
 export namespace RolePersist {
   type HydratedRolePersistDocument = HydratedDocument<RolePersistDocument, RolePersistVirtuals>;
   interface RolePersistModel extends Model<RolePersistDocument, {}, {}, RolePersistVirtuals> {}
@@ -1465,5 +1678,28 @@ export namespace AggregateResults {
 
     /** Flag */
     flag: ShiftFlags;
+  }
+}
+
+export namespace AggregationResults.CallsignsModel {
+  interface GetCallsignValidationData {
+    pending_request: Callsigns.CallsignDocument | null;
+    active_callsign: Callsigns.CallsignDocument | null;
+    existing_callsign: Callsigns.CallsignDocument | null;
+    most_recent_callsign: Callsigns.CallsignDocument | null;
+  }
+
+  interface GetCallsignAdminData {
+    pending_callsign: Callsigns.CallsignDocument | null;
+    active_callsign: Callsigns.CallsignDocument | null;
+
+    /**
+     * A list of all previous callsigns the user has requested and been reviewed in the guild, excluding the current active callsign.
+     * This list is sorted by the most recent request date. Could be empty.
+     */
+    previous_callsigns: Callsigns.CallsignDocument[];
+
+    /** A list of all callsign requests the user has made in the guild, excluding pending requests. Sorted by most recent first. */
+    callsign_history: Callsigns.CallsignDocument[];
   }
 }
