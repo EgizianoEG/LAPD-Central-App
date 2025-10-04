@@ -67,7 +67,7 @@ function BuildCallsignListPages(
         new TextDisplayBuilder({
           content: `### ${DesiredStatus} Call Sign Records\n-# Displaying \`${TotalRecords}\` ${DesiredStatus.toLowerCase()} call sign record(s) in an ascending order of ${
             DesiredStatus === "Active" ? "approval" : "request"
-          } dates.\n-# Data as of ${time(Date.now(), "f")}.`,
+          } dates.\n-# Data as of ${time(new Date(), "f")}.`,
         })
       )
       .addSeparatorComponents(new SeparatorBuilder({ divider: true, spacing: 2 }));
@@ -208,7 +208,7 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
   if (DesiredStatus === "Active") {
     QueryFilter.reviewer = { $ne: null };
     QueryFilter.request_status = GenericRequestStatuses.Approved;
-    QueryFilter.$or = [{ expiry: { $gt: Interaction.createdAt } }, { expiry: { $exists: false } }];
+    QueryFilter.$or = [{ expiry: { $gt: Interaction.createdAt } }, { expiry: null }];
   }
 
   const SortExpression: Record<string, 1 | -1> =
