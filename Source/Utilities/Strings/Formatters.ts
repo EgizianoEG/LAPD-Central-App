@@ -845,6 +845,7 @@ export function EscapeRegExp(Str: string): string {
  * Formats a callsign designation object into a string.
  * @param Designation - The callsign designation object.
  * @param SepBetweenAll - Whether to include the separator between all parts. Defaults to `true`.
+ *                        Only the first separator (between division and unit type) will be omitted if set to `false`.
  * @param Separator - The string to use as a separator. Defaults to `"-"`.
  * @returns The formatted callsign designation string.
  */
