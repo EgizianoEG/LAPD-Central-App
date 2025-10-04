@@ -163,7 +163,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     .setColor(Colors.DarkBlue)
     .setFields(
       {
-        name: "**Basic Information:**",
+        name: "**Basic Information**",
         value: Dedent(`
           - Officer: ${userMention(OfficerSelected.id)}
           - Linked Account: ${FormattedRobloxName}
@@ -184,7 +184,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       },
       {
         inline: true,
-        name: "**Field Activity:**",
+        name: "**Field Activity**",
         value: Dedent(`
           - Arrests Made: \`${FieldActivityData.arrests_made}\`
           - Arrests Assisted: \`${FieldActivityData.arrests_assisted}\`
