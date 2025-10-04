@@ -62,9 +62,9 @@ export default async function HandleCallsignStatusUpdates(
           }
 
           let NewNickname = GuildSettings.callsigns_module.nickname_format
+            .replace(/{beat_num}|{identifier}/i, CSDesignation.beat_num.toString())
             .replace(/{division}/i, CSDesignation.division.toString())
             .replace(/{unit_type}/i, CSDesignation.unit_type.toString())
-            .replace(/{beat_num}/i, CSDesignation.beat_num.toString())
             .replace(/{nickname}/i, BaseNickname)
             .replace(/{display_name}/i, Member.displayName);
 
@@ -92,7 +92,7 @@ export default async function HandleCallsignStatusUpdates(
 
           if (PrefixRegex?.test(CurrentNickname)) {
             const CleanedNickname = CurrentNickname.replace(PrefixRegex, "").trim();
-            if (CleanedNickname && CleanedNickname !== CurrentNickname) {
+            if (CleanedNickname.length && CleanedNickname !== CurrentNickname) {
               return Member.setNickname(
                 CleanedNickname.slice(0, 32),
                 `Call sign '${FormatDesignation(CSDesignation)}' was released or expired.`
