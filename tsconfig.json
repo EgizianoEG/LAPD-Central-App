@@ -28,7 +28,6 @@
     /* Modules */
     "module": "NodeNext",
     "rootDir": "Source",
-    "baseUrl": "./",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": false,
     "types": ["node"],
@@ -41,6 +40,7 @@
     ],
 
     "paths": {
+      "@Source/*": ["./Source/*"],
       "@Cmds/*": ["./Source/Commands/*"],
       "@Config/*": ["./Source/Config/*"],
       "@Models/*": ["./Source/Models/*"],

@@ -1,4 +1,4 @@
-import { ApplicationEmoji, Client as DiscordClient } from "discord.js";
+import { ApplicationEmoji, Client as DiscordClient, Events } from "discord.js";
 import { App as DiscordApp } from "@DiscordApp";
 import { milliseconds } from "date-fns";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -48,6 +48,6 @@ export default async function GetTempEmojiFromImgURL({
 function DelayUntilReady(Client: DiscordClient): Promise<void> {
   return new Promise<void>((resolve) => {
     if (Client.isReady()) return resolve();
-    Client.once("ready", () => resolve());
+    Client.once(Events.ClientReady, () => resolve());
   });
 }

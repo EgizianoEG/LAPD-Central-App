@@ -35,7 +35,7 @@ import {
 import {
   ParseExpiryDate,
   HandleUnauthorizedManagement,
-} from "Source/Events/InteractionCreate/CallsignManagementHandler.js";
+} from "@Source/Events/InteractionCreate/CallsignManagementHandler.js";
 
 import { RandomString } from "@Utilities/Strings/Random.js";
 import { Colors, Emojis } from "@Config/Shared.js";
