@@ -45,11 +45,17 @@ type MockInteractionTypes =
   | "ButtonInteraction"
   | "CommandInteraction";
 
-function CreateMockInteraction(
-  type: MockInteractionTypes,
+function CreateMockInteraction<T extends MockInteractionTypes>(
+  type: T,
   options: DeepPartialAllowNull<RepliableInteraction> = {}
-) {
-  let Mock: RepliableInteraction;
+): T extends "MessageComponentInteraction"
+  ? MessageComponentInteraction
+  : T extends "ButtonInteraction"
+    ? ButtonInteraction
+    : T extends "ChatInputCommandInteraction"
+      ? ChatInputCommandInteraction
+      : CommandInteraction {
+  let Mock: any;
   const BaseMock = {
     replied: false,
     deferred: false,
@@ -98,7 +104,15 @@ function CreateMockInteraction(
       throw new Error(`Unknown interaction type: ${type}`);
   }
 
-  return Object.assign(Mock, BaseMock);
+  Object.assign(Mock, BaseMock);
+  Object.defineProperty(Mock, "createdAt", {
+    configurable: true,
+    get() {
+      return new Date();
+    },
+  });
+
+  return Mock;
 }
 
 describe("BaseExtraContainer", () => {
@@ -116,9 +130,9 @@ describe("BaseExtraContainer", () => {
   });
 
   test("setColor should update accentColor", () => {
-    const colorSpy = jest.spyOn(Container, "setAccentColor");
+    const ColorSpy = jest.spyOn(Container, "setAccentColor");
     Container.setColor(Colors.Red);
-    expect(colorSpy).toHaveBeenCalled();
+    expect(ColorSpy).toHaveBeenCalled();
 
     Container.setColor(null);
     expect(Container.accentColor).toBeNull();
@@ -210,7 +224,7 @@ describe("BaseExtraContainer", () => {
     await Container.replyToInteract(BtnInteraction);
     expect(BtnInteraction.reply).toHaveBeenCalled();
 
-    const CompInteraction = CreateMockInteraction("MessageComponentInteraction", {
+    const CompInteraction = CreateMockInteraction("ButtonInteraction", {
       message: { flags: { has: jest.fn().mockReturnValue(true) } },
     });
 
@@ -710,8 +724,8 @@ describe("Complex Interaction Tests", () => {
     await Container.replyToInteract(RepliedBtn);
     expect(RepliedBtn.editReply).toHaveBeenCalled();
 
-    // Test with update method and MessageComponentInteraction
-    const ComponentInteraction = CreateMockInteraction("MessageComponentInteraction", {
+    // Test with update method and ButtonInteraction
+    const ComponentInteraction = CreateMockInteraction("ButtonInteraction", {
       message: {
         flags: {
           has: jest.fn().mockImplementation((flag) => flag === MessageFlags.IsComponentsV2),
@@ -727,7 +741,7 @@ describe("Complex Interaction Tests", () => {
     const Container = new InfoContainer();
 
     // Setup a component interaction that fails on update but succeeds on followUp
-    const FailingInteraction = CreateMockInteraction("MessageComponentInteraction");
+    const FailingInteraction = CreateMockInteraction("ButtonInteraction");
     FailingInteraction.update = jest.fn().mockRejectedValue(new Error("Update failed"));
     FailingInteraction.followUp = jest.fn().mockResolvedValue({});
 
@@ -745,8 +759,8 @@ describe("Complex Interaction Tests", () => {
     await Container.replyToInteract(BtnInteraction, false, true);
     expect(BtnInteraction.followUp).toHaveBeenCalled();
 
-    // Test MessageComponentInteraction fallback paths
-    const CompInteraction = CreateMockInteraction("MessageComponentInteraction");
+    // Test ButtonInteraction fallback paths
+    const CompInteraction = CreateMockInteraction("ButtonInteraction");
     CompInteraction.update = jest.fn().mockRejectedValue(new Error("Update failed"));
     await Container.replyToInteract(CompInteraction, false, true, "editReply");
     expect(CompInteraction.followUp).toHaveBeenCalled();
