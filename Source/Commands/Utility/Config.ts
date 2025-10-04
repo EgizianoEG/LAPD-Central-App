@@ -463,12 +463,14 @@ const ConfigTopicsExplanations = {
         Name: "Unit Type Role-based Restrictions",
         Description:
           "If a unit type is associated with specific roles, only members holding at least one of those roles can request that unit type. " +
-          "This ensures that only qualified personnel can submit requests for specialized units.",
+          "This ensures that only qualified personnel can submit requests for specialized units.\n" +
+          "**Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
       },
       {
         Name: "Beat Number Role-based Restrictions",
         Description:
-          "Define specific rules for assigning call sign beat numbers based on roles. These restrictions ensure that only qualified members can request certain beat numbers.",
+          "Define specific rules for assigning call sign beat numbers based on roles. These restrictions ensure that only qualified members can request certain beat numbers.\n" +
+          "**Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
       },
     ],
   },
