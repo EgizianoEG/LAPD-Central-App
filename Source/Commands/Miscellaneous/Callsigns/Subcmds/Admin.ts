@@ -153,7 +153,7 @@ export function GetAdminOrMgmtPanelContainer(
       ConcatenateLines(
         "**Call Sign Status**",
         PanelTarget === "Admin"
-          ? "*This staff does not have an active or pending call sign request.*"
+          ? "*Staff does not have an active or pending call sign request at the moment.*"
           : "You currently have no assigned or pending call sign request to manage.\n" +
               `You may request one using the ${MentionCmdByName("callsign request")} command.`
       )
@@ -282,7 +282,7 @@ function GetPanelComponents(
         .setCustomId(`${AdminActions.CallsignAssign}:${Interaction.user.id}:0:${TargetUserId}`)
         .setLabel("Assign a Call Sign")
         .setEmoji(Emojis.TagPlus)
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Primary)
     );
   }
 
