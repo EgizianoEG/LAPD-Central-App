@@ -29,7 +29,7 @@ import {
 import { Emojis } from "@Config/Shared.js";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 import { GenericRequestStatuses } from "@Config/Constants.js";
-import { HandleUnauthorizedManagement } from "Source/Events/InteractionCreate/CallsignManagementHandler.js";
+import { HandleUnauthorizedManagement } from "@Source/Events/InteractionCreate/CallsignManagementHandler.js";
 import { isValidObjectId, RootFilterQuery } from "mongoose";
 
 import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";

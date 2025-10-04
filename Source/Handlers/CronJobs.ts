@@ -1,5 +1,6 @@
 import { CronJobFileDefReturn } from "@Typings/Core/System.js";
 import { GetDirName } from "@Utilities/Helpers/Paths.js";
+import { Events } from "discord.js";
 
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
@@ -61,14 +62,14 @@ export default async function CronJobsHandler(Client: DiscordClient) {
   }
 
   if (MustOnlyWorkWhenAppIsOnlineJobs.length > 0) {
-    Client.on("ready", function RunDependentJobs() {
+    Client.on(Events.ClientReady, function RunDependentJobs() {
       MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
         const Task = ScheduledTasks.get(JobFileName);
         if (Task) Task.start();
       });
     });
 
-    Client.on("shardDisconnect", function PauseDependentJobs() {
+    Client.on(Events.ShardDisconnect, function PauseDependentJobs() {
       MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
         const Task = ScheduledTasks.get(JobFileName);
         if (Task) Task.stop();

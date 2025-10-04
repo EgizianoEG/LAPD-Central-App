@@ -40,6 +40,7 @@
     ],
 
     "paths": {
+      "@Source/*": ["./Source/*"],
       "@Cmds/*": ["./Source/Commands/*"],
       "@Config/*": ["./Source/Config/*"],
       "@Models/*": ["./Source/Models/*"],
