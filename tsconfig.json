@@ -28,7 +28,6 @@
     /* Modules */
     "module": "NodeNext",
     "rootDir": "Source",
-    "baseUrl": "./",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": false,
     "types": ["node"],
