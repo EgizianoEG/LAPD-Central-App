@@ -161,7 +161,7 @@ function GenerateCallsignPrefixRegex(NicknameFormat: string): RegExp | null {
   let Pattern = BeforeNicknameMatch[1];
   const HasDivision = /\{division\}/i.test(Pattern);
   const HasUnitType = /\{unit_type\}/i.test(Pattern);
-  const HasBeatNum = /\{beat_num\}/i.test(Pattern);
+  const HasBeatNum = /\{(?:beat_num|identifier)\}/i.test(Pattern);
 
   if (!HasDivision && !HasUnitType && !HasBeatNum) {
     return null;
@@ -173,8 +173,8 @@ function GenerateCallsignPrefixRegex(NicknameFormat: string): RegExp | null {
 
   Pattern = Pattern.replace(/[.*+?^${}()|\\[\]]/g, "\\$&");
   Pattern = Pattern.replace(/\\?\{division\\?\}/gi, "\\d{1,2}")
-    .replace(/\\?\{unit_type\\?\}/gi, "[A-Z]{1,3}\\d*|\\d*[A-Z]{1,3}")
-    .replace(/\\?\{beat_num\\?\}/gi, "\\d{1,3}");
+    .replace(/\\?\{unit_type\\?\}/gi, "(?:[A-Z]{1,3}\\d*|\\d*[A-Z]{1,3})")
+    .replace(/\\?\{(?:beat_num|identifier)\\?\}/gi, "\\d{1,3}");
 
   Pattern = Pattern.replace(/\\[-−–—‒⁃‑]/g, "[-−–—‒⁃‑]?").replace(/\\\s/g, "\\s*");
   Pattern = "^" + Pattern + "\\s*";

@@ -838,7 +838,7 @@ export const ErrorMessages = {
   CallsignInvalidUnitType: {
     Title: "Invalid Unit Type",
     Description:
-      "The input unit type, `%s`, is invalid. Ensure you are using a valid unit type from the autocomplete suggestions.",
+      "The input unit type, `%s`, is invalid. Ensure you are using a valid unit type from the autocomplete suggestions, if possible.",
   },
 
   /**
@@ -847,7 +847,7 @@ export const ErrorMessages = {
   CallsignInvalidDivision: {
     Title: "Invalid Division Beat",
     Description:
-      "The input division beat, `%i`, is invalid. Ensure you are selecting a valid beat from the autocomplete suggestions.",
+      "The input division beat, `%i`, is invalid. Ensure you are selecting a valid beat from the autocomplete suggestions, if possible.",
   },
 
   CallsignPreviouslyDenied: {

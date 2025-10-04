@@ -356,12 +356,14 @@ function GetAdminModal(
 /**
  * Validates and parses a callsign designation string.
  * @param RecInteract - The administration interaction.
+ * @param TargetUserId - The Id of the user being targeted for validation data.
  * @param Designation - The callsign designation string to validate and parse.
  * @returns An object containing the parsed designation and validation data,
  *          or `false` if validation fails and an error response is sent.
  */
 async function ValidateAndParseCallsignDesignation(
   RecInteract: ModalSubmitInteraction<"cached">,
+  TargetUserId: string,
   Designation: string
 ): Promise<ValidateAndParseCallsignDesignationReturn | false> {
   const Parts = Designation.split(/\s*-\s*/);
@@ -380,7 +382,7 @@ async function ValidateAndParseCallsignDesignation(
   const BeatNumStr = BeatNum.toString().padStart(2, "0");
   const ValidationData = await GetCallsignValidationData(
     RecInteract.guildId,
-    RecInteract.user.id,
+    TargetUserId,
     DivBeat,
     UnitType,
     BeatNumStr,
@@ -614,6 +616,7 @@ async function HandleCallsignRelease(BtnInteract: ButtonInteraction<"cached">): 
     },
     {
       expiry: SubmissionResponse.createdAt,
+      expiry_notified: true,
     },
     {
       new: true,
@@ -691,6 +694,7 @@ async function HandleCallsignAssignment(
   const ParsedExpiryInput = await ValidateAndParseExpiryDate(SubmissionResponse, ExpiryInput);
   const CallsignValidationResult = await ValidateAndParseCallsignDesignation(
     SubmissionResponse,
+    TargetUserId,
     DesignationInput
   );
 
@@ -710,7 +714,7 @@ async function HandleCallsignAssignment(
       if (ExistingActiveCallsign) {
         PreviousActiveCallsign = await CallsignModel.findByIdAndUpdate(
           ExistingActiveCallsign._id,
-          { expiry: SubmissionResponse.createdAt },
+          { expiry: SubmissionResponse.createdAt, expiry_notified: true },
           { session: CallsignTransactionSession }
         );
       }
@@ -721,7 +725,7 @@ async function HandleCallsignAssignment(
         designation: CallsignValidationResult.designation,
         request_message: null,
 
-        request_reason: "[Administrative Assignment]",
+        request_reason: "[Administrative]",
         request_status: GenericRequestStatuses.Approved,
         requested_on: SubmissionResponse.createdAt,
         expiry: ParsedExpiryInput,
@@ -752,7 +756,7 @@ async function HandleCallsignAssignment(
   }
 
   const RespContainer = new SuccessContainer()
-    .setTitle("Call Sign Assigned")
+    .setTitle(`Call Sign ${PreviousActiveCallsign ? "Transferred" : "Assigned"}`)
     .setDescription(
       `Successfully assigned ${userMention(
         (AssignedCallsign as Callsigns.CallsignDocument).requester
