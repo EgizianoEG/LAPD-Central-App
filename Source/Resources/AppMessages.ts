@@ -518,7 +518,7 @@ export const ErrorMessages = {
 
   ShiftCreationDurationTooLong: {
     Title: "Duration Too Long",
-    Description: "The specified duration exceeds the maximum allowed shift length of 1 month.",
+    Description: "The specified duration exceeds the maximum allowed shift length of 14 days.",
   },
 
   NoRecentShifts: {
@@ -1325,6 +1325,13 @@ export const InfoMessages = {
     Color: Colors.Gold,
     Title: `${Emojis.LoadingGold}\u{2000}Logging Citation...`,
     Description: "Please wait while your submitted citation is processed and logged.",
+  },
+
+  RobloxAccountLoginDiscordUsernameProvided: {
+    Title: "Discord Username Entered",
+    Description:
+      "It looks like you entered your Discord username instead of your Roblox username. This may cause issues if they’re not the same.\n\n" +
+      "Are you sure you want to proceed? If not, please restart the login process with your Roblox username. Otherwise, you can dismiss this message and continue.",
   },
 
   /**

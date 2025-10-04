@@ -39,7 +39,7 @@ export default async function AutocompleteShiftType(
   }
 
   if (IncludeDefault) {
-    Suggestions.unshift(DefaultSuggestion);
+    Suggestions.push(DefaultSuggestion);
   }
 
   return Suggestions.slice(0, 25).map((Choice) =>

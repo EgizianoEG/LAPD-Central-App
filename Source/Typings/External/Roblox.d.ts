@@ -123,6 +123,39 @@ export namespace APIResponses.Thumbnails {
   }
 }
 
+export namespace APIResponses.OmniSearch {
+  interface UserSearchResult {
+    contentGroupType: string;
+    contents: UserContent[];
+    topicId: "OrganicUser";
+  }
+
+  interface UserContent {
+    username: string;
+    displayName: string;
+    contentType: "User";
+
+    /* The unique identifier for the user; corresponds to the user's Id in Roblox. */
+    contentId: number;
+    hasVerifiedBadge: boolean;
+    previousUsernames: string[] | null;
+    defaultLayoutData: any | null;
+  }
+
+  interface UserSearchResponse {
+    /**
+     * Results are always at index 0 as only one vertical is searched (users).
+     */
+    searchResults: UserSearchResult[];
+    nextPageToken: string;
+    filteredSearchQuery: string | null;
+    paginationMethod: string;
+    vertical: string;
+    sorts: any | null;
+    sdui: any | null;
+  }
+}
+
 export namespace APITypes.Thumbnails {
   type ImageFormat = "png" | "jpeg";
   type AvatarCropSizes = "body" | "bust" | "headshot";

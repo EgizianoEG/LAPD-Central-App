@@ -12,6 +12,7 @@ import {
   InteractionContextType,
   AutocompleteInteraction,
   ApplicationIntegrationType,
+  ApplicationCommandOptionChoiceData,
 } from "discord.js";
 
 import {
@@ -96,7 +97,10 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     return;
   }
 
-  await CmdInteract.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
+  await CmdInteract.deferReply({
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+  });
+
   const [AccountRobloxId, ExactUsername] = await GetIdByUsername(InputUsername, true);
   const FoundBloxlinkRobloxId = await GetRobloxIdFromDiscordBloxlink(CmdInteract.user.id);
 
@@ -175,6 +179,12 @@ async function HandleManualVerification(
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
   });
 
+  if (CmdInteract.options.getString("username", true) === CmdInteract.user.username) {
+    await new InfoContainer()
+      .useInfoTemplate("RobloxAccountLoginDiscordUsernameProvided")
+      .replyToInteract(CmdInteract, true, true, "followUp");
+  }
+
   let AttemptsLeft = 2;
   const ComponentCollector = LoginPromptMsg.createMessageComponentCollector({
     componentType: ComponentType.Button,
@@ -190,7 +200,13 @@ async function HandleManualVerification(
           ? CurrentAccountInfo.description
           : CurrentAccountInfo.about;
 
-      if (AboutText?.includes(SampleText)) {
+      if (AboutText === undefined) {
+        return new ErrorContainer()
+          .useErrTemplate("AppError")
+          .replyToInteract(ButtonInteract, true, true, "followUp");
+      }
+
+      if (AboutText.includes(SampleText)) {
         await UpdateLinkedRobloxUser(CmdInteract, AccountRobloxId);
         ComponentCollector.stop("Confirmed");
 
@@ -245,7 +261,7 @@ async function HandleManualVerification(
  */
 async function Autocomplete(Interaction: AutocompleteInteraction): Promise<void> {
   const { name, value } = Interaction.options.getFocused(true);
-  let Suggestions: { name: string; value: string }[];
+  let Suggestions: ApplicationCommandOptionChoiceData[];
 
   if (name === "username") {
     Suggestions = await AutocompleteUsername(value);

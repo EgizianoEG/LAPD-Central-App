@@ -171,7 +171,7 @@ async function HandleShiftOnAction(
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
-        error: { ...Result.reason },
+        error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
     });
@@ -258,7 +258,7 @@ async function HandleShiftBreakToggleAction(
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
-        error: { ...Result.reason },
+        error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
     });
@@ -321,7 +321,7 @@ async function HandleShiftOffAction(
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
-        error: { ...Result.reason },
+        error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
     });
@@ -531,7 +531,7 @@ async function UpdateManagementPrompt(
             : "";
 
         ShiftOverviewDesc = Dedent(`
-          **Shift Overview:**
+          **Shift Overview**
           >>> **Status:** (${Emojis.Offline}) Off-Duty
           **Shift Type:** \`${MostRecentFinishedShift.type}\`
           **Shift Started:** ${FormatTime(MostRecentFinishedShift.start_timestamp, "R")}${BreakTimeText ? `\n${BreakTimeText}` : ""}

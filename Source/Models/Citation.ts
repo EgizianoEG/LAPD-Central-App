@@ -385,22 +385,27 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
       commercial: {
         type: Boolean,
         default: false,
+        required: true,
       },
       hazardous_mat: {
         type: Boolean,
         default: false,
+        required: true,
       },
       is_vehicle: {
         type: Boolean,
         default: true,
+        required: true,
       },
       is_boat: {
         type: Boolean,
         default: false,
+        required: true,
       },
       is_aircraft: {
         type: Boolean,
         default: false,
+        required: true,
       },
     },
   },

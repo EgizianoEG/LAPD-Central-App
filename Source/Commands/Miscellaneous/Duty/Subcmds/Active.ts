@@ -98,7 +98,7 @@ function CreateSingleTypeEmbeds(
 ): [EmbedBuilder[], boolean] {
   const Pages: EmbedBuilder[] = [];
   let HasBreakAnnotation = false;
-  const Description = `**The server's current active shifts of type \`${ShiftType}\`.**`;
+  const Description = `The server's current active shifts of type \`${ShiftType}\`.`;
   const TotalShifts = ShiftData.length;
 
   if (TotalShifts > ShiftsPerPage) {

@@ -418,9 +418,13 @@ async function HandleShiftTimeSet(
     return new ErrorEmbed()
       .useErrTemplate("UnknownDurationExp")
       .replyToInteract(ModalSubmission, true);
-  } else if (RoundedDuration < 30_000) {
+  } else if (RoundedDuration < milliseconds({ seconds: 30 })) {
     return new ErrorEmbed()
       .useErrTemplate("ShortTypedDuration")
+      .replyToInteract(ModalSubmission, true);
+  } else if (RoundedDuration > milliseconds({ days: 14 })) {
+    return new ErrorEmbed()
+      .useErrTemplate("ShiftCreationDurationTooLong")
       .replyToInteract(ModalSubmission, true);
   }
 
@@ -471,7 +475,7 @@ async function HandleShiftTimeAddSub(
       ? `Successfully added an extra \`${ReadableDuration(RoundedDuration)}\` of on-duty time to the shift.`
       : `Successfully subtracted \`${ReadableDuration(RoundedDuration)}\` of on-duty time from the shift.`;
 
-  if (!ParsedDuration) {
+  if (ParsedDuration == null) {
     return new ErrorEmbed()
       .useErrTemplate("UnknownDurationExp")
       .replyToInteract(ModalSubmission, true);
@@ -565,24 +569,22 @@ async function WipeUserShifts(
     type: ShiftType || { $exists: true },
   };
 
-  const TData: { totalTime: number }[] = await ShiftModel.aggregate([
+  const TData = await ShiftModel.aggregate<{ total_time: number; shift_count: number }>([
     { $match: QueryFilter },
     {
       $group: {
         _id: null,
-        totalTime: {
+        shift_count: { $sum: 1 },
+        total_time: {
           $sum: {
             $add: ["$durations.on_duty", "$durations.on_duty_mod"],
           },
         },
       },
     },
-    {
-      $unset: ["_id"],
-    },
   ]);
 
-  if (!TData[0] || TData[0].totalTime <= 0) {
+  if (!TData[0] || TData[0].shift_count === 0) {
     return {
       totalTime: 0,
       deletedCount: 0,
@@ -591,7 +593,7 @@ async function WipeUserShifts(
   }
 
   return ShiftModel.deleteMany(QueryFilter).then((DResult: any) => {
-    DResult.totalTime = TData[0]?.totalTime ?? 0;
+    DResult.totalTime = TData[0]?.total_time ?? 0;
     return DResult as Mongoose.mongo.DeleteResult & { totalTime: number };
   });
 }
@@ -615,13 +617,22 @@ async function RetrieveShiftRecordsAsContainers(
   return Chunks(ShiftData, 2).map((Chunk) => {
     const Descriptions = Chunk.map((Data) => {
       const Started = FormatTime(Math.round(Data.started / 1000), "f");
-      const Ended =
-        typeof Data.ended === "string"
-          ? Data.ended
-          : FormatTime(Math.round(Data.started / 1000), "T");
+      let ShiftFlag = "";
+      let Ended: string;
 
-      const AdminFlag = Data.flag === ShiftFlags.Administrative ? " (Manually Added)" : "";
-      const ShiftIdLine = `**Shift ID:** \`${Data._id}\`${AdminFlag}`;
+      if (typeof Data.ended === "string") {
+        Ended = Data.ended;
+      } else {
+        Ended = FormatTime(Math.round(Data.ended / 1000), "T");
+      }
+
+      if (Data.flag === ShiftFlags.Administrative) {
+        ShiftFlag = "(Manually Added)";
+      } else if (Data.flag === ShiftFlags.Imported) {
+        ShiftFlag = "(Imported)";
+      }
+
+      const ShiftIdLine = `**Shift ID:** \`${Data._id}\` ${ShiftFlag}`;
       if (ShiftType) {
         return Dedent(`
           - ${ShiftIdLine}
@@ -746,14 +757,14 @@ async function GetActiveShiftAndShiftDataContainer(
       },
       {
         type: ComponentType.TextDisplay,
-        content: `**Statistics Summary:**\n${StatisticsTextSummary}`,
+        content: `**Statistics Summary**\n${StatisticsTextSummary}`,
       }
     );
 
   if (ActiveShift) {
     const StatusText = ActiveShift.hasBreakActive()
-      ? `${Emojis.Idle} On-Break`
-      : `${Emojis.Online} On-Duty`;
+      ? `(${Emojis.Idle}) On-Break`
+      : `(${Emojis.Online}) On-Duty`;
 
     const TotalBreakTime = ActiveShift.hasBreaks()
       ? `**Break Time:** ${ReadableDuration(ActiveShift.durations.on_break)}`
@@ -770,7 +781,7 @@ async function GetActiveShiftAndShiftDataContainer(
 
     RespContainer.addTextDisplayComponents({
       type: ComponentType.TextDisplay,
-      content: `**Active Shift:**\n${ActiveShiftTextSummary}`,
+      content: `**Active Shift**\n${ActiveShiftTextSummary}`,
     });
   } else if (RecentlyEndedShift) {
     const TotalBreakTime = RecentlyEndedShift.hasBreaks()
@@ -788,7 +799,7 @@ async function GetActiveShiftAndShiftDataContainer(
 
     RespContainer.addTextDisplayComponents({
       type: ComponentType.TextDisplay,
-      content: `**Previous Shift:**\n${EndedShiftTextSummary}`,
+      content: `**Previous Shift**\n${EndedShiftTextSummary}`,
     });
   }
 
@@ -1003,7 +1014,7 @@ async function HandleShiftCreation(
       .replyToInteract(ModalSubmission, true);
   }
 
-  if (RoundedDuration > milliseconds({ months: 1 })) {
+  if (RoundedDuration > milliseconds({ days: 14 })) {
     return new ErrorEmbed()
       .useErrTemplate("ShiftCreationDurationTooLong")
       .replyToInteract(ModalSubmission, true);
@@ -1147,7 +1158,7 @@ async function HandleUserShiftsWipe(
       );
 
     if (WipeResult.deletedCount === 0) {
-      return ConfirmationInteract.editReply({
+      return await ConfirmationInteract.editReply({
         components: [new InfoContainer().useInfoTemplate("NoShiftsWipedFU")],
       });
     }

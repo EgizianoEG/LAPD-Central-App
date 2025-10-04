@@ -22,10 +22,8 @@ const ShiftDurations = new Schema({
       let OnDutyDuration = TotalShiftDuration;
       OnDutyDuration -= this.on_break;
       OnDutyDuration += this.on_duty_mod;
-      OnDutyDuration = Math.max(OnDutyDuration, 0);
 
-      this.on_duty = OnDutyDuration;
-      return OnDutyDuration;
+      return Math.max(OnDutyDuration, 0);
     },
   },
 
@@ -45,9 +43,7 @@ const ShiftDurations = new Schema({
       }, 0);
 
       OnBreakDuration = Math.min(OnBreakDuration, TotalShiftDuration);
-      OnBreakDuration = Math.max(OnBreakDuration, 0);
-      this.on_break = OnBreakDuration;
-      return OnBreakDuration;
+      return Math.max(OnBreakDuration, 0);
     },
   },
 

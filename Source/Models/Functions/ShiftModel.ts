@@ -33,8 +33,8 @@ function GetUpdateShiftOnDutyDuration(SD: ThisType) {
   if (!SD.start_timestamp) return 0;
 
   const TotalShiftDuration = EndTimestamp - SD.start_timestamp.valueOf();
-  let OnDutyDuration = TotalShiftDuration;
-  OnDutyDuration -= GetUpdateShiftOnBreakDuration(SD);
+  const BreakDuration = GetUpdateShiftOnBreakDuration(SD);
+  const OnDutyDuration = TotalShiftDuration - BreakDuration;
 
   return Math.max(OnDutyDuration, 0);
 }
@@ -163,8 +163,8 @@ export async function ShiftBreakStart(this: ThisType, timestamp: number = Date.n
       {
         $push: { "events.breaks": [timestamp, null] },
         $set: {
-          "durations.on_duty": this.durations.on_duty,
-          "durations.on_break": this.durations.on_break,
+          "durations.on_duty": GetUpdateShiftOnDutyDuration(this),
+          "durations.on_break": GetUpdateShiftOnBreakDuration(this),
         },
       },
       { new: true }
@@ -207,8 +207,8 @@ export async function ShiftBreakEnd(this: ThisType, timestamp: number = Date.now
       {
         $set: {
           "events.breaks.$[elem].1": timestamp,
-          "durations.on_duty": this.durations.on_duty,
-          "durations.on_break": this.durations.on_break,
+          "durations.on_duty": GetUpdateShiftOnDutyDuration(this),
+          "durations.on_break": GetUpdateShiftOnBreakDuration(this),
         },
       },
       {
@@ -249,8 +249,8 @@ export async function ShiftEnd(this: ThisType, timestamp: Date | number = new Da
         $set: {
           end_timestamp: EndTimestamp,
           "events.breaks": ShiftBreaks,
-          "durations.on_duty": this.durations.on_duty,
-          "durations.on_break": this.durations.on_break,
+          "durations.on_duty": GetUpdateShiftOnDutyDuration(this),
+          "durations.on_break": GetUpdateShiftOnBreakDuration(this),
         },
       },
       { new: true }
