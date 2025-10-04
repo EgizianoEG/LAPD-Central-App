@@ -1,3 +1,5 @@
+import IsUserRobloxIdLinked from "@Utilities/Database/IsUserLoggedIn.js";
+import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
@@ -23,16 +25,48 @@ const Subcommands = [
 // ---------------------------------------------------------------------------------------
 // Handling & Logic:
 // -----------------
-async function CmdInitialCallback(Interaction: SlashCommandInteraction<"cached">) {
-  const SubCommandName = Interaction.options.getSubcommand();
+/**
+ * Authorize a management slash command usage; returns `true` is it is authorized or `false` otherwise.
+ * @param Interaction - The interaction to check.
+ * @returns `true` if authorized; `false` otherwise.
+ */
+async function IsAuthorizedCmdUsage(Interaction: SlashCommandInteraction<"cached">) {
+  const SubcmdName = Interaction.options.getSubcommand();
   const ModuleEnabled = await IsModuleEnabled(Interaction.guildId, "callsigns_module");
 
-  if (ModuleEnabled === false && SubCommandName !== "list") {
+  if (ModuleEnabled === false) {
     return new ErrorEmbed()
       .useErrTemplate("CallsignsModuleDisabled")
-      .replyToInteract(Interaction, true, true);
+      .replyToInteract(Interaction, true)
+      .then(() => false);
   }
 
+  const GuildSettings = await GetGuildSettings(Interaction.guildId);
+  const NeedsRobloxForNickname =
+    GuildSettings?.callsigns_module.update_nicknames &&
+    GuildSettings.callsigns_module.nickname_format.includes("roblox");
+
+  if (
+    SubcmdName === "request" &&
+    (GuildSettings?.require_authorization === true || NeedsRobloxForNickname)
+  ) {
+    const LinkedRobloxUser = await IsUserRobloxIdLinked(Interaction);
+    if (!LinkedRobloxUser) {
+      return new ErrorEmbed()
+        .useErrTemplate("RobloxUserNotLinked")
+        .replyToInteract(Interaction, true)
+        .then(() => false);
+    }
+  }
+
+  return true;
+}
+
+async function CmdInitialCallback(Interaction: SlashCommandInteraction<"cached">) {
+  const SubCommandName = Interaction.options.getSubcommand();
+  const Authorized = await IsAuthorizedCmdUsage(Interaction);
+
+  if (Authorized !== true) return;
   for (const SubCommand of Subcommands) {
     if (SubCommand.data.name === SubCommandName && typeof SubCommand.callback === "function") {
       return SubCommand.callback(Interaction);
