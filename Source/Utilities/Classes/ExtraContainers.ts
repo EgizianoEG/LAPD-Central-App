@@ -26,6 +26,7 @@ import {
   resolveColor,
 } from "discord.js";
 
+import { differenceInMilliseconds, milliseconds } from "date-fns";
 import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
 import { format as FormatString } from "node:util";
 import { Colors } from "@Config/Shared.js";
@@ -394,18 +395,24 @@ export class BaseExtraContainer extends ContainerBuilder {
    * @param ephemeral - Whether the reply should be ephemeral (visible only to the user). Defaults to `false`.
    * @param silent - If `true`, suppresses errors and returns `null` on failure. Defaults to `true`.
    * @param replyMethod - The reply method to use (`"reply"`, `"editReply"`, `"update"`, or `"followUp"`). If not provided, the method is determined automatically.
-   * @returns A promise resolving to the interaction response or message, or `null` if silent and an error occurs.
+   * @returns A promise resolving to the interaction response or message, or `null` if silent and an error or inconsistency occurs.
    */
   async replyToInteract(
     interaction: RepliableInteraction,
     ephemeral: boolean = false,
     silent: boolean = true,
     replyMethod?: "reply" | "editReply" | "update" | "followUp"
-  ): Promise<InteractionResponse<boolean> | Message<boolean>> {
+  ): Promise<InteractionResponse<boolean> | Message<boolean> | null> {
     let ReplyMethod = replyMethod ?? "reply";
     const MsgFlags: MessageFlagsResolvable = ephemeral
       ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
       : MessageFlags.IsComponentsV2;
+
+    if (
+      differenceInMilliseconds(new Date(), interaction.createdAt) > milliseconds({ minutes: 14.9 })
+    ) {
+      return null;
+    }
 
     if (
       !replyMethod &&

@@ -12,6 +12,7 @@ import {
   MessageComponentInteraction,
 } from "discord.js";
 
+import { differenceInMilliseconds, milliseconds } from "date-fns";
 import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
 import { format as FormatString } from "node:util";
 import { Colors, Thumbs } from "@Config/Shared.js";
@@ -37,18 +38,26 @@ class BaseEmbed extends EmbedBuilder {
    * @param interaction - The interaction to reply to.
    * @param ephemeral - Either `true` or `false`; whether the reply should be ephemeral (private); defaults to `false`.
    * @param silent - Whether to catch any errors that might occur and ignore them. Defaults to `true`.
+   * @param replyMethod - The method to use when replying. If not provided, it will be determined automatically.
+   * @returns A promise that resolves to the interaction response or message, or `null` if the interaction is too old.
    */
   async replyToInteract(
     interaction: BaseInteraction & { replied: boolean; reply; followUp; editReply },
     ephemeral: boolean = false,
     silent: boolean = true,
     replyMethod?: "reply" | "editReply" | "update" | "followUp"
-  ): Promise<InteractionResponse<boolean> | Message<boolean>> {
+  ): Promise<InteractionResponse<boolean> | Message<boolean> | null> {
     let ReplyMethod = replyMethod ?? "reply";
     let RemoveComponents: boolean = false;
     const MsgFlags: MessageFlagsResolvable | undefined = ephemeral
       ? MessageFlags.Ephemeral
       : undefined;
+
+    if (
+      differenceInMilliseconds(new Date(), interaction.createdAt) > milliseconds({ minutes: 14.9 })
+    ) {
+      return null;
+    }
 
     if (
       !replyMethod &&

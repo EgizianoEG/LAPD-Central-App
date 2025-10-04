@@ -33,12 +33,12 @@ const ListFormatter = new Intl.ListFormat("en");
  * Handles validation of the `name` interaction option (Shift Type Name).
  * @param Interaction - The user command interaction
  * @param ShiftTypeName - The provided name from the user
- * @returns The interaction reply (an error reply) if validation failed; otherwise `undefined`
+ * @returns The interaction reply (an error reply) if validation failed; otherwise a falsey value.
  */
 async function HandleNameValidation(
   Interaction: SlashCommandInteraction<"cached">,
   ShiftTypeName: string
-): Promise<Message<boolean> | InteractionResponse<boolean> | undefined> {
+): Promise<Message<boolean> | InteractionResponse<boolean> | null> {
   if (!IsValidShiftTypeName(ShiftTypeName)) {
     return new ErrorEmbed()
       .useErrTemplate("MalformedShiftTypeName")
@@ -47,10 +47,13 @@ async function HandleNameValidation(
     return new ErrorEmbed()
       .useErrTemplate("PreservedShiftTypeCreation")
       .replyToInteract(Interaction, true);
-  } else if (await ShiftTypeExists(Interaction.guildId, ShiftTypeName))
+  } else if (await ShiftTypeExists(Interaction.guildId, ShiftTypeName)) {
     return new ErrorEmbed()
       .useErrTemplate("ShiftTypeAlreadyExists", ShiftTypeName)
       .replyToInteract(Interaction, true);
+  }
+
+  return null;
 }
 
 /**
