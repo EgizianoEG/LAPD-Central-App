@@ -1371,6 +1371,12 @@ export namespace Callsigns {
     expiry: Date | null;
 
     /**
+     * Indicates whether the expiry of this callsign has been notified to the user and guild or not.
+     * @default false
+     */
+    expiry_notified: boolean;
+
+    /**
      * The designation of the callsign.
      * E.g., `{ division: 1, unit_type: "A", beat_num: "123" }` which represents the callsign `"1-A-123"`.
      */

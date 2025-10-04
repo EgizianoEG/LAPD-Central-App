@@ -11,6 +11,7 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
     required: true,
     immutable: true,
     match: /^\d{15,22}$/,
+    ref: "Guild",
   },
 
   requester: {
@@ -19,6 +20,7 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
     required: true,
     immutable: true,
     match: /^\d{15,22}$/,
+    ref: "GuildProfile",
   },
 
   requested_on: {
@@ -39,8 +41,8 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
 
   request_status: {
     type: String as any,
-    required: true,
     index: true,
+    required: true,
     default: GenericRequestStatuses.Pending,
     enum: {
       values: Object.values(GenericRequestStatuses),
@@ -84,8 +86,16 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
 
   expiry: {
     type: Date,
+    index: true,
     default: null,
     required: false,
+  },
+
+  expiry_notified: {
+    type: Boolean,
+    default: false,
+    required: true,
+    index: true,
   },
 
   /**

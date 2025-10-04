@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import {
   Guild,
   spoiler,
@@ -858,6 +859,83 @@ export default class CallsignsEventLogger {
           ),
         });
       }
+
+      LogChannel.send({ embeds: [LogEmbed] }).catch(() => null);
+    }
+  }
+
+  /**
+   * Logs the expiration of a call sign.
+   * @param Client - The Discord client instance.
+   * @param ExpiredCallsign - The expired call sign document.
+   * @returns A Promise resolving after the log is sent and DM notification requests are completed.
+   */
+  async LogCallsignExpiry(Client: DiscordClient, ExpiredCallsign: CallsignDoc): Promise<void> {
+    if (
+      ExpiredCallsign.request_status !== GenericRequestStatuses.Approved ||
+      !ExpiredCallsign.reviewed_on ||
+      !ExpiredCallsign.expiry
+    ) {
+      return;
+    }
+
+    const FormattedCallsign = FormatCallsign(ExpiredCallsign.designation);
+    const Guild = await Client.guilds.fetch(ExpiredCallsign.guild).catch(() => null);
+    const Requester = await Guild?.members.fetch(ExpiredCallsign.requester).catch(() => null);
+
+    if (!Guild) return;
+    const LogChannel = await this.FetchLoggingChannel(Guild, "log");
+
+    if (Requester) {
+      const DMExpiryNotice = new EmbedBuilder()
+        .setTimestamp(ExpiredCallsign.expiry)
+        .setColor(Colors.RequestEnded)
+        .setFooter({ text: `Reference ID: ${ExpiredCallsign._id}` })
+        .setTitle("Call Sign Expiry Notice")
+        .setDescription(
+          `Your call sign **\`${FormattedCallsign}\`** that was assigned to you on ${FormatTime(ExpiredCallsign.reviewed_on, "F")} (${FormatTime(
+            ExpiredCallsign.reviewed_on,
+            "R"
+          )}) has expired. You may submit a new call sign request if needed via the \`/callsign request\` slash command on the server.`
+        )
+        .setAuthor({
+          name: Guild.name,
+          iconURL:
+            Client.guilds.cache.get(ExpiredCallsign.guild)?.iconURL(this.ImgURLOpts) ??
+            Thumbs.Transparent,
+        });
+
+      Requester.send({ embeds: [DMExpiryNotice] }).catch(() => null);
+    }
+
+    if (LogChannel) {
+      const LogEmbed = new EmbedBuilder()
+        .setColor(Colors.RequestEnded)
+        .setTimestamp(ExpiredCallsign.expiry)
+        .setTitle("Call Sign Expired")
+        .setFooter({ text: `Assigned Ref. ID: ${ExpiredCallsign._id}; expired on` })
+        .addFields(
+          {
+            inline: true,
+            name: "Call Sign Info",
+            value: ConcatenateLines(
+              `**Was Assigned To:** ${userMention(ExpiredCallsign.requester)}`,
+              `**Designation:** \`${FormattedCallsign}\``,
+              `**Reason:** ${ExpiredCallsign.request_reason}`
+            ),
+          },
+          {
+            inline: true,
+            name: "Assignment Info",
+            value: ConcatenateLines(
+              `**Assigner:** ${userMention(ExpiredCallsign.reviewer!)}`,
+              `**Assigned On:** ${FormatTime(ExpiredCallsign.reviewed_on, "D")}`,
+              ExpiredCallsign.reviewer_notes
+                ? `**Notes:** ${ExpiredCallsign.reviewer_notes}`
+                : "**Notes:** *N/A*"
+            ),
+          }
+        );
 
       LogChannel.send({ embeds: [LogEmbed] }).catch(() => null);
     }
