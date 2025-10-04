@@ -129,7 +129,7 @@ async function HandleCallsignAddInfo(
   const FormattedCallsign = FormatCallsign(CallsignDocument.designation);
   const CallsignHistory = await CallsignModel.find({
     guild: Interaction.guildId,
-    request_status: { $in: ["Approved", "Denied"] },
+    request_status: { $in: [GenericRequestStatuses.Approved, GenericRequestStatuses.Denied] },
     designation: CallsignDocument.designation,
   })
     .sort({ requested_on: -1 })
@@ -170,8 +170,8 @@ async function HandleCallsignAddInfo(
         > - **Unit Type:** ${UnitTypeDetail} (${CallsignDocument.designation.unit_type})
         > - **Beat Number:** ${CallsignDocument.designation.beat_num}
 
-        **Recent Call Sign History**
-        > ${CallsignHistoryStr.length ? CallsignHistoryStr.join("\n> ") : "> *There is no history available to view.*"}
+        **Requested Call Sign's Recent History**
+        > ${CallsignHistoryStr.length ? CallsignHistoryStr.join("\n> ") : "*There is no history available to view.*"}
       `)
     );
 
