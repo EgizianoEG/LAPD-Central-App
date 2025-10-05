@@ -7,7 +7,11 @@ icon: newspaper
 
 # Change Log
 
-## Version 1.7 — October 5, 2025 <sup><sub>_<mark style="color:$success;">(Latest)</mark>_<sub></sup>
+## Version 1.7.1 — October 5, 2025 <sup><sub>_<mark style="color:$success;">(Latest)</mark>_<sub></sup>
+
+Minor fixes; see release notes on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.1).
+
+## Version 1.7.0 — October 5, 2025
 
 See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.0).
 
@@ -15,19 +19,19 @@ See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7
 
 See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.6.1).
 
-## Version 1.6 — August 23, 2025
+## Version 1.6.0 — August 23, 2025
 
 See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.6.0).
 
-## Version 1.5 — August 9, 2025
+## Version 1.5.0 — August 9, 2025
 
 See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.5.0).
 
-## Version 1.4 — July 21, 2025
+## Version 1.4.0 — July 21, 2025
 
 See on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.4.0).
 
-## [Version 1.3](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.0) — June 2&#x32;**, 2025**
+## [Version 1.3.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.0) — June 2&#x32;**, 2025**
 
 ### **Enhancements**
 
@@ -66,7 +70,7 @@ Overall, this release adds a powerful new role persistence system, expands activ
 
 ***
 
-## [Version 1.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.2.0) <sub>—  June 6</sub><sub>**, 2025**</sub>
+## [Version 1.2.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.2.0) <sub>—  June 6</sub><sub>**, 2025**</sub>
 
 ### Enhancements
 
@@ -121,7 +125,7 @@ Overall, this release adds a powerful new role persistence system, expands activ
 
 ***
 
-## [Version 1.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.1.0) —  **May 28, 2025**
+## [Version 1.1.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.1.0) —  **May 28, 2025**
 
 ### Enhancements
 
@@ -159,6 +163,6 @@ Overall, this release adds a powerful new role persistence system, expands activ
 
 ***
 
-## [Version 1.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.0.0)  —  **May 26, 2025**
+## [Version 1.0.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.0.0)  —  **May 26, 2025**
 
 The first official and stable version of LAPD Central Discord application.
