@@ -38,7 +38,7 @@ export default async function HandleCallsignStatusUpdates(
       const CallsignsForGuild = CallsignsByGuild[GuildId]!;
       const UpdatePromises = CallsignsForGuild.map(async (Callsign) => {
         const Member = await Guild.members.fetch(Callsign.requester).catch(() => null);
-        if (!Member) return;
+        if (!Member?.manageable) return;
 
         const CSDesignation = Callsign.designation;
         const IsAssignment =
