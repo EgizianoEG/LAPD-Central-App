@@ -25,7 +25,7 @@ export async function AutocompleteServiceUnitType(
   const LowerCaseTyped = Typed.toLowerCase();
   let Suggestions: { name: string; value: string }[];
   const GuildSettings = Member && GuildId ? await GetGuildSettings(GuildId) : null;
-  const RestrictedIndicator = " (Restricted Service Unit Type)";
+  const RestrictedIndicator = " (Restricted)";
 
   if (Typed.match(/^\s*$/)) {
     Suggestions = ServiceUnitTypes.map((u) => {
