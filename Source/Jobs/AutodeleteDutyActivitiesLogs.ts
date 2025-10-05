@@ -73,11 +73,17 @@ async function AutodeleteGuildLogs(Now: Date | "init" | "manual") {
           }
         });
 
-        AppLogger.debug({
-          message: `Successfully executed duty logs cleanup for guild '${GuildDoc._id}'.`,
-          details: CleanupDeletionResults,
-          label: FileLabel,
-        });
+        if (
+          CleanupDeletionResults.ArrestsDeleted !== 0 ||
+          CleanupDeletionResults.CitationsDeleted !== 0 ||
+          CleanupDeletionResults.IncidentsDeleted !== 0
+        ) {
+          AppLogger.debug({
+            message: `Successfully executed duty logs cleanup for guild '${GuildDoc._id}'.`,
+            details: CleanupDeletionResults,
+            label: FileLabel,
+          });
+        }
 
         return [GuildDoc._id, CleanupDeletionResults];
       } catch (Err: any) {
@@ -85,10 +91,8 @@ async function AutodeleteGuildLogs(Now: Date | "init" | "manual") {
           message: "Unexpected error occurred during duty activities log deletion.",
           guild_id: GuildDoc._id,
           label: FileLabel,
-          stack: Err.stack,
-          error: {
-            ...Err,
-          },
+          stack: Err?.stack,
+          error: Err,
         });
       }
     }
