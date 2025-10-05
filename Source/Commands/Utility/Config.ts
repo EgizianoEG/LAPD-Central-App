@@ -2559,7 +2559,7 @@ async function HandleConfigSave<T extends SettingsResolvable>(
       error_id: ErrorId,
       label: FileLabel,
       stack: Err?.stack,
-      error: { ...(Err ?? {}) },
+      error: Err,
     });
 
     return new ErrorContainer()
@@ -4428,7 +4428,7 @@ async function HandleModuleConfigInteractions<SR extends SettingsResolvable>(
               message: "Encountered an error during config module page navigation;",
               label: FileLabel,
               stack: Err?.stack,
-              error: { ...(Err ?? {}) },
+              error: Err,
             })
         );
       } else if (IsButton && CustomId.includes(`-${ConfigTopicMgmtButtonsIds.ReturnToMain}`)) {
@@ -4442,7 +4442,12 @@ async function HandleModuleConfigInteractions<SR extends SettingsResolvable>(
         // This will possibly need to update State.ModuleConfig
         const ShallUpdatePrompt = await HandleModuleSpecificInteractions(RecInteract, State);
         if (ShallUpdatePrompt) {
-          await UpdateConfigPrompt(RecInteract, ConfigPrompt, State, GetContainersFn);
+          await UpdateConfigPrompt(
+            CompActionCollector.collected.last() ?? RecInteract,
+            ConfigPrompt,
+            State,
+            GetContainersFn
+          );
         } else if (!RecInteract.deferred && !RecInteract.replied) {
           RecInteract.deferUpdate().catch(() => null);
         }
@@ -4460,9 +4465,7 @@ async function HandleModuleConfigInteractions<SR extends SettingsResolvable>(
         error_id: ErrorId,
         label: FileLabel,
         stack: Err?.stack,
-        error: {
-          ...(Err ?? {}),
-        },
+        error: Err,
       });
     }
   });
@@ -4662,7 +4665,7 @@ async function HandleInitialRespActions(
         error_id: ErrorId,
         label: FileLabel,
         stack: (Err as Error).stack,
-        error: { ...(Err as Error) },
+        error: Err,
       });
     }
   });
