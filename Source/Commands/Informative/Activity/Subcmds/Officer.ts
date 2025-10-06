@@ -10,18 +10,18 @@ import {
 } from "discord.js";
 
 import { format, formatDistance, isAfter, isBefore } from "date-fns";
+import { ConcatenateLines } from "@Utilities/Strings/ConcatenateLines.js";
 import { FormatUsername } from "@Utilities/Strings/Formatters.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
-import * as Chrono from "chrono-node";
 import GetStaffFieldActivity from "@Utilities/Database/GetFieldActivity.js";
 import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
 import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
 import GeneratePortrait from "@Utilities/ImageRendering/ThumbToPortrait.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
 import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
-import Dedent from "dedent";
+import * as Chrono from "chrono-node";
 
 // ---------------------------------------------------------------------------------------
 // Functions:
@@ -164,35 +164,36 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     .setFields(
       {
         name: "**Basic Information**",
-        value: Dedent(`
-          - Officer: ${userMention(OfficerSelected.id)}
-          - Linked Account: ${FormattedRobloxName}
-          - Current Nickname: \`${CurrServerNickname}\`
-        `),
+        value: ConcatenateLines(
+          `- Officer: ${userMention(OfficerSelected.id)}`,
+          `- Linked Account: ${FormattedRobloxName}`,
+          `- Current Nickname: \`${CurrServerNickname}\`
+        `
+        ),
       },
       {
         inline: true,
         name: "**Shift Statistics**",
-        value: Dedent(`
-          ${QuotaMetText}
-          ${FrequentShiftText}
-          - Shifts Completed: \`${ShiftsData.shift_count}\`
-          - On-Duty Duration
-            - Total: ${ShiftsData.total_onduty}
-            - Avg: ${ShiftsData.avg_onduty}
-        `),
+        value: ConcatenateLines(
+          QuotaMetText,
+          FrequentShiftText,
+          `- Shifts Completed: \`${ShiftsData.shift_count}\``,
+          "- On-Duty Duration",
+          `  - Total: ${ShiftsData.total_onduty}`,
+          `  - Avg: ${ShiftsData.avg_onduty}`
+        ),
       },
       {
         inline: true,
         name: "**Field Activity**",
-        value: Dedent(`
-          - Arrests Made: \`${FieldActivityData.arrests_made}\`
-          - Arrests Assisted: \`${FieldActivityData.arrests_assisted}\`
-          - Incidents Reported: \`${FieldActivityData.incidents_reported}\`
-          - Citations Issued:
-            - Warnings: \`${FieldActivityData.citations_issued.warnings}\`
-            - Fines: \`${FieldActivityData.citations_issued.fines}\`
-        `),
+        value: ConcatenateLines(
+          `- Arrests Made: \`${FieldActivityData.arrests_made}\``,
+          `- Arrests Assisted: \`${FieldActivityData.arrests_assisted}\``,
+          `- Incidents Reported: \`${FieldActivityData.incidents_reported}\``,
+          "- Citations Issued",
+          `  - Warnings: \`${FieldActivityData.citations_issued.warnings}\``,
+          `  - Fines: \`${FieldActivityData.citations_issued.fines}\``
+        ),
       }
     );
 
