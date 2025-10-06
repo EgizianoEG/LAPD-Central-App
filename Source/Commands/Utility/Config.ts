@@ -57,7 +57,6 @@ import {
   SignatureFormatResolved,
 } from "@Config/Constants.js";
 
-import { ConcatenateLines, Dedent } from "@Utilities/Strings/Formatters.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns/milliseconds";
 import { Colors, Emojis } from "@Config/Shared.js";
@@ -66,6 +65,7 @@ import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import { isValidObjectId } from "mongoose";
 import { clone, isDeepEqual } from "remeda";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
+import { ConcatenateLines as ConcatLines, Dedent } from "@Utilities/Strings/Formatters.js";
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
@@ -2326,7 +2326,7 @@ function GetCSBeatOrUnitTypeRestrictionsListContainers(
         : "*None - Cannot be requested*";
 
       RuleDisplayTexts.push(
-        ConcatenateLines(
+        ConcatLines(
           `**ID:** \`${Rule._id}\``,
           `> **Status:** ${RuleStatus}`,
           IsUnitType
