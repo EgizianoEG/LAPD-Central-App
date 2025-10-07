@@ -10,8 +10,7 @@ import {
 } from "discord.js";
 
 import { format, formatDistance, isAfter, isBefore } from "date-fns";
-import { ConcatenateLines } from "@Utilities/Strings/ConcatenateLines.js";
-import { FormatUsername } from "@Utilities/Strings/Formatters.js";
+import { FormatUsername, ConcatenateLines } from "@Utilities/Strings/Formatters.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
