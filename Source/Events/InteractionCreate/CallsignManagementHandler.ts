@@ -2,7 +2,6 @@ import {
   userMention,
   MessageFlags,
   ModalBuilder,
-  EmbedBuilder,
   TextInputStyle,
   BaseInteraction,
   TextInputBuilder,
@@ -13,8 +12,10 @@ import {
 } from "discord.js";
 
 import {
-  ErrorContainer,
   InfoContainer,
+  WarnContainer,
+  ErrorContainer,
+  SuccessContainer,
   BaseExtraContainer,
   UnauthorizedContainer,
 } from "@Utilities/Classes/ExtraContainers.js";
@@ -24,7 +25,6 @@ import {
   FormatCallsignDesignation as FormatCallsign,
 } from "@Utilities/Strings/Formatters.js";
 
-import { Colors } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
 import { Callsigns } from "@Typings/Utilities/Database.js";
 import { ErrorMessages } from "@Resources/AppMessages.js";
@@ -205,7 +205,7 @@ async function HandleCallsignApproval(
     return;
   }
 
-  await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
+  await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
   const VacancyValidation = await ValidateCallsignVacancy(
     UpdatedDocument,
     Interaction,
@@ -225,8 +225,7 @@ async function HandleCallsignApproval(
       .replyToInteract(NotesSubmission, true);
   }
 
-  const ReplyEmbed = new EmbedBuilder()
-    .setColor(Colors.Success)
+  const SuccessMessageContainer = new SuccessContainer()
     .setTitle("Call Sign Request Approved")
     .setDescription(
       `Successfully approved the call sign request for \`${FormattedCallsign}\`.` +
@@ -259,9 +258,12 @@ async function HandleCallsignApproval(
   }
 
   return Promise.all([
-    NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
     HandleCallsignStatusUpdates(NotesSubmission.client, UpdatedDocument),
     CallsignEventLogger.LogApproval(NotesSubmission, UpdatedDocument, PreviousCallsign),
+    NotesSubmission.editReply({
+      components: [SuccessMessageContainer],
+      flags: MessageFlags.IsComponentsV2,
+    }),
   ]);
 }
 
@@ -292,9 +294,8 @@ async function HandleCallsignDenial(
     return;
   }
 
-  await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral });
-  const ReplyEmbed = new EmbedBuilder()
-    .setColor(Colors.Success)
+  await NotesSubmission.deferReply({ flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2 });
+  const DeniedCallSignResponse = new SuccessContainer()
     .setTitle("Call Sign Request Denied")
     .setDescription(`Successfully denied the call sign request for \`${FormattedCallsign}\`.`);
 
@@ -305,7 +306,10 @@ async function HandleCallsignDenial(
 
   return Promise.all([
     UpdatedDocument.save(),
-    NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
+    NotesSubmission.editReply({
+      components: [DeniedCallSignResponse],
+      flags: MessageFlags.IsComponentsV2,
+    }),
     CallsignEventLogger.LogDenial(
       NotesSubmission,
       UpdatedDocument,
@@ -365,12 +369,7 @@ async function HandleCallsignReviewValidation(
 
   if (!RequestHasToBeReviewed) {
     let UpdatedReqContainer: BaseExtraContainer | null = null;
-    const ReplyEmbed = new EmbedBuilder()
-      .setColor(Colors.Error)
-      .setTitle("Request Modified")
-      .setDescription(
-        "The request you are taking action on either does not exist or has already been reviewed."
-      );
+    const RespContainer = new ErrorContainer().useErrTemplate("CallsignRequestModified");
 
     if (RequestDocument) {
       ValidationResponse.validation_data = await GetCallsignValidationData(
@@ -394,7 +393,10 @@ async function HandleCallsignReviewValidation(
     if (UpdatedReqContainer) {
       await Interaction.deferUpdate().catch(() => null);
       Tasks.push(
-        Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
+        Interaction.followUp({
+          components: [RespContainer],
+          flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+        }),
         InitialInteraction.editReply({
           flags: MessageFlags.IsComponentsV2,
           message: RequestDocument?.request_message?.split(":")[1],
@@ -404,7 +406,10 @@ async function HandleCallsignReviewValidation(
     } else {
       await Interaction.deferUpdate().catch(() => null);
       Tasks.push(
-        Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
+        Interaction.followUp({
+          components: [RespContainer],
+          flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+        }),
         InitialInteraction.editReply({
           flags: MessageFlags.IsComponentsV2,
           components: DisableMessageComponents(
@@ -437,8 +442,7 @@ async function HandleCallsignReviewValidation(
       RequestDocument.reviewed_on = Interaction.createdAt;
       RequestDocument.reviewer = Interaction.client.user.id;
 
-      const ReplyEmbed = new EmbedBuilder()
-        .setColor(Colors.Warning)
+      const RespContainer = new WarnContainer()
         .setTitle("Request Cancelled")
         .setDescription(
           "This call sign request has been automatically cancelled because the requester is no longer a member of this server."
@@ -446,7 +450,10 @@ async function HandleCallsignReviewValidation(
 
       const Tasks: Promise<any>[] = [
         RequestDocument.save(),
-        Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
+        Interaction.followUp({
+          components: [RespContainer],
+          flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+        }),
         CallsignEventLogger.LogCancellation(
           Interaction,
           RequestDocument,
@@ -493,13 +500,12 @@ async function ValidateCallsignVacancy(
       ? ` (expires ${FormatTime(CurrentHolder.expiry, "D")})`
       : "";
 
-    const ResolvedUsername = Interaction.guild.members.cache.get(CurrentHolder.requester)?.user
+    const ResolvedUsername = (await Interaction.guild.members.fetch(CurrentHolder.requester)).user
       .username;
-    const ResolvedUsernameText = ResolvedUsername ? `to @${ResolvedUsername}` : "";
 
+    const ResolvedUsernameText = ResolvedUsername ? `to @${ResolvedUsername}` : "";
     const AutoDenialReason = `Call sign is already assigned ${ResolvedUsernameText}${ExpiryInfo}.`;
-    const ReplyEmbed = new EmbedBuilder()
-      .setColor(Colors.Error)
+    const ReplyEmbed = new ErrorContainer()
       .setTitle("Call sign Request Auto-Denied")
       .setDescription(
         `Cannot approve the call sign request for \`${FormattedCallsign}\` as it is already assigned to ${userMention(CurrentHolder.requester)}${ExpiryInfo}.\n` +
@@ -513,8 +519,11 @@ async function ValidateCallsignVacancy(
 
     return Promise.all([
       RequestDocument.save(),
-      NotesSubmission.editReply({ embeds: [ReplyEmbed] }),
       CallsignEventLogger.LogDenial(NotesSubmission, RequestDocument),
+      NotesSubmission.editReply({
+        components: [ReplyEmbed],
+        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+      }),
     ]);
   }
 
