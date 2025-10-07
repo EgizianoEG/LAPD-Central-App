@@ -90,27 +90,27 @@ function BuildCallsignListPages(
           ExpiryText
         ),
       ]);
-
-      TextData.forEach((CallsignEntry, Index) => {
-        ContainingContainer.addSectionComponents(
-          new SectionBuilder()
-            .addTextDisplayComponents(new TextDisplayBuilder({ content: CallsignEntry[1] }))
-            .setButtonAccessory(
-              new ButtonBuilder()
-                .setLabel(" ")
-                .setEmoji(Emojis.WhiteInfo)
-                .setCustomId(`csd-view:${CmdInteraction.user.id}:${CallsignEntry[0]}`)
-                .setStyle(ButtonStyle.Secondary)
-            )
-        );
-
-        if (Index !== TextData.length - 1) {
-          ContainingContainer.addSeparatorComponents(new SeparatorBuilder({ divider: true }));
-        }
-      });
-
-      Pages.push(ContainingContainer);
     });
+
+    TextData.forEach((CallsignEntry, Index) => {
+      ContainingContainer.addSectionComponents(
+        new SectionBuilder()
+          .addTextDisplayComponents(new TextDisplayBuilder({ content: CallsignEntry[1] }))
+          .setButtonAccessory(
+            new ButtonBuilder()
+              .setLabel(" ")
+              .setEmoji(Emojis.WhiteInfo)
+              .setCustomId(`csd-view:${CmdInteraction.user.id}:${CallsignEntry[0]}`)
+              .setStyle(ButtonStyle.Secondary)
+          )
+      );
+
+      if (Index !== TextData.length - 1) {
+        ContainingContainer.addSeparatorComponents(new SeparatorBuilder({ divider: true }));
+      }
+    });
+
+    Pages.push(ContainingContainer);
   }
 
   return Pages;
