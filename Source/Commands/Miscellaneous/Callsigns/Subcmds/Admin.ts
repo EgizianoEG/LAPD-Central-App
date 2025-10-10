@@ -839,10 +839,16 @@ async function CmdCallback(Interaction: CmdOrButtonCachedInteraction) {
     if (/\w{1,10}Delete/.test(Reason) || Reason === "PromptReinstated") return;
 
     const LastInteract = Collected.last() ?? Interaction;
-    await LastInteract.editReply({
+    const ReplyOptions = {
       components: DisableMessageComponents(AdminPanelMessage.components.map((C) => C.toJSON())),
       message: AdminPanelMessage.id,
-    }).catch(() => null);
+    };
+
+    if (LastInteract.replied || LastInteract.deferred) {
+      await LastInteract.editReply(ReplyOptions).catch(() => null);
+    } else {
+      await LastInteract.reply(ReplyOptions).catch(() => null);
+    }
   });
 }
 
