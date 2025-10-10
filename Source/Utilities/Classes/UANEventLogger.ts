@@ -409,6 +409,13 @@ export class BaseUserActivityNoticeLogger {
         );
       }
 
+      if (ApprovedRequest.reviewer_notes?.length) {
+        DMApprovalNotice.setDescription(
+          DMApprovalNotice.data.description! +
+            `\n\n**The following note(s) were provided by the reviewer:**\n${codeBlock("", ApprovedRequest.reviewer_notes)}`
+        );
+      }
+
       Requester.send({ embeds: [DMApprovalNotice] }).catch(() => null);
     }
 
