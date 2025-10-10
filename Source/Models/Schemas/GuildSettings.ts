@@ -392,7 +392,7 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
 
       nickname_format: {
         type: String,
-        default: "{division}{unit_type}-{identifier} | {nickname}",
+        default: "{division}{unit_type}-{beat_num} | {nickname}",
         required: true,
         trim: true,
       },
