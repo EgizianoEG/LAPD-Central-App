@@ -20,6 +20,7 @@ import {
   ButtonBuilder,
   MessageFlags,
   ModalBuilder,
+  LabelBuilder,
   ButtonStyle,
   Message,
   Colors,
@@ -165,7 +166,7 @@ function GetChangeIncidentStatusSelectMenuAR(CurrentStatus: string) {
   return new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
     new StringSelectMenuBuilder()
       .setCustomId("incident-status-input")
-      .setPlaceholder("Set new status...")
+      .setPlaceholder("Set a new status...")
       .setMinValues(0)
       .setMaxValues(1)
       .setOptions(
@@ -184,59 +185,66 @@ function GetChangeIncidentWitnessesOrSuspectsInputModal(
   IncidentRecord: GuildIncidents.IncidentRecord,
   Type: "Witnesses" | "Suspects" | "Officers"
 ) {
-  const InputModal = new ModalBuilder()
+  const OriginalValue = FormatSortRDInputNames(IncidentRecord[Type.toLowerCase()]).join(", ");
+  const InputTextField = new TextInputBuilder()
+    .setStyle(TextInputStyle.Paragraph)
+    .setCustomId(ModalInputIds[Type])
+    .setMinLength(3)
+    .setMaxLength(88)
+    .setRequired(false);
+
+  if (OriginalValue.length >= 3) {
+    InputTextField.setValue(OriginalValue);
+  }
+
+  if (Type === "Officers") {
+    InputTextField.setPlaceholder(
+      "Tip: you can put in Discord IDs to mention involved officers instead of usernames..."
+    );
+  }
+
+  return new ModalBuilder()
     .setCustomId(
       `${IncidentEditOptionIds[Type]}:${RecInteract.user.id}:${RecInteract.createdTimestamp}`
     )
     .setTitle(`Incident Report — Update ${Type}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Paragraph)
-          .setCustomId(ModalInputIds[Type])
-          .setLabel(`Incident ${Type === "Officers" ? "Involved Officers" : Type}`)
-          .setPlaceholder(`Enter the new names of ${Type.toLowerCase()} separated by commas...`)
-          .setMinLength(3)
-          .setMaxLength(88)
-          .setRequired(false)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setTextInputComponent(InputTextField)
+        .setLabel(`Incident ${Type === "Officers" ? "Involved Officers" : Type}`)
+        .setDescription(
+          `The names of the ${Type.toLowerCase()} separated by commas. Leave blank to clear.`
+        )
     );
-
-  const OriginalValue = FormatSortRDInputNames(IncidentRecord[Type.toLowerCase()]).join(", ");
-  if (OriginalValue.length >= 3) {
-    InputModal.components[0].components[0].setValue(OriginalValue);
-  }
-
-  return InputModal;
 }
 
 function GetChangeIncidentNotesInputModal(
   RecInteract: StringSelectMenuInteraction<"cached">,
   IncidentRecord: GuildIncidents.IncidentRecord
 ) {
-  const NotesModal = new ModalBuilder()
+  const NotesTextInput = new TextInputBuilder()
+    .setStyle(TextInputStyle.Paragraph)
+    .setCustomId(ModalInputIds.Notes)
+    .setPlaceholder("Enter the updated notes...")
+    .setMinLength(IncidentNotesLength.Min)
+    .setMaxLength(IncidentNotesLength.Max)
+    .setRequired(false);
+
+  if ((IncidentRecord.notes ?? "").length >= IncidentNotesLength.Min) {
+    NotesTextInput.setValue(IncidentRecord.notes!);
+  }
+
+  return new ModalBuilder()
     .setCustomId(
       `${IncidentEditOptionIds.Notes}:${RecInteract.user.id}:${RecInteract.createdTimestamp}`
     )
     .setTitle("Incident Report — Update Notes")
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Paragraph)
-          .setCustomId(ModalInputIds.Notes)
-          .setLabel("Incident Notes")
-          .setPlaceholder("Enter the new notes...")
-          .setMinLength(IncidentNotesLength.Min)
-          .setMaxLength(IncidentNotesLength.Max)
-          .setRequired(false)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Incident Notes")
+        .setDescription("Optional notes about the incident.")
+        .setTextInputComponent(NotesTextInput)
     );
-
-  if ((IncidentRecord.notes ?? "").length >= IncidentNotesLength.Min) {
-    NotesModal.components[0].components[0].setValue(IncidentRecord.notes!);
-  }
-
-  return NotesModal;
 }
 
 function GetUpdatePromptContainer(
@@ -768,7 +776,7 @@ async function HandleIncidentSuspectsOrWitnessesEdit(
 ) {
   const TextInputModal = GetChangeIncidentWitnessesOrSuspectsInputModal(
     SelectInteract,
-    IncidentRecord,
+    IRUpdatesCopy,
     InputType
   );
 

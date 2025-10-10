@@ -8,6 +8,7 @@ import {
   EmbedBuilder,
   ModalBuilder,
   MessageFlags,
+  LabelBuilder,
   ButtonBuilder,
   ComponentType,
   TextInputStyle,
@@ -76,51 +77,55 @@ function GetIncidentInformationModal(
   return new ModalBuilder()
     .setTitle(`Incident Report — ${IncidentType}`)
     .setCustomId(`incident-info:${CmdInteract.createdTimestamp}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("incident-desc")
-          .setLabel("Incident Description")
-          .setPlaceholder(
-            "Narrative incident in detail, including the sequence of events, injuries, damage, and actions taken."
-          )
-          .setStyle(TextInputStyle.Paragraph)
-          .setMinLength(IncidentDescriptionLength.Min)
-          .setMaxLength(IncidentDescriptionLength.Max)
-          .setRequired(true)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("suspects")
-          .setLabel("Suspects")
-          .setPlaceholder("The names of the suspects involved, separated by commas.")
-          .setStyle(TextInputStyle.Short)
-          .setMinLength(3)
-          .setMaxLength(88)
-          .setRequired(false)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("victims")
-          .setLabel("Victims")
-          .setPlaceholder("The names of the victims, separated by commas.")
-          .setStyle(TextInputStyle.Short)
-          .setMinLength(3)
-          .setMaxLength(88)
-          .setRequired(false)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("notes")
-          .setLabel("Additional Notes")
-          .setPlaceholder(
-            "Anything else you would like to add or mention about the incident like its updates."
-          )
-          .setStyle(TextInputStyle.Paragraph)
-          .setMinLength(IncidentNotesLength.Min)
-          .setMaxLength(IncidentNotesLength.Max)
-          .setRequired(false)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Incident Description")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("incident-desc")
+            .setPlaceholder(
+              "Narrative incident in detail, including the sequence of events, injuries, damage, and actions taken."
+            )
+            .setStyle(TextInputStyle.Paragraph)
+            .setMinLength(IncidentDescriptionLength.Min)
+            .setMaxLength(IncidentDescriptionLength.Max)
+            .setRequired(true)
+        ),
+      new LabelBuilder()
+        .setLabel("Suspects")
+        .setDescription("The names of the suspects involved, separated by commas.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("suspects")
+            .setStyle(TextInputStyle.Short)
+            .setMinLength(3)
+            .setMaxLength(88)
+            .setRequired(false)
+        ),
+      new LabelBuilder()
+        .setLabel("Victims")
+        .setDescription("The names of the victims, separated by commas.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("victims")
+            .setStyle(TextInputStyle.Short)
+            .setMinLength(3)
+            .setMaxLength(88)
+            .setRequired(false)
+        ),
+      new LabelBuilder()
+        .setLabel("Additional Notes")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("notes")
+            .setPlaceholder(
+              "Anything else you would like to add or mention about the incident like its updates."
+            )
+            .setStyle(TextInputStyle.Paragraph)
+            .setMinLength(IncidentNotesLength.Min)
+            .setMaxLength(IncidentNotesLength.Max)
+            .setRequired(false)
+        )
     );
 }
 
@@ -129,31 +134,32 @@ function GetWitnessesInvolvedOfficersInputModal(
   InputType: "Officers" | "Witnesses",
   IncidentReport: GuildIncidents.IncidentRecord
 ): ModalBuilder {
+  const UsernamesInputField = new TextInputBuilder()
+    .setCustomId(InputType.toLowerCase())
+    .setStyle(TextInputStyle.Paragraph)
+    .setMinLength(3)
+    .setMaxLength(88)
+    .setRequired(false);
+
   const Modal = new ModalBuilder()
     .setTitle(`Add ${InputType} to Incident Report`)
     .setCustomId(
       `incident-add-${InputType.toLowerCase()}:${Interact.user.id}:${Interact.createdTimestamp}`
     )
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId(InputType.toLowerCase())
-          .setLabel(InputType === "Officers" ? "Involved Officers" : "Witnesses")
-          .setPlaceholder(
-            `The names or Discord IDs of the ${InputType.toLowerCase()} involved, separated by commas.`
-          )
-          .setStyle(TextInputStyle.Paragraph)
-          .setMinLength(3)
-          .setMaxLength(88)
-          .setRequired(false)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel(InputType === "Officers" ? "Involved Officers" : "Witnesses")
+        .setDescription(
+          `The names or Discord IDs of the ${InputType.toLowerCase()} involved, separated by commas.`
+        )
+        .setTextInputComponent(UsernamesInputField)
     );
 
   const PrefilledInput =
     IncidentReport[InputType.toLowerCase() as "officers" | "witnesses"].join(", ");
 
   if (PrefilledInput.length >= 3) {
-    Modal.components[0].components[0].setValue(PrefilledInput);
+    UsernamesInputField.setValue(PrefilledInput);
   }
 
   return Modal;
@@ -540,7 +546,7 @@ async function OnReportInvolvedOfficersOrWitnessesAddition(
   );
 
   if (!ModalSubmission) return;
-  let InputText = ModalSubmission.components[0].components[0].value;
+  let InputText = ModalSubmission.fields.getTextInputValue(AdditionFor.toLowerCase());
 
   if (!InputText?.trim()) InputText = "N/A";
   CopiedTargetField = FormatSortRDInputNames(InputText.split(ListSplitRegex), false);

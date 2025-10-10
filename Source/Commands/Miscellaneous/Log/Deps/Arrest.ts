@@ -12,6 +12,7 @@ import {
   ModalBuilder,
   EmbedBuilder,
   MessageFlags,
+  LabelBuilder,
   ButtonBuilder,
   TextInputStyle,
   ActionRowBuilder,
@@ -77,37 +78,47 @@ function GetAdditionalArrestDetailsModal(CmdInteract: SlashCommandInteraction<"c
   return new ModalBuilder()
     .setTitle("Arrest Report - Additional Information")
     .setCustomId(`arrest-report:${CmdInteract.user.id}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Charges")
-          .setStyle(TextInputStyle.Paragraph)
-          .setCustomId("charges-text")
-          .setPlaceholder("1. [Charge #1]\n2. [Charge #2]\n3. ...")
-          .setMinLength(6)
-          .setMaxLength(650)
-          .setRequired(true)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Evidence")
-          .setStyle(TextInputStyle.Paragraph)
-          .setCustomId("evidence-text")
-          .setPlaceholder("A list of any evidence related to the arrest...")
-          .setMinLength(6)
-          .setMaxLength(160)
-          .setRequired(false)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Arrest Notes (shown on explicit DB queries)")
-          .setStyle(TextInputStyle.Short)
-          .setCustomId("arrest-notes")
-          .setPlaceholder("e.g., known to be in a gang.")
-          .setMinLength(6)
-          .setMaxLength(128)
-          .setRequired(false)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Charges")
+        .setDescription(
+          "The list of charges and possibly warrants related to this arrest listed without statute codes."
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Paragraph)
+            .setCustomId("charges-text")
+            .setPlaceholder("1. [Charge #1]\n2. [Charge #2]\n3. ...")
+            .setMinLength(6)
+            .setMaxLength(650)
+            .setRequired(true)
+        ),
+      new LabelBuilder()
+        .setLabel("Evidence")
+        .setDescription("A list of any evidence related to the arrest.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Paragraph)
+            .setCustomId("evidence-text")
+            .setPlaceholder("e.g., CCTV footage, photos, witness statements, etc.")
+            .setMinLength(6)
+            .setMaxLength(160)
+            .setRequired(false)
+        ),
+      new LabelBuilder()
+        .setLabel("Arrest Notes")
+        .setDescription(
+          "Any additional notes regarding the arrest. This is shown on MDT explicit searches only."
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("arrest-notes")
+            .setPlaceholder("e.g., the suspect is popularly known as 'Dexter'.")
+            .setMinLength(6)
+            .setMaxLength(128)
+            .setRequired(false)
+        )
     );
 }
 
@@ -234,25 +245,27 @@ async function HandleAddAssistingOfficersUsernames(
   BtnInteract: ButtonInteraction<"cached">,
   CurrentAsstUsernames: string[]
 ): Promise<{ ModalSubmission?: ModalSubmitInteraction<"cached">; UsernamesInput?: string[] }> {
+  const UsernamesInputField = new TextInputBuilder()
+    .setCustomId("input-usernames")
+    .setPlaceholder("Type in here...")
+    .setStyle(TextInputStyle.Short)
+    .setMinLength(3)
+    .setMaxLength(88)
+    .setRequired(false);
+
   const InputModal = new ModalBuilder()
     .setTitle("Add Assisting Officers - Usernames")
     .setCustomId(`arrest-add-ao-usernames:${BtnInteract.user.id}:${BtnInteract.createdTimestamp}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("input-usernames")
-          .setLabel("Usernames")
-          .setPlaceholder("The usernames of assisting officers, separated by commas.")
-          .setStyle(TextInputStyle.Short)
-          .setMinLength(3)
-          .setMaxLength(88)
-          .setRequired(false)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Usernames")
+        .setDescription("The usernames of assisting officers, separated by commas.")
+        .setTextInputComponent(UsernamesInputField)
     );
 
   const PrefilledInput = (CurrentAsstUsernames || []).join(", ");
   if (PrefilledInput.length >= 3) {
-    InputModal.components[0].components[0].setValue(PrefilledInput);
+    UsernamesInputField.setValue(PrefilledInput);
   }
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 8 * 60_000);

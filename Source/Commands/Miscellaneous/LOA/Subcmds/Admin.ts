@@ -13,6 +13,7 @@ import {
   EmbedBuilder,
   ModalBuilder,
   MessageFlags,
+  LabelBuilder,
   userMention,
   ButtonStyle,
   Message,
@@ -285,28 +286,26 @@ function GetNotesModal(
   Status: "Approval" | "Denial" | "Extension Approval" | "Extension Denial",
   NotesRequired: boolean = false
 ): ModalBuilder {
+  const NotesInputField = new LabelBuilder()
+    .setLabel("Notes")
+    .setTextInputComponent(
+      new TextInputBuilder()
+        .setStyle(TextInputStyle.Short)
+        .setRequired(NotesRequired)
+        .setMinLength(4)
+        .setMaxLength(128)
+        .setCustomId("notes")
+    );
+
   const Modal = new ModalBuilder()
     .setTitle(`Leave of Absence ${Status}`)
     .setCustomId(`loa-rev-notes:${Interaction.user.id}:${RandomString(6)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(NotesRequired)
-          .setMinLength(4)
-          .setMaxLength(128)
-          .setLabel("Notes")
-          .setCustomId("notes")
-      )
-    );
+    .setLabelComponents(NotesInputField);
 
-  // Set the placeholder text based on the action being performed.
   if (Status.endsWith("Approval")) {
-    Modal.components[0].components[0].setPlaceholder("Any notes or comments to add (optional).");
+    NotesInputField.setDescription("Optional notes or comments to add.");
   } else {
-    Modal.components[0].components[0].setPlaceholder(
-      "Any notes or comments to explain the disapproval."
-    );
+    NotesInputField.setDescription("Any notes or comments to explain the disapproval.");
   }
 
   return Modal;
@@ -424,38 +423,43 @@ async function HandleLeaveStart(
   const LeaveOptsModal = new ModalBuilder()
     .setTitle("Administrative Leave of Absence")
     .setCustomId(`loa-admin-start:${ButtonInteract.user.id}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(2)
-          .setMaxLength(32)
-          .setCustomId("duration")
-          .setLabel("Leave Duration")
-          .setPlaceholder("e.g., 1 week and 2 days...")
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(5)
-          .setMaxLength(232)
-          .setCustomId("notes")
-          .setLabel("Leave Notes")
-          .setPlaceholder("e.g., requested on behalf of...")
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMinLength(2)
-          .setMaxLength(3)
-          .setCustomId("manageable")
-          .setValue("Yes")
-          .setLabel("Leave Manageable By Target")
-          .setPlaceholder("Please type either 'Yes' or 'No'")
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Leave Duration")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(2)
+            .setMaxLength(32)
+            .setCustomId("duration")
+            .setPlaceholder("e.g., 1 week and 2 days...")
+        ),
+      new LabelBuilder()
+        .setLabel("Leave Notes")
+        .setDescription("Notes regarding the leave of absence.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(5)
+            .setMaxLength(232)
+            .setCustomId("notes")
+            .setPlaceholder("e.g., requested on behalf of...")
+        ),
+      new LabelBuilder()
+        .setLabel("Leave Manageable by Staff")
+        .setDescription("Whether the leave can be ended or requested to be extended by the staff.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMinLength(2)
+            .setMaxLength(3)
+            .setValue("Yes")
+            .setCustomId("manageable")
+            .setPlaceholder("Please type either 'Yes' or 'No'.")
+        )
     );
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(
@@ -557,27 +561,31 @@ async function HandleLeaveExtend(
   const ExtensionOptsModal = new ModalBuilder()
     .setTitle("Leave of Absence Extension")
     .setCustomId(`loa-admin-ext:${ButtonInteract.user.id}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(2)
-          .setMaxLength(32)
-          .setCustomId("ext-duration")
-          .setLabel("Extension Duration")
-          .setPlaceholder("e.g., 3 days...")
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(5)
-          .setMaxLength(232)
-          .setCustomId("ext-notes")
-          .setLabel("Extension Notes")
-          .setPlaceholder("e.g., extended on behalf of...")
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Extension Duration")
+        .setDescription("The duration to extend the leave of absence by.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(2)
+            .setMaxLength(32)
+            .setCustomId("ext-duration")
+            .setPlaceholder("e.g., 3 days...")
+        ),
+      new LabelBuilder()
+        .setLabel("Extension Notes")
+        .setDescription("Notes regarding the extension.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(5)
+            .setMaxLength(232)
+            .setCustomId("ext-notes")
+            .setPlaceholder("e.g., extended on behalf of...")
+        )
     );
 
   const Submission = await ShowModalAndAwaitSubmission(
@@ -657,17 +665,19 @@ async function HandleLeaveEnd(
   const ReasonModal = new ModalBuilder()
     .setTitle("Leave of Absence Early Termination")
     .setCustomId(`loa-admin-end-reason:${ButtonInteract.user.id}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setLabel("Early Termination Reason")
-          .setPlaceholder("The reason for early termination of this leave.")
-          .setCustomId("reason")
-          .setRequired(false)
-          .setMinLength(4)
-          .setMaxLength(128)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Early Termination Reason")
+        .setDescription("The reason for the early termination of this leave.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder("e.g., returning early...")
+            .setCustomId("reason")
+            .setRequired(false)
+            .setMinLength(4)
+            .setMaxLength(128)
+        )
     );
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(

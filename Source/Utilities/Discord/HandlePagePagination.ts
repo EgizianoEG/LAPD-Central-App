@@ -13,6 +13,7 @@ import {
   EmbedBuilder,
   Message,
   Colors,
+  LabelBuilder,
   MessageFlags,
   ModalBuilder,
   TextInputStyle,
@@ -408,18 +409,20 @@ function GetPageSelectModal(
   return new ModalBuilder()
     .setTitle("Page Selection")
     .setCustomId(`paginate-page-select:${BtnInteract.user.id}:${RandomString(3)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setPlaceholder(`Type in a page number between 1 and ${TotalPages}...`)
-          .setLabel("Page Number")
-          .setCustomId("page-num")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(1)
-          .setMaxLength(TotalPages.toString().length)
-          .setValue(`${CurrPageIndex + 1}`)
-      )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Page Number")
+        .setDescription(`Enter a page number between 1 and ${TotalPages}.`)
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setPlaceholder("Page number here...")
+            .setCustomId("page-num")
+            .setStyle(TextInputStyle.Short)
+            .setValue(`${CurrPageIndex + 1}`)
+            .setMinLength(1)
+            .setMaxLength(TotalPages.toString().length)
+            .setRequired(true)
+        )
     );
 }
 

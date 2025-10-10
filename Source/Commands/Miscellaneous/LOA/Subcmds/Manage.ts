@@ -11,6 +11,7 @@ import {
   userMention,
   ModalBuilder,
   MessageFlags,
+  LabelBuilder,
   TextInputStyle,
   TextInputBuilder,
   ModalSubmitInteraction,
@@ -269,27 +270,31 @@ async function HandleLeaveExtend(
   const ExtendModal = new ModalBuilder()
     .setTitle("Leave of Absence Extension Request")
     .setCustomId(`loa-extend-modal:${Interaction.user.id}:${UniqueID}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setLabel("Extension Duration")
-          .setCustomId("ext-duration")
-          .setPlaceholder(`e.g. ${ERDurationText}`)
-          .setRequired(true)
-          .setMinLength(2)
-          .setMaxLength(64)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setLabel("Extension Reason")
-          .setCustomId("ext-reason")
-          .setPlaceholder(`e.g. ${ERReasonText}`)
-          .setMinLength(6)
-          .setMaxLength(332)
-          .setRequired(true)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Extension Duration")
+        .setDescription("The duration of extension requested.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("ext-duration")
+            .setPlaceholder(`e.g. ${ERDurationText}`)
+            .setRequired(true)
+            .setMinLength(2)
+            .setMaxLength(64)
+        ),
+      new LabelBuilder()
+        .setLabel("Extension Reason")
+        .setDescription("The reason for submitting the extension request.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("ext-reason")
+            .setPlaceholder(`e.g. ${ERReasonText}`)
+            .setMinLength(6)
+            .setMaxLength(332)
+            .setRequired(true)
+        )
     );
 
   const Submission = await ShowModalAndAwaitSubmission(Interaction, ExtendModal, 8 * 60_000);

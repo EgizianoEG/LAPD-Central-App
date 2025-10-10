@@ -12,6 +12,7 @@ import {
   ComponentType,
   ButtonBuilder,
   MessageFlags,
+  LabelBuilder,
   ModalBuilder,
   userMention,
   ButtonStyle,
@@ -270,7 +271,7 @@ function GetPanelComponents(
 
       new ButtonBuilder()
         .setCustomId(`${AdminActions.CallsignAssign}:${Interaction.user.id}:0:${TargetUserId}`)
-        .setLabel("Transfer Callsign")
+        .setLabel("Transfer Call Sign")
         .setEmoji(Emojis.TagPlus)
         .setStyle(ButtonStyle.Secondary)
     );
@@ -302,45 +303,48 @@ function GetAdminModal(
   NotesRequired: boolean = false
 ): ModalBuilder {
   const Modal = new ModalBuilder()
-    .setTitle(`Callsign ${ModalType}`)
+    .setTitle(`Call Sign ${ModalType}`)
     .setCustomId(`cs-admin-modal:${Interaction.user.id}:${RandomString(6)}`);
 
   if (ModalType === "Assignment") {
-    Modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(5)
-          .setMaxLength(10)
-          .setLabel("Callsign Designation (e.g., 1-A-40, 12-K9-99)")
-          .setCustomId("designation")
-          .setPlaceholder(
-            DesignationExamples[Math.floor(Math.random() * DesignationExamples.length)]
-          )
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMinLength(2)
-          .setMaxLength(50)
-          .setLabel("Expiry Date (Optional)")
-          .setCustomId("expiry")
-          .setPlaceholder("In 3 weeks, 2025-12-31, etc.")
-      )
+    Modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Call Sign Designation")
+        .setDescription("The division-unit-beat format of the call sign to assign.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("designation")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(5)
+            .setMaxLength(10)
+            .setPlaceholder(
+              DesignationExamples[Math.floor(Math.random() * DesignationExamples.length)]
+            )
+        ),
+      new LabelBuilder()
+        .setLabel("Expiry Date")
+        .setDescription("Optional expiry date for the assigned call sign.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMinLength(2)
+            .setMaxLength(50)
+            .setCustomId("expiry")
+            .setPlaceholder("In 3 weeks, 2025-12-31, etc.")
+        )
     );
   }
 
   const NotesLabelPrefix = NotesRequired ? "Required" : "Optional";
-  Modal.addComponents(
-    new ActionRowBuilder<TextInputBuilder>().setComponents(
+  Modal.addLabelComponents(
+    new LabelBuilder().setLabel(`${ModalType} Notes`).setTextInputComponent(
       new TextInputBuilder()
         .setStyle(TextInputStyle.Short)
         .setRequired(NotesRequired)
         .setMinLength(3)
         .setMaxLength(128)
-        .setLabel(`${ModalType} Notes`)
         .setCustomId("notes")
         .setPlaceholder(
           ModalType === "Assignment"

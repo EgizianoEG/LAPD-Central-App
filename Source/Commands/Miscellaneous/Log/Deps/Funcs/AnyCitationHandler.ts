@@ -10,9 +10,10 @@ import {
   ButtonBuilder,
   ComponentType,
   ModalBuilder,
-  ButtonStyle,
   EmbedBuilder,
   MessageFlags,
+  LabelBuilder,
+  ButtonStyle,
   userMention,
 } from "discord.js";
 
@@ -247,37 +248,43 @@ function GetAdditionalInputsModal(CmdInteract: SlashCommandInteraction<"cached">
   const Modal = new ModalBuilder()
     .setTitle("Traffic Citation - Additional Information")
     .setCustomId(`cit-log:${CmdInteract.user.id}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Violator's Residence Address")
-          .setStyle(TextInputStyle.Short)
-          .setCustomId("residence-address")
-          .setPlaceholder("e.g., 7013 Franklin Court")
-          .setMinLength(6)
-          .setMaxLength(70)
-          .setRequired(false)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Location of Violation(s)")
-          .setStyle(TextInputStyle.Short)
-          .setCustomId("violations-location")
-          .setPlaceholder("e.g., River City Bank, Sandstone Road, Postal 205.")
-          .setMinLength(6)
-          .setMaxLength(70)
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Violation(s)")
-          .setStyle(TextInputStyle.Paragraph)
-          .setCustomId("traffic-violations")
-          .setPlaceholder(
-            "Each violation shall be listed on a separate line.\ne.g.,\nSpeeding Over 30 mph\nSkipping Stop Sign"
-          )
-          .setMinLength(4)
-          .setMaxLength(250)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Violator's Residence Address")
+        .setDescription("The residence address of the violator. Leave blank if unknown or 'N/A'.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("residence-address")
+            .setPlaceholder("e.g., 7013 Franklin Court")
+            .setMinLength(6)
+            .setMaxLength(70)
+            .setRequired(false)
+        ),
+      new LabelBuilder()
+        .setLabel("Location of Violation(s)")
+        .setDescription("The location where the violation(s) took place.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("violations-location")
+            .setPlaceholder("e.g., River City Bank, Sandstone Road, Postal 205.")
+            .setMinLength(6)
+            .setMaxLength(70)
+        ),
+      new LabelBuilder()
+        .setLabel("Violation(s)")
+        .setDescription("List all the violation(s) that the violator committed.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Paragraph)
+            .setCustomId("traffic-violations")
+            .setPlaceholder(
+              "Each violation shall be listed on a separate line.\ne.g.,\nSpeeding Over 30 mph\nSkipping Stop Sign"
+            )
+            .setMinLength(4)
+            .setMaxLength(250)
+        )
     );
 
   return [ModalShowButtonAR, Modal] as const;

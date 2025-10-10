@@ -21,6 +21,7 @@ import {
   ComponentType,
   ModalBuilder,
   MessageFlags,
+  LabelBuilder,
   resolveColor,
   ButtonStyle,
   channelLink,
@@ -155,29 +156,26 @@ function GetTimeModificationModal(
   AdminInteract: StringSelectMenuInteraction<"cached">,
   ShiftDocument: Shifts.HydratedShiftDocument
 ) {
+  const ModInputField = new TextInputBuilder()
+    .setCustomId("da-st-mod-input")
+    .setStyle(TextInputStyle.Short)
+    .setMinLength(2)
+    .setMaxLength(50)
+    .setPlaceholder(TimeModPlaceholders[Math.floor(Math.random() * TimeModPlaceholders.length)]);
+
   const TimeModificationModal = new ModalBuilder()
     .setCustomId(`da-time-mod:${AdminInteract.user.id}:${RandomString(4)}`)
     .setTitle("Shift Time Modification")
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("da-st-mod-input")
-          .setLabel(`Shift Time To ${ActionType}`)
-          .setStyle(TextInputStyle.Short)
-          .setMinLength(2)
-          .setMaxLength(50)
-          .setPlaceholder(
-            TimeModPlaceholders[Math.floor(Math.random() * TimeModPlaceholders.length)]
-          )
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel(`Shift Time to ${ActionType}`)
+        .setTextInputComponent(ModInputField)
     );
 
   if (ActionType === "Set") {
     const PrefilledInput = ReadableDuration(ShiftDocument.durations.on_duty);
     if (PrefilledInput.length <= 50) {
-      TimeModificationModal.components[0].components[0].setValue(
-        ReadableDuration(ShiftDocument.durations.on_duty)
-      );
+      ModInputField.setValue(ReadableDuration(ShiftDocument.durations.on_duty));
     }
   }
 
@@ -194,34 +192,35 @@ function GetShiftCreationModal(
   AdminInteract: ButtonInteraction<"cached">,
   ShiftType: Nullable<string>
 ) {
+  const DurationInputField = new TextInputBuilder()
+    .setCustomId("shift-duration")
+    .setStyle(TextInputStyle.Short)
+    .setMinLength(2)
+    .setMaxLength(50)
+    .setRequired(true)
+    .setPlaceholder(TimeModPlaceholders[Math.floor(Math.random() * TimeModPlaceholders.length)]);
+
+  const ShiftTypeInputField = new TextInputBuilder()
+    .setCustomId("shift-type")
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder("The shift type to use...")
+    .setValue(ShiftType ?? "Default")
+    .setMinLength(3)
+    .setMaxLength(20)
+    .setRequired(true);
+
   return new ModalBuilder()
     .setCustomId(`da-create-shift:${AdminInteract.user.id}:${RandomString(4)}`)
     .setTitle("Create Administrative Shift")
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("shift-duration")
-          .setLabel("Shift Duration")
-          .setPlaceholder("The on-duty duration of the shift to set...")
-          .setStyle(TextInputStyle.Short)
-          .setMinLength(2)
-          .setMaxLength(50)
-          .setRequired(true)
-          .setPlaceholder(
-            TimeModPlaceholders[Math.floor(Math.random() * TimeModPlaceholders.length)]
-          )
-      ),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("shift-type")
-          .setLabel("Shift Type")
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder("The shift type to use...")
-          .setValue(ShiftType ?? "Default")
-          .setMinLength(3)
-          .setMaxLength(20)
-          .setRequired(true)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Shift Duration")
+        .setDescription("The on-duty duration of the shift to set.")
+        .setTextInputComponent(DurationInputField),
+      new LabelBuilder()
+        .setLabel("Shift Type")
+        .setDescription("The shift type to add this shift to.")
+        .setTextInputComponent(ShiftTypeInputField)
     );
 }
 
@@ -289,17 +288,18 @@ function GetShiftIdModInputModal(AdminInteract: RepliableInteraction<"cached">) 
   return new ModalBuilder()
     .setTitle("Shift Modification")
     .setCustomId(`da-modify-id-getter:${AdminInteract.user.id}:${RandomString(4)}`)
-    .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setLabel("Shift ID")
-          .setPlaceholder("Please fill in the 15-character numeric shift id.")
-          .setCustomId("da-modify-id")
-          .setRequired(true)
-          .setMinLength(15)
-          .setMaxLength(15)
-          .setStyle(TextInputStyle.Short)
-      )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Shift ID")
+        .setDescription("The 15-character numeric ID of the target shift.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("da-modify-id")
+            .setRequired(true)
+            .setMinLength(15)
+            .setMaxLength(15)
+        )
     );
 }
 
@@ -307,17 +307,18 @@ function GetShiftIdDeletionInputModal(AdminInteract: RepliableInteraction<"cache
   return new ModalBuilder()
     .setTitle("Shift Deletion")
     .setCustomId(`da-delete-shift:${AdminInteract.user.id}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setPlaceholder("Enter the desired shift's ID to delete here...")
-          .setCustomId("da-shift-id")
-          .setLabel("Shift ID")
-          .setMaxLength(15)
-          .setMinLength(15)
-          .setRequired(true)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Shift ID")
+        .setDescription("The 15-character numeric ID of the shift to delete.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("da-shift-id")
+            .setMaxLength(15)
+            .setMinLength(15)
+            .setRequired(true)
+        )
     );
 }
 

@@ -12,6 +12,7 @@ import {
   EmbedBuilder,
   ModalBuilder,
   MessageFlags,
+  LabelBuilder,
   ButtonStyle,
   userMention,
   User,
@@ -155,16 +156,17 @@ function GetNotesModal(
   return new ModalBuilder()
     .setTitle(`Reduced Activity ${ActionType}`)
     .setCustomId(`ra-rev-notes:${Interaction.user.id}:${RandomString(6)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Paragraph)
-          .setLabel("Reviewer Notes")
-          .setCustomId("notes")
-          .setPlaceholder("Add any comments or notes regarding this action (optional).")
-          .setRequired(false)
-          .setMaxLength(300)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Review Notes")
+        .setDescription("Optional notes or comments regarding this action.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Paragraph)
+            .setCustomId("notes")
+            .setRequired(false)
+            .setMaxLength(300)
+        )
     );
 }
 

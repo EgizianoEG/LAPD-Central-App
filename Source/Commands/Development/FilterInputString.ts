@@ -5,12 +5,12 @@ import {
   SlashCommandSubcommandsOnlyBuilder,
   InteractionContextType,
   SlashCommandBuilder,
-  ActionRowBuilder,
   TextInputBuilder,
   TextInputStyle,
   EmbedBuilder,
   ModalBuilder,
   MessageFlags,
+  LabelBuilder,
   codeBlock,
   Colors,
 } from "discord.js";
@@ -24,14 +24,16 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   const InputModal = new ModalBuilder()
     .setCustomId(`filter-input:${Interaction.user.id}:${Interaction.createdTimestamp}`)
     .setTitle("Filter Input")
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("input")
-          .setLabel("Input String")
-          .setStyle(TextInputStyle.Paragraph)
-          .setRequired(true)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Input String")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setRequired(true)
+            .setCustomId("input")
+            .setStyle(TextInputStyle.Paragraph)
+            .setPlaceholder("Type or paste the input string here...")
+        )
     );
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(

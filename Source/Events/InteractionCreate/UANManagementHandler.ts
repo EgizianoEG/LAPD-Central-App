@@ -4,12 +4,12 @@ import {
   time as FormatTime,
   ButtonInteraction,
   TextInputBuilder,
-  ActionRowBuilder,
   BaseInteraction,
   TextInputStyle,
   EmbedBuilder,
   ModalBuilder,
   MessageFlags,
+  LabelBuilder,
 } from "discord.js";
 
 import {
@@ -501,28 +501,24 @@ function GetNotesModal(
   IsLOA: boolean = true
 ) {
   const NoticeType = IsLOA ? "Leave of Absence" : "Reduced Activity";
-  const Modal = new ModalBuilder()
+  return new ModalBuilder()
     .setTitle(`${NoticeType} ${ReviewOutcome}`)
     .setCustomId(`uan-rev-notes:${Interaction.user.id}:${RandomString(6)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Short)
-          .setRequired(NotesRequired)
-          .setMinLength(4)
-          .setMaxLength(128)
-          .setLabel("Notes")
-          .setCustomId("notes")
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Reviewer Notes")
+        .setDescription(
+          ReviewOutcome.endsWith("Approval")
+            ? "Optional notes or comments regarding the approval."
+            : "Notes or comments explaining the denial."
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setRequired(NotesRequired)
+            .setMinLength(4)
+            .setMaxLength(128)
+            .setCustomId("notes")
+        )
     );
-
-  if (ReviewOutcome.endsWith("Approval")) {
-    Modal.components[0].components[0].setPlaceholder("Any notes or comments to add.");
-  } else {
-    Modal.components[0].components[0].setPlaceholder(
-      "Any notes or comments to explain the disapproval."
-    );
-  }
-
-  return Modal;
 }

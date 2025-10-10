@@ -21,6 +21,7 @@ import {
   ModalBuilder,
   MessageFlags,
   resolveColor,
+  LabelBuilder,
   ButtonStyle,
   inlineCode,
   CacheType,
@@ -318,19 +319,23 @@ function GetComparisonDateInputModal(
   const Modal = new ModalBuilder()
     .setTitle(`Delete ${TargetData} Records ${CDType} Date`)
     .setCustomId(`sdm-dab-input:${Interaction.user.id}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("comp_date")
-          .setLabel("Comparison Date")
-          .setPlaceholder(
-            `Enter the date or time expression to delete records ${CDType.toLowerCase()}...`
-          )
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(2)
-          .setMaxLength(32)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Comparison Date")
+        .setDescription(
+          `Enter the date or time expression to delete records ${CDType.toLowerCase()} it.`
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("comp_date")
+            .setPlaceholder(
+              'ex., "2 weeks ago", "last month", "2023-01-15", "March 3rd, 2022", "yesterday", etc...'
+            )
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(2)
+            .setMaxLength(32)
+        )
     );
 
   if (TargetData === "Shift") {
@@ -479,17 +484,19 @@ function GetShiftTypeInputModal(Interaction: ButtonInteraction<"cached">) {
     .setCustomId(
       `sdm-${ShiftDataActions.DeleteOfType}-input:${Interaction.user.id}:${RandomString(4)}`
     )
-    .setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("shift_type")
-          .setLabel("Shift Type")
-          .setPlaceholder("Enter the shift type to delete records of, e.g., 'Default'...")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(true)
-          .setMinLength(3)
-          .setMaxLength(62)
-      )
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Shift Type")
+        .setDescription("The shift type to delete records of.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("shift_type")
+            .setPlaceholder("e.g., 'Default'...")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMinLength(3)
+            .setMaxLength(62)
+        )
     );
 }
 

@@ -2,10 +2,10 @@ import {
   userMention,
   MessageFlags,
   ModalBuilder,
+  LabelBuilder,
   TextInputStyle,
   BaseInteraction,
   TextInputBuilder,
-  ActionRowBuilder,
   ButtonInteraction,
   time as FormatTime,
   ModalSubmitInteraction,
@@ -628,29 +628,39 @@ function GetNotesModal(
     .setRequired(NotesRequired)
     .setMinLength(4)
     .setMaxLength(128)
-    .setLabel(`${ReviewOutcome} Notes`)
     .setCustomId("notes");
 
   if (ReviewOutcome === "Approval") {
-    NotesInput.setPlaceholder("Any notes or comments to add.");
-
-    // Add expiry date field for approvals
     const ExpiryInput = new TextInputBuilder()
       .setStyle(TextInputStyle.Short)
       .setRequired(false)
       .setMinLength(2)
       .setMaxLength(40)
-      .setLabel("Expiry Date (Optional)")
       .setCustomId("expiry")
       .setPlaceholder("e.g., 'in 2 weeks'");
 
-    Modal.setComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(NotesInput),
-      new ActionRowBuilder<TextInputBuilder>().setComponents(ExpiryInput)
+    Modal.setLabelComponents(
+      new LabelBuilder()
+        .setLabel(`${ReviewOutcome} Notes`)
+        .setDescription("Any notes or comments to add.")
+        .setTextInputComponent(NotesInput),
+      new LabelBuilder()
+        .setLabel("Expiry Date")
+        .setDescription("Optional expiry date for this call sign.")
+        .setTextInputComponent(ExpiryInput)
     );
   } else {
     NotesInput.setPlaceholder("Any notes or comments to explain the disapproval.");
-    Modal.setComponents(new ActionRowBuilder<TextInputBuilder>().setComponents(NotesInput));
+    Modal.setLabelComponents(
+      new LabelBuilder()
+        .setTextInputComponent(NotesInput)
+        .setLabel(`${ReviewOutcome} Notes`)
+        .setDescription(
+          NotesRequired
+            ? "Required notes to explain the disapproval."
+            : "Any notes or comments explaining the disapproval."
+        )
+    );
   }
 
   return Modal;
