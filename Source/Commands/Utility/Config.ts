@@ -19,7 +19,6 @@ import {
   SeparatorBuilder,
   ActionRowBuilder,
   TextInputBuilder,
-  LabelBuilderData,
   ButtonInteraction,
   GuildBasedChannel,
   TextDisplayBuilder,
@@ -447,8 +446,8 @@ const ConfigTopicsExplanations = {
       {
         Name: "Auto-Rename on Assignment",
         Description:
-          "Determines whether assigned personnel are automatically renamed to their approved call sign based on the configured nickname format." +
-          "Keep in mind that this will truncate the nickname if it exceeds Discord's character limit after applying the format.",
+          "If enabled, personnel are automatically renamed to their approved call sign based on the configured nickname format.\n" +
+          "Notice: Discord's character limit may need the app truncate the nickname after the format is applied.",
       },
       {
         Name: "Unit Type Restrictions Mode",
@@ -3560,6 +3559,14 @@ async function HandleUANActivePrefixBtnInteract(
   const ModuleTitle =
     ModuleId === ConfigTopics.LeaveConfiguration ? "Leave of Absence" : "Reduced Activity";
 
+  const PrefixInputField = new TextInputBuilder()
+    .setCustomId("prefix")
+    .setPlaceholder('Enter prefix here, use "%s" for trailing space(s)...')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false)
+    .setMaxLength(10)
+    .setMinLength(2);
+
   const InputModal = new ModalBuilder()
     .setTitle("Set Active Prefix")
     .setCustomId(`${CTAIds[ModuleId].ActivePrefix}-input:${RecInteract.user.id}:${RandomString(4)}`)
@@ -3569,21 +3576,11 @@ async function HandleUANActivePrefixBtnInteract(
         .setDescription(
           `The nickname prefix to use when staff go on active ${ModuleTitle.toLowerCase()}; leave empty for none.`
         )
-        .setTextInputComponent(
-          new TextInputBuilder()
-            .setCustomId("prefix")
-            .setPlaceholder('Enter prefix here, use "%s" for trailing space(s)...')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(false)
-            .setMaxLength(10)
-            .setMinLength(2)
-        )
+        .setTextInputComponent(PrefixInputField)
     );
 
   if (MState.ModuleConfig.active_prefix) {
-    ((InputModal.components[0].data as LabelBuilderData).component as TextInputBuilder).setValue(
-      MState.ModuleConfig.active_prefix.replace(/ $/, "%s")
-    );
+    PrefixInputField.setValue(MState.ModuleConfig.active_prefix.replace(/ $/, "%s"));
   }
 
   const Submission = await ShowModalAndAwaitSubmission(RecInteract, InputModal);
@@ -3752,6 +3749,14 @@ async function HandleOutsideLogChannelBtnInteracts(
     ? "Arrest Reports"
     : "Citation Logs";
 
+  const ChannelInputField = new TextInputBuilder()
+    .setPlaceholder("ServerID:ChannelID")
+    .setCustomId("channel_id")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false)
+    .setMinLength(31)
+    .setMaxLength(45);
+
   const InputModal = new ModalBuilder()
     .setTitle(`Outside Log Channel - ${LogChannelTopic}`)
     .setCustomId(`${BtnInteract.customId}:${RandomString(4)}`)
@@ -3759,21 +3764,11 @@ async function HandleOutsideLogChannelBtnInteracts(
       new LabelBuilder()
         .setLabel("Channel")
         .setDescription("The channel in the format: `ServerID:ChannelID`")
-        .setTextInputComponent(
-          new TextInputBuilder()
-            .setPlaceholder("ServerID:ChannelID")
-            .setCustomId("channel_id")
-            .setStyle(TextInputStyle.Short)
-            .setRequired(false)
-            .setMinLength(31)
-            .setMaxLength(45)
-        )
+        .setTextInputComponent(ChannelInputField)
     );
 
   if (CurrLogChannel) {
-    ((InputModal.components[0].data as LabelBuilderData).component as TextInputBuilder).setValue(
-      CurrLogChannel
-    );
+    ChannelInputField.setValue(CurrLogChannel);
   }
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 5 * 60 * 1000);
@@ -3832,6 +3827,14 @@ async function HandleDefaultShiftQuotaBtnInteract(
   BtnInteract: ButtonInteraction<"cached">,
   CurrentQuota: number
 ): Promise<number> {
+  const QuotaInputField = new TextInputBuilder()
+    .setPlaceholder("ex., 2h, 30m")
+    .setCustomId("default_quota")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false)
+    .setMinLength(2)
+    .setMaxLength(20);
+
   const InputModal = new ModalBuilder()
     .setTitle("Default Shift Quota Duration")
     .setCustomId(CTAIds[ConfigTopics.ShiftConfiguration].ServerDefaultShiftQuota + RandomString(4))
@@ -3839,15 +3842,7 @@ async function HandleDefaultShiftQuotaBtnInteract(
       new LabelBuilder()
         .setLabel("Default Quota")
         .setDescription("The server's default shift quota. Keep blank for none.")
-        .setTextInputComponent(
-          new TextInputBuilder()
-            .setPlaceholder("ex., 2h, 30m")
-            .setCustomId("default_quota")
-            .setStyle(TextInputStyle.Short)
-            .setRequired(false)
-            .setMinLength(2)
-            .setMaxLength(20)
-        )
+        .setTextInputComponent(QuotaInputField)
     );
 
   if (CurrentQuota) {
@@ -3867,9 +3862,7 @@ async function HandleDefaultShiftQuotaBtnInteract(
 
     FormattedDuration = FormattedDuration.length <= 20 ? FormattedDuration : "";
     if (FormattedDuration.length <= 20 && FormattedDuration.length > 0) {
-      ((InputModal.components[0].data as LabelBuilderData).component as TextInputBuilder).setValue(
-        FormattedDuration
-      );
+      QuotaInputField.setValue(FormattedDuration);
     }
   }
 
@@ -3898,6 +3891,14 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
   BtnInteract: ButtonInteraction<"cached">,
   CurrentFormat: string
 ): Promise<string> {
+  const FormatInputField = new TextInputBuilder()
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder("ex., {division}-{unit_type}-{beat_num} | {nickname}")
+    .setCustomId("format")
+    .setRequired(true)
+    .setMinLength(10)
+    .setMaxLength(70);
+
   const InputModal = new ModalBuilder()
     .setTitle("Call Sign Nickname Format")
     .setCustomId(CTAIds[ConfigTopics.CallsignsConfiguration].NicknameFormat + RandomString(4))
@@ -3917,19 +3918,12 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
       )
     )
     .addLabelComponents(
-      new LabelBuilder()
-        .setLabel("Nickname Format")
-        .setTextInputComponent(
-          new TextInputBuilder()
-            .setStyle(TextInputStyle.Paragraph)
-            .setValue(CurrentFormat)
-            .setPlaceholder("ex., {division}-{unit_type}-{beat_num} | {nickname}")
-            .setCustomId("format")
-            .setRequired(true)
-            .setMinLength(10)
-            .setMaxLength(70)
-        )
+      new LabelBuilder().setLabel("Nickname Format").setTextInputComponent(FormatInputField)
     );
+
+  if (CurrentFormat.length >= 10 && CurrentFormat.length <= 70) {
+    FormatInputField.setValue(CurrentFormat);
+  }
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 5 * 60 * 1000);
   if (!ModalSubmission) return CurrentFormat;
