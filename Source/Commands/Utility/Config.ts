@@ -3763,7 +3763,7 @@ async function HandleOutsideLogChannelBtnInteracts(
     .addLabelComponents(
       new LabelBuilder()
         .setLabel("Channel")
-        .setDescription("The channel in the format: `ServerID:ChannelID`")
+        .setDescription("The channel in the format: ServerID:ChannelID")
         .setTextInputComponent(ChannelInputField)
     );
 
