@@ -30,7 +30,7 @@ export default async function HandleCallsignStatusUpdates(
       if (!Guild) continue;
 
       const AppMember = await Guild.members.fetchMe().catch(() => null);
-      if (!AppMember?.permissions.has(PermissionFlagsBits.ManageNicknames)) continue;
+      if (!AppMember?.permissions.has(PermissionFlagsBits.ManageNicknames, true)) continue;
 
       const GuildSettings = await GetGuildSettings(GuildId);
       if (!GuildSettings?.callsigns_module.update_nicknames) continue;
