@@ -50,7 +50,7 @@
     "dedent": "^1.5.3",
     "default-composer": "^0.6.0",
     "didyoumean2": "^7.0.4",
-    "discord.js": "^14.22.1",
+    "discord.js": "^14.23.2",
     "express": "^5.1.0",
     "fuse.js": "^7.1.0",
     "googleapis": "^149.0.0",
