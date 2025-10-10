@@ -8,16 +8,18 @@ import {
   roleMention,
   resolveColor,
   ModalBuilder,
+  LabelBuilder,
   MessageFlags,
   ButtonBuilder,
-  SectionBuilder,
   ComponentType,
+  SectionBuilder,
   TextInputStyle,
   channelMention,
   ContainerBuilder,
   SeparatorBuilder,
   ActionRowBuilder,
   TextInputBuilder,
+  LabelBuilderData,
   ButtonInteraction,
   GuildBasedChannel,
   TextDisplayBuilder,
@@ -29,7 +31,6 @@ import {
   RoleSelectMenuBuilder,
   InteractionContextType,
   StringSelectMenuBuilder,
-  InteractionResponseType,
   ChannelSelectMenuBuilder,
   InteractionUpdateOptions,
   UserSelectMenuInteraction,
@@ -39,7 +40,6 @@ import {
   StringSelectMenuInteraction,
   ChannelSelectMenuInteraction,
   StringSelectMenuOptionBuilder,
-  ModalActionRowComponentBuilder,
   MentionableSelectMenuInteraction,
 } from "discord.js";
 
@@ -59,11 +59,13 @@ import {
 
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns/milliseconds";
+import { ListSplitRegex } from "@Source/Resources/RegularExpressions.js";
 import { Colors, Emojis } from "@Config/Shared.js";
 import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
-import { isValidObjectId } from "mongoose";
+import { ServiceUnitTypes } from "@Source/Resources/LAPDCallsigns.js";
 import { clone, isDeepEqual } from "remeda";
+import { isValidObjectId, Types } from "mongoose";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { ConcatenateLines as ConcatLines, Dedent } from "@Utilities/Strings/Formatters.js";
 
@@ -86,6 +88,7 @@ const ListFormatter = new Intl.ListFormat("en");
 const MillisInDay = milliseconds({ days: 1 });
 const AccentColor = resolveColor("#5f9ea0");
 const FileLabel = "Commands:Utility:Config";
+const SUnitTypeLabels = ServiceUnitTypes.map((t) => t.unit);
 const FormatDuration = DHumanize.humanizer({
   conjunction: " and ",
   largest: 3,
@@ -457,22 +460,18 @@ const ConfigTopicsExplanations = {
       {
         Name: "Nickname Format",
         Description:
-          "The format to use when updating members' nicknames with their assigned call signs, if auto-renaming is enabled.\n\n" +
-          "-# **Supported Tags:**\n" +
-          "-# > `{division}`, `{unit_type}`, `{beat_num}`, `{nickname}`, `{display_name}`, `{roblox_username}`",
+          "The format to use when updating members' nicknames with their assigned call signs, if auto-renaming is enabled.",
       },
       {
         Name: "Unit Type Role-based Restrictions",
         Description:
           "If a unit type is associated with specific roles, only members holding at least one of those roles can request that unit type. " +
-          "This ensures that only qualified personnel can submit requests for specialized units.\n" +
-          "-# > **Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
+          "This ensures that only qualified personnel can submit requests for specialized units.",
       },
       {
         Name: "Beat Number Role-based Restrictions",
         Description:
-          "Define specific rules for assigning call sign beat numbers based on roles. These restrictions ensure that only qualified members can request certain beat numbers.\n" +
-          "-# > **Note:** this setting cannot be set or changed at the time being and is yet to be implemented.",
+          "Define specific rules for assigning call sign beat numbers based on roles. These restrictions ensure that only qualified members can request certain beat numbers.",
       },
     ],
   },
@@ -573,7 +572,7 @@ async function HandleConfigTimeoutResponse(
 ) {
   const MsgContainer = new InfoContainer()
     .useInfoTemplate("TimedOutConfigPrompt")
-    .setTitle(`Timed Out - ${CurrModule}`);
+    .setTitle(`Timed Out — ${CurrModule}`);
 
   if (Interact.deferred || Interact.replied) {
     return Interact.editReply({
@@ -1447,11 +1446,9 @@ function GetCallsignsModuleConfigComponents(
       `${CTAIds[ConfigTopics.CallsignsConfiguration].NicknameFormat}:${Interaction.user.id}`
     );
 
-  // TODO: Enable when modal prompts are completed.
   const SetUnitTypeRoleBasedRestrictionsAccessoryBtn = new ButtonBuilder()
     .setLabel("Set Restrictions")
     .setStyle(ButtonStyle.Secondary)
-    .setDisabled(true)
     .setCustomId(
       `${CTAIds[ConfigTopics.CallsignsConfiguration].UnitTypeRoleRestrictions}:${Interaction.user.id}`
     );
@@ -1459,7 +1456,6 @@ function GetCallsignsModuleConfigComponents(
   const SetBeatNumberRestrictionsAccessoryBtn = new ButtonBuilder()
     .setLabel("Set Restrictions")
     .setStyle(ButtonStyle.Secondary)
-    .setDisabled(true)
     .setCustomId(
       `${CTAIds[ConfigTopics.CallsignsConfiguration].BeatNumberRestrictions}:${Interaction.user.id}`
     );
@@ -2282,9 +2278,14 @@ function GetCSBeatOrUnitTypeRestrictionsPromptContainer(
 }
 
 function GetCSBeatOrUnitTypeRestrictionsListContainers(
+  CSOriginalModuleState: ModuleState<GuildSettings["callsigns_module"]>,
   CSModuleState: ModuleState<GuildSettings["callsigns_module"]>,
   IsUnitType: boolean
-): BaseExtraContainer[] {
+): ContainerBuilder[] {
+  const OrgRestrictions = IsUnitType
+    ? CSOriginalModuleState.ModuleConfig.unit_type_restrictions
+    : CSOriginalModuleState.ModuleConfig.beat_restrictions;
+
   const Restrictions = IsUnitType
     ? CSModuleState.ModuleConfig.unit_type_restrictions
     : CSModuleState.ModuleConfig.beat_restrictions;
@@ -2293,7 +2294,7 @@ function GetCSBeatOrUnitTypeRestrictionsListContainers(
   type BeatNumberRestriction = (typeof CSModuleState.ModuleConfig.beat_restrictions)[number];
   type RestrictionObj = (typeof Restrictions)[number];
 
-  const Pages: BaseExtraContainer[] = [];
+  const Pages: ContainerBuilder[] = [];
   const RestrictionsChunks = Chunks(Restrictions as RestrictionObj[], 3);
 
   for (const RulesSet of RestrictionsChunks) {
@@ -2302,32 +2303,31 @@ function GetCSBeatOrUnitTypeRestrictionsListContainers(
       ? CSModuleState.ModuleConfig.unit_type_restrictions.length
       : CSModuleState.ModuleConfig.beat_restrictions.length;
 
-    const PageContainer = new BaseExtraContainer().setColor(Colors.DarkGrey).setTitle(
-      Dedent(`
-        Call Signs Module: ${IsUnitType ? "Unit Type" : "Beat Number"} Restrictions
-        Showing ${RulesSet.length} of ${ScopeRestrictionsCount} total restriction${ScopeRestrictionsCount === 1 ? "" : "s"}.  
-      `)
-    );
+    const PageContainer = new ContainerBuilder()
+      .setAccentColor(resolveColor(Colors.DarkGrey))
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          Dedent(`
+            ### Call Signs Module: ${IsUnitType ? "Unit Type" : "Beat Number"} Restrictions
+            -# Showing ${RulesSet.length} of ${ScopeRestrictionsCount} total restriction${ScopeRestrictionsCount === 1 ? "" : "s"}.  
+          `)
+        )
+      )
+      .addSeparatorComponents(new SeparatorBuilder().setDivider());
 
     for (const Rule of RulesSet) {
-      const OriginalRule = Restrictions.find((ORule) => ORule._id === Rule._id);
-      let RuleStatus: string;
+      const OriginalRule = OrgRestrictions.find(
+        (ORule) => ORule._id.toString() === Rule._id.toString()
+      );
 
-      if (!OriginalRule) {
-        RuleStatus = "New";
-      } else if (isDeepEqual(Rule, OriginalRule)) {
-        RuleStatus = "Saved";
-      } else {
-        RuleStatus = "Updated";
-      }
-
+      const RuleStatus = OriginalRule ? "Saved" : "Unsaved";
       const PermittedRolesText = Rule.permitted_roles.length
         ? ListFormatter.format(Rule.permitted_roles.map(roleMention))
         : "*None - Cannot be requested*";
 
       RuleDisplayTexts.push(
         ConcatLines(
-          `**ID:** \`${Rule._id}\``,
+          `**ID:** \`${Rule._id.toString()}\``,
           `> **Status:** ${RuleStatus}`,
           IsUnitType
             ? `> **Unit Type:** \`${(Rule as UnitTypeRestriction).unit_type}\``
@@ -2450,13 +2450,12 @@ function GetCSCallsignsModuleContent(GuildSettings: GuildSettings): string {
     >>> **Module Enabled:** ${MSettings.enabled ? "Yes" : "No"}
     **New Requests Notifications:** ${MSettings.alert_on_request ? "Enabled" : "Disabled"}
     **Assignment Auto-Renaming:** ${MSettings.update_nicknames ? "Enabled" : "Disabled"}
-
     **Requests Destination:** ${RequestsDest}
     **Logs Destination:** ${LogsDest}
     **Manager Role(s):** ${ManagerRolesMentioned.length ? ManagerRolesMentioned : "None"}
     **Nickname Format:** \`${MSettings.nickname_format}\`
-    **Unit Type Restrictions:** ${MSettings.unit_type_restrictions.length} Set
-    **Beat Number Restrictions:** ${MSettings.beat_restrictions.length} Set
+    **Unit Type Restrictions:** ${MSettings.unit_type_restrictions.length} set
+    **Beat Number Restrictions:** ${MSettings.beat_restrictions.length} set
   `);
 }
 
@@ -3500,9 +3499,10 @@ async function HandleCallsignsModuleConfigPageInteracts(
         "unit"
       );
 
-      if (UpdatedRestrictions.length !== MState.ModuleConfig.unit_type_restrictions.length) {
-        return true;
-      }
+      MState.ModuleConfig.unit_type_restrictions =
+        UpdatedRestrictions as GuildSettings["callsigns_module"]["unit_type_restrictions"];
+
+      return true;
     }
 
     if (CustomId.startsWith(ActionMap.BeatNumberRestrictions)) {
@@ -3512,9 +3512,10 @@ async function HandleCallsignsModuleConfigPageInteracts(
         "beat"
       );
 
-      if (UpdatedRestrictions.length !== MState.ModuleConfig.beat_restrictions.length) {
-        return true;
-      }
+      MState.ModuleConfig.beat_restrictions =
+        UpdatedRestrictions as GuildSettings["callsigns_module"]["beat_restrictions"];
+
+      return true;
     }
   }
 
@@ -3562,21 +3563,25 @@ async function HandleUANActivePrefixBtnInteract(
   const InputModal = new ModalBuilder()
     .setTitle("Set Active Prefix")
     .setCustomId(`${CTAIds[ModuleId].ActivePrefix}-input:${RecInteract.user.id}:${RandomString(4)}`)
-    .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(
-        new TextInputBuilder()
-          .setCustomId("prefix")
-          .setLabel(`Active ${ModuleTitle} Prefix`)
-          .setPlaceholder("Enter prefix here, use '%s' for trailing space...")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMaxLength(10)
-          .setMinLength(2)
-      )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel(`Active ${ModuleTitle} Prefix`)
+        .setDescription(
+          `The nickname prefix to use when staff go on active ${ModuleTitle.toLowerCase()}; leave empty for none.`
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("prefix")
+            .setPlaceholder('Enter prefix here, use "%s" for trailing space(s)...')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMaxLength(10)
+            .setMinLength(2)
+        )
     );
 
   if (MState.ModuleConfig.active_prefix) {
-    InputModal.components[0].components[0].setValue(
+    ((InputModal.components[0].data as LabelBuilderData).component as TextInputBuilder).setValue(
       MState.ModuleConfig.active_prefix.replace(/ $/, "%s")
     );
   }
@@ -3750,20 +3755,27 @@ async function HandleOutsideLogChannelBtnInteracts(
   const InputModal = new ModalBuilder()
     .setTitle(`Outside Log Channel - ${LogChannelTopic}`)
     .setCustomId(`${BtnInteract.customId}:${RandomString(4)}`)
-    .setComponents(
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Channel in The Format: [ServerID:ChannelID]")
-          .setPlaceholder("ServerID:ChannelID")
-          .setCustomId("channel_id")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMinLength(31)
-          .setMaxLength(45)
-      )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Channel")
+        .setDescription("The channel in the format: `ServerID:ChannelID`")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setPlaceholder("ServerID:ChannelID")
+            .setCustomId("channel_id")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMinLength(31)
+            .setMaxLength(45)
+        )
     );
 
-  if (CurrLogChannel) InputModal.components[0].components[0].setValue(CurrLogChannel);
+  if (CurrLogChannel) {
+    ((InputModal.components[0].data as LabelBuilderData).component as TextInputBuilder).setValue(
+      CurrLogChannel
+    );
+  }
+
   const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 5 * 60 * 1000);
   if (!ModalSubmission) return CurrLogChannel;
 
@@ -3823,17 +3835,19 @@ async function HandleDefaultShiftQuotaBtnInteract(
   const InputModal = new ModalBuilder()
     .setTitle("Default Shift Quota Duration")
     .setCustomId(CTAIds[ConfigTopics.ShiftConfiguration].ServerDefaultShiftQuota + RandomString(4))
-    .setComponents(
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
-        new TextInputBuilder()
-          .setLabel("Default Quota")
-          .setPlaceholder("ex., 2h, 30m (Keep blank for none)")
-          .setCustomId("default_quota")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMinLength(2)
-          .setMaxLength(20)
-      )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Default Quota")
+        .setDescription("The server's default shift quota. Keep blank for none.")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setPlaceholder("ex., 2h, 30m")
+            .setCustomId("default_quota")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMinLength(2)
+            .setMaxLength(20)
+        )
     );
 
   if (CurrentQuota) {
@@ -3853,7 +3867,9 @@ async function HandleDefaultShiftQuotaBtnInteract(
 
     FormattedDuration = FormattedDuration.length <= 20 ? FormattedDuration : "";
     if (FormattedDuration.length <= 20 && FormattedDuration.length > 0) {
-      InputModal.components[0].components[0].setValue(FormattedDuration);
+      ((InputModal.components[0].data as LabelBuilderData).component as TextInputBuilder).setValue(
+        FormattedDuration
+      );
     }
   }
 
@@ -3885,109 +3901,207 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
   const InputModal = new ModalBuilder()
     .setTitle("Call Sign Nickname Format")
     .setCustomId(CTAIds[ConfigTopics.CallsignsConfiguration].NicknameFormat + RandomString(4))
-    .setComponents(
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Paragraph)
-          .setValue(CurrentFormat)
-          .setLabel("Nickname Format")
-          .setPlaceholder("ex., {division}-{unit_type}-{beat_num} | {nickname}")
-          .setCustomId("format")
-          .setRequired(true)
-          .setMinLength(10)
-          .setMaxLength(70)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          Define the nickname format template to automatically apply when assigning approved call signs to staff members.
+          
+          Available placeholders and tags:
+          >>> \`{division}\` - The division beat number
+          \`{unit_type}\` - The service unit type
+          \`{beat_num}\` - The beat number
+          \`{nickname}\` - The member's current server nickname at assignment time (defaults to display name if no nickname is set)
+          \`{display_name}\` - The member's current server display name at assignment time
+          \`{roblox_username}\` - The linked Roblox account username
+        `)
       )
+    )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Nickname Format")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Paragraph)
+            .setValue(CurrentFormat)
+            .setPlaceholder("ex., {division}-{unit_type}-{beat_num} | {nickname}")
+            .setCustomId("format")
+            .setRequired(true)
+            .setMinLength(10)
+            .setMaxLength(70)
+        )
     );
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(BtnInteract, InputModal, 5 * 60 * 1000);
   if (!ModalSubmission) return CurrentFormat;
   ModalSubmission.deferUpdate().catch(() => null);
 
-  return ModalSubmission.fields.getTextInputValue("format");
+  const InputFormat = ModalSubmission.fields.getTextInputValue("format");
+  return FilterUserInput(InputFormat, {
+    guild_instance: ModalSubmission.guild,
+    allow_discord_safe_links: false,
+  });
 }
 
-// TODO: Complete once discord.js package support
-// select menus, text display, and labels inside modals.
 async function ModalPromptBeatOrUnitTypeRuleAdd(
   SelectInteract: StringSelectMenuInteraction<"cached">,
-  _MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
-  _IsUnitType: boolean
-): Promise<void> {
-  const ScopeLabel = _IsUnitType ? "Unit Type" : "Beat Number";
+  MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
+  IsUnitType: boolean
+): Promise<any> {
+  const ScopeLabel = IsUnitType ? "Unit Type" : "Beat Number";
   const ModalId =
     CTAIds[ConfigTopics.CallsignsConfiguration][
-      _IsUnitType ? "UnitTypeRoleRestrictions" : "BeatNumberRestrictions"
+      IsUnitType ? "UnitTypeRoleRestrictions" : "BeatNumberRestrictions"
     ] +
     "add:" +
     SelectInteract.user.id +
     ":" +
     RandomString(6);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, sonarjs/no-unused-vars
-  const _InputModalJSON = {
-    type: InteractionResponseType.Modal,
-    data: {
-      title: `Add ${ScopeLabel} Restriction`,
-      custom_id: ModalId,
-      components: [
-        {
-          type: ComponentType.TextDisplay,
-          content: Dedent(`
-              Provide the details below to add a new ${ScopeLabel.toLowerCase()} restriction. \
-              Submitting this form will create the restriction locally to the \
-              current prompt session, you would have to confirm and then save \
-              the changes on the module config panel afterwards to enforce it.
-          `),
-        },
-        {
-          type: 18, // ComponentType.LABEL
-          label: "Choose a Range",
-          description:
-            "The range is inclusive and must be between 1-999; the format for the range is 'start-end'.",
-          component: {
-            type: ComponentType.TextInput,
-            custom_id: "range",
-            minLength: 3,
-            maxLength: 7,
-            required: true,
-            style: TextInputStyle.Short,
-            placeholder: "Ex., 100-199 or 1-99",
-          },
-        },
-        // {
-        //   type: 18, // ComponentType.LABEL
-        //   label: "Choose a Unit Type",
-        //   description:
-        //     "Type in a valid LAPD unit type in the text box below to restrict it to certain roles.",
-        //   component: {
-        //     type: ComponentType.TextInput,
-        //     custom_id: "unit_type",
-        //     minLength: 1,
-        //     maxLength: 3,
-        //     required: true,
-        //     style: TextInputStyle.Short,
-        //     placeholder: "Ex., 'K9' or 'SL'",
-        //   },
-        // },
-        {
-          type: 18, // ComponentType.LABEL
-          label: "Range Permitted Roles",
-          description: `Select the roles of which holders are permitted to use this ${_IsUnitType ? "unit type" : "beat number range"}.`,
-          component: {
-            type: ComponentType.RoleSelect,
-            custom_id: "roles",
-            placeholder: "Select roles permitted for this restriction...",
-            max_values: 10,
-            min_values: 0,
-            required: false,
-          },
-        },
-      ],
-    },
-  };
+  const GuideText = Dedent(`
+    ### Add ${ScopeLabel} Restriction
+    
+    **How it works:**
+    1. Complete the form below with your restriction details
+    2. The restriction is created locally in this configuration session
+    3. 'Confirm Current Restrictions' when done
+    4. Save through the module config panel to enforce the restriction
+    
+    **Tip:** ${IsUnitType ? "Multiple unit types" : "Multiple beat number ranges"} can be added simultaneously by separating them with commas.
+  `);
 
-  // To be completed once discord.js package support
-  // select menus, text display, and labels inside modals.
+  let ConfigurableLabelComp: LabelBuilder;
+  const InputModal = new ModalBuilder()
+    .setCustomId(ModalId)
+    .setTitle(`Add ${ScopeLabel} Restriction`)
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent(GuideText));
+
+  if (IsUnitType) {
+    ConfigurableLabelComp = new LabelBuilder()
+      .setLabel("Choose a Unit Type")
+      .setDescription(
+        "Type in a valid LAPD unit type in the text box below to restrict/allow it to certain roles."
+      )
+      .setTextInputComponent(
+        new TextInputBuilder()
+          .setStyle(TextInputStyle.Short)
+          .setCustomId("unit_types")
+          .setPlaceholder("ex., 'SL', 'K9'")
+          .setMinLength(1)
+          .setMaxLength(14)
+          .setRequired(true)
+      );
+  } else {
+    ConfigurableLabelComp = new LabelBuilder()
+      .setLabel("Beat Number Range(s)")
+      .setDescription(
+        "The range is inclusive and must be between 1-999; the format for the range is 'start-end'."
+      )
+      .setTextInputComponent(
+        new TextInputBuilder()
+          .setStyle(TextInputStyle.Short)
+          .setCustomId("beat_ranges")
+          .setPlaceholder("eg., 10-99, 200-250")
+          .setMinLength(1)
+          .setMaxLength(38)
+          .setRequired(true)
+      );
+  }
+
+  InputModal.addLabelComponents(
+    ConfigurableLabelComp,
+    new LabelBuilder()
+      .setLabel("Permitted Roles")
+      .setDescription(
+        `Choose the roles that will be permitted for the selected ${IsUnitType ? "type(s)." : "range(s)."}`
+      )
+      .setRoleSelectMenuComponent(
+        new RoleSelectMenuBuilder()
+          .setCustomId("permitted")
+          .setMinValues(1)
+          .setMaxValues(6)
+          .setRequired(true)
+      )
+  );
+
+  const ModalSubmission = await ShowModalAndAwaitSubmission(SelectInteract, InputModal, 5 * 60_000);
+  if (!ModalSubmission) return;
+  const InputPermittedRoles = ModalSubmission.fields
+    .getSelectedRoles("permitted", true)
+    .map((r) => r.id);
+
+  if (IsUnitType) {
+    const InputUnitTypes = ModalSubmission.fields
+      .getTextInputValue("unit_types")
+      .split(ListSplitRegex);
+
+    const FilteredTypes = InputUnitTypes.map((t) =>
+      t.toLowerCase() === "air" ? "Air" : t.trim()
+    ).filter((t) => SUnitTypeLabels.some((t2) => t === t2));
+
+    if (FilteredTypes.length !== InputUnitTypes.length) {
+      return new ErrorContainer()
+        .useErrTemplate("CallsignConfigInvalidUnitTypes")
+        .replyToInteract(ModalSubmission, true);
+    }
+
+    FilteredTypes.forEach((Type) => {
+      MStateObj.ModuleConfig.unit_type_restrictions.push({
+        _id: new Types.ObjectId(),
+        permitted_roles: InputPermittedRoles,
+        unit_type: Type,
+      });
+    });
+
+    return new SuccessContainer()
+      .setDescription(
+        "`%i` unit type restriction(s) %s been successfully set. Remember to confirm and save changes to enforce them.",
+        FilteredTypes.length,
+        FilteredTypes.length > 1 ? "have" : "has"
+      )
+      .replyToInteract(ModalSubmission, true);
+  }
+
+  const InputRanges = ModalSubmission.fields.getTextInputValue("beat_ranges").split(ListSplitRegex);
+  const FilteredMappedRanges = InputRanges.map((Range) => {
+    const Match = Range.match(/(\d{1,3})-(\d{1,3})/);
+    if (!Match) return null;
+    const [, Start, End] = Match;
+    const Parsed = [parseInt(Start), parseInt(End)];
+
+    if (
+      Parsed[0] < 1 ||
+      Parsed[1] > 999 ||
+      Parsed[0] > Parsed[1] ||
+      isNaN(Parsed[0]) ||
+      isNaN(Parsed[1])
+    ) {
+      return null;
+    }
+
+    return [parseInt(Start), parseInt(End)];
+  }).filter((r) => r !== null) as [number, number][];
+
+  if (FilteredMappedRanges.length !== InputRanges.length) {
+    return new ErrorContainer()
+      .useErrTemplate("CallsignConfigInvalidBeatRanges")
+      .replyToInteract(ModalSubmission, true);
+  }
+
+  FilteredMappedRanges.forEach((Range) => {
+    MStateObj.ModuleConfig.beat_restrictions.push({
+      _id: new Types.ObjectId(),
+      permitted_roles: InputPermittedRoles,
+      range: Range,
+    });
+  });
+
+  return new SuccessContainer()
+    .setDescription(
+      "`%i` beat number restriction(s) %s been successfully set. Remember to confirm and save changes to enforce them.",
+      FilteredMappedRanges.length,
+      FilteredMappedRanges.length > 1 ? "have" : "has"
+    )
+    .replyToInteract(ModalSubmission, true);
 }
 
 async function ModalPromptBeatOrUnitTypeRuleRemove(
@@ -4003,17 +4117,20 @@ async function ModalPromptBeatOrUnitTypeRuleRemove(
   const InputIdModal = new ModalBuilder()
     .setTitle(`Call Signs: ${ScopeLabel} Restriction Removal`)
     .setCustomId(ModalBaseId + "-remove:" + SelectInteract.user.id + RandomString(6))
-    .setComponents(
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().setComponents(
-        new TextInputBuilder()
-          .setStyle(TextInputStyle.Paragraph)
-          .setLabel("Restriction ID")
-          .setPlaceholder("The ID of the restriction to remove, use the list option to view IDs.")
-          .setCustomId("id")
-          .setRequired(true)
-          .setMinLength(24)
-          .setMaxLength(24)
-      )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Restriction IDs")
+        .setDescription(
+          "The ID of the restriction(s) to remove, separated by commas.\nUse the list option to view IDs."
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setStyle(TextInputStyle.Short)
+            .setCustomId("id")
+            .setRequired(true)
+            .setMinLength(24)
+            .setMaxLength(24)
+        )
     );
 
   const ModalSubmission = await ShowModalAndAwaitSubmission(
@@ -4023,26 +4140,45 @@ async function ModalPromptBeatOrUnitTypeRuleRemove(
   );
 
   if (!ModalSubmission) return;
-  const InputId = ModalSubmission.fields.getTextInputValue("id");
-  const ExistingIndex = MStateObj.ModuleConfig.beat_restrictions.findIndex(
-    (R) => R._id.toString() === InputId
-  );
+  const InputIds = ModalSubmission.fields.getTextInputValue("id");
+  const IdList = InputIds.split(ListSplitRegex)
+    .map((id) => id.trim())
+    .filter(Boolean);
 
-  if (!isValidObjectId(InputId)) {
+  const InvalidIds = IdList.filter((id) => !isValidObjectId(id));
+  if (InvalidIds.length > 0) {
     return new ErrorContainer()
       .useErrTemplate("Invalid24HexaID")
       .replyToInteract(ModalSubmission, true);
   }
 
-  if (ExistingIndex === -1) {
+  const ExistingIndexes = IdList.map((id) => ({
+    id,
+    index: IsUnitType
+      ? MStateObj.ModuleConfig.unit_type_restrictions.findIndex((R) => R._id.toString() === id)
+      : MStateObj.ModuleConfig.beat_restrictions.findIndex((R) => R._id.toString() === id),
+  })).filter((item) => item.index !== -1);
+
+  const NotFoundIds = IdList.filter((id) => !ExistingIndexes.some((item) => item.id === id));
+  if (NotFoundIds.length > 0) {
     return new ErrorContainer()
       .useErrTemplate("CallsignBeatOrUnitTypeRestrictionNotFound")
       .replyToInteract(ModalSubmission, true);
   }
 
-  MStateObj.ModuleConfig.beat_restrictions.splice(ExistingIndex, 1);
+  const RemovedCount = ExistingIndexes.length;
+  ExistingIndexes.toSorted((a, b) => b.index - a.index).forEach((item) =>
+    IsUnitType
+      ? MStateObj.ModuleConfig.unit_type_restrictions.splice(item.index, 1)
+      : MStateObj.ModuleConfig.beat_restrictions.splice(item.index, 1)
+  );
+
   return new SuccessContainer()
-    .useTemplate("CallsignBeatOrUnitTypeRestrictionRemoved", ScopeLabel.toLowerCase())
+    .useTemplate(
+      "CallsignBeatOrUnitTypeRestrictionRemoved",
+      ScopeLabel.toLowerCase(),
+      RemovedCount > 1 ? `${RemovedCount} restrictions` : "restriction"
+    )
     .replyToInteract(ModalSubmission, true);
 }
 
@@ -4069,7 +4205,10 @@ async function PromptBeatOrUnitRestrictionsMod(
   BtnInteract: ButtonInteraction<"cached">,
   MStateObj: ModuleState<GuildSettings["callsigns_module"]>,
   Scope: "beat" | "unit"
-): Promise<GuildSettings["callsigns_module"]["beat_restrictions"]> {
+): Promise<
+  | GuildSettings["callsigns_module"]["beat_restrictions"]
+  | GuildSettings["callsigns_module"]["unit_type_restrictions"]
+> {
   const ScopeIsUnitType = Scope === "unit";
   const PromptContainer = GetCSBeatOrUnitTypeRestrictionsPromptContainer(
     BtnInteract,
@@ -4082,7 +4221,7 @@ async function PromptBeatOrUnitRestrictionsMod(
     withResponse: true,
     components: [PromptContainer],
     flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-  }).then((IR) => IR.resource!.message! as Message<true>);
+  }).then((IR) => IR.resource!.message!);
 
   const ActionsCollector = PromptMessage.createMessageComponentCollector({
     componentType: ComponentType.StringSelect,
@@ -4096,6 +4235,7 @@ async function PromptBeatOrUnitRestrictionsMod(
       switch (Selected) {
         case "list": {
           const Pages = GetCSBeatOrUnitTypeRestrictionsListContainers(
+            MStateObj,
             MStateObjCopy,
             ScopeIsUnitType
           );
@@ -4104,15 +4244,16 @@ async function PromptBeatOrUnitRestrictionsMod(
             await new InfoContainer()
               .useInfoTemplate("CallsignNoRestrictionsToList")
               .replyToInteract(SelectInteract, true, true);
+          } else {
+            await HandlePagePagination({
+              interact: SelectInteract,
+              pagination_timeout: 8 * 60 * 1000,
+              pages: Pages,
+              context: FileLabel,
+              ephemeral: true,
+            });
           }
 
-          HandlePagePagination({
-            interact: SelectInteract,
-            pagination_timeout: 8 * 60 * 1000,
-            pages: Pages,
-            context: FileLabel,
-            ephemeral: true,
-          });
           break;
         }
         case "add":
@@ -4125,16 +4266,23 @@ async function PromptBeatOrUnitRestrictionsMod(
           await HandleBeatNumOrUnitTypeRulesClear(SelectInteract, MStateObjCopy, ScopeIsUnitType);
           break;
         case "discard":
-          ActionsCollector.stop("ChangesDismissed");
-          break;
+          return ActionsCollector.stop("ChangesDismissed");
         case "confirm":
+          return ActionsCollector.stop("ChangesConfirmed");
         default:
-          ActionsCollector.stop("ChangesConfirmed");
+          return SelectInteract.deferUpdate().catch(() => null);
       }
 
+      if (!(SelectInteract.deferred || SelectInteract.replied)) return;
       return await SelectInteract.editReply({
         message: PromptMessage.id,
-        components: [PromptContainer],
+        components: [
+          GetCSBeatOrUnitTypeRestrictionsPromptContainer(
+            BtnInteract,
+            MStateObjCopy,
+            ScopeIsUnitType
+          ),
+        ],
       });
     } catch (Err: any) {
       AppLogger.error({
@@ -4146,14 +4294,26 @@ async function PromptBeatOrUnitRestrictionsMod(
     }
   });
 
-  return new Promise<GuildSettings["callsigns_module"]["beat_restrictions"]>((resolve) => {
-    ActionsCollector.on("end", (Collected, EndReason) => {
+  return new Promise<
+    | GuildSettings["callsigns_module"]["beat_restrictions"]
+    | GuildSettings["callsigns_module"]["unit_type_restrictions"]
+  >((resolve) => {
+    ActionsCollector.on("end", async (Collected, EndReason) => {
       const LastInteract = Collected.last() ?? BtnInteract;
-      LastInteract.deleteReply().catch(() => null);
+      if (!LastInteract.deferred && !LastInteract.replied) {
+        await LastInteract.deferUpdate();
+      }
 
-      return EndReason.includes("Confirmed")
-        ? resolve(MStateObjCopy.ModuleConfig.beat_restrictions)
-        : resolve(MStateObj.ModuleConfig.beat_restrictions);
+      LastInteract.deleteReply(PromptMessage).catch(() => null);
+      if (Scope === "unit") {
+        return EndReason.includes("Confirmed")
+          ? resolve(MStateObjCopy.ModuleConfig.unit_type_restrictions)
+          : resolve(MStateObj.ModuleConfig.unit_type_restrictions);
+      } else {
+        return EndReason.includes("Confirmed")
+          ? resolve(MStateObjCopy.ModuleConfig.beat_restrictions)
+          : resolve(MStateObj.ModuleConfig.beat_restrictions);
+      }
     });
   });
 }
@@ -4511,12 +4671,12 @@ async function HandleConfigShowSelection(
       Content: GetCSDutyActivitiesContent(GuildConfig),
     },
     {
-      Title: "Additional Configuration",
-      Content: GetCSAdditionalConfigContent(GuildConfig),
-    },
-    {
       Title: "Call Signs Module",
       Content: GetCSCallsignsModuleContent(GuildConfig),
+    },
+    {
+      Title: "Additional Configuration",
+      Content: GetCSAdditionalConfigContent(GuildConfig),
     },
   ];
 

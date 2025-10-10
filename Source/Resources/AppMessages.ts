@@ -1,4 +1,5 @@
 /* eslint-disable sonarjs/no-duplicate-string */
+import { ServiceUnitTypes } from "./LAPDCallsigns.js";
 import { Emojis, Colors } from "@Config/Shared.js";
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import Dedent from "dedent";
@@ -839,6 +840,19 @@ export const ErrorMessages = {
     Title: "Invalid Unit Type",
     Description:
       "The input unit type, `%s`, is invalid. Ensure you are using a valid unit type from the autocomplete suggestions, if possible.",
+  },
+
+  CallsignConfigInvalidUnitTypes: {
+    Title: "Invalid Unit Type(s)",
+    Description:
+      "One or more service unit types are invalid. Please select a supported type from the list below:\n" +
+      ServiceUnitTypes.map((t) => `\`${t.unit}\``).join(", "),
+  },
+
+  CallsignConfigInvalidBeatRanges: {
+    Title: "Invalid Beat Range(s)",
+    Description:
+      "One or more beat number ranges are invalid. Please specify a range between 1 and 999, using the format: `Start-End`.",
   },
 
   /**
