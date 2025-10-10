@@ -5,28 +5,31 @@ import GuildModel from "@Models/Guild.js";
 /**
  * Retrieves the settings for a specific guild from the database.
  * @param GuildId - The unique identifier of the guild whose settings are to be retrieved.
- * @returns A promise that resolves to the guild's settings, either as a hydrated document or a lean object, or `null` if not found due to an edge case.
+ * @returns A promise that resolves to the guild's settings as a lean-ed object, or `null` if not found due to an edge case.
  * @remarks This function will attempt to create a new guild document if it doesn't exist in the database, and it will cache the settings for future use.
  */
 export default async function GetGuildSettings(
   GuildId: string
 ): Promise<Guilds.GuildSettings | null> {
   const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
-  let GuildDocument = GuildDocumentCacheRef ? structuredClone(GuildDocumentCacheRef) : null;
-
-  if (!MongoDBCache.StreamChangeConnected.Guilds) {
-    GuildDocument = (await GuildModel.findById(GuildId).lean().exec()) as Guilds.GuildDocument;
-  }
+  let GuildDocument: InstanceType<typeof GuildModel> | null = !MongoDBCache.StreamChangeConnected
+    .Guilds
+    ? ((await GuildModel.findById(GuildId).lean().exec()) as InstanceType<typeof GuildModel>)
+    : GuildDocumentCacheRef
+      ? new GuildModel(GuildDocumentCacheRef)
+      : null;
 
   if (!GuildDocumentCacheRef && !GuildDocument) {
     const CreatedDocument = await GuildModel.create({
       _id: GuildId,
     });
 
-    GuildDocument = CreatedDocument.toObject();
+    GuildDocument = CreatedDocument;
   }
 
-  return GuildDocument ? GuildDocument.settings : null;
+  return GuildDocument
+    ? GuildDocument.toObject({ versionKey: false, flattenObjectIds: true }).settings
+    : null;
 }
 
 /**
@@ -36,5 +39,10 @@ export default async function GetGuildSettings(
  */
 export function GetGuildSettingsSync(GuildId: string): Guilds.GuildSettings | null {
   const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
-  return GuildDocumentCacheRef ? structuredClone(GuildDocumentCacheRef.settings) : null;
+  return GuildDocumentCacheRef
+    ? new GuildModel(GuildDocumentCacheRef).toObject({
+        versionKey: false,
+        flattenObjectIds: true,
+      }).settings
+    : null;
 }
