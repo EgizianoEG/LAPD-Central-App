@@ -102,10 +102,25 @@ async function HandleSingleMemberActivityNoticeUpdate(
 
   if (CanChangeNicknames && NoticeActivePrefix?.length && TargetMember.manageable) {
     const CurrNickname = TargetMember.nickname ?? TargetMember.displayName;
-    let NewNicknameName = TargetMember.displayName;
+    let NewNicknameName = CurrNickname;
 
     if (IsNoticeActive && !CurrNickname.startsWith(NoticeActivePrefix)) {
-      NewNicknameName = `${NoticeActivePrefix}${CurrNickname}`;
+      if (IsLeaveOfAbsence && GSettings.reduced_activity.active_prefix) {
+        const RA_Prefix = GSettings.reduced_activity.active_prefix;
+
+        // Handle the case where there is a prefix for an active reduced activity notice.
+        // Leave of Absence notice takes precedence, so remove RA prefix if present.
+        if (CurrNickname.startsWith(RA_Prefix) || CurrNickname.startsWith(RA_Prefix.trim())) {
+          const IsTrimmedMatch = CurrNickname.startsWith(RA_Prefix.trim());
+          NewNicknameName =
+            NoticeActivePrefix +
+            (IsTrimmedMatch
+              ? CurrNickname.slice(RA_Prefix.trim().length)
+              : CurrNickname.slice(RA_Prefix.length));
+        }
+      } else {
+        NewNicknameName = `${NoticeActivePrefix}${CurrNickname}`;
+      }
     } else if (
       !IsNoticeActive &&
       (CurrNickname.startsWith(NoticeActivePrefix) ||
