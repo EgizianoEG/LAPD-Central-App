@@ -111,25 +111,14 @@ const EliminateCircularRefs = Format(
 
 const AddMemorySnapshot = Format(
   (Info: Winston.Logform.TransformableInfo): Winston.Logform.TransformableInfo => {
-    const ShouldIncludeMemory = (() => {
-      if (["warn", "error", "fatal"].includes(Info.level)) {
-        return true;
-      }
+    const MemUsage = process.memoryUsage();
 
-      const RandomChance = Math.random();
-      return RandomChance < 0.003;
-    })();
-
-    if (ShouldIncludeMemory) {
-      const MemUsage = process.memoryUsage();
-
-      Info.memory = {
-        rss: `${(MemUsage.rss / 1024 / 1024).toFixed(2)} MB`,
-        external: `${(MemUsage.external / 1024 / 1024).toFixed(2)} MB`,
-        heap_used: `${(MemUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
-        heap_total: `${(MemUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
-      };
-    }
+    Info.memory = {
+      rss: `${(MemUsage.rss / 1024 / 1024).toFixed(2)} MB`,
+      external: `${(MemUsage.external / 1024 / 1024).toFixed(2)} MB`,
+      heap_used: `${(MemUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+      heap_total: `${(MemUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+    };
 
     return Info;
   }
