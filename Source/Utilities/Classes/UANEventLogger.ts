@@ -32,6 +32,7 @@ import GuildModel from "@Models/Guild.js";
 
 type UserActivityNoticeDoc = UserActivityNotice.ActivityNoticeHydratedDocument;
 type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">;
+const ChannelLink = (Id: string) => `https://discord.com/channels/${Id}`;
 
 // ------------------------------------------------------------------------------------
 // Base Class Definition:
@@ -291,6 +292,7 @@ export class BaseUserActivityNoticeLogger {
           `)
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -396,6 +398,7 @@ export class BaseUserActivityNoticeLogger {
           `)
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL({ size: 128 }) ?? Thumbs.Transparent,
         });
@@ -517,6 +520,7 @@ export class BaseUserActivityNoticeLogger {
           `)
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -616,6 +620,7 @@ export class BaseUserActivityNoticeLogger {
         .setFooter({ text: `Reference ID: ${CancelledRequest._id}` })
         .setTitle(`${this.title} — Cancellation Notice`)
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -720,6 +725,7 @@ export class BaseUserActivityNoticeLogger {
           `)
         )
         .setAuthor({
+          url: ChannelLink(Guild.id),
           name: Guild.name,
           iconURL:
             Client.guilds.cache.get(NoticeDocument.guild)?.iconURL(this.ImgURLOpts) ??
@@ -788,6 +794,7 @@ export class BaseUserActivityNoticeLogger {
         .setColor(Colors.RequestEnded)
         .setTitle(`${this.title} — End Notice`)
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -960,6 +967,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
           `)
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -1013,6 +1021,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
           `)
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -1104,6 +1113,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
           text: `Reference ID: ${NoticeDocument._id}; extended by @${Interaction.user.username}`,
         })
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -1171,6 +1181,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
           `)
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL({ size: 128 }) ?? Thumbs.Transparent,
         });
@@ -1272,6 +1283,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}` })
         .setTitle("Leave of Absence — Extension Denial Notice")
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL({ size: 128 }) ?? Thumbs.Transparent,
         });
@@ -1387,6 +1399,7 @@ export class LeaveOfAbsenceEventLogger extends BaseUserActivityNoticeLogger {
         .setFooter({ text: `Reference ID: ${NoticeDocument._id}` })
         .setTitle("Leave of Absence — Extension Cancellation Notice")
         .setAuthor({
+          url: ChannelLink(Interaction.guildId),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL({ size: 128 }) ?? Thumbs.Transparent,
         });

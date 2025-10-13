@@ -36,6 +36,7 @@ import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
 
 type CallsignDoc = Callsigns.CallsignDocument;
 type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">;
+const ChannelLink = (Id: string) => `https://discord.com/channels/${Id}`;
 
 // ------------------------------------------------------------------------------------
 // Main Class Definition:
@@ -328,6 +329,7 @@ export default class CallsignsEventLogger {
             "You will be notified via DM when there is an update regarding its status."
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guild.id),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? undefined,
         });
@@ -414,6 +416,7 @@ export default class CallsignsEventLogger {
           )
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guild.id),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL({ size: 128 }) ?? undefined,
         });
@@ -513,6 +516,7 @@ export default class CallsignsEventLogger {
             codeBlock(DeniedRequest.reviewer_notes ?? "N/A")
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guild.id),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? undefined,
         });
@@ -608,6 +612,7 @@ export default class CallsignsEventLogger {
         .setFooter({ text: `Reference ID: ${CancelledRequest._id}` })
         .setTitle("Call Sign Request — Cancellation Notice")
         .setAuthor({
+          url: ChannelLink(Interaction.guild.id),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? Thumbs.Transparent,
         });
@@ -724,6 +729,7 @@ export default class CallsignsEventLogger {
           )
         )
         .setAuthor({
+          url: ChannelLink(Interaction.guild.id),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? undefined,
         });
@@ -811,6 +817,7 @@ export default class CallsignsEventLogger {
         .setTitle(`Administrative Call Sign ${StatusText}`)
         .setDescription(DescriptionText)
         .setAuthor({
+          url: ChannelLink(Interaction.guild.id),
           name: Interaction.guild.name,
           iconURL: Interaction.guild.iconURL(this.ImgURLOpts) ?? undefined,
         });
@@ -900,6 +907,7 @@ export default class CallsignsEventLogger {
         )
         .setAuthor({
           name: Guild.name,
+          url: ChannelLink(Guild.id),
           iconURL:
             Client.guilds.cache.get(ExpiredCallsign.guild)?.iconURL(this.ImgURLOpts) ??
             Thumbs.Transparent,
