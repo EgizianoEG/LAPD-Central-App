@@ -1243,6 +1243,7 @@ async function HandleUserShiftDelete(
   const ShiftIdInputModal = GetShiftIdDeletionInputModal(BInteract);
   const ModalSubmission = await ShowModalAndAwaitSubmission(BInteract, ShiftIdInputModal);
   if (!ModalSubmission) return;
+
   const ShiftId = ModalSubmission.fields.getTextInputValue("da-shift-id");
   const ShiftDeleted = await ShiftModel.findOneAndDelete({
     guild: BInteract.guildId,
@@ -1263,13 +1264,21 @@ async function HandleUserShiftDelete(
 
   return Promise.allSettled([
     ShiftActionLogger.LogShiftDelete(BInteract, ShiftDeleted),
-    GetActiveShiftAndShiftDataContainer(BInteract, { TargetUser, CmdShiftType }).then(
-      ({ RespContainer }) => BInteract.editReply({ components: [RespContainer] })
-    ),
     new SuccessContainer()
       .setTitle("Shift Deleted")
       .setDescription(`The shift with the identifier \`${ShiftId}\` was successfully deleted.`)
       .replyToInteract(ModalSubmission),
+    setTimeout(
+      async () =>
+        GetActiveShiftAndShiftDataContainer(BInteract, { TargetUser, CmdShiftType }).then(
+          ({ RespContainer }) =>
+            ModalSubmission.editReply({
+              components: [RespContainer],
+              message: BInteract.message.id,
+            })
+        ),
+      300
+    ),
   ]);
 }
 
