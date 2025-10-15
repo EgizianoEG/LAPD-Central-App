@@ -3869,7 +3869,7 @@ async function HandleDefaultShiftQuotaBtnInteract(
   CurrentQuota: number
 ): Promise<number> {
   const QuotaInputField = new TextInputBuilder()
-    .setPlaceholder("ex., 2h, 30m")
+    .setPlaceholder("e.g, 2h, 30m")
     .setCustomId("default_quota")
     .setStyle(TextInputStyle.Short)
     .setRequired(false)
@@ -3934,7 +3934,7 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
 ): Promise<string> {
   const FormatInputField = new TextInputBuilder()
     .setStyle(TextInputStyle.Paragraph)
-    .setPlaceholder("ex., {division}-{unit_type}-{beat_num} | {nickname}")
+    .setPlaceholder("e.g, {division}-{unit_type}-{beat_num} | {nickname}")
     .setCustomId("format")
     .setRequired(true)
     .setMinLength(10)
@@ -4020,7 +4020,7 @@ async function ModalPromptBeatOrUnitTypeRuleAdd(
         new TextInputBuilder()
           .setStyle(TextInputStyle.Short)
           .setCustomId("unit_types")
-          .setPlaceholder("ex., 'SL', 'K9'")
+          .setPlaceholder("e.g, 'SL', 'K9'")
           .setMinLength(1)
           .setMaxLength(14)
           .setRequired(true)
