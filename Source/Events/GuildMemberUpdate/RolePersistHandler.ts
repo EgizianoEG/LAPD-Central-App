@@ -18,11 +18,11 @@ const OnboardingFeaturesModifiers = [
 /**
  * Handles and restores persistent roles to a guild member when their membership status changes.
  * It works for both cases: when a user completes onboarding/screening for join/rejoin cases, and when member roles are updated.
- * @param Client - The Discord client instance (not used).
+ * @param _ - The Discord client instance (not used).
  * @param OutdatedMember - The member's state before the update (used to detect screening completion).
  * @param UpdatedMember - The member's state after the update (used for role assignment and guild info).
  */
-export default async function OnMemberRejoinRolePersistHandler(
+export default async function OnMemberUpdateRolePersistHandler(
   _: DiscordClient,
   OutdatedMember: GuildMember,
   UpdatedMember: GuildMember
@@ -121,8 +121,7 @@ export default async function OnMemberRejoinRolePersistHandler(
       message: "Failed to persist roles on member update;",
       label: "Events:GuildMemberUpdate:OnMemberRejoinRolePersistHandler",
       stack: Err.stack,
-      error: { ...Err },
-      splat: [UpdatedMember.id, UpdatedMember.guild.id],
+      error: Err,
     });
   }
 }
