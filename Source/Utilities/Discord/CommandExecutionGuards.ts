@@ -405,7 +405,6 @@ export async function HandleCommandUserPerms(
  * - `GuildCooldown`: Guild-specific cooldown value in seconds or null.
  * - `BaseCooldownMs`: Base cooldown time in milliseconds.
  */
-// eslint-disable-next-line sonarjs/cognitive-complexity
 function ExtractCooldownConfig(
   CommandObject: ChatContextCmdObject,
   Interaction: ChatContextCmdInteraction
