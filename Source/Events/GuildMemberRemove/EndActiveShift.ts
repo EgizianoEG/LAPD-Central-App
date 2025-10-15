@@ -4,11 +4,11 @@ import ShiftModel from "@Models/Shift.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 
 /**
- * Initialize the database by adding/updating/verifying guild data.
+ * Ends any active shift for a guild member when they leave the server.
  * @param _ - Unused parameter, included for compatibility.
  * @param Member - The guild member who left the server.
  */
-export default async function DBOnMemberLeave(_: DiscordClient, Member: GuildMember) {
+export default async function TerminateShiftOnMemberLeave(_: DiscordClient, Member: GuildMember) {
   try {
     const NowTimestamp = Date.now();
     const ActiveShift = await ShiftModel.findOne({
@@ -22,16 +22,15 @@ export default async function DBOnMemberLeave(_: DiscordClient, Member: GuildMem
       await ShiftActionLogger.LogShiftAutomatedEnd(
         TerminatedShift,
         Member,
-        "Member has left the server. Automatically ended active shift."
+        "Automatically ended due to member leaving the server."
       );
     }
   } catch (Err: any) {
     AppLogger.error({
       message: "Failed to check active shift upon user leaving a server;",
-      label: "Events:GuildMemberRemove:DBOnMemberLeave",
+      label: "Events:GuildMemberRemove:EndActiveShift",
       stack: Err.stack,
-      error: { ...Err },
-      splat: [Member.id, Member.guild.id],
+      error: Err,
     });
   }
 }
