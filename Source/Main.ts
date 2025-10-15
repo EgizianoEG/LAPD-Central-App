@@ -2,7 +2,6 @@
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
 import { Client, Options, Collection, GatewayIntentBits, Status } from "discord.js";
 import { Discord as DiscordSecrets } from "@Config/Secrets.js";
-import { GetDirName } from "@Utilities/Helpers/Paths.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
@@ -42,7 +41,7 @@ App.modalListeners = new Collection();
 App.buttonListeners = new Collection();
 
 (async function RunApplication() {
-  const HandlersDirectoryPath = Path.join(GetDirName(import.meta.url), "Handlers");
+  const HandlersDirectoryPath = Path.join(import.meta.dirname, "Handlers");
   const HandlerPaths = GetFiles(HandlersDirectoryPath);
 
   await Promise.all(
@@ -93,7 +92,7 @@ const ExpressApp = Express();
 ExpressApp.disable("x-powered-by");
 
 const NotFoundPage = FileSystem.readFileSync(
-  Path.join(GetDirName(import.meta.url), "Resources", "HTML", "404.html"),
+  Path.join(import.meta.dirname, "Resources", "HTML", "404.html"),
   { encoding: "utf-8" }
 );
 

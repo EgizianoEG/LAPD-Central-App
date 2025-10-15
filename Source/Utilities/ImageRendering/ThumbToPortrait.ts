@@ -1,15 +1,15 @@
 import { LoadThumbImageWithFallback, RelSize, RelY } from "./ThumbToMugshot.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas/index.js";
-import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import { Thumbs } from "@Config/Shared.js";
 import { format } from "date-fns";
+
 import UploadToImgBB from "@Utilities/External/ImgBBUpload.js";
 import FileSystem from "node:fs/promises";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Path from "node:path";
 
 const FileLabel = "Utilities:ImageRendering:ThumbToPortrait";
-const ImgsPath = Path.join(GetDirName(import.meta.url), "..", "..", "Resources", "Imgs");
+const ImgsPath = Path.join(import.meta.dirname, "..", "..", "Resources", "Imgs");
 const BackgroundPath = Path.join(ImgsPath, "OceanMistPortraitBackground.png");
 const USFlagVerticalPath = Path.join(ImgsPath, "USFlagVertical.png");
 

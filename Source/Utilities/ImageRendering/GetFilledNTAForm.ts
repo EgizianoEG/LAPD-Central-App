@@ -2,7 +2,6 @@
 import { Canvas, createCanvas, loadImage, SKRSContext2D } from "@napi-rs/canvas/index.js";
 import { GuildCitations } from "@Typings/Utilities/Database.js";
 import { CitationTypes } from "@Models/Citation.js";
-import { GetDirName } from "../Helpers/Paths.js";
 
 import Path from "node:path";
 import JSBarcode from "jsbarcode";
@@ -11,11 +10,11 @@ import UploadToImgBB from "../External/ImgBBUpload.js";
 import GetPlaceholderImgURL from "../Helpers/GetPlaceholderImg.js";
 
 const NTAFineTemplateImgBuffer = await FileSystem.readFile(
-  Path.join(GetDirName(import.meta.url), "..", "..", "Resources", "Imgs", "NTA-TR130-F.png")
+  Path.join(import.meta.dirname, "..", "..", "Resources", "Imgs", "NTA-TR130-F.png")
 );
 
 const NTAWarnTemplateImgBuffer = await FileSystem.readFile(
-  Path.join(GetDirName(import.meta.url), "..", "..", "Resources", "Imgs", "NTA-TR130-W.png")
+  Path.join(import.meta.dirname, "..", "..", "Resources", "Imgs", "NTA-TR130-W.png")
 );
 
 const FineTemplate = await loadImage(NTAFineTemplateImgBuffer);

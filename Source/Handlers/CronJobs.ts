@@ -1,5 +1,4 @@
 import { CronJobFileDefReturn } from "@Typings/Core/System.js";
-import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import { Events } from "discord.js";
 
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -12,7 +11,7 @@ const HandlerLabel = "Handlers:CronJobs";
 const ScheduledTasks = new Map<string, Cron.ScheduledTask>();
 
 export default async function CronJobsHandler(Client: DiscordClient) {
-  const CronJobPaths = GetFiles(Path.join(GetDirName(import.meta.url), "..", "Jobs"));
+  const CronJobPaths = GetFiles(Path.join(import.meta.dirname, "..", "Jobs"));
   const MustOnlyWorkWhenAppIsOnlineJobs: string[] = [];
 
   for (const JobPath of CronJobPaths) {

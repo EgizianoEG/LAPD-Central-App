@@ -6,7 +6,6 @@ import Linkify from "linkifyjs";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 
 import { GuildAutomodRulesCache } from "@Utilities/Helpers/Cache.js";
-import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import {
   Guild,
   Collection,
@@ -28,7 +27,7 @@ import {
 const CLibExtension = Process.platform === "win32" ? "dll" : "so";
 const FileLabel = "Utilities:Strings:Redactor";
 const CLibPath = Path.join(
-  GetDirName(import.meta.url),
+  import.meta.dirname,
   "..",
   "..",
   "Resources",

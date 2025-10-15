@@ -1,4 +1,3 @@
-import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import { CamelCase } from "@Utilities/Strings/Converters.js";
 import { Events } from "discord.js";
 
@@ -7,7 +6,7 @@ import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
 import Path from "node:path";
 
 export default async function EventHandler(Client: DiscordClient) {
-  const EventsPath = Path.join(GetDirName(import.meta.url), "..", "Events");
+  const EventsPath = Path.join(import.meta.dirname, "..", "Events");
   const HandlerLabel = "Handlers:EventHandler";
   const EventFolders = GetFiles(EventsPath, true);
   const ListenersData: Record<string, number> = {};
