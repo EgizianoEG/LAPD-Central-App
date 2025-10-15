@@ -217,6 +217,7 @@ const CTAIds = {
     NicknameFormat: `${ConfigTopics.CallsignsConfiguration}-nf`,
     BeatNumberRestrictions: `${ConfigTopics.CallsignsConfiguration}-bnr`,
     AutoRenameOnApproval: `${ConfigTopics.CallsignsConfiguration}-ara`,
+    AutoCallsignRelease: `${ConfigTopics.CallsignsConfiguration}-acr`,
     UnitTypeRoleRestrictions: `${ConfigTopics.CallsignsConfiguration}-utrr`,
     UnitTypeRoleRestrictionsMode: `${ConfigTopics.CallsignsConfiguration}-utrm`,
   },
@@ -448,6 +449,14 @@ const ConfigTopicsExplanations = {
         Description:
           "If enabled, personnel are automatically renamed to their approved call sign based on the configured nickname format.\n" +
           "Notice: Discord's character limit may need the app truncate the nickname after the format is applied.",
+      },
+      {
+        Name: "Auto-Release for Inactive Members",
+        Description:
+          "Automatically releases call signs from inactive members to keep them available for active personnel. " +
+          "Call signs are released after a 12-hour grace period when:\n" +
+          "- They are no longer a member of the server.\n" +
+          "- Or if they lose their staff role or status.",
       },
       {
         Name: "Unit Type Restrictions Mode",
@@ -1438,6 +1447,28 @@ function GetCallsignsModuleConfigComponents(
       )
   );
 
+  const AutoCallsignReleaseAR = new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(
+        `${CTAIds[ConfigTopics.CallsignsConfiguration].AutoCallsignRelease}:${Interaction.user.id}`
+      )
+      .setPlaceholder("Auto Call Sign Release Enabled/Disabled")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .setOptions(
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Enabled")
+          .setValue("true")
+          .setDescription("Automatically release call signs when a criteria is met.")
+          .setDefault(CSModuleConfig.release_on_inactivity),
+        new StringSelectMenuOptionBuilder()
+          .setLabel("Disabled")
+          .setValue("false")
+          .setDescription("Do not automatically release call signs.")
+          .setDefault(!CSModuleConfig.release_on_inactivity)
+      )
+  );
+
   const NicknameFormatAccessoryBtn = new ButtonBuilder()
     .setLabel("Set Nickname Format")
     .setStyle(ButtonStyle.Secondary)
@@ -1466,6 +1497,7 @@ function GetCallsignsModuleConfigComponents(
     ManagerRolesSelectMenuAR,
     AlertOnNewRequestsAR,
     AutoRenameOnAssignmentAR,
+    AutoCallsignReleaseAR,
     UnitTypeRestrictionsModeAR,
     NicknameFormatAccessoryBtn,
     SetUnitTypeRoleBasedRestrictionsAccessoryBtn,
@@ -2078,7 +2110,6 @@ function GetCallsignsModuleConfigContainers(
     )
     .addActionRowComponents(CallsignsModuleInteractComponents[3])
     .addSeparatorComponents(new SeparatorBuilder().setDivider())
-
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
         Dedent(`
@@ -2113,19 +2144,15 @@ function GetCallsignsModuleConfigContainers(
     )
     .addActionRowComponents(CallsignsModuleInteractComponents[6])
     .addSeparatorComponents(new SeparatorBuilder().setDivider())
-    .addSectionComponents(
-      new SectionBuilder()
-        .setButtonAccessory(CallsignsModuleInteractComponents[7])
-        .addTextDisplayComponents(
-          new TextDisplayBuilder().setContent(
-            Dedent(`
-              8. **${SettingsInfo[7].Name}**
-              **Currently Configured:** \`${CSModuleConfig.nickname_format}\`
-              ${SettingsInfo[7].Description}
-            `)
-          )
-        )
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          8. **${SettingsInfo[7].Name}**
+          ${SettingsInfo[7].Description}
+        `)
+      )
     )
+    .addActionRowComponents(CallsignsModuleInteractComponents[7])
     .addSeparatorComponents(new SeparatorBuilder().setDivider())
     .addSectionComponents(
       new SectionBuilder()
@@ -2134,13 +2161,12 @@ function GetCallsignsModuleConfigContainers(
           new TextDisplayBuilder().setContent(
             Dedent(`
               9. **${SettingsInfo[8].Name}**
-              **Restrictions Set:** ${CurrentlyConfiguredTexts.UTRSet}
+              **Currently Configured:** \`${CSModuleConfig.nickname_format}\`
               ${SettingsInfo[8].Description}
             `)
           )
         )
     );
-
   const Page_4 = new ContainerBuilder()
     .setId(4)
     .setAccentColor(AccentColor)
@@ -2152,8 +2178,22 @@ function GetCallsignsModuleConfigContainers(
           new TextDisplayBuilder().setContent(
             Dedent(`
               10. **${SettingsInfo[9].Name}**
-              **Restrictions Set:** ${CurrentlyConfiguredTexts.BNRSet}
+              **Restrictions Set:** ${CurrentlyConfiguredTexts.UTRSet}
               ${SettingsInfo[9].Description}
+              `)
+          )
+        )
+    )
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addSectionComponents(
+      new SectionBuilder()
+        .setButtonAccessory(CallsignsModuleInteractComponents[10])
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            Dedent(`
+              11. **${SettingsInfo[10].Name}**
+              **Restrictions Set:** ${CurrentlyConfiguredTexts.BNRSet}
+              ${SettingsInfo[10].Description}
             `)
           )
         )
@@ -2449,6 +2489,7 @@ function GetCSCallsignsModuleContent(GuildSettings: GuildSettings): string {
     >>> **Module Enabled:** ${MSettings.enabled ? "Yes" : "No"}
     **New Requests Notifications:** ${MSettings.alert_on_request ? "Enabled" : "Disabled"}
     **Assignment Auto-Renaming:** ${MSettings.update_nicknames ? "Enabled" : "Disabled"}
+    **Auto-Release Inactive Call Signs:** ${MSettings.release_on_inactivity ? "Enabled" : "Disabled"}
     **Requests Destination:** ${RequestsDest}
     **Logs Destination:** ${LogsDest}
     **Manager Role(s):** ${ManagerRolesMentioned.length ? ManagerRolesMentioned : "None"}

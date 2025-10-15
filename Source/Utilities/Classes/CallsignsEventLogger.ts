@@ -925,7 +925,7 @@ export default class CallsignsEventLogger {
         .addFields(
           {
             inline: true,
-            name: "Call Sign Info",
+            name: "Expired Call Sign",
             value: ConcatenateLines(
               `**Was Assigned To:** ${userMention(ExpiredCallsign.requester)}`,
               `**Designation:** \`${FormattedCallsign}\``,
@@ -940,6 +940,96 @@ export default class CallsignsEventLogger {
               `**Assigned On:** ${FormatTime(ExpiredCallsign.reviewed_on, "D")}`,
               ExpiredCallsign.reviewer_notes
                 ? `**Notes:** ${ExpiredCallsign.reviewer_notes}`
+                : "**Notes:** *N/A*"
+            ),
+          }
+        );
+
+      LogChannel.send({ embeds: [LogEmbed] }).catch(() => null);
+    }
+  }
+
+  /**
+   * Logs the automatic release of a call sign.
+   * @param Client - The Discord client instance.
+   * @param ExpiredCallsign - The released call sign document.
+   * @returns A Promise resolving after the log is sent and DM notification requests are completed.
+   */
+  async LogCallsignAutoRelease(
+    Client: DiscordClient,
+    ReleasedCallsign: CallsignDoc
+  ): Promise<void> {
+    if (
+      ReleasedCallsign.request_status !== GenericRequestStatuses.Approved ||
+      !ReleasedCallsign.reviewed_on ||
+      !ReleasedCallsign.scheduled_release_date
+    ) {
+      return;
+    }
+
+    const FormattedCallsign = FormatCallsign(ReleasedCallsign.designation);
+    const Guild = await Client.guilds.fetch(ReleasedCallsign.guild).catch(() => null);
+    const RequesterMember = await Guild?.members
+      .fetch(ReleasedCallsign.requester)
+      .catch(() => null);
+
+    const RequesterUser = !RequesterMember
+      ? await Client.users.fetch(ReleasedCallsign.requester).catch(() => null)
+      : null;
+
+    if (!Guild) return;
+    const LogChannel = await this.FetchLoggingChannel(Guild, "log");
+    const ReleaseTrigger = RequesterMember
+      ? "Losing staff status or roles."
+      : "Not being a member anymore.";
+
+    if (RequesterMember || RequesterUser) {
+      const DMAutoReleaseNotice = new EmbedBuilder()
+        .setTimestamp(ReleasedCallsign.scheduled_release_date)
+        .setColor(Colors.RequestCancelled)
+        .setFooter({ text: `Reference ID: ${ReleasedCallsign._id}` })
+        .setTitle("Call Sign Auto-Release")
+        .setDescription(
+          `Your call sign **\`${FormattedCallsign}\`** that was assigned to you on ${FormatTime(ReleasedCallsign.reviewed_on, "F")} (${FormatTime(
+            ReleasedCallsign.reviewed_on,
+            "R"
+          )}) has been automatically released due to ${ReleaseTrigger.toLowerCase()}.`
+        )
+        .setAuthor({
+          name: Guild.name,
+          url: ChannelLink(Guild.id),
+          iconURL:
+            Client.guilds.cache.get(ReleasedCallsign.guild)?.iconURL(this.ImgURLOpts) ??
+            Thumbs.Transparent,
+        });
+
+      (RequesterMember ?? RequesterUser)?.send({ embeds: [DMAutoReleaseNotice] }).catch(() => null);
+    }
+
+    if (LogChannel) {
+      const LogEmbed = new EmbedBuilder()
+        .setColor(Colors.RequestCancelled)
+        .setTimestamp(ReleasedCallsign.scheduled_release_date)
+        .setTitle("Call Sign Auto-Released")
+        .setFooter({ text: `Assigned Ref. ID: ${ReleasedCallsign._id}; auto-released on` })
+        .addFields(
+          {
+            inline: true,
+            name: "Released Call Sign",
+            value: ConcatenateLines(
+              `**Was Assigned To:** ${userMention(ReleasedCallsign.requester)}`,
+              `**Designation:** \`${FormattedCallsign}\``,
+              `**Release Trigger:** ${ReleaseTrigger}`
+            ),
+          },
+          {
+            inline: true,
+            name: "Assignment Info",
+            value: ConcatenateLines(
+              `**Assigner:** ${userMention(ReleasedCallsign.reviewer!)}`,
+              `**Assigned On:** ${FormatTime(ReleasedCallsign.reviewed_on, "D")}`,
+              ReleasedCallsign.reviewer_notes
+                ? `**Notes:** ${ReleasedCallsign.reviewer_notes}`
                 : "**Notes:** *N/A*"
             ),
           }

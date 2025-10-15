@@ -98,6 +98,13 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
     index: true,
   },
 
+  scheduled_release_date: {
+    type: Date,
+    index: true,
+    default: null,
+    required: true,
+  },
+
   /**
    * For more information,
    * @see http://forums.radioreference.com/threads/lapd-supervisory-command-staff-callsigns.451920/post-3834919

@@ -402,6 +402,12 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         default: false,
         required: true,
       },
+
+      release_on_inactivity: {
+        type: Boolean,
+        default: true,
+        required: true,
+      },
     },
   },
 });

@@ -279,6 +279,15 @@ export namespace Guilds {
       requests_channel?: string | null;
 
       /**
+       * Controls whether callsigns are automatically released from inactive members.
+       * When enabled, callsigns are released after a grace period (typically 12 hours)
+       * if the member leaves the server or loses their staff role/status.
+       *
+       * @default true
+       */
+      release_on_inactivity: boolean;
+
+      /**
        * When `true`, all unit types are restricted by default unless explicitly allowed
        * through `unit_type_restrictions`.
        * @default false
@@ -1371,7 +1380,21 @@ export namespace Callsigns {
     expiry: Date | null;
 
     /**
-     * Indicates whether the expiry of this callsign has been notified to the user and guild or not.
+     * The scheduled date for automatic callsign release due to user inactivity.
+     * This is set when a user leaves the server or loses staff status, with a grace period of 12 hours applied.
+     *
+     * @remarks
+     * - This field is `null` if the callsign is not scheduled for automatic release.
+     * - This field differs from `expiry` which is set for manual releases/revocations which
+     *    are done by management staff of the target server.
+     * - When the scheduled date is reached, the system automatically releases the callsign.
+     * - If the user returns or regains staff status before this date, the scheduled release is cancelled.
+     */
+    scheduled_release_date: Date | null;
+
+    /**
+     * Indicates whether the expiry or release of this callsign has been notified or
+     * attempted to be notified to the user and/or the guild or not.
      * @default false
      */
     expiry_notified: boolean;
