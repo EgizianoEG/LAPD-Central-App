@@ -323,13 +323,13 @@ function GetComparisonDateInputModal(
       new LabelBuilder()
         .setLabel("Comparison Date")
         .setDescription(
-          `Enter the date or time expression to delete records ${CDType.toLowerCase()} it.`
+          `Enter a date or time expression to delete records ${CDType.toLowerCase()} it.`
         )
         .setTextInputComponent(
           new TextInputBuilder()
             .setCustomId("comp_date")
             .setPlaceholder(
-              'ex., "2 weeks ago", "last month", "2023-01-15", "March 3rd, 2022", "yesterday", etc...'
+              "ex., '2 weeks ago', 'last month', '2023-01-15', 'March 3rd, 2022', 'yesterday', etc..."
             )
             .setStyle(TextInputStyle.Short)
             .setRequired(true)
@@ -339,32 +339,38 @@ function GetComparisonDateInputModal(
     );
 
   if (TargetData === "Shift") {
-    Modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId("shift_type")
-          .setLabel("Shift Type")
-          .setPlaceholder("The shift type to delete records of (Optional)...")
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMinLength(3)
-          .setMaxLength(62)
-      )
+    Modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Shift Type")
+        .setDescription(
+          "The specific shift type to delete records of. If left blank, all types are considered."
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("shift_type")
+            .setPlaceholder("e.g., 'Patrol'...")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMinLength(3)
+            .setMaxLength(62)
+        )
     );
   } else if (TargetData === "Leave" || TargetData === "RA") {
-    Modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().setComponents(
-        new TextInputBuilder()
-          .setCustomId(`${TargetData.toLowerCase()}_status`)
-          .setLabel(`${TargetData} Status`)
-          .setPlaceholder(
-            "The notice status to delete records of (Optional), e.g. 'Pending' or 'Ended'."
-          )
-          .setStyle(TextInputStyle.Short)
-          .setRequired(false)
-          .setMinLength(4)
-          .setMaxLength(32)
-      )
+    Modal.addLabelComponents(
+      new LabelBuilder()
+        .setLabel(`${TargetData} Status`)
+        .setDescription(
+          "The notice status to delete records of (optional). Can be 'Pending', 'Cancelled', 'Active', or 'Ended'."
+        )
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId(`${TargetData.toLowerCase()}_status`)
+            .setPlaceholder("e.g. 'Pending' or 'Ended'...")
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMinLength(4)
+            .setMaxLength(32)
+        )
     );
   }
 
@@ -1590,13 +1596,13 @@ async function Callback(CmdInteraction: CmdOrStringSelectInteract<"cached">) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,
   data: new SlashCommandSubcommandBuilder()
     .setName("manage")
-    .setDescription("Manage logged server data, including shift and leave of absence records."),
+    .setDescription("Manage logged server data, including shift and activity notice records."),
 };
 
 // ---------------------------------------------------------------------------------------
