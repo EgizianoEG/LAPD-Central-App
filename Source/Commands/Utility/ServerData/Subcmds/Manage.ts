@@ -21,8 +21,9 @@ import {
   Message,
 } from "discord.js";
 
-import * as ShiftDataModule from "./Modules/ShiftData.js";
 import * as UANDataModule from "./Modules/UANData.js";
+import * as ShiftDataModule from "./Modules/ShiftData.js";
+import * as CallsignDataModule from "./Modules/CallsignData.js";
 
 import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
@@ -69,8 +70,8 @@ function GetDataCategoriesDropdownMenu(Interaction: CmdOrStringSelectInteract<"c
           .setDescription("Manage the logged reduced activity records and related data.")
           .setValue(DataCategories.RAData),
         new StringSelectMenuOptionBuilder()
-          .setLabel("Call Signs Data Management")
-          .setDescription("Manage the call signs assigned to members in the server.")
+          .setLabel("Call Sign Data Management")
+          .setDescription("Manage the call sign records in the server.")
           .setValue(DataCategories.CallsignsData)
       )
   );
@@ -192,6 +193,8 @@ async function HandleInitialRespActions(
           Callback,
           false
         );
+      } else if (SelectedDataTopic === DataCategories.CallsignsData) {
+        return CallsignDataModule.HandleCallsignRecordsManagement(TopicSelectInteract, Callback);
       }
     })
     .catch((Err) => HandleActionCollectorExceptions(Err, SMenuDisabler));
@@ -244,3 +247,4 @@ const CommandObject = {
 
 // ---------------------------------------------------------------------------------------
 export default CommandObject;
+
