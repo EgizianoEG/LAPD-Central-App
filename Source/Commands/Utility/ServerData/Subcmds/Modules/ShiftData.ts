@@ -34,12 +34,12 @@ import { Emojis } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
 import { Shifts } from "@Typings/Utilities/Database.js";
 import { InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { FilterQuery } from "mongoose";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import ShiftModel from "@Models/Shift.js";
 import * as Chrono from "chrono-node";
-import * as Mongoose from "mongoose";
 
 import HumanizeDuration from "humanize-duration";
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
@@ -244,7 +244,7 @@ function GetComparisonDateInputModal(
 // ---------------------------------------------------------------------------------------
 // #region - Module Helpers:
 // -------------------------
-async function GetSummarizedShiftInfo(MatchQuery: Mongoose.FilterQuery<Shifts.ShiftDocument>) {
+async function GetSummarizedShiftInfo(MatchQuery: FilterQuery<Shifts.ShiftDocument>) {
   return ShiftModel.aggregate<{ total_time: number; shift_count: number }>([
     { $match: MatchQuery },
     {

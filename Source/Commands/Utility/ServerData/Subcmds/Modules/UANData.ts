@@ -37,6 +37,7 @@ import {
 import { Dedent } from "@Utilities/Strings/Formatters.js";
 import { Emojis } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
+import { FilterQuery } from "mongoose";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { GenericRequestStatuses as GRStatuses } from "@Source/Config/Constants.js";
@@ -44,7 +45,6 @@ import { GenericRequestStatuses as GRStatuses } from "@Source/Config/Constants.j
 import UANModel from "@Models/UserActivityNotice.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import * as Chrono from "chrono-node";
-import * as Mongoose from "mongoose";
 
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
@@ -516,7 +516,7 @@ async function HandleUANDataDeleteWithDateConfirm(
   ConfirmInteract: ButtonInteraction<"cached">,
   ComparisonDate: Date,
   ComparisonType: DataDeletionWithDateType,
-  QueryFilter: Mongoose.FilterQuery<UserActivityNotice.UserActivityNoticeDocument>,
+  QueryFilter: FilterQuery<UserActivityNotice.UserActivityNoticeDocument>,
   IsLOA: boolean,
   NoticeStatuses: string[] = []
 ) {
@@ -590,7 +590,7 @@ async function HandleUANDataDeleteBeforeOrAfterDate(
   }
 
   const NoticeType = GetUANNoticeType(IsLOA);
-  const MatchFilter: Mongoose.FilterQuery<UserActivityNotice.UserActivityNoticeDocument> = {
+  const MatchFilter: FilterQuery<UserActivityNotice.UserActivityNoticeDocument> = {
     guild: BtnInteract.guildId,
     type: NoticeType,
   };
