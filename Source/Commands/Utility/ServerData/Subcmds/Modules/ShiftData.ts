@@ -100,7 +100,7 @@ export function GetShiftDataManagementComponents(
         .setStyle(ButtonStyle.Danger)
         .setCustomId(`sdm-${ShiftDataActions.DeleteAfter}:${Interaction.user.id}`),
       new ButtonBuilder()
-        .setLabel("Back")
+        .setLabel("Back to Categories")
         .setEmoji(Emojis.WhiteBack)
         .setStyle(ButtonStyle.Secondary)
         .setCustomId(`sdm-back:${Interaction.user.id}`)
@@ -123,19 +123,19 @@ export function GetShiftManagementContainer(): ContainerBuilder {
     .addTextDisplayComponents({
       type: ComponentType.TextDisplay,
       content: Dedent(`
-        Shift data is the shift records that have been logged on the app's database to track staff members' duties and their time invested in working. \
-        A new record is created when a staff member starts a new shift using the ${MentionCmdByName("duty manage")} slash command. Use the buttons below \
-        to delete records by type, time frame, or status.
+        Shift data consists of records logged in the application's database to track staff members' duties and the time they’ve invested on duty. \
+        A new record is created each time a staff member starts a shift using the ${MentionCmdByName("duty manage")} or administrative slash commands. \
+        Use the buttons below to delete records by type, time frame, or status.
 
-        **Options Described:**
-        - **Wipe All Shift Records**
-          This will delete and erase *all* records of shifts, including active and finished ones, under *any* shift type.
-        - **Delete Records of Type**
-          An option to delete only shift records under a specified shift type, disregarding whether there are any active shifts or not.
-        - **Delete Past Shifts**
-          As stated in the title, delete only past shifts that have ended or finished, of any shift type.
-        - **Delete Records Before/Since Date**
-          An option to delete a set of shifts based on a specific time frame. The start date of the shifts is used for this matter.
+        **Options Explained:**
+        - **Wipe All Shift Records**  
+          Permanently delete *all* shift records, including both active and completed ones, across *all* shift types.
+        - **Delete Records by Type**  
+          Delete only the shift records under a specified shift type, regardless of whether they are active or finished.
+        - **Delete Past Shifts**  
+          Delete only past shifts that have already ended or been completed, regardless of their shift type.
+        - **Delete Records Before/Since Date**  
+          Delete shift records based on a specific date range. The shift’s start date is used for filtering in this option.
 
         -# This panel will automatically deactivate after 10 minutes of inactivity.
       `),
@@ -168,11 +168,11 @@ function GetSDConfirmationPromptContainer(Opts: {
 
   return new WarnContainer().setTitle("Confirmation Required").setDescription(
     Dedent(`
-      **Are you certain you want to delete ${ShiftStatusText} shifts${RecordedBeforeAfterText}${ShiftTypeText}?**
-      This will permanently erase \`${SShiftInfo.shift_count}\` shifts totalling around ${HumanizeDuration(SShiftInfo.total_time, { round: true, conjunction: " and " })} of on duty time.
+      **Are you certain you want to delete ${ShiftStatusText} shifts${RecordedBeforeAfterText}${ShiftTypeText}?** This \
+      will permanently erase \`${SShiftInfo.shift_count}\` shifts totalling around ${HumanizeDuration(SShiftInfo.total_time, { round: true, conjunction: " and " })} of on duty time.
 
-      -# **Note:** This action is ***irreversible***, and data deleted cannot be restored after confirmation. By confirming, you accept full responsibility for this action.
-      -# This prompt will automatically cancel after five minutes of inactivity.
+      -# **Note:** This action is ***irreversible***, and data deleted cannot be restored after confirmation. By confirming, you accept full responsibility for this action. \
+      This prompt will automatically cancel after five minutes of inactivity.
     `)
   );
 }
