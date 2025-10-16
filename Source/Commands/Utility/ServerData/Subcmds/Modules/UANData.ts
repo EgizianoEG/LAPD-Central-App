@@ -422,8 +422,8 @@ async function HandleUANDataDeletePast(BtnInteract: ButtonInteraction<"cached">,
     IsLOA,
   });
 
-  const actionType = IsLOA ? LeaveDataActions.DeletePast : RADataActions.DeletePast;
-  const ConfirmationComponents = GetDeleteConfirmationComponents(BtnInteract, `sdm-${actionType}`);
+  const ActionType = IsLOA ? LeaveDataActions.DeletePast : RADataActions.DeletePast;
+  const ConfirmationComponents = GetDeleteConfirmationComponents(BtnInteract, `sdm-${ActionType}`);
 
   const RespMessage = await SendReplyAndFetchMessage(BtnInteract, {
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationComponents)],

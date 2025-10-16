@@ -146,7 +146,7 @@ export async function AwaitDeleteConfirmation(
     }
   } catch (Err: any) {
     if (Err?.message.match(/reason: time/)) {
-      return RecBtnInteract.deleteReply()
+      return RecBtnInteract.deleteReply(ConfirmationMsg)
         .catch(() => ConfirmationMsg.delete())
         .catch(() => null);
     } else if (Err?.message.match(/reason: \w+Delete/)) {
@@ -174,7 +174,8 @@ async function HandleInitialRespActions(
   return CmdRespMsg.awaitMessageComponent({
     componentType: ComponentType.StringSelect,
     filter: (Interact) => Interact.user.id === CmdInteract.user.id,
-    time: 10 * 60 * 1000,
+    idle: 10 * 60 * 1000,
+    time: 15 * 60 * 1000,
   })
     .then(async function OnDataCategorySelection(TopicSelectInteract) {
       const SelectedDataTopic = TopicSelectInteract.values[0];
