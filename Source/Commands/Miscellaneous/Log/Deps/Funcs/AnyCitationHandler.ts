@@ -196,7 +196,7 @@ export default async function AnyCitationCallback(
  */
 async function GenerateCitationNumber(GuildId): Promise<number> {
   const AllCitNums = await GetAllCitationNums(GuildId);
-  return parseInt(
+  return Number.parseInt(
     RandomString(
       5,
       /\d/,

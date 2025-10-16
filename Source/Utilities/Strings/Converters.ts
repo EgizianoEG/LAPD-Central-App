@@ -339,12 +339,12 @@ export function PoliceCodeToWords(CodeStr: string): string {
   const NumSegments = NumberPart.split("-");
   /** Convert each segment to words. */
   const WordSegments = NumSegments.map((Seg) => {
-    if (isNaN(Number(Seg))) {
+    if (Number.isNaN(Number(Seg))) {
       /** If the segment is not a number, convert it using the phonetic alphabet. */
       return PhoneticAlphabet[Seg.toUpperCase()] || Seg;
     } else {
       /** If the segment is a number, convert it to words. */
-      return NumberToWords(parseInt(Seg, 10));
+      return NumberToWords(Number.parseInt(Seg, 10));
     }
   });
 

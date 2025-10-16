@@ -84,7 +84,7 @@ export default async function UANListCmdCallback(
  * @returns A formatted time string or "[Unknown Date]" if the input date is invalid.
  */
 function SafeFormatTime<TStyle extends TimestampStylesString>(InputDate: Date, Style: TStyle) {
-  return InputDate instanceof Date && !isNaN(InputDate.getTime())
+  return InputDate instanceof Date && !Number.isNaN(InputDate.getTime())
     ? FormatTime(InputDate, Style)
     : "[Unknown Date]";
 }

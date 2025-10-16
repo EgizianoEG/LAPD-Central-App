@@ -3132,7 +3132,7 @@ async function HandleAdditionalConfigSpecificInteracts(
     CustomId.startsWith(CTAIds[ConfigTopics.AdditionalConfiguration].DActivitiesDeletionInterval)
   ) {
     MState.ModuleConfig.duty_activities.log_deletion_interval =
-      (parseInt(RecInteract.values[0]) || 0) * MillisInDay;
+      (Number.parseInt(RecInteract.values[0]) || 0) * MillisInDay;
   }
 
   if (
@@ -3463,7 +3463,7 @@ async function HandleDutyActivitiesConfigPageInteracts(
   } else if (
     CustomId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].SignatureFormatType)
   ) {
-    MState.ModuleConfig.signature_format = parseInt(RecInteract.values[0]);
+    MState.ModuleConfig.signature_format = Number.parseInt(RecInteract.values[0]);
   } else if (
     CustomId.startsWith(
       CTAIds[ConfigTopics.DutyActivitiesConfiguration].ArrestReportsImgHeaderEnabled
@@ -4101,19 +4101,19 @@ async function ModalPromptBeatOrUnitTypeRuleAdd(
     const Match = Range.match(/(\d{1,3})-(\d{1,3})/);
     if (!Match) return null;
     const [, Start, End] = Match;
-    const Parsed = [parseInt(Start), parseInt(End)];
+    const Parsed = [Number.parseInt(Start), Number.parseInt(End)];
 
     if (
       Parsed[0] < 1 ||
       Parsed[1] > 999 ||
       Parsed[0] > Parsed[1] ||
-      isNaN(Parsed[0]) ||
-      isNaN(Parsed[1])
+      Number.isNaN(Parsed[0]) ||
+      Number.isNaN(Parsed[1])
     ) {
       return null;
     }
 
-    return [parseInt(Start), parseInt(End)];
+    return [Number.parseInt(Start), Number.parseInt(End)];
   }).filter((r) => r !== null) as [number, number][];
 
   if (FilteredMappedRanges.length !== InputRanges.length) {

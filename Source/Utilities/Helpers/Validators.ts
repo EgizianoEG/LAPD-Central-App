@@ -227,7 +227,7 @@ export function IsValidDiscordAttachmentLink(
     const SignatureHex = URLInst.searchParams.get("hm");
     if (!ExpirationHex || !IssueingHex || !SignatureHex) return false;
 
-    const ExpirationDate = new Date(parseInt(ExpirationHex, 16) * 1000);
+    const ExpirationDate = new Date(Number.parseInt(ExpirationHex, 16) * 1000);
     return ExpirationDate > new Date();
   }
 

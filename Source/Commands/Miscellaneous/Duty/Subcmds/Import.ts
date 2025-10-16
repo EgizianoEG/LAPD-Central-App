@@ -195,7 +195,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         if (!Entry.duty_ms && Entry.hr_time) {
           Entry.duty_ms = Math.round(Math.abs(ParseDuration(Entry.hr_time, "millisecond") ?? 0));
         } else if (typeof Entry.duty_ms === "string") {
-          Entry.duty_ms = parseInt(Entry.duty_ms, 10);
+          Entry.duty_ms = Number.parseInt(Entry.duty_ms, 10);
         }
 
         return Entry as LeaderboardEntry & { duty_ms: number };
@@ -278,7 +278,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       UniqueUsersImported: UserDutyMap.size,
       ShiftsTotal: FileEntries.reduce((Acc, Entry) => {
         return typeof Entry.shift_count === "string"
-          ? Acc + parseInt(Entry.shift_count, 10)
+          ? Acc + Number.parseInt(Entry.shift_count, 10)
           : Acc + (Entry.shift_count ?? 0);
       }, 0),
     };

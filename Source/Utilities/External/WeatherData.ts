@@ -26,7 +26,7 @@ const WeatherClient = Axios.create({
  * @returns The converted visibility distance
  */
 function ConvertVisibility(RawVisibility: number, DistanceUnit: Convert.Unit): number {
-  return parseFloat(Convert(RawVisibility).from("m").to(DistanceUnit).toFixed(1));
+  return Number.parseFloat(Convert(RawVisibility).from("m").to(DistanceUnit).toFixed(1));
 }
 
 /**
@@ -94,7 +94,7 @@ export async function GetCurrentWeather(
     if (Options.Units === "metric") {
       WeatherData.pressure += Units.Pressure;
       WeatherData.wind.speed =
-        parseFloat(
+        Number.parseFloat(
           Convert(WeatherData.wind.speed as any)
             .from("m/s")
             .to(Units.Speed.trim() as Convert.Unit)
@@ -103,7 +103,7 @@ export async function GetCurrentWeather(
     } else {
       WeatherData.wind.speed += Units.Speed;
       WeatherData.pressure =
-        parseFloat(
+        Number.parseFloat(
           Convert(WeatherData.pressure as any)
             .from("hPa")
             .to(Units.Pressure.trim() as Convert.Unit)

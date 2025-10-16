@@ -297,7 +297,7 @@ async function HandleSelectMenuPageSelection(
     .then(() => MenuSelection.deleteReply())
     .catch(() => null);
 
-  return parseInt(MenuSelection.values[0], 10);
+  return Number.parseInt(MenuSelection.values[0], 10);
 }
 
 async function HandleModalPageSelection(
@@ -314,9 +314,9 @@ async function HandleModalPageSelection(
 
   if (!ModalSubmission) return null;
   const InputPageNum = ModalSubmission.fields.getTextInputValue("page-num");
-  const ParsedNumber = parseInt(InputPageNum, 10);
+  const ParsedNumber = Number.parseInt(InputPageNum, 10);
 
-  if (isNaN(ParsedNumber) || !InputPageNum.match(/^\d+$/) || ParsedNumber < 1) {
+  if (Number.isNaN(ParsedNumber) || !InputPageNum.match(/^\d+$/) || ParsedNumber < 1) {
     await new ErrorEmbed()
       .useErrTemplate("InvalidPageNumber")
       .replyToInteract(ModalSubmission, true);

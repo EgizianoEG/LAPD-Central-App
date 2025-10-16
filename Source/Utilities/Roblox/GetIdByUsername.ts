@@ -37,8 +37,8 @@ async function GetIdByProfileRedirect(Username: string): Promise<[number, string
       return [0, "", false];
     }
 
-    const UserId = parseInt(UrlParts[UserIdIndex], 10);
-    if (isNaN(UserId) || UserId <= 0) {
+    const UserId = Number.parseInt(UrlParts[UserIdIndex], 10);
+    if (Number.isNaN(UserId) || UserId <= 0) {
       return [0, "", false];
     }
 

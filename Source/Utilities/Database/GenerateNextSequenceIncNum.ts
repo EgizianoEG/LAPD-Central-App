@@ -20,7 +20,7 @@ export default async function GenerateNextSequentialIncidentNumber(
   const MostRecentIncNum = GuildDocument.logs.incidents.most_recent_num;
 
   if (MostRecentIncNum.startsWith(CurrentYearSuffix)) {
-    const NextSequence = parseInt(MostRecentIncNum.split("-")[1], 10) + 1;
+    const NextSequence = Number.parseInt(MostRecentIncNum.split("-")[1], 10) + 1;
     return `${CurrentYearSuffix}-${NextSequence.toString().padStart(5, "0")}`;
   } else {
     return `${CurrentYearSuffix}-00001`;

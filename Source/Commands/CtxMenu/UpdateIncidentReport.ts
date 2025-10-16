@@ -400,7 +400,8 @@ export async function HandleCommandValidationAndPossiblyGetIncident(
   } else if (ReportEmbeds[0]?.description?.length) {
     ReportNumber = ReportEmbeds[0].description.match(IncidentReportNumberLineRegex)?.[1];
     ReportedOnTS =
-      parseInt(ReportEmbeds[0].description.match(IncidentReportedOnTSRegex)?.[1] ?? "0") * 1000;
+      Number.parseInt(ReportEmbeds[0].description.match(IncidentReportedOnTSRegex)?.[1] ?? "0") *
+      1000;
   }
 
   if (ReportNumber && Types.ObjectId.isValid(ReportNumber)) {
