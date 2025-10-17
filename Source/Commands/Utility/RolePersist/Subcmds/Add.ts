@@ -88,8 +88,15 @@ async function CmdCallback(CmdInteract: SlashCommandInteraction<"cached">) {
     const IsRoleManaged = Role.managed;
     const IsRoleHigherThanApp = Role.comparePositionTo(AppMember.roles.highest) > 0;
     const RoleHasRiskyPermissions = Role.permissions.any(RiskyRolePermissions);
+    const IsRoleHigherThanAdminMember =
+      Role.comparePositionTo(CmdInteract.member.roles.highest) > 0;
 
-    if (!IsRoleManaged && !IsRoleHigherThanApp && !RoleHasRiskyPermissions) {
+    if (
+      !IsRoleManaged &&
+      !IsRoleHigherThanApp &&
+      !RoleHasRiskyPermissions &&
+      !IsRoleHigherThanAdminMember
+    ) {
       PersistableRolesResolved.push(Role);
     }
   }
