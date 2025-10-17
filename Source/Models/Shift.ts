@@ -15,6 +15,9 @@ enum ShiftFlags {
   /** Imported from external databases/applications. */
   Imported = "Imported",
 
+  /** Modified manually by admins or management staff. This includes time additions and subtractions. */
+  Modified = "Modified",
+
   /** Manually created/initiated by admins or management staff. */
   Administrative = "Administrative",
 }

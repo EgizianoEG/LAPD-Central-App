@@ -1,5 +1,6 @@
 import { CallbackWithoutResultAndOptionalError, Model, Query, UpdateWriteOpResult } from "mongoose";
 import { randomInt as RandomInteger } from "node:crypto";
+import { ShiftFlags } from "../Shift.js";
 import { Shifts } from "@Typings/Utilities/Database.js";
 import ProfileModel from "@Models/GuildProfile.js";
 import AppError from "@Utilities/Classes/AppError.js";
@@ -172,13 +173,11 @@ export async function ShiftBreakStart(this: ThisType, timestamp: number = Date.n
     .exec();
 
   if (!UpdateDocument) {
-    return Promise.reject(
-      new AppError({
-        title: ErrorTitle,
-        message: "An active break already exists or the shift is no longer active.",
-        showable: true,
-      })
-    );
+    throw new AppError({
+      title: ErrorTitle,
+      message: "An active break already exists or the shift is no longer active.",
+      showable: true,
+    });
   }
 
   return UpdateDocument as ThisType;
@@ -219,14 +218,12 @@ export async function ShiftBreakEnd(this: ThisType, timestamp: number = Date.now
     .exec();
 
   if (!UpdatedDocument) {
-    return Promise.reject(
-      new AppError({
-        title: ErrorTitle,
-        message:
-          "There is currently no active break to end. Please start a break before attempting to end it.",
-        showable: true,
-      })
-    );
+    throw new AppError({
+      title: ErrorTitle,
+      message:
+        "There is currently no active break to end. Please start a break before attempting to end it.",
+      showable: true,
+    });
   }
 
   return UpdatedDocument as ThisType;
@@ -258,14 +255,12 @@ export async function ShiftEnd(this: ThisType, timestamp: Date | number = new Da
     .exec();
 
   if (!UpdatedDocument) {
-    return Promise.reject(
-      new AppError({
-        title: ErrorTitle,
-        message:
-          "This shift may have already ended, or it might have been recently voided or deleted.",
-        showable: true,
-      })
-    );
+    throw new AppError({
+      title: ErrorTitle,
+      message:
+        "This shift may have already ended, or it might have been recently voided or deleted.",
+      showable: true,
+    });
   }
 
   return UpdatedDocument as ThisType;
@@ -292,6 +287,7 @@ export async function ResetShiftTime(this: ThisType, CurrentTimestamp: number = 
       },
       {
         $set: {
+          flag: ShiftFlags.Modified,
           "durations.on_duty_mod": OnDutyModTime,
         },
       },
@@ -300,14 +296,12 @@ export async function ResetShiftTime(this: ThisType, CurrentTimestamp: number = 
     .exec();
 
   if (!UpdatedDocument) {
-    return Promise.reject(
-      new AppError({
-        title: ErrorTitle,
-        showable: true,
-        message:
-          "The shift you are trying to alter may have been recently voided, deleted, or does no longer exist.",
-      })
-    );
+    throw new AppError({
+      title: ErrorTitle,
+      showable: true,
+      message:
+        "The shift you are trying to alter may have been recently voided, deleted, or does no longer exist.",
+    });
   }
 
   return UpdatedDocument as ThisType;
@@ -331,6 +325,10 @@ export async function SetShiftTime(
   }, 0);
 
   DBShiftDoc.durations.on_duty_mod = DesiredDuration - (ElapsedTime - BreakTime);
+  if (DBShiftDoc.flag === ShiftFlags.Standard) {
+    DBShiftDoc.flag = ShiftFlags.Modified;
+  }
+
   return DBShiftDoc.save();
 }
 
@@ -349,6 +347,10 @@ export async function AddSubShiftTime(
     DBShiftDoc.durations.on_duty_mod += Duration;
   } else {
     DBShiftDoc.durations.on_duty_mod -= Math.min(Duration, DBShiftDoc.durations.on_duty);
+  }
+
+  if (DBShiftDoc.flag === ShiftFlags.Standard) {
+    DBShiftDoc.flag = ShiftFlags.Modified;
   }
 
   return DBShiftDoc.save();

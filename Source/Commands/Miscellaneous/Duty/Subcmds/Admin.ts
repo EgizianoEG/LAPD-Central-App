@@ -616,36 +616,38 @@ async function RetrieveShiftRecordsAsContainers(
 ) {
   const ShiftData = await QueryUserShiftRecords(TargetUser, GuildId, ShiftType, CurrentDate);
   return Chunks(ShiftData, 2).map((Chunk) => {
-    const Descriptions = Chunk.map((Data) => {
-      const Started = FormatTime(Math.round(Data.started / 1000), "f");
+    const Descriptions = Chunk.map((Record) => {
+      const Started = FormatTime(Math.round(Record.started / 1000), "f");
       let ShiftFlag = "";
       let Ended: string;
 
-      if (typeof Data.ended === "string") {
-        Ended = Data.ended;
+      if (typeof Record.ended === "string") {
+        Ended = Record.ended;
       } else {
-        Ended = FormatTime(Math.round(Data.ended / 1000), "T");
+        Ended = FormatTime(Math.round(Record.ended / 1000), "T");
       }
 
-      if (Data.flag === ShiftFlags.Administrative) {
-        ShiftFlag = "(Manually Added)";
-      } else if (Data.flag === ShiftFlags.Imported) {
-        ShiftFlag = "(Imported)";
+      if (Record.flag === ShiftFlags.Administrative) {
+        ShiftFlag = "*(Manually Added)*";
+      } else if (Record.flag === ShiftFlags.Modified) {
+        ShiftFlag = "*(Manually Modified)*";
+      } else if (Record.flag !== ShiftFlags.Standard) {
+        ShiftFlag = `*(${Record.flag})*`;
       }
 
-      const ShiftIdLine = `**Shift ID:** \`${Data._id}\` ${ShiftFlag}`;
+      const ShiftIdLine = `**Shift ID:** \`${Record._id}\` ${ShiftFlag}`;
       if (ShiftType) {
         return Dedent(`
           - ${ShiftIdLine}
-            - **Duration:** ${ReadableDuration(Data.duration)}
+            - **Duration:** ${ReadableDuration(Record.duration)}
             - **Started:** ${Started}
             - **Ended:** ${Ended}
         `);
       } else {
         return Dedent(`
           - ${ShiftIdLine}
-            - **Type:** \`${Data.type}\`
-            - **Duration:** ${ReadableDuration(Data.duration)}
+            - **Type:** \`${Record.type}\`
+            - **Duration:** ${ReadableDuration(Record.duration)}
             - **Started:** ${Started}
             - **Ended:** ${Ended}
         `);

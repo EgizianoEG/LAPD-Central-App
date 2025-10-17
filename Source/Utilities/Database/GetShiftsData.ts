@@ -24,16 +24,19 @@ export type UserMainShiftsData = {
 
 /**
  * Returns an object containing main data for a user's shifts.
- * This function utilizes the `aggregate` method of the `Shift` mongoose model.
- * @param QueryFilter - The query filter.
+ * This function utilizes the `aggregate` method of the `Shift` mongoose model and calculates
+ * durations independently using mathematical operations on timestamps rather than relying on
+ * stored duration field values to ensure consistency.
+ *
+ * @param InputQueryFilter - The query filter.
  * @param [HasActiveShift=false] - Whether the user has an active shift.
  * This parameter is mainly used to consider increasing shift count by one and without adding any durations.
  * @returns An object that contains main shifts data which also contains converted shift durations in human readable format.
  *
  * The returned object includes:
  * - `shift_count`: Total number of shifts.
- * - `total_onduty`: Total time spent on duty across all shifts.
- * - `total_onbreak`: Total time spent on break across all shifts.
+ * - `total_onduty`: Total time spent on duty across all shifts (calculated from timestamps).
+ * - `total_onbreak`: Total time spent on break across all shifts (calculated from break events).
  * - `total_arrests`: Total number of arrests across all shifts.
  * - `total_citations`: Total number of citations issued across all shifts.
  * - `avg_onduty`: Average time spent on duty per shift. Imported shifts are excluded from this calculation.
@@ -41,10 +44,12 @@ export type UserMainShiftsData = {
  * - `frequent_shift_type`: The shift type with the highest total on-duty time.
  */
 export default async function GetMainShiftsData(
-  QueryFilter: FilterQuery<Shifts.ShiftDocument>,
+  InputQueryFilter: FilterQuery<Shifts.ShiftDocument>,
   HasActiveShift: boolean = false
 ) {
+  const QueryFilter = { ...InputQueryFilter };
   QueryFilter.type = QueryFilter.type || { $exists: true };
+
   if (typeof QueryFilter.end_timestamp === "object" && QueryFilter.end_timestamp !== null) {
     QueryFilter.end_timestamp = {
       $ne: null,
@@ -61,22 +66,85 @@ export default async function GetMainShiftsData(
   return ShiftModel.aggregate<UserMainShiftsData>([
     { $match: QueryFilter },
     {
+      $addFields: {
+        total_duration: {
+          $subtract: [{ $ifNull: ["$end_timestamp", "$$NOW"] }, "$start_timestamp"],
+        },
+
+        break_duration: {
+          $cond: {
+            if: { $gt: [{ $size: { $ifNull: ["$events.breaks", []] } }, 0] },
+            then: {
+              $let: {
+                vars: {
+                  total_dur: {
+                    $subtract: [{ $ifNull: ["$end_timestamp", "$$NOW"] }, "$start_timestamp"],
+                  },
+                  raw_break_dur: {
+                    $reduce: {
+                      input: "$events.breaks",
+                      initialValue: 0,
+                      in: {
+                        $add: [
+                          "$$value",
+                          {
+                            $max: [
+                              {
+                                $subtract: [
+                                  {
+                                    $ifNull: [
+                                      { $arrayElemAt: ["$$this", 1] },
+                                      { $toLong: { $ifNull: ["$end_timestamp", "$$NOW"] } },
+                                    ],
+                                  },
+                                  { $arrayElemAt: ["$$this", 0] },
+                                ],
+                              },
+                              0,
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+                in: {
+                  $max: [{ $min: ["$$raw_break_dur", "$$total_dur"] }, 0],
+                },
+              },
+            },
+            else: 0,
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        onduty_duration: {
+          $max: [
+            {
+              $add: [
+                {
+                  $subtract: ["$total_duration", "$break_duration"],
+                },
+                { $ifNull: ["$durations.on_duty_mod", 0] },
+              ],
+            },
+            0,
+          ],
+        },
+      },
+    },
+    {
       $group: {
         _id: "$type",
         shift_count: { $sum: 1 },
-        total_onbreak: { $sum: "$durations.on_break" },
+        total_onbreak: { $sum: "$break_duration" },
         total_arrests: { $sum: "$events.arrests" },
         total_citations: { $sum: "$events.citations" },
 
         total_onduty: {
-          $sum: {
-            $add: [
-              "$durations.on_duty",
-              {
-                $ifNull: ["$durations.on_duty_mod", 0],
-              },
-            ],
-          },
+          $sum: "$onduty_duration",
         },
 
         total_onduty_manual: {
@@ -85,14 +153,7 @@ export default async function GetMainShiftsData(
               if: {
                 $in: ["$flag", [ShiftFlags.Imported, ShiftFlags.Administrative, ShiftFlags.System]],
               },
-              then: {
-                $add: [
-                  "$durations.on_duty",
-                  {
-                    $ifNull: ["$durations.on_duty_mod", 0],
-                  },
-                ],
-              },
+              then: "$onduty_duration",
               else: 0,
             },
           },
