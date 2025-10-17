@@ -10,7 +10,7 @@ import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import * as Chrono from "chrono-node";
 import ShiftModel from "@Models/Shift.js";
 import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
-import Util from "util";
+import Util from "node:util";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

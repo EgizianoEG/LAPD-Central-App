@@ -177,7 +177,7 @@ function CheckPerms(
         }
       }
     } else {
-      throw new Error(`Invalid 'management' object structure; ${String(Perms.management)}`);
+      throw new Error(`Invalid 'management' object structure; ${JSON.stringify(Perms.management)}`);
     }
   }
 

@@ -57,7 +57,7 @@ function GetSavePages(
       )
       .addSeparatorComponents(new SeparatorBuilder({ divider: true, spacing: 2 }));
 
-    SaveChunk.forEach((Save) => {
+    for (const Save of SaveChunk) {
       Data.push([
         Save._id.toString(),
         Dedent(`
@@ -67,9 +67,9 @@ function GetSavePages(
             - **Save Role Count:** [${Save.roles.length}](${channelLink(CmdInteraction.channelId)})
         `),
       ]);
-    });
+    }
 
-    Data.forEach((DataItem, Index) => {
+    for (const [Index, DataItem] of Data.entries()) {
       DataContainer.addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(new TextDisplayBuilder({ content: DataItem[1] }))
@@ -84,7 +84,7 @@ function GetSavePages(
       if (Index !== Data.length - 1) {
         DataContainer.addSeparatorComponents(new SeparatorBuilder({ divider: true }));
       }
-    });
+    }
 
     FormattedPages.push(DataContainer);
   }
@@ -148,7 +148,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,

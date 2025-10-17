@@ -37,6 +37,7 @@ import {
 import { Dedent } from "@Utilities/Strings/Formatters.js";
 import { Emojis } from "@Config/Shared.js";
 import { isAfter } from "date-fns";
+import { FilterQuery } from "mongoose";
 import { UserActivityNotice } from "@Typings/Utilities/Database.js";
 import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
 import { GenericRequestStatuses as GRStatuses } from "@Source/Config/Constants.js";
@@ -44,7 +45,6 @@ import { GenericRequestStatuses as GRStatuses } from "@Source/Config/Constants.j
 import UANModel from "@Models/UserActivityNotice.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import * as Chrono from "chrono-node";
-import * as Mongoose from "mongoose";
 
 import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
@@ -130,7 +130,7 @@ export function GetUANManagementComponents(
         .setDisabled(false)
         .setCustomId(`${ActionPrefix}-da:${Interaction.user.id}`),
       new ButtonBuilder()
-        .setLabel("Back")
+        .setLabel("Back to Categories")
         .setEmoji(Emojis.WhiteBack)
         .setStyle(ButtonStyle.Secondary)
         .setCustomId(`sdm-back:${Interaction.user.id}`)
@@ -156,21 +156,21 @@ export function GetUANManagementContainer(IsLOA: boolean): ContainerBuilder {
     .addTextDisplayComponents({
       type: ComponentType.TextDisplay,
       content: Dedent(`
-        ${GetUANNoticeTitle(IsLOA)} data consists of a set of records, each of which was created upon a staff member's request using the \
-        ${MentionCmdByName(`${CmdName} request`)} or the administrative slash command. This panel provides the ability to delete a set of records \
-        based on status or time frame. Use the buttons below to take action on a specific set of records.
+        ${GetUANNoticeTitle(IsLOA)} data consists of a set of records, each created when a staff member submits a request using the \
+        ${MentionCmdByName(`${CmdName} request`)} command or through the administrative slash command. This panel allows you to delete specific sets of records \
+        based on their status or time frame. Use the buttons below to take action on a particular group of records.
 
-        **Options Described:**
-        - **Wipe All Records**
-          Delete *all* ${LeaveOrRA} records, including active, pending, finished, and cancelled ones.
-        - **Delete Pending Notices**
-          Delete pending requests that have not yet been reviewed, approved, or denied by management.
-        - **Delete Past Records**
-          This option will delete only ${LeaveOrRA} records that are no longer active and not in a pending state. Only finished and cancelled ones will be affected.
-        - **Delete Records Before/Since Date**
-          Delete ${LeaveOrRA} records based on a specific date, before or after it. The end date is used for approved notices, while the request date is used \
-          for pending, cancelled, or denied records. You can optionally specify which status(es) to target.
-        
+        **Options Explained:**
+        - **Wipe All Records**  
+          Permanently delete *all* ${LeaveOrRA} records, including active, pending, finished, and cancelled ones.
+        - **Delete Pending Notices**  
+          Remove all pending requests that have not yet been reviewed, approved, or denied by management.
+        - **Delete Past Records**  
+          Delete only ${LeaveOrRA} records that are no longer active or pending. This includes finished and cancelled records.
+        - **Delete Records Before/Since Date**  
+          Delete ${LeaveOrRA} records based on a specific date; either before or after it. The end date is used for approved notices, \
+          while the request date applies to pending, cancelled, or denied records. You may also specify which status types to target.
+
         -# This panel will automatically deactivate after 10 minutes of inactivity.
       `),
     });
@@ -198,8 +198,7 @@ function GetUANConfirmationPromptContainer(Opts: {
       will permanently erase \`${NoticeRecordsCount}\` ${NoticeType} records.
 
       -# **Note:** This action is ***irreversible***, and data deleted cannot be restored after confirmation. \
-      By confirming, you accept full responsibility for this action. \
-      This prompt will automatically cancel after five minutes of inactivity.
+      By confirming, you accept full responsibility for this action. This prompt will automatically cancel after five minutes of inactivity.
     `)
   );
 }
@@ -423,8 +422,8 @@ async function HandleUANDataDeletePast(BtnInteract: ButtonInteraction<"cached">,
     IsLOA,
   });
 
-  const actionType = IsLOA ? LeaveDataActions.DeletePast : RADataActions.DeletePast;
-  const ConfirmationComponents = GetDeleteConfirmationComponents(BtnInteract, `sdm-${actionType}`);
+  const ActionType = IsLOA ? LeaveDataActions.DeletePast : RADataActions.DeletePast;
+  const ConfirmationComponents = GetDeleteConfirmationComponents(BtnInteract, `sdm-${ActionType}`);
 
   const RespMessage = await SendReplyAndFetchMessage(BtnInteract, {
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationComponents)],
@@ -516,7 +515,7 @@ async function HandleUANDataDeleteWithDateConfirm(
   ConfirmInteract: ButtonInteraction<"cached">,
   ComparisonDate: Date,
   ComparisonType: DataDeletionWithDateType,
-  QueryFilter: Mongoose.FilterQuery<UserActivityNotice.UserActivityNoticeDocument>,
+  QueryFilter: FilterQuery<UserActivityNotice.UserActivityNoticeDocument>,
   IsLOA: boolean,
   NoticeStatuses: string[] = []
 ) {
@@ -590,7 +589,7 @@ async function HandleUANDataDeleteBeforeOrAfterDate(
   }
 
   const NoticeType = GetUANNoticeType(IsLOA);
-  const MatchFilter: Mongoose.FilterQuery<UserActivityNotice.UserActivityNoticeDocument> = {
+  const MatchFilter: FilterQuery<UserActivityNotice.UserActivityNoticeDocument> = {
     guild: BtnInteract.guildId,
     type: NoticeType,
   };

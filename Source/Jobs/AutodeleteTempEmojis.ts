@@ -13,11 +13,11 @@ async function AutodeleteTempAppEmojis(Now: Date | "init" | "manual", Client: Di
   for (const Emoji of AppEmojis.values()) {
     if (!Emoji.name?.includes("_temp_")) continue;
 
-    const ExpirationTimestamp = parseInt(Emoji.name.split("_").pop() || "0");
-    if (isNaN(ExpirationTimestamp)) continue;
+    const ExpirationTimestamp = Number.parseInt(Emoji.name.split("_").pop() || "0");
+    if (Number.isNaN(ExpirationTimestamp)) continue;
 
     const ExpirationDate = new Date(ExpirationTimestamp);
-    if (isNaN(ExpirationDate.getTime())) continue;
+    if (Number.isNaN(ExpirationDate.getTime())) continue;
 
     if (ExpirationDate < CurrentDate) {
       DeletionPromises.set(Emoji, Client.application.emojis.delete(Emoji.id));
@@ -31,7 +31,7 @@ async function AutodeleteTempAppEmojis(Now: Date | "init" | "manual", Client: Di
   const EmojisToDelete = Array.from(DeletionPromises.keys());
   const Results = await Promise.allSettled(DeletionPromises.values());
 
-  Results.forEach((Result, index) => {
+  for (const [index, Result] of Results.entries()) {
     if (Result.status === "rejected") {
       const FailedEmoji = EmojisToDelete[index];
       AppLogger.error({
@@ -42,7 +42,7 @@ async function AutodeleteTempAppEmojis(Now: Date | "init" | "manual", Client: Di
         stack: (Result.reason as Error)?.stack,
       });
     }
-  });
+  }
 }
 
 export default {

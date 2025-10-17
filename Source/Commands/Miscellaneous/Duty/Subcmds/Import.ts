@@ -13,7 +13,6 @@ import {
   MessageFlags,
   ButtonStyle,
   Attachment,
-  Message,
 } from "discord.js";
 
 import {
@@ -108,7 +107,7 @@ async function AwaitImportConfirmation(
     flags: MessageFlags.IsComponentsV2,
     components: [PromptContainer.attachPromptActionRows(ButtonsRow)],
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const ButtonResponse = await PromptMessage.awaitMessageComponent({
     filter: (i) => i.user.id === Interaction.user.id,
@@ -195,7 +194,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         if (!Entry.duty_ms && Entry.hr_time) {
           Entry.duty_ms = Math.round(Math.abs(ParseDuration(Entry.hr_time, "millisecond") ?? 0));
         } else if (typeof Entry.duty_ms === "string") {
-          Entry.duty_ms = parseInt(Entry.duty_ms, 10);
+          Entry.duty_ms = Number.parseInt(Entry.duty_ms, 10);
         }
 
         return Entry as LeaderboardEntry & { duty_ms: number };
@@ -216,21 +215,21 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       30_000
     );
 
-    FileEntries.forEach((Entry) => {
+    for (const Entry of FileEntries) {
       if (!Entry.user_id && Entry.username) {
         Entry.user_id = ResolvedUserIds.get(Entry.username) ?? undefined;
       }
-    });
+    }
 
     // Group entries by `user_id` and aggregate duty times for duplicate usernames:
     const UserDutyMap = new Map<string, number>();
     const ValidEntries = FileEntries.filter((Entry) => Entry.user_id && Entry.duty_ms);
 
-    ValidEntries.forEach((Entry) => {
+    for (const Entry of ValidEntries) {
       const UserId = Entry.user_id!;
       const CurrentDuty = UserDutyMap.get(UserId) || 0;
       UserDutyMap.set(UserId, CurrentDuty + Entry.duty_ms);
-    });
+    }
 
     // Shift entries with unique timestamps to avoid ID collisions:
     let ShiftIds: string[] = [];
@@ -278,7 +277,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       UniqueUsersImported: UserDutyMap.size,
       ShiftsTotal: FileEntries.reduce((Acc, Entry) => {
         return typeof Entry.shift_count === "string"
-          ? Acc + parseInt(Entry.shift_count, 10)
+          ? Acc + Number.parseInt(Entry.shift_count, 10)
           : Acc + (Entry.shift_count ?? 0);
       }, 0),
     };

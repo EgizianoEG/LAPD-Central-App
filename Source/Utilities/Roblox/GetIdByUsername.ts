@@ -19,7 +19,7 @@ async function GetIdByProfileRedirect(Username: string): Promise<[number, string
       {
         validateStatus: (status) => status === 302 || status === 301,
         maxRedirects: 0,
-        timeout: 8_000,
+        timeout: 8000,
       }
     );
 
@@ -31,14 +31,14 @@ async function GetIdByProfileRedirect(Username: string): Promise<[number, string
     // Extract user Id from the redirect URL
     // Expected format: https://www.roblox.com/users/{userId}/profile
     const UrlParts = LocationHeader.split("/");
-    const UserIdIndex = UrlParts.findIndex((Part) => Part === "users") + 1;
+    const UserIdIndex = UrlParts.indexOf("users") + 1;
 
     if (UserIdIndex === 0 || UserIdIndex >= UrlParts.length) {
       return [0, "", false];
     }
 
-    const UserId = parseInt(UrlParts[UserIdIndex], 10);
-    if (isNaN(UserId) || UserId <= 0) {
+    const UserId = Number.parseInt(UrlParts[UserIdIndex], 10);
+    if (Number.isNaN(UserId) || UserId <= 0) {
       return [0, "", false];
     }
 
@@ -97,7 +97,7 @@ export default async function GetIdByUsername<Input extends string | string[]>(
         excludeBannedUsers: ExcludeBanned,
       },
       {
-        timeout: 8_000,
+        timeout: 8000,
       }
     );
 

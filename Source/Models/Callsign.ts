@@ -144,12 +144,12 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
         required: true,
         set: (Value: string) => {
           const Trimmed = Value.trim();
-          const Num = parseInt(Trimmed);
-          if (isNaN(Num) || Num <= 0) return "000";
+          const Num = Number.parseInt(Trimmed);
+          if (Number.isNaN(Num) || Num <= 0) return "000";
           return Num.toString().padStart(2, "0");
         },
         validate: {
-          validator: (val: string) => /^\d{2,4}$/.test(val) && parseInt(val) > 0,
+          validator: (val: string) => /^\d{2,4}$/.test(val) && Number.parseInt(val) > 0,
           message:
             "Identifier must be 2-4 digits (e.g., '01', '123') and > 0. Value received: {VALUE}",
         },

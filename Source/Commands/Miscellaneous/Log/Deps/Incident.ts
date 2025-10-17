@@ -321,7 +321,8 @@ async function PrepareIncidentData(
     utif_setting_enabled: GuildSettings.utif_enabled,
   };
 
-  const InputNotes = ModalSubmission.fields.getTextInputValue("notes").replace(/\s+/g, " ") || null;
+  const InputNotes =
+    ModalSubmission.fields.getTextInputValue("notes").replaceAll(/\s+/g, " ") || null;
   const ReporterRobloxInfo = await GetUserInfo(ReportingOfficer.RobloxUserId);
   const IncidentNumber = await GenerateNextSequentialIncidentNumber(CmdInteract.guild.id);
 
@@ -330,8 +331,8 @@ async function PrepareIncidentData(
   const IncidentDesc = await FilterUserInput(
     ModalSubmission.fields
       .getTextInputValue("incident-desc")
-      .replace(/[^\S\r\n]+/g, " ")
-      .replace(/\n{3,}/g, "\n\n"),
+      .replaceAll(/[^\S\r\n]+/g, " ")
+      .replaceAll(/\n{3,}/g, "\n\n"),
     UTIFOpts
   );
 
@@ -706,9 +707,8 @@ function ProcessReceivedIRBtnInteractions(
     }
 
     const LastInteract = Interacts.last() || CmdInteract;
-    ConfirmationMsgComps.forEach((ActionRow) =>
-      ActionRow.components.forEach((Btn) => Btn.setDisabled(true))
-    );
+    for (const ActionRow of ConfirmationMsgComps)
+      for (const Btn of ActionRow.components) Btn.setDisabled(true);
 
     await LastInteract.editReply({
       components: ConfirmationMsgComps,

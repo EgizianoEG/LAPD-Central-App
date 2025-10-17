@@ -1,5 +1,4 @@
 import { CronJobFileDefReturn } from "@Typings/Core/System.js";
-import { GetDirName } from "@Utilities/Helpers/Paths.js";
 import { Events } from "discord.js";
 
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -12,7 +11,7 @@ const HandlerLabel = "Handlers:CronJobs";
 const ScheduledTasks = new Map<string, Cron.ScheduledTask>();
 
 export default async function CronJobsHandler(Client: DiscordClient) {
-  const CronJobPaths = GetFiles(Path.join(GetDirName(import.meta.url), "..", "Jobs"));
+  const CronJobPaths = GetFiles(Path.join(import.meta.dirname, "..", "Jobs"));
   const MustOnlyWorkWhenAppIsOnlineJobs: string[] = [];
 
   for (const JobPath of CronJobPaths) {
@@ -63,17 +62,17 @@ export default async function CronJobsHandler(Client: DiscordClient) {
 
   if (MustOnlyWorkWhenAppIsOnlineJobs.length > 0) {
     Client.on(Events.ClientReady, function RunDependentJobs() {
-      MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
+      for (const JobFileName of MustOnlyWorkWhenAppIsOnlineJobs) {
         const Task = ScheduledTasks.get(JobFileName);
         if (Task) Task.start();
-      });
+      }
     });
 
     Client.on(Events.ShardDisconnect, function PauseDependentJobs() {
-      MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
+      for (const JobFileName of MustOnlyWorkWhenAppIsOnlineJobs) {
         const Task = ScheduledTasks.get(JobFileName);
         if (Task) Task.stop();
-      });
+      }
     });
   }
 

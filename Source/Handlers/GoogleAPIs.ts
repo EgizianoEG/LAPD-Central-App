@@ -16,7 +16,7 @@ export let SheetsAPI: sheets_v4.Sheets;
  */
 export default async function InitializeGoogleAPI(): Promise<void> {
   try {
-    const NormalizedPrivateKey = Secrets.GoogleAPI.PrivateKey.replace(/\\+?n/g, "\n");
+    const NormalizedPrivateKey = Secrets.GoogleAPI.PrivateKey.replaceAll(/\\+?n/g, "\n");
     ValidatePrivateKey(NormalizedPrivateKey);
 
     GAuth = new google.auth.GoogleAuth({

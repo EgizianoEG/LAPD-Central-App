@@ -91,7 +91,7 @@ async function HandlePendingRequestCancellation(
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     components: [ConfirmationContainer],
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const ConfirmationResp = await ConfirmationMsg.awaitMessageComponent({
     componentType: ComponentType.Button,

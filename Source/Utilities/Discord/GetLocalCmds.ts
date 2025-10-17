@@ -1,5 +1,4 @@
 import { IsValidCmdObject } from "../Helpers/Validators.js";
-import { GetDirName } from "../Helpers/Paths.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import GetFiles from "../Helpers/GetFilesFrom.js";
 import Path from "node:path";
@@ -14,10 +13,7 @@ export default async function GetLocalCommands(
   Exceptions: string[] = []
 ): Promise<Array<SlashCommandObject | ContextMenuCommandObject>> {
   const LocalCommands: SlashCommandObject[] = [];
-  const CommandCats = GetFiles(
-    Path.join(GetDirName(import.meta.url), "..", "..", "Commands"),
-    true
-  );
+  const CommandCats = GetFiles(Path.join(import.meta.dirname, "..", "..", "Commands"), true);
 
   await Promise.all(
     CommandCats.map(async (CommandCat) => {

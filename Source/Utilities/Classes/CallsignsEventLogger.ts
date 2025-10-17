@@ -768,6 +768,110 @@ export default class CallsignsEventLogger {
   }
 
   /**
+   * Logs a bulk administrative release of multiple callsigns to the logging channel.
+   * @param Interaction - The interaction from the management staff performing the bulk release.
+   * @param ReleasedCallsigns - Array of all released callsign documents.
+   * @param FilterCriteria - Human-readable description of the filters used for the bulk release.
+   * @returns A Promise resolving after the log is sent.
+   */
+  async LogBulkAdministrativeRelease(
+    Interaction: ManagementInteraction,
+    ReleasedCallsigns: CallsignDoc[],
+    FilterCriteria?: {
+      div_beats?: string;
+      beat_nums?: string;
+      unit_types?: string;
+    }
+  ): Promise<void> {
+    if (!ReleasedCallsigns.length) return;
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
+    if (!LogChannel) return;
+
+    const AffectedUsers = [...new Set(ReleasedCallsigns.map((CS) => CS.requester))];
+    const AffectedUsersMentions = AffectedUsers.map((UserId) => userMention(UserId));
+    const MaxMentionsLength = 3900;
+    let MentionsText = AffectedUsersMentions.join(", ");
+
+    if (MentionsText.length > MaxMentionsLength) {
+      const TruncatedText = MentionsText.slice(0, MaxMentionsLength);
+      const LastMentionEnd = TruncatedText.lastIndexOf(">");
+
+      if (LastMentionEnd > -1) {
+        MentionsText = MentionsText.slice(0, LastMentionEnd + 1) + "...";
+        const ShownMentions = MentionsText.match(/<@\d+>/g)?.length ?? 0;
+        const RemainingCount = AffectedUsers.length - ShownMentions;
+
+        if (RemainingCount > 0) {
+          MentionsText += ` *(+${RemainingCount} more)*`;
+        }
+      } else {
+        MentionsText = "*Too many to list individually*";
+      }
+    }
+
+    const LogEmbed = new EmbedBuilder()
+      .setTimestamp(Interaction.createdAt)
+      .setColor(Colors.Orange)
+      .setTitle("Bulk Call Sign Release — Administrative Action")
+      .setFooter({ text: "Released on" })
+      .setDescription(
+        ConcatenateLines(
+          `**Released By:** ${userMention(Interaction.user.id)}`,
+          `**Released Count:** ${ReleasedCallsigns.length} call sign(s)`,
+          "**Filter Criteria:**",
+          `- Division Beat(s): ${FilterCriteria?.div_beats || "*Any*"}`,
+          `- Beat Number(s): ${FilterCriteria?.beat_nums || "*Any*"}`,
+          `- Unit Type(s): ${FilterCriteria?.unit_types || "*Any*"}`,
+          `**Affected Staff (${AffectedUsers.length}):** ${MentionsText}`
+        )
+      );
+
+    await LogChannel.send({ embeds: [LogEmbed] }).catch(() => null);
+  }
+
+  /**
+   * Logs a bulk wipe/deletion of callsign records to the logging channel.
+   * Does not send DM notifications to avoid potential ToS violations with bulk messaging.
+   * @param Interaction - The interaction from the management staff performing the bulk wipe.
+   * @param DeletedCount - Number of records deleted.
+   * @param FilterCriteria - Filter criteria used for the wipe operation.
+   * @param Statuses - Optional array of status filters that were applied.
+   * @returns A Promise resolving after the log is sent.
+   */
+  async LogBulkCallsignWipe(
+    Interaction: ManagementInteraction,
+    DeletedCount: number,
+    FilterCriteria?: { div_beats?: string; unit_types?: string; beat_nums?: string },
+    Statuses?: string[]
+  ): Promise<void> {
+    if (!DeletedCount) return;
+    const LogChannel = await this.FetchLoggingChannel(Interaction.guild, "log");
+    if (!LogChannel) return;
+
+    const StatusText = Statuses?.length
+      ? `\n- Status: ${Statuses.join(", ")}`
+      : "\n- Status: *Any*";
+
+    const LogEmbed = new EmbedBuilder()
+      .setTimestamp(Interaction.createdAt)
+      .setColor(Colors.Red)
+      .setTitle("Bulk Call Sign Records Deletion — Administrative Action")
+      .setFooter({ text: "Deleted on" })
+      .setDescription(
+        ConcatenateLines(
+          `**Deleted By:** ${userMention(Interaction.user.id)}`,
+          `**Deleted Count:** ${DeletedCount} record(s)`,
+          "**Filter Criteria:**",
+          `- Division Beat(s): ${FilterCriteria?.div_beats || "*Any*"}`,
+          `- Beat Number(s): ${FilterCriteria?.beat_nums || "*Any*"}`,
+          `- Unit Type(s): ${FilterCriteria?.unit_types || "*Any*"}${StatusText}`
+        )
+      );
+
+    await LogChannel.send({ embeds: [LogEmbed] }).catch(() => null);
+  }
+
+  /**
    * Logs the administrative assignment of a callsign to the logging channel.
    * Also sends a DM notice to the affected user. This is basically the same as an approval but without a request.
    * @param Interaction - The interaction from the management staff assigning the callsign.
@@ -973,9 +1077,9 @@ export default class CallsignsEventLogger {
       .fetch(ReleasedCallsign.requester)
       .catch(() => null);
 
-    const RequesterUser = !RequesterMember
-      ? await Client.users.fetch(ReleasedCallsign.requester).catch(() => null)
-      : null;
+    const RequesterUser = RequesterMember
+      ? null
+      : await Client.users.fetch(ReleasedCallsign.requester).catch(() => null);
 
     if (!Guild) return;
     const LogChannel = await this.FetchLoggingChannel(Guild, "log");

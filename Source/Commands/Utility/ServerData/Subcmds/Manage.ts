@@ -21,8 +21,9 @@ import {
   Message,
 } from "discord.js";
 
-import * as ShiftDataModule from "./Modules/ShiftData.js";
 import * as UANDataModule from "./Modules/UANData.js";
+import * as ShiftDataModule from "./Modules/ShiftData.js";
+import * as CallsignDataModule from "./Modules/CallsignData.js";
 
 import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
 import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
@@ -69,8 +70,8 @@ function GetDataCategoriesDropdownMenu(Interaction: CmdOrStringSelectInteract<"c
           .setDescription("Manage the logged reduced activity records and related data.")
           .setValue(DataCategories.RAData),
         new StringSelectMenuOptionBuilder()
-          .setLabel("Call Signs Data Management")
-          .setDescription("Manage the call signs assigned to members in the server.")
+          .setLabel("Call Sign Data Management")
+          .setDescription("Manage the call sign records in the server.")
           .setValue(DataCategories.CallsignsData)
       )
   );
@@ -145,7 +146,7 @@ export async function AwaitDeleteConfirmation(
     }
   } catch (Err: any) {
     if (Err?.message.match(/reason: time/)) {
-      return RecBtnInteract.deleteReply()
+      return RecBtnInteract.deleteReply(ConfirmationMsg)
         .catch(() => ConfirmationMsg.delete())
         .catch(() => null);
     } else if (Err?.message.match(/reason: \w+Delete/)) {
@@ -173,7 +174,8 @@ async function HandleInitialRespActions(
   return CmdRespMsg.awaitMessageComponent({
     componentType: ComponentType.StringSelect,
     filter: (Interact) => Interact.user.id === CmdInteract.user.id,
-    time: 10 * 60 * 1000,
+    idle: 10 * 60 * 1000,
+    time: 15 * 60 * 1000,
   })
     .then(async function OnDataCategorySelection(TopicSelectInteract) {
       const SelectedDataTopic = TopicSelectInteract.values[0];
@@ -192,6 +194,8 @@ async function HandleInitialRespActions(
           Callback,
           false
         );
+      } else if (SelectedDataTopic === DataCategories.CallsignsData) {
+        return CallsignDataModule.HandleCallsignRecordsManagement(TopicSelectInteract, Callback);
       }
     })
     .catch((Err) => HandleActionCollectorExceptions(Err, SMenuDisabler));
@@ -244,4 +248,3 @@ const CommandObject = {
 
 // ---------------------------------------------------------------------------------------
 export default CommandObject;
-

@@ -353,7 +353,9 @@ async function OnChargesAndDetailsModalSubmission(
 
   const FCharges = FormatCharges(InputCharges);
   const YearSuffix = new Date().getFullYear().toString().slice(-2);
-  const BookingNumber = parseInt(`${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`);
+  const BookingNumber = Number.parseInt(
+    `${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`
+  );
   const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
 
   const ArrestingOfficerRobloxId = PrimaryIsReporter
@@ -535,7 +537,7 @@ async function OnChargesAndDetailsModalSubmission(
 
     if (EndReason.match(/reason: (?:\w+Delete|time)/)) {
       AsstOfficersMenu.components[0].setDisabled(true);
-      AddUsernamesConfirmationComponents.components.forEach((Btn) => Btn.setDisabled(true));
+      for (const Btn of AddUsernamesConfirmationComponents.components) Btn.setDisabled(true);
       return LastInteraction?.editReply({
         message: ConfirmationMsg,
         components: [AddUsernamesConfirmationComponents],

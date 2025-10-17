@@ -400,7 +400,8 @@ export async function HandleCommandValidationAndPossiblyGetIncident(
   } else if (ReportEmbeds[0]?.description?.length) {
     ReportNumber = ReportEmbeds[0].description.match(IncidentReportNumberLineRegex)?.[1];
     ReportedOnTS =
-      parseInt(ReportEmbeds[0].description.match(IncidentReportedOnTSRegex)?.[1] ?? "0") * 1000;
+      Number.parseInt(ReportEmbeds[0].description.match(IncidentReportedOnTSRegex)?.[1] ?? "0") *
+      1000;
   }
 
   if (ReportNumber && Types.ObjectId.isValid(ReportNumber)) {
@@ -790,8 +791,8 @@ async function HandleIncidentSuspectsOrWitnessesEdit(
     time: CompCollectorIdleTime,
   }).catch(() => null);
 
-  if (!InputSubmission) return null;
-  else await InputSubmission.deferUpdate().catch(() => null);
+  if (InputSubmission) await InputSubmission.deferUpdate().catch(() => null);
+  else return null;
 
   const NewlySetNames = InputSubmission.fields
     .getTextInputValue(ModalInputIds[InputType])
@@ -818,14 +819,15 @@ async function HandleIncidentNotesEdit(
   });
 
   const InputSubmission = await SelectInteract.awaitModalSubmit({
-    filter: (Submision) => Submision.customId === NotesInputModal.data.custom_id,
+    filter: (Submission) => Submission.customId === NotesInputModal.data.custom_id,
     time: CompCollectorIdleTime,
   }).catch(() => null);
 
-  if (!InputSubmission) return null;
-  else await InputSubmission.deferUpdate().catch(() => null);
+  if (InputSubmission) await InputSubmission.deferUpdate().catch(() => null);
+  else return null;
+
   const NotesInput =
-    InputSubmission.fields.getTextInputValue(ModalInputIds.Notes).replace(/\s+/g, " ") || null;
+    InputSubmission.fields.getTextInputValue(ModalInputIds.Notes).replaceAll(/\s+/g, " ") || null;
 
   if (NotesInput) {
     IRUpdatesCopy.notes = await FilterUserInput(NotesInput, {

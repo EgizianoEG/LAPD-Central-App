@@ -45,22 +45,22 @@ const IgnoreSpecificConsoleLogs = Format((Msg) =>
 // --------------------------------------------------------------------------------------
 // Custom Formatters:
 // ------------------
+function FlattenDetails(Obj: any): any {
+  if (typeof Obj !== "object" || Obj === null) {
+    return Obj;
+  }
+
+  if ("details" in Obj && typeof Obj.details === "object") {
+    Obj = { ...Obj, ...Obj.details };
+    delete Obj.details;
+    Obj = FlattenDetails(Obj);
+  }
+
+  return Obj;
+}
+
 const FlattenLogMetadata = Format(
   (Info: Winston.Logform.TransformableInfo): Winston.Logform.TransformableInfo => {
-    function FlattenDetails(Obj: any): any {
-      if (typeof Obj !== "object" || Obj === null) {
-        return Obj;
-      }
-
-      if ("details" in Obj && typeof Obj.details === "object") {
-        Obj = { ...Obj, ...Obj.details };
-        delete Obj.details;
-        Obj = FlattenDetails(Obj);
-      }
-
-      return Obj;
-    }
-
     if ("details" in Info && Info.details !== null) {
       Info.details = FlattenDetails(Info.details);
     }
@@ -114,10 +114,10 @@ const AddMemorySnapshot = Format(
     const MemUsage = process.memoryUsage();
 
     Info.memory = {
-      rss: `${(MemUsage.rss / 1024 / 1024).toFixed(2)} MB`,
-      external: `${(MemUsage.external / 1024 / 1024).toFixed(2)} MB`,
-      heap_used: `${(MemUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
-      heap_total: `${(MemUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+      rss: Math.round(MemUsage.rss / 1024 / 1024),
+      external: Math.round(MemUsage.external / 1024 / 1024),
+      heap_used: Math.round(MemUsage.heapUsed / 1024 / 1024),
+      heap_total: Math.round(MemUsage.heapTotal / 1024 / 1024),
     };
 
     return Info;
@@ -132,12 +132,12 @@ const FormatLogEntry = (Info: Winston.Logform.TransformableInfo): string => {
   const LogLabel: string | undefined = LogLabels ? (Info.label ?? Metadata.label) : null;
 
   if (ErrorStack && Metadata.stack) {
-    Metadata.stack = ErrorStack.replace(
+    Metadata.stack = ErrorStack.replaceAll(
       /(at .+ )\((.+:\d+:\d+)\)/g,
       (_, AtText: string, FilePath: string) => {
         if (!FilePath.startsWith("node:")) FilePath = `file:///${FilePath}`;
-        FilePath = FilePath.replace(/[\\/]/g, process.platform === "win32" ? "/" : "\\");
-        FilePath = FilePath.replaceAll(" ", "%20").replace(/:(\d+):(\d+)/g, (_, N1, N2) => {
+        FilePath = FilePath.replaceAll(/[\\/]/g, process.platform === "win32" ? "/" : "\\");
+        FilePath = FilePath.replaceAll(" ", "%20").replaceAll(/:(\d+):(\d+)/g, (_, N1, N2) => {
           const Colon = Chalk.white(":");
           return `${Colon}${Chalk.yellow(N1)}${Colon}${Chalk.yellow(N2)}`;
         });

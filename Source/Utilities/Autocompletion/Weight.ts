@@ -31,10 +31,14 @@ export default function AutocompleteWeight(
     });
   } else {
     Suggestions = WeightOptions.filter((Element) => {
-      return Element.startsWith(TypedValue.replace(/[^\d]+/g, ""));
+      return Element.startsWith(TypedValue.replaceAll(/[^\d]+/g, ""));
     });
   }
 
-  Cache[TypedValue] = Suggestions.map((Choice) => ({ name: `${Choice} lbs`, value: Choice }));
+  Cache[TypedValue] = Suggestions.slice(0, 25).map((Choice) => ({
+    name: `${Choice} lbs`,
+    value: Choice,
+  }));
+
   return Cache[TypedValue];
 }

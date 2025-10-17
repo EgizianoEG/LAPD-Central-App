@@ -55,7 +55,7 @@ function GetRecordPages(
       )
       .addSeparatorComponents(new SeparatorBuilder({ divider: true, spacing: 2 }));
 
-    RecordChunk.forEach((Record) => {
+    for (const Record of RecordChunk) {
       const ExpiryText = Record.expiry
         ? `**Expires:** ${time(Record.expiry, "f")} (${time(Record.expiry, "R")})`
         : "**Expires:** Never";
@@ -79,9 +79,9 @@ function GetRecordPages(
             - **Persisted Roles:** ${PersistedRolesText}
         `),
       ]);
-    });
+    }
 
-    Data.forEach((DataItem, Index) => {
+    for (const [Index, DataItem] of Data.entries()) {
       DataContainer.addSectionComponents(
         new SectionBuilder()
           .addTextDisplayComponents(new TextDisplayBuilder({ content: DataItem[1] }))
@@ -96,7 +96,7 @@ function GetRecordPages(
       if (Index !== Data.length - 1) {
         DataContainer.addSeparatorComponents(new SeparatorBuilder({ divider: true }));
       }
-    });
+    }
 
     FormattedPages.push(DataContainer);
   }

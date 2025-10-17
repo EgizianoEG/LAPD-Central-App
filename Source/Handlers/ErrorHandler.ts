@@ -6,14 +6,18 @@ import Mongoose from "mongoose";
 
 const FileLabel = "Handlers:ErrorHandler";
 const ProcessTerminationDelaySecs = 5;
-const FatalDiscordAPIErrorCodes: DiscordAPIError["code"][] = [50_014, 50_017];
-const NonFatalErrorsFromConstructors: string[] = ["ValidationError", "VersionError", "CastError"];
-const FatalDiscordJSErrors: DiscordjsErrorCodes[] = [
+const FatalDiscordAPIErrorCodes: Set<DiscordAPIError["code"]> = new Set([50_014, 50_017]);
+const NonFatalErrorsFromConstructors: Set<string> = new Set([
+  "ValidationError",
+  "VersionError",
+  "CastError",
+]);
+const FatalDiscordJSErrors: Set<DiscordjsErrorCodes> = new Set([
   DiscordjsErrorCodes.TokenInvalid,
   DiscordjsErrorCodes.TokenMissing,
   DiscordjsErrorCodes.ClientNotReady,
   DiscordjsErrorCodes.ClientMissingIntents,
-];
+]);
 
 const NetworkErrorPatterns = [
   /getaddrinfo ENOTFOUND/i,
@@ -32,14 +36,14 @@ function IsNetworkError(Err: Error): boolean {
 
 function IsNonFatalError(Err: Error): boolean {
   return (
-    (Err instanceof DiscordAPIError && !FatalDiscordAPIErrorCodes.includes(Err.code)) ||
-    (Err instanceof DiscordjsError && !FatalDiscordJSErrors.includes(Err.code)) ||
+    (Err instanceof DiscordAPIError && !FatalDiscordAPIErrorCodes.has(Err.code)) ||
+    (Err instanceof DiscordjsError && !FatalDiscordJSErrors.has(Err.code)) ||
     (Err instanceof AppError && Err.code !== 0) ||
     Err instanceof Mongoose.mongo.MongoServerError ||
     Err instanceof AxiosError ||
     Err instanceof RangeError ||
     Err instanceof ReferenceError ||
-    NonFatalErrorsFromConstructors.includes(Err.constructor.name) ||
+    NonFatalErrorsFromConstructors.has(Err.constructor.name) ||
     IsNetworkError(Err)
   );
 }

@@ -371,11 +371,11 @@ async function ValidateAndParseCallsignDesignation(
   Designation: string
 ): Promise<ValidateAndParseCallsignDesignationReturn | false> {
   const Parts = Designation.split(/\s*-\s*/);
-  const DivBeat = parseInt(Parts[0], 10);
-  const BeatNum = parseInt(Parts[2], 10);
+  const DivBeat = Number.parseInt(Parts[0], 10);
+  const BeatNum = Number.parseInt(Parts[2], 10);
   let UnitType = Parts[1];
 
-  if (Parts.length !== 3 || isNaN(DivBeat) || isNaN(BeatNum) || !UnitType.length) {
+  if (Parts.length !== 3 || Number.isNaN(DivBeat) || Number.isNaN(BeatNum) || !UnitType.length) {
     return new ErrorContainer()
       .useErrTemplate("CallsignInvalidFormat")
       .replyToInteract(RecInteract, true)

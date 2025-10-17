@@ -166,15 +166,16 @@ async function HandleShiftOnAction(
       ),
     ]);
 
-    ShiftActionFeedbacks.forEach((Result) => {
-      if (Result.status === "fulfilled") return;
+    for (const Result of ShiftActionFeedbacks) {
+      if (Result.status === "fulfilled") continue;
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
         error: Result.reason,
-        stack: Result.reason instanceof Error ? Result.reason.stack : null,
+        stack:
+          Result.reason instanceof Error ? Result.reason.stack : new Error("<<stack trace>>").stack,
       });
-    });
+    }
   } catch (Err: any) {
     const ErrorId = GetErrorId();
     if (Err instanceof AppError && Err.is_showable) {
@@ -253,15 +254,15 @@ async function HandleShiftBreakToggleAction(
       ),
     ]);
 
-    ShiftActionFeedbacks.forEach((Result) => {
-      if (Result.status === "fulfilled") return;
+    for (const Result of ShiftActionFeedbacks) {
+      if (Result.status === "fulfilled") continue;
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
         error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
-    });
+    }
   } catch (Err: any) {
     if (Err instanceof AppError && Err.is_showable) {
       const CurrentActiveShift = await GetActiveShift({
@@ -316,15 +317,15 @@ async function HandleShiftOffAction(
       ),
     ]);
 
-    ShiftActionFeedbacks.forEach((Result) => {
-      if (Result.status === "fulfilled") return;
+    for (const Result of ShiftActionFeedbacks) {
+      if (Result.status === "fulfilled") continue;
       AppLogger.error({
         message: SMActionFeedbackFailureErrMsg,
         label: FileLabel,
         error: Result.reason,
         stack: Result.reason instanceof Error ? Result.reason.stack : null,
       });
-    });
+    }
   } catch (Err: any) {
     if (Err instanceof AppError && Err.is_showable) {
       const ShiftExists = await ShiftModel.exists({ _id: ActiveShift._id });

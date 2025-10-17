@@ -103,7 +103,7 @@ export default async function HandleCallsignStatusUpdates(
       });
 
       const UpdateResults = await Promise.allSettled(UpdatePromises);
-      UpdateResults.forEach((Result) => {
+      for (const Result of UpdateResults) {
         if (Result.status === "rejected") {
           AppLogger.error({
             message: "Error updating member nickname after callsign status update.",
@@ -112,7 +112,7 @@ export default async function HandleCallsignStatusUpdates(
             stack: Result.reason?.stack,
           });
         }
-      });
+      }
     }
   } catch (Err: any) {
     AppLogger.error({
@@ -171,13 +171,17 @@ function GenerateCallsignPrefixRegex(NicknameFormat: string): RegExp | null {
   // 2. Then replace pre-known placeholders with appropriate regex patterns (case-insensitive)
   // 3. Make hyphens optional and spaces flexible
 
-  Pattern = Pattern.replace(/[.*+?^${}()|\\[\]]/g, "\\$&");
-  Pattern = Pattern.replace(/\\?\{division\\?\}/gi, "\\d{1,2}")
-    .replace(/\\?\{unit_type\\?\}/gi, "(?:[A-Z]{1,3}\\d*|\\d*[A-Z]{1,3})")
-    .replace(/\\?\{(?:beat_num|identifier)\\?\}/gi, "\\d{1,3}");
+  Pattern = Pattern.replaceAll(/[.*+?^${}()|\\[\]]/g, String.raw`\$&`);
+  Pattern = Pattern.replaceAll(/\\?\{division\\?\}/gi, String.raw`\d{1,2}`)
+    .replaceAll(/\\?\{unit_type\\?\}/gi, String.raw`(?:[A-Z]{1,3}\d*|\d*[A-Z]{1,3})`)
+    .replaceAll(/\\?\{(?:beat_num|identifier)\\?\}/gi, String.raw`\d{1,3}`);
 
-  Pattern = Pattern.replace(/\\[-−–—‒⁃‑]/g, "[-−–—‒⁃‑]?").replace(/\\\s/g, "\\s*");
-  Pattern = "^" + Pattern + "\\s*";
+  Pattern = Pattern.replaceAll(/\\[-−–—‒⁃‑]/g, String.raw`[-−–—‒⁃‑]?`).replaceAll(
+    /\\\s/g,
+    String.raw`\s*`
+  );
+
+  Pattern = String.raw`^${Pattern}\s*`;
 
   try {
     return new RegExp(Pattern, "i");

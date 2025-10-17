@@ -3,7 +3,7 @@ import DummyTexts from "@Resources/SampleTexts.js";
 
 const Cache: Record<string, string[]> = { ".": [] };
 for (let CharCode = 32; CharCode <= 127; CharCode++) {
-  Cache["."].push(String.fromCharCode(CharCode));
+  Cache["."].push(String.fromCodePoint(CharCode));
 }
 
 /**

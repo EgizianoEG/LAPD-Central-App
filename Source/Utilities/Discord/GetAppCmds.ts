@@ -10,7 +10,7 @@ import type {
  * @param GuildId - If provided, returns the application commands registered on it; otherwise, returns global registered slash commands
  * @returns
  */
-export default async function <
+export default async function GetAppCmds<
   IdOptions extends Snowflake | GuildResolvable | undefined = undefined,
 >(
   Client: DiscordClient,

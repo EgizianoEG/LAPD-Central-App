@@ -32,7 +32,7 @@ async function Callback(_Client: DiscordClient, Interaction: SlashCommandInterac
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject = {
   callback: Callback,

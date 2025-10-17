@@ -78,20 +78,20 @@ export function TitleCase(Str: string, Strict: boolean = true): string {
   ];
 
   // Capitalize the first letter of each word except numbers starting with "x" (e.g. "Tasks: x3")
-  let Modified = Str.replace(/[^\W]+[^\s-]* */g, (Cap) => {
+  let Modified = Str.replaceAll(/[^\W]+[^\s-]* */g, (Cap) => {
     return Cap.match(/\bx\d+\b/i) ? Cap.toLowerCase() : UpperFirst(Cap);
   });
 
   // Preserve certain words in lower-case and some acronyms in upper-case.
   if (Strict) {
     for (const Lower of Lowers) {
-      const Regex = new RegExp("\\b" + Lower + "\\b", "gi");
-      Modified = Modified.replace(Regex, Lower.toLowerCase());
+      const Regex = new RegExp(`\\b${Lower}\\b`, "gi");
+      Modified = Modified.replaceAll(Regex, Lower.toLowerCase());
     }
 
     for (const Acronym of Uppers) {
-      const Regex = new RegExp("\\b" + Acronym + "\\b", "gi");
-      Modified = Modified.replace(Regex, Acronym.toUpperCase());
+      const Regex = new RegExp(`\\b${Acronym}\\b`, "gi");
+      Modified = Modified.replaceAll(Regex, Acronym.toUpperCase());
     }
   }
 
@@ -128,7 +128,7 @@ export function TitleCase(Str: string, Strict: boolean = true): string {
  */
 export function CamelCase(Str: string): string {
   let SDSign = "";
-  const Sanitized = Str.replace(/^[\W\s_\uFEFF\xA0]+|^[\W\s_\uFEFF\xA0]+$/gu, "").replace(
+  const Sanitized = Str.replaceAll(/^[\W\s_\uFEFF\xA0]+|^[\W\s_\uFEFF\xA0]+$/gu, "").replaceAll(
     /[^\w]+|[\s_]+/g,
     " "
   );
@@ -150,9 +150,9 @@ export function CamelCase(Str: string): string {
 
   return (
     SDSign +
-    Sanitized.replace(/(?:^\w|[A-Z]|\b\w|\d[a-z])/g, (Word, Index) => {
+    Sanitized.replaceAll(/(?:^\w|[A-Z]|\b\w|\d[a-z])/g, (Word, Index) => {
       return Index === 0 ? Word.toLowerCase() : Word.toUpperCase();
-    }).replace(/\s+/g, "")
+    }).replaceAll(/\s+/g, "")
   );
 }
 
@@ -182,7 +182,7 @@ export function UpperFirst(Str: string, LowerRest: boolean = true): string {
  * console.log(PascalToNormal(PascalCase));  // returns "Pascal Case String"
  */
 export function PascalToNormal(Str: string): string {
-  return Str.replace(/(?<!\s+)[A-Z]/g, " $&")
+  return Str.replaceAll(/(?<!\s+)[A-Z]/g, " $&")
     .replace(/\s+/, " ")
     .trim();
 }
@@ -195,7 +195,7 @@ export function PascalToNormal(Str: string): string {
  */
 export function SnakeCase(Str: string): string {
   return SplitCaps(Str)
-    .replace(/\W+/g, " ")
+    .replaceAll(/\W+/g, " ")
     .split(/ |\B(?=[A-Z])/)
     .map((Word) => Word.toLowerCase())
     .join("_");
@@ -272,23 +272,22 @@ export function NumberToWords(Num: number | string): string {
     "Ninety",
   ];
 
-  return (
-    NumMatchs.forEach((n, i) => {
-      if (!+n) return;
+  for (const [i, n] of NumMatchs.entries()) {
+    if (!+n) continue;
 
-      const hund = +n[0];
-      const ten = +n.substring(1);
-      const scl = ScaleT[NumMatchs.length - i - 1];
+    const Hundreds = +n[0];
+    const Tens = +n.substring(1);
+    const Scale = ScaleT[NumMatchs.length - i - 1];
 
-      Output +=
-        (Output ? " " : "") +
-        (hund ? `${T10s[hund]} Hundred` : "") +
-        (hund && ten ? " " : "") +
-        (ten < 20 ? T10s[ten] : T20s[+n[1]] + (+n[2] ? "-" : "") + T10s[+n[2]]);
-      Output += (Output && scl ? " " : "") + scl;
-    }),
-    Output
-  );
+    Output +=
+      (Output ? " " : "") +
+      (Hundreds ? `${T10s[Hundreds]} Hundred` : "") +
+      (Hundreds && Tens ? " " : "") +
+      (Tens < 20 ? T10s[Tens] : T20s[+n[1]] + (+n[2] ? "-" : "") + T10s[+n[2]]);
+    Output += (Output && Scale ? " " : "") + Scale;
+  }
+
+  return Output;
 }
 
 /**
@@ -339,12 +338,12 @@ export function PoliceCodeToWords(CodeStr: string): string {
   const NumSegments = NumberPart.split("-");
   /** Convert each segment to words. */
   const WordSegments = NumSegments.map((Seg) => {
-    if (isNaN(Number(Seg))) {
+    if (Number.isNaN(Number(Seg))) {
       /** If the segment is not a number, convert it using the phonetic alphabet. */
       return PhoneticAlphabet[Seg.toUpperCase()] || Seg;
     } else {
       /** If the segment is a number, convert it to words. */
-      return NumberToWords(parseInt(Seg, 10));
+      return NumberToWords(Number.parseInt(Seg, 10));
     }
   });
 
@@ -353,7 +352,7 @@ export function PoliceCodeToWords(CodeStr: string): string {
 }
 
 function SplitCaps(Str: string): string {
-  return Str.replace(/([a-z])([A-Z]+)/g, (_, s1, s2) => `${s1} ${s2}`)
+  return Str.replaceAll(/([a-z])([A-Z]+)/g, (_, s1, s2) => `${s1} ${s2}`)
     .replace(/([A-Z])([A-Z]+)([^a-zA-Z0-9]*)$/, (_, s1, s2, s3) => s1 + s2.toLowerCase() + s3)
-    .replace(/([A-Z]+)([A-Z][a-z])/g, (_, s1, s2) => `${s1.toLowerCase()} ${s2}`);
+    .replaceAll(/([A-Z]+)([A-Z][a-z])/g, (_, s1, s2) => `${s1.toLowerCase()} ${s2}`);
 }

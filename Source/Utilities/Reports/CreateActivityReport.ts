@@ -39,7 +39,7 @@ export default async function CreateActivityReport(
   if (RecordsSheetId == null || StatisticsSheetId == null) {
     throw new AppError({
       title: "Sheet ID Retrieval Error",
-      stack: new Error().stack,
+      stack: new Error("<<stack trace>>").stack,
       message: "Failed to retrieve sheet IDs from the copied spreadsheet.",
       showable: false,
       code: 2,

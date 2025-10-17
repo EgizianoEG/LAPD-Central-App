@@ -113,7 +113,7 @@ async function CmdCallback(CmdInteract: SlashCommandInteraction<"cached">) {
         - **Persisted Roles:** ${TargetRecord.roles_mentioned.length > 0 ? TargetRecord.roles_mentioned.join(", ") : "*None*"}
         - **Originally Saved By:** ${userMention(TargetRecord.saved_by.user_id)} (@${TargetRecord.saved_by.username})
         - **Originally Saved On:** ${TargetRecord.saved_on_timestamp}
-        ${TargetRecord.expiry !== null ? `- **Original Expiry Date:** ${TargetRecord.expiration_timestamp}` : "- **No Expiration Date Set**"}
+        ${TargetRecord.expiry === null ? "- **No Expiration Date Set**" : `- **Original Expiry Date:** ${TargetRecord.expiration_timestamp}`}
         ${TargetRecord.reason ? `- **Original Reason:** ${TargetRecord.reason}` : ""}
       `)
     );

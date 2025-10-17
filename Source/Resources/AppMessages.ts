@@ -1407,4 +1407,21 @@ export const InfoMessages = {
       "All %s restrictions have been successfully cleared. " +
       "Kindly note that this is not yet saved to database and module config until you confirm *and then* save the changes in the *main* configuration prompt.",
   },
+
+  CallsignRecordsDeletionInProgress: {
+    Thumb: null,
+    Title: `${Emojis.LoadingBlue}\u{2000}Deleting Call Sign Records...`,
+    Description: "Deleting call sign records from the database. Please wait...",
+  },
+
+  CallsignRecordsReleaseInProgress: {
+    Thumb: null,
+    Title: `${Emojis.LoadingBlue}\u{2000}Releasing Call Signs...`,
+    Description: "Releasing call signs and updating affected member. Please wait...",
+  },
+
+  NoCallsignRecordsWithSpecifiedStatus: {
+    Title: "No Records",
+    Description: "There are currently no %s records with the specified status to display.",
+  },
 };

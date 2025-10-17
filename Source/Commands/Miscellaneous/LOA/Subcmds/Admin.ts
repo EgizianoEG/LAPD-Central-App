@@ -265,11 +265,11 @@ function GetPanelComponents(
   }
 
   // Add the user id and leave id to the custom_id of each button.
-  ActionRow.components.forEach((Button) =>
+  for (const Button of ActionRow.components) {
     Button.setCustomId(
       `${(Button.data as APIButtonComponentWithCustomId).custom_id}:${Interaction.user.id}:${ActiveOrPendingLeave?._id ?? "0"}:${TargetUserId}`
-    )
-  );
+    );
+  }
 
   return [ActionRow];
 }
@@ -856,7 +856,7 @@ async function Callback(Interaction: CmdOrButtonInteraction) {
     PromptMessage = await Interaction.editReply(ReplyOpts);
   } else {
     PromptMessage = await Interaction.reply({ ...ReplyOpts, withResponse: true }).then(
-      (Resp) => Resp.resource!.message! as Message<true>
+      (Resp) => Resp.resource!.message!
     );
   }
 
@@ -896,7 +896,8 @@ async function Callback(Interaction: CmdOrButtonInteraction) {
 
   CompActionCollector.on("end", async (Collected, EndReason) => {
     if (/\w{1,10}Delete/.test(EndReason) || EndReason === "CmdReinstated") return;
-    PanelComps[0].components.forEach((Btn) => Btn.setDisabled(true));
+    for (const Btn of PanelComps[0].components) Btn.setDisabled(true);
+
     const LastInteract = Collected.last() || Interaction;
     await LastInteract.editReply({ components: PanelComps, message: PromptMessage.id }).catch(
       () => null

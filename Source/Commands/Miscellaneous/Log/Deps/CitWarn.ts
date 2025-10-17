@@ -208,9 +208,9 @@ const CommandObject = {
     .setDescription("Creates and logs a notice to appear as a citation record for a person."),
 };
 
-SharedCmdOptions.forEach((Option) => {
+for (const Option of SharedCmdOptions) {
   CommandObject.data.options.push(Option);
-});
+}
 
 // ----------------------------------------------------------------
 export default CommandObject;

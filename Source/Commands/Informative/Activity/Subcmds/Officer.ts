@@ -50,7 +50,7 @@ export async function ParseDateInputs(ReceivedInteract: SlashCommandInteraction<
   ParsedDates.until = InputUntil ? Chrono.parseDate(InputUntil, ReceivedInteract.createdAt) : null;
 
   if (!ParsedDates.since && !ParsedDates.until) {
-    return Promise.resolve(ParsedDates);
+    return ParsedDates;
   }
 
   if (!ParsedDates.since && InputSince && !InputSince.match(/\bago\s*$/i)) {
@@ -90,7 +90,7 @@ export async function ParseDateInputs(ReceivedInteract: SlashCommandInteraction<
     return true;
   }
 
-  return Promise.resolve(ParsedDates);
+  return ParsedDates;
 }
 
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
@@ -122,7 +122,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   });
 
   const [TargetRUserInfo, FieldActivityData, TargetRUserThumb, ShiftsData] = await Promise.all([
-    LinkedRobloxUserId === 0 ? null : GetUserInfo(LinkedRobloxUserId),
+    LinkedRobloxUserId === 0 ? Promise.resolve(null) : GetUserInfo(LinkedRobloxUserId),
     GetStaffFieldActivity(OfficerSelected, DateFiltering.since, DateFiltering.until),
     GetUserThumbnail({
       UserIds: LinkedRobloxUserId,

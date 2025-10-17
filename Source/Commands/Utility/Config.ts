@@ -87,7 +87,7 @@ const ListFormatter = new Intl.ListFormat("en");
 const MillisInDay = milliseconds({ days: 1 });
 const AccentColor = resolveColor("#5f9ea0");
 const FileLabel = "Commands:Utility:Config";
-const SUnitTypeLabels = ServiceUnitTypes.map((t) => t.unit);
+const SUnitTypeLabels = new Set(ServiceUnitTypes.map((t) => t.unit));
 const FormatDuration = DHumanize.humanizer({
   conjunction: " and ",
   largest: 3,
@@ -558,9 +558,7 @@ async function UpdatePromptReturnMessage(
   Interact: MessageComponentInteraction<"cached">,
   Opts: InteractionUpdateOptions
 ): Promise<Message<true>> {
-  return Interact.update({ ...Opts, withResponse: true }).then(
-    (resp) => resp.resource!.message! as Message<true>
-  );
+  return Interact.update({ ...Opts, withResponse: true }).then((resp) => resp.resource!.message!);
 }
 
 /**
@@ -2376,12 +2374,12 @@ function GetCSBeatOrUnitTypeRestrictionsListContainers(
       );
     }
 
-    RuleDisplayTexts.forEach((RDT, Index) => {
+    for (const [Index, RDT] of RuleDisplayTexts.entries()) {
       PageContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(RDT));
       if (Index !== RuleDisplayTexts.length - 1) {
         PageContainer.addSeparatorComponents(new SeparatorBuilder().setDivider());
       }
-    });
+    }
 
     Pages.push(PageContainer);
   }
@@ -3132,7 +3130,7 @@ async function HandleAdditionalConfigSpecificInteracts(
     CustomId.startsWith(CTAIds[ConfigTopics.AdditionalConfiguration].DActivitiesDeletionInterval)
   ) {
     MState.ModuleConfig.duty_activities.log_deletion_interval =
-      (parseInt(RecInteract.values[0]) || 0) * MillisInDay;
+      (Number.parseInt(RecInteract.values[0]) || 0) * MillisInDay;
   }
 
   if (
@@ -3463,7 +3461,7 @@ async function HandleDutyActivitiesConfigPageInteracts(
   } else if (
     CustomId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].SignatureFormatType)
   ) {
-    MState.ModuleConfig.signature_format = parseInt(RecInteract.values[0]);
+    MState.ModuleConfig.signature_format = Number.parseInt(RecInteract.values[0]);
   } else if (
     CustomId.startsWith(
       CTAIds[ConfigTopics.DutyActivitiesConfiguration].ArrestReportsImgHeaderEnabled
@@ -3627,7 +3625,7 @@ async function HandleUANActivePrefixBtnInteract(
   const Submission = await ShowModalAndAwaitSubmission(RecInteract, InputModal);
   let InputPrefix = Submission?.fields.getTextInputValue("prefix") || null;
   InputPrefix =
-    InputPrefix?.replace(/(?<!\\)%s/g, " ")
+    InputPrefix?.replaceAll(/(?<!\\)%s/g, " ")
       .trimStart()
       .slice(0, 8) ?? null;
 
@@ -3676,7 +3674,7 @@ async function PromptChannelOrThreadSelection(
     withResponse: true,
     components: [PromptContainer],
     flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-  }).then((IR) => IR.resource!.message! as Message<true>);
+  }).then((IR) => IR.resource!.message!);
 
   const MsgFormatFilter = (Msg: Message) => {
     const Channel = Msg.channel;
@@ -3738,7 +3736,7 @@ async function PromptChannelOrThreadSelection(
   ];
 
   const DesiredChannelOrThread = await Promise.race(PromptResponses);
-  return DesiredChannelOrThread !== undefined ? DesiredChannelOrThread : CurrentlyConfigured;
+  return DesiredChannelOrThread === undefined ? CurrentlyConfigured : DesiredChannelOrThread;
 }
 
 async function HandleConfigPageNavigation<T extends SettingsResolvable>(
@@ -3891,13 +3889,13 @@ async function HandleDefaultShiftQuotaBtnInteract(
     if (FormattedDuration.length > 20) {
       FormattedDuration = FormattedDuration.replace("and", "");
       if (FormattedDuration.length > 20) {
-        FormattedDuration = FormattedDuration.replace(/ ?week(s)?/g, "w")
-          .replace(/ ?year(s)?/g, "y")
-          .replace(/ ?month(s)?/g, "mo")
-          .replace(/ ?minute(s)?/g, "min")
-          .replace(/ ?second(s)?/g, "s")
-          .replace(/ ?hour(s)?/g, "h")
-          .replace(/ ?day(s)?/g, "d");
+        FormattedDuration = FormattedDuration.replaceAll(/ ?week(s)?/g, "w")
+          .replaceAll(/ ?year(s)?/g, "y")
+          .replaceAll(/ ?month(s)?/g, "mo")
+          .replaceAll(/ ?minute(s)?/g, "min")
+          .replaceAll(/ ?second(s)?/g, "s")
+          .replaceAll(/ ?hour(s)?/g, "h")
+          .replaceAll(/ ?day(s)?/g, "d");
       }
     }
 
@@ -4071,7 +4069,7 @@ async function ModalPromptBeatOrUnitTypeRuleAdd(
 
     const FilteredTypes = InputUnitTypes.map((t) =>
       t.toLowerCase() === "air" ? "Air" : t.trim()
-    ).filter((t) => SUnitTypeLabels.some((t2) => t === t2));
+    ).filter((t) => SUnitTypeLabels.has(t));
 
     if (FilteredTypes.length !== InputUnitTypes.length) {
       return new ErrorContainer()
@@ -4079,13 +4077,13 @@ async function ModalPromptBeatOrUnitTypeRuleAdd(
         .replyToInteract(ModalSubmission, true);
     }
 
-    FilteredTypes.forEach((Type) => {
+    for (const Type of FilteredTypes) {
       MStateObj.ModuleConfig.unit_type_restrictions.push({
         _id: new Types.ObjectId(),
         permitted_roles: InputPermittedRoles,
         unit_type: Type,
       });
-    });
+    }
 
     return new SuccessContainer()
       .setDescription(
@@ -4101,19 +4099,19 @@ async function ModalPromptBeatOrUnitTypeRuleAdd(
     const Match = Range.match(/(\d{1,3})-(\d{1,3})/);
     if (!Match) return null;
     const [, Start, End] = Match;
-    const Parsed = [parseInt(Start), parseInt(End)];
+    const Parsed = [Number.parseInt(Start), Number.parseInt(End)];
 
     if (
       Parsed[0] < 1 ||
       Parsed[1] > 999 ||
       Parsed[0] > Parsed[1] ||
-      isNaN(Parsed[0]) ||
-      isNaN(Parsed[1])
+      Number.isNaN(Parsed[0]) ||
+      Number.isNaN(Parsed[1])
     ) {
       return null;
     }
 
-    return [parseInt(Start), parseInt(End)];
+    return [Number.parseInt(Start), Number.parseInt(End)];
   }).filter((r) => r !== null) as [number, number][];
 
   if (FilteredMappedRanges.length !== InputRanges.length) {
@@ -4122,13 +4120,13 @@ async function ModalPromptBeatOrUnitTypeRuleAdd(
       .replyToInteract(ModalSubmission, true);
   }
 
-  FilteredMappedRanges.forEach((Range) => {
+  for (const Range of FilteredMappedRanges) {
     MStateObj.ModuleConfig.beat_restrictions.push({
       _id: new Types.ObjectId(),
       permitted_roles: InputPermittedRoles,
       range: Range,
     });
-  });
+  }
 
   return new SuccessContainer()
     .setDescription(
@@ -4202,11 +4200,13 @@ async function ModalPromptBeatOrUnitTypeRuleRemove(
   }
 
   const RemovedCount = ExistingIndexes.length;
-  ExistingIndexes.toSorted((a, b) => b.index - a.index).forEach((item) =>
-    IsUnitType
-      ? MStateObj.ModuleConfig.unit_type_restrictions.splice(item.index, 1)
-      : MStateObj.ModuleConfig.beat_restrictions.splice(item.index, 1)
-  );
+  for (const Item of ExistingIndexes.toSorted((a, b) => b.index - a.index)) {
+    if (IsUnitType) {
+      MStateObj.ModuleConfig.unit_type_restrictions.splice(Item.index, 1);
+    } else {
+      MStateObj.ModuleConfig.beat_restrictions.splice(Item.index, 1);
+    }
+  }
 
   return new SuccessContainer()
     .useTemplate(
@@ -4729,14 +4729,14 @@ async function HandleConfigShowSelection(
       })
     );
 
-  SectionsToShow.forEach((Section, Index) => {
+  for (const [Index, Section] of SectionsToShow.entries()) {
     ResponseContainer.addSeparatorComponents(
       new SeparatorBuilder({ divider: true, spacing: Index === 0 ? 2 : 1 })
     );
     ResponseContainer.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(`**${Section.Title}**\n${Section.Content}`)
     );
-  });
+  }
 
   ResponseContainer.addSeparatorComponents(new SeparatorBuilder({ divider: true, spacing: 2 }));
   ResponseContainer.addTextDisplayComponents(

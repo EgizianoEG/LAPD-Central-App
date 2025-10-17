@@ -278,7 +278,7 @@ export class BaseExtraContainer extends ContainerBuilder {
       this.components[1] = new SeparatorBuilder(sep_opts);
     } else if (
       sep_opts?.no_sep &&
-      this.components.findIndex((c) => c instanceof SeparatorBuilder && c.data.id === 2) !== -1
+      this.components.some((c) => c instanceof SeparatorBuilder && c.data.id === 2)
     ) {
       this.components.splice(1, 1);
     }
@@ -398,9 +398,9 @@ export class BaseExtraContainer extends ContainerBuilder {
       const TitleDisplay = Section.components[0] as TextDisplayBuilder;
       const DescDisplay = Section.components[1] as TextDisplayBuilder;
       const Divider =
-        this._title_sep_opts?.no_sep !== true
-          ? new SeparatorBuilder(this._title_sep_opts ?? { divider: true })
-          : null;
+        this._title_sep_opts?.no_sep === true
+          ? null
+          : new SeparatorBuilder(this._title_sep_opts ?? { divider: true });
 
       if (Divider) {
         const Divider = new SeparatorBuilder().setDivider().setId(2);

@@ -127,15 +127,16 @@ export async function AutocompleteBeatNumber(
   TargetDivision: string | null = null
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
   const Suggestions: { name: string; value: string }[] = [];
-  const TypedBeatNum = parseInt(TypedBeat.trim(), 10);
+  const TypedBeatNum = Number.parseInt(TypedBeat.trim(), 10);
   const GuildSettings = Member ? await GetGuildSettings(GuildId) : null;
 
-  if (TypedBeat.match(/^\s*$/) || isNaN(TypedBeatNum) || TypedBeatNum <= 0) {
+  if (TypedBeat.match(/^\s*$/) || Number.isNaN(TypedBeatNum) || TypedBeatNum <= 0) {
     const VacantBeatNums = await GetVacantBeatNums(GuildId, TargetDivision);
     const FilteredBeats =
       Member && GuildSettings
         ? VacantBeatNums.filter(
-            (BeatNum) => !IsBeatNumberRestricted(parseInt(BeatNum, 10), Member, GuildSettings)
+            (BeatNum) =>
+              !IsBeatNumberRestricted(Number.parseInt(BeatNum, 10), Member, GuildSettings)
           )
         : VacantBeatNums;
 
@@ -328,7 +329,7 @@ async function GetTakenBeatNums(
   };
 
   if (Division) {
-    InUseFilter["designation.division"] = parseInt(Division, 10);
+    InUseFilter["designation.division"] = Number.parseInt(Division, 10);
   }
 
   const InUseCallsigns = await CallsignModel.find(InUseFilter, { designation: 1 }).lean();
@@ -404,5 +405,5 @@ async function GenerateNearbyBeatSuggestions(
     Offset += StepSize;
   }
 
-  return Suggestions.sort((a, b) => parseInt(a.value, 10) - parseInt(b.value, 10));
+  return Suggestions.sort((a, b) => Number.parseInt(a.value, 10) - Number.parseInt(b.value, 10));
 }

@@ -5,8 +5,8 @@ import Chalk from "chalk";
 import Util from "node:util";
 
 export default function AppLogging(Client: DiscordClient) {
-  const DisAppLogLevels: ("error" | "debug" | "warn")[] = [Events.Debug, Events.Warn, Events.Error];
-  DisAppLogLevels.forEach((Level) => {
+  const ClientLogLevels: ("error" | "debug" | "warn")[] = [Events.Debug, Events.Warn, Events.Error];
+  for (const Level of ClientLogLevels) {
     Client.on(Level, (Msg: any) => {
       AppLogger.log(Level, {
         label: "DiscordClient",
@@ -15,7 +15,7 @@ export default function AppLogging(Client: DiscordClient) {
         details: typeof Msg === "object" ? { ...Msg } : undefined,
       });
     });
-  });
+  }
 
   Mongoose.set("debug", function OnMongooseDebug(CollectionName, MethodName, ...MethodArgs) {
     AppLogger.debug({

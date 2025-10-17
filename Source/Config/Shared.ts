@@ -23,7 +23,7 @@ let EnvAppEmojis: typeof SharedData.Emojis | null = null;
 try {
   EnvAppEmojis =
     Env.APP_EMOJIS && Env.APP_EMOJIS.length >= 1300
-      ? (JSON.parse(Env.APP_EMOJIS.replace(/['"]+/g, '"')) as typeof SharedData.Emojis)
+      ? (JSON.parse(Env.APP_EMOJIS.replaceAll(/['"]+/g, '"')) as typeof SharedData.Emojis)
       : null;
 
   if (EnvAppEmojis !== null) {

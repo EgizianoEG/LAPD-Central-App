@@ -113,7 +113,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject = {
   callback: Callback,

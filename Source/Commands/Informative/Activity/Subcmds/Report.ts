@@ -84,7 +84,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
         )
       );
 
-      if (HasNonexistentShiftType.some((Exists) => Exists)) {
+      if (HasNonexistentShiftType.some(Boolean)) {
         return new ErrorEmbed()
           .useErrTemplate("NonexistentShiftTypeUsage")
           .replyToInteract(CmdInteraction, true, false);
