@@ -54,7 +54,8 @@ async function AutodeleteGuildLogs(Now: Date | "init" | "manual") {
           IncidentsDeleted: 0,
         };
 
-        CleanupResults.forEach((Result, Index) => {
+        for (let Index = 0; Index < CleanupResults.length; Index++) {
+          const Result = CleanupResults[Index];
           if (Result.status === "fulfilled") {
             const DeletedCount = Result.value.deletedCount;
             if (Index === 0) CleanupDeletionResults.ArrestsDeleted = DeletedCount;
@@ -71,7 +72,7 @@ async function AutodeleteGuildLogs(Now: Date | "init" | "manual") {
               guild_id: GuildDoc._id,
             });
           }
-        });
+        }
 
         if (
           CleanupDeletionResults.ArrestsDeleted !== 0 ||
