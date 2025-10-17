@@ -7,7 +7,15 @@ icon: newspaper
 
 # Change Log
 
-## Version 1.8.0 — October 10, 2025 <sup><sub>_<mark style="color:$success;">(Latest)</mark>_<sub></sup>
+## Version 1.9.0 — October 17, 2025 <sup><sub>_<mark style="color:$success;">(Latest)</mark>_<sub></sup>
+
+New additions, fixing bugs, and refactoring; see release notes on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.9.0).
+
+## Version 1.8.1 — October 13, 2025
+
+Completing features and bug fixes; see release notes on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.8.1).
+
+## Version 1.8.0 — October 10, 2025
 
 Completing features and bug fixes; see release notes on [GitHub](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.8.0).
 
