@@ -41,10 +41,10 @@ const CommandObject = {
     ),
 };
 
-SharedCmdOptions.forEach((Option, Index) => {
-  if (Index === 0) return;
+for (const [Index, Option] of SharedCmdOptions.entries()) {
+  if (Index === 0) continue;
   CommandObject.data.options.push(Option);
-});
+}
 
 // ---------------------------------------------------------------------------------------
 export default CommandObject;

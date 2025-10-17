@@ -39,20 +39,16 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
   let Suggestions: ApplicationCommandOptionChoiceData[] = [];
 
   if (name === "save" || name === "backup") {
-    if (!TargetMember?.value) Suggestions = [];
-    else
-      Suggestions = await AutocompleteMemRolesSave(
-        TargetMember.value as string,
-        Interaction.guildId,
-        value
-      );
+    Suggestions = TargetMember?.value
+      ? await AutocompleteMemRolesSave(TargetMember.value as string, Interaction.guildId, value)
+      : [];
   }
 
   return Interaction.respond(Suggestions);
 }
 
 // ---------------------------------------------------------------------------------------
-// Command structure:
+// Command Structure:
 // ------------------
 const CommandObject: SlashCommandObject<SlashCommandSubcommandsOnlyBuilder> = {
   callback: Callback,

@@ -72,11 +72,11 @@ function GetAdminComponents(
     );
   }
 
-  ActionRow.components.forEach((Btn) => {
+  for (const Btn of ActionRow.components) {
     Btn.setCustomId(
       `${Btn.data["custom_id"]}:${RecInteract.user.id}:${ActiveOrPendingRA?._id || 0}`
     );
-  });
+  }
 
   return ActiveOrPendingRA ? [ActionRow] : [];
 }
@@ -352,7 +352,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       return Callback(Interaction).catch(() => null);
     }
 
-    AdminComps[0].components.forEach((Btn) => Btn.setDisabled(true));
+    for (const Btn of AdminComps[0].components) Btn.setDisabled(true);
     await Interaction.editReply({ components: AdminComps }).catch(() => null);
   });
 }

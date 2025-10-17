@@ -117,11 +117,11 @@ export function GetShiftManagementButtons(
   });
 
   const ActiveShiftIdSuffix = ShiftActive?.id ? `:${ShiftActive.id}` : "";
-  ActionRow.components.forEach((Comp) =>
+  for (const Comp of ActionRow.components) {
     Comp.setCustomId(
       `${Comp.data.custom_id}:${Interaction.user.id}:${ShiftType}${ActiveShiftIdSuffix}`
-    )
-  );
+    );
+  }
 
   return ActionRow;
 }
@@ -272,7 +272,7 @@ async function CmdInteractSafeReplyOrEditReply(
       CmdMessage = await CmdInteract.reply({
         ...(ReplyOpts as InteractionReplyOptions),
         withResponse: true,
-      }).then((Resp) => Resp.resource!.message! as Message<true>);
+      }).then((Resp) => Resp.resource!.message!);
     }
     return CmdMessage;
   } catch (Err) {

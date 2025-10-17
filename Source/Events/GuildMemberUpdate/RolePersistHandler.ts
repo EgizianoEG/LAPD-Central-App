@@ -75,11 +75,9 @@ export default async function OnMemberUpdateRolePersistHandler(
       : "a persistent role was manually removed";
 
     const RolesToAssignSet = new Set<Role>(
-      ActiveRolePersistRecords.map((Record) =>
+      ActiveRolePersistRecords.flatMap((Record) =>
         Record.roles.map((Role) => UpdatedMember.guild.roles.cache.get(Role.role_id))
-      )
-        .flat()
-        .filter((Role): Role is Role => Role !== undefined)
+      ).filter((Role): Role is Role => Role !== undefined)
     );
 
     if (!RolesToAssignSet.size) return;

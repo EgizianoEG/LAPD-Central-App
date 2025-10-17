@@ -107,7 +107,9 @@ export default async function HandlePagePagination({
 
   const IsComponentsV2Pagination = Pages[0] instanceof ContainerBuilder;
   const NavigationButtons = GetPredefinedNavButtons(Interact, Pages.length, true, true);
-  const NavigationButtonIds = NavigationButtons.components.map((Btn) => Btn.data.custom_id);
+  const NavigationButtonIds = new Set(
+    NavigationButtons.components.map((Btn) => Btn.data.custom_id)
+  );
   let MsgFlags: MessageFlagsResolvable | undefined = Ephemeral ? MessageFlags.Ephemeral : undefined;
   let CurrPageIndex = 0;
 
@@ -131,7 +133,7 @@ export default async function HandlePagePagination({
     if (
       IsComponentsV2Pagination &&
       CV2CompListener &&
-      !NavigationButtonIds.includes(RecInteraction.customId)
+      !NavigationButtonIds.has(RecInteraction.customId)
     ) {
       return CV2CompListener(RecInteraction, CurrPageIndex, Pages);
     }
@@ -149,8 +151,8 @@ export default async function HandlePagePagination({
         SPIndex = await HandleSelectMenuPageSelection(Pages, CurrPageIndex, RecInteraction);
       }
 
-      if (SPIndex !== null) NewPageIndex = SPIndex;
-      else return;
+      if (SPIndex === null) return;
+      NewPageIndex = SPIndex;
     }
 
     if (NewPageIndex === -1) {
@@ -431,23 +433,21 @@ function AttachComponentsV2NavButtons(
   NavButtonsAR: NavButtonsActionRow
 ): void {
   const PagesLength = Pages.length;
-  return Pages.forEach((Page) => {
+  for (const Page of Pages) {
     if (PagesLength > 1) {
-      if (Page.components[Page.components.length - 1].data.type === ComponentType.ActionRow) {
+      if (Page.components.at(-1)?.data.type === ComponentType.ActionRow) {
         Page.spliceComponents(-1, 1);
       }
 
-      return Page.addActionRowComponents(NavButtonsAR);
-    } else {
-      return Page;
+      Page.addActionRowComponents(NavButtonsAR);
     }
-  });
+  }
 }
 
 function AttachComponentsV2Footer(Pages: ContainerBuilder[], FooterText?: string): void {
-  return Pages.forEach((Page) => {
+  for (const Page of Pages) {
     if (Pages.length > 1) Page.addSeparatorComponents(new SeparatorBuilder({ divider: true }));
     if (FooterText)
       Page.addTextDisplayComponents(new TextDisplayBuilder({ content: `-# ${FooterText}` }));
-  });
+  }
 }

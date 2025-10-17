@@ -36,18 +36,14 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
   let Suggestions: ApplicationCommandOptionChoiceData[] = [];
 
   if (name === "id") {
-    if (!TargetUser?.value) Suggestions = [];
-    else {
-      Suggestions = await AutocompleteRolePersistRecord(
-        TargetUser.value as string,
-        Interaction.guildId,
-        value
-      );
-    }
+    Suggestions = TargetUser?.value
+      ? await AutocompleteRolePersistRecord(TargetUser.value as string, Interaction.guildId, value)
+      : [];
   } else if (name === "expiry" && /\s*/.test(value.trim())) {
-    Suggestions = ["1 day", "3 days", "7 days", "2 weeks", "1 month"].map((v) => {
-      return { name: v, value: v };
-    });
+    Suggestions = ["1 day", "3 days", "7 days", "2 weeks", "1 month"].map((v) => ({
+      name: v,
+      value: v,
+    }));
   }
 
   return Interaction.respond(Suggestions);

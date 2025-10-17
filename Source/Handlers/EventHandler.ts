@@ -50,7 +50,9 @@ export default async function EventHandler(Client: DiscordClient) {
         Client.on(EventName, (...Args) => SingleHandler(Client, ...Args));
       } else if (FuncsToExecute.length > 1) {
         Client.on(EventName, (...Args) => {
-          FuncsToExecute.forEach((Func) => Func(Client, ...Args));
+          for (const Func of FuncsToExecute) {
+            Func(Client, ...Args);
+          }
         });
       }
     } else {

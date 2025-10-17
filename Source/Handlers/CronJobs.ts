@@ -62,17 +62,17 @@ export default async function CronJobsHandler(Client: DiscordClient) {
 
   if (MustOnlyWorkWhenAppIsOnlineJobs.length > 0) {
     Client.on(Events.ClientReady, function RunDependentJobs() {
-      MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
+      for (const JobFileName of MustOnlyWorkWhenAppIsOnlineJobs) {
         const Task = ScheduledTasks.get(JobFileName);
         if (Task) Task.start();
-      });
+      }
     });
 
     Client.on(Events.ShardDisconnect, function PauseDependentJobs() {
-      MustOnlyWorkWhenAppIsOnlineJobs.forEach((JobFileName) => {
+      for (const JobFileName of MustOnlyWorkWhenAppIsOnlineJobs) {
         const Task = ScheduledTasks.get(JobFileName);
         if (Task) Task.stop();
-      });
+      }
     });
   }
 

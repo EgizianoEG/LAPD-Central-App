@@ -20,9 +20,7 @@ export async function ShiftTypeExists(GuildId: string, ShiftType: string): Promi
       return false;
     }
 
-    return (
-      GuildSettings.shift_management.shift_types.findIndex((Type) => Type.name === ShiftType) !== -1
-    );
+    return GuildSettings.shift_management.shift_types.some((Type) => Type.name === ShiftType);
   });
 }
 

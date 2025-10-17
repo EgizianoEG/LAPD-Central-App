@@ -561,7 +561,8 @@ async function HandlePromptInteractions(
 
     const LastInteract = Collected.last() ?? CmdInteract;
     const ActionRow = GetConfirmationPromptActionRow(CmdInteract);
-    ActionRow.components.forEach((Button) => Button.setDisabled(true));
+    for (const Button of ActionRow.components) Button.setDisabled(true);
+
     LastInteract.editReply({
       components: [ActionRow],
     }).catch(() => null);

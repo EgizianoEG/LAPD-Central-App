@@ -244,8 +244,11 @@ export function RedactLinksAndEmails(
       continue;
     }
 
-    Parts.push(Input.slice(LastIndex, Match.start));
-    Parts.push(ReplacementType === "Word" ? Replacement : Replacement.repeat(Match.value.length));
+    Parts.push(
+      Input.slice(LastIndex, Match.start),
+      ReplacementType === "Word" ? Replacement : Replacement.repeat(Match.value.length)
+    );
+
     LastIndex = Match.end;
   }
 
@@ -479,7 +482,6 @@ function ShouldAutomoderationRuleBeApplied(
 ) {
   return !(
     Rule.enabled === false ||
-    Rule.actions.length === 0 ||
     Rule.actions.every(
       (RuleAction) => RuleAction.type === AutoModerationActionType.SendAlertMessage
     ) ||
@@ -510,7 +512,7 @@ function SanitizeAutomodRuleKeywords(Keywords: readonly string[], Type: "Allowed
     if (!(Keyword.startsWith("*") || Keyword.endsWith("*")))
       return Type === "Allowed" ? `^\\b${Keyword}\\b$` : `\\b${Keyword}\\b`;
 
-    return Keyword.replace(/^\*?([^*\n]+)\*?$/gi, (Match, Capture) => {
+    return Keyword.replaceAll(/^\*?([^*\n]+)\*?$/gi, (Match, Capture) => {
       return Match.startsWith("*") ? `\\b[^\\n\\s]*${Capture}\\b` : `\\b${Capture}[^\\n\\s]*\\b`;
     });
   });

@@ -502,10 +502,7 @@ async function ProcessUserCooldown(
       const UserCmdKey = `${Interaction.user.id}:${CommandName}`;
       let UserExecInfo = UserCommandExecutionsCache.get<ThrottleTracker>(UserCmdKey);
 
-      if (!UserExecInfo) {
-        UserExecInfo = { count: 1, first_exec: CurrentTS };
-        UserCommandExecutionsCache.set(UserCmdKey, UserExecInfo, { ttl: Timeframe * 1000 });
-      } else {
+      if (UserExecInfo) {
         if (UserExecInfo.count >= MaxExecutions) {
           const TimeframeEnds = UserExecInfo.first_exec + Timeframe * 1000;
           return Interaction.reply({
@@ -525,6 +522,9 @@ async function ProcessUserCooldown(
         UserCommandExecutionsCache.set(UserCmdKey, UserExecInfo, {
           ttl: Math.floor(UserExecInfo.first_exec + Timeframe * 1000 - CurrentTS),
         });
+      } else {
+        UserExecInfo = { count: 1, first_exec: CurrentTS };
+        UserCommandExecutionsCache.set(UserCmdKey, UserExecInfo, { ttl: Timeframe * 1000 });
       }
     }
   }
@@ -587,10 +587,7 @@ async function ProcessGuildCooldown(
       const GuildCmdKey = `${GuildId}:${CommandName}`;
       let GuildExecInfo = GuildCommandExecutionsCache.get<ThrottleTracker>(GuildCmdKey);
 
-      if (!GuildExecInfo) {
-        GuildExecInfo = { count: 1, first_exec: CurrentTS };
-        GuildCommandExecutionsCache.set(GuildCmdKey, GuildExecInfo, { ttl: Timeframe * 1000 });
-      } else {
+      if (GuildExecInfo) {
         if (GuildExecInfo.count >= MaxExecutions) {
           const TimeframeEnds = GuildExecInfo.first_exec + Timeframe * 1000;
           return Interaction.reply({
@@ -610,6 +607,9 @@ async function ProcessGuildCooldown(
         GuildCommandExecutionsCache.set(GuildCmdKey, GuildExecInfo, {
           ttl: Math.floor(GuildExecInfo.first_exec + Timeframe * 1000 - CurrentTS),
         });
+      } else {
+        GuildExecInfo = { count: 1, first_exec: CurrentTS };
+        GuildCommandExecutionsCache.set(GuildCmdKey, GuildExecInfo, { ttl: Timeframe * 1000 });
       }
     }
   } else if (typeof GuildCooldown === "number") {

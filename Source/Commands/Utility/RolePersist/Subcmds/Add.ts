@@ -83,15 +83,16 @@ async function CmdCallback(CmdInteract: SlashCommandInteraction<"cached">) {
       .replyToInteract(CmdInteract, true);
   }
 
-  RolesProvidedResolved.forEach((Role) => {
-    if (!Role) return;
+  for (const Role of RolesProvidedResolved) {
+    if (!Role) continue;
     const IsRoleManaged = Role.managed;
     const IsRoleHigherThanApp = Role.comparePositionTo(AppMember.roles.highest) > 0;
     const RoleHasRiskyPermissions = Role.permissions.any(RiskyRolePermissions);
+
     if (!IsRoleManaged && !IsRoleHigherThanApp && !RoleHasRiskyPermissions) {
       PersistableRolesResolved.push(Role);
     }
-  });
+  }
 
   if (!PersistableRolesResolved.length) {
     return new ErrorEmbed()

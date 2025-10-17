@@ -20,7 +20,7 @@ const CallsignEventLogger = new CallsignsEventLogger();
 const DeniedRequestCooldown = milliseconds({ hours: 1 });
 const ExpiredCallsignCooldown = milliseconds({ minutes: 30 });
 const CancelledRequestCooldown = milliseconds({ minutes: 30 });
-const ServiceUnitTypesNormalized = ServiceUnitTypes.map((u) => u.unit);
+const ServiceUnitTypesNormalized = new Set(ServiceUnitTypes.map((u) => u.unit));
 const DivisionBeatIntegers = DivisionBeats.map((d) => d.num) as number[];
 
 // ---------------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ export async function ValidateCallsignFormat(
   UnitType = UnitType.toUpperCase();
   UnitType = UnitType === "AIR" ? "Air" : UnitType;
 
-  if (!ServiceUnitTypesNormalized.includes(UnitType)) {
+  if (!ServiceUnitTypesNormalized.has(UnitType)) {
     return new ErrorContainer()
       .useErrTemplate("CallsignInvalidUnitType", UnitType)
       .replyToInteract(Interaction, true)
@@ -113,7 +113,7 @@ export async function ValidateUnitTypePermissions(
   ModuleSettings: Guilds.GuildSettings["callsigns_module"],
   UnitType: string
 ): Promise<boolean> {
-  const UserRoles = Interaction.member.roles.cache.map((Role) => Role.id);
+  const UserRoles = new Set(Interaction.member.roles.cache.map((Role) => Role.id));
   const UnitTypeUpper = UnitType.toUpperCase();
   const UnitTypeRestriction = ModuleSettings.unit_type_restrictions.find(
     (Restriction) => Restriction.unit_type === UnitTypeUpper
@@ -129,7 +129,7 @@ export async function ValidateUnitTypePermissions(
 
     if (UnitTypeRestriction.permitted_roles.length > 0) {
       const HasRequiredRole = UnitTypeRestriction.permitted_roles.some((RoleId) =>
-        UserRoles.includes(RoleId)
+        UserRoles.has(RoleId)
       );
 
       if (!HasRequiredRole) {
@@ -141,7 +141,7 @@ export async function ValidateUnitTypePermissions(
     }
   } else if (UnitTypeRestriction && UnitTypeRestriction.permitted_roles.length > 0) {
     const HasRequiredRole = UnitTypeRestriction.permitted_roles.some((RoleId) =>
-      UserRoles.includes(RoleId)
+      UserRoles.has(RoleId)
     );
 
     if (!HasRequiredRole) {
@@ -167,7 +167,7 @@ export async function ValidateIdentifierPermissions(
   ModuleSettings: Guilds.GuildSettings["callsigns_module"],
   BeatNum: number
 ): Promise<boolean> {
-  const MemberRoles = Interaction.member.roles.cache.map((Role) => Role.id);
+  const MemberRoles = new Set(Interaction.member.roles.cache.map((Role) => Role.id));
 
   for (const Restriction of ModuleSettings.beat_restrictions) {
     const [MinRange, MaxRange] = Restriction.range;
@@ -175,9 +175,7 @@ export async function ValidateIdentifierPermissions(
     // Check if the beat number falls within this restriction range and
     // if the user has required roles for this range
     if (BeatNum >= MinRange && BeatNum <= MaxRange) {
-      const HasRequiredRole = Restriction.permitted_roles.some((RoleId) =>
-        MemberRoles.includes(RoleId)
-      );
+      const HasRequiredRole = Restriction.permitted_roles.some((RoleId) => MemberRoles.has(RoleId));
 
       if (!HasRequiredRole || Restriction.permitted_roles.length === 0) {
         return new ErrorContainer()

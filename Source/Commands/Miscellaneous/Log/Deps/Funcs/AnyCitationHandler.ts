@@ -618,7 +618,7 @@ async function OnModalSubmission(
     });
 
     const DisablePrompt = () => {
-      ConfirmationButtonAR.components.forEach((Button) => Button.setDisabled(true));
+      for (const Button of ConfirmationButtonAR.components) Button.setDisabled(true);
       return ModalSubmission.editReply({
         components: [ConfirmationButtonAR],
       }).catch(() => null);

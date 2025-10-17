@@ -31,7 +31,7 @@ async function AutodeleteTempAppEmojis(Now: Date | "init" | "manual", Client: Di
   const EmojisToDelete = Array.from(DeletionPromises.keys());
   const Results = await Promise.allSettled(DeletionPromises.values());
 
-  Results.forEach((Result, index) => {
+  for (const [index, Result] of Results.entries()) {
     if (Result.status === "rejected") {
       const FailedEmoji = EmojisToDelete[index];
       AppLogger.error({
@@ -42,7 +42,7 @@ async function AutodeleteTempAppEmojis(Now: Date | "init" | "manual", Client: Di
         stack: (Result.reason as Error)?.stack,
       });
     }
-  });
+  }
 }
 
 export default {

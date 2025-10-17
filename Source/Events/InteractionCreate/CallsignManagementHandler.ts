@@ -336,11 +336,10 @@ export async function HandleUnauthorizedManagement(
       .then(() => true);
   }
 
-  const UserRoles = Interaction.member.roles.cache.map((Role) => Role.id);
+  const UserRoles = new Set(Interaction.member.roles.cache.map((Role) => Role.id));
   const HasManagementPermission =
     (await UserHasPermsV2(Interaction.user.id, Interaction.guildId, { management: true })) ||
-    (GuildSettings.callsigns_module.manager_roles.length !== 0 &&
-      GuildSettings.callsigns_module.manager_roles.some((RoleId) => UserRoles.includes(RoleId)));
+    GuildSettings.callsigns_module.manager_roles.some((RoleId) => UserRoles.has(RoleId));
 
   if (!HasManagementPermission) {
     return new UnauthorizedContainer()

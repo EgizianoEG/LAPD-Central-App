@@ -30,7 +30,7 @@ export default async function AutocompletionHandler(
     if (typeof CommandObj.autocomplete === "function") {
       await CommandObj.autocomplete(Interaction);
     } else {
-      throw new Error(
+      throw new TypeError(
         `Autocompletion failed for command '${FullCmdName}', field '${FieldName}'. No function for autocompletion was found in the command object.`
       );
     }
@@ -39,7 +39,7 @@ export default async function AutocompletionHandler(
       message: `An error occurred while handling autocompletion for command '${FullCmdName}', field '${FieldName}'.`,
       label: "Events:InteractionCreate:AutoComplete",
       stack: Err.stack,
-      details: { ...Err },
+      error: Err,
     });
   }
 }

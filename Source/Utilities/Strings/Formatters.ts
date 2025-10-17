@@ -26,7 +26,7 @@ export function ListCharges<ReturnType extends boolean = true>(
   ReturnAsArray = (ReturnAsArray === undefined || ReturnAsArray === true) as any;
   const Charges: string[] =
     Input.trim()
-      .replace(/[^\S\n\r]+/g, " ")
+      .replaceAll(/[^\S\n\r]+/g, " ")
       .match(/([^\n\r]+)/g) ?? [];
 
   if (!Charges.length || (Charges.length === 1 && Charges[0].trim() === "")) {
@@ -39,7 +39,7 @@ export function ListCharges<ReturnType extends boolean = true>(
   ) {
     const Modified = Charges[0]
       .trim()
-      .replace(/(, *(?! *and )|(?:, *|(?<!hit *))and[\b ])/gi, "\n")
+      .replaceAll(/(, *(?! *and )|(?:, *|(?<!hit *))and[\b ])/gi, "\n")
       .match(/[^\n\r]+/g);
     Charges.pop();
     Charges.push(...(Modified as RegExpMatchArray));
@@ -90,7 +90,7 @@ export function AddStatutes(this: any, Charges: Array<string>): Array<string> {
   for (let i = 0; i < Charges.length; i++) {
     const AddChargeStatute = FormatStr.bind(this, "%s\n  Statute: § %s %s");
     const RawCharge = (Charges[i] ?? "").toString();
-    const SanitizedCharge = RawCharge.replace(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
+    const SanitizedCharge = RawCharge.replaceAll(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
 
     // Assault/Stabbing charge statute codes
     if (AddStatutesRegexes.Assault.test(SanitizedCharge)) {
@@ -136,7 +136,7 @@ export function AddStatutes(this: any, Charges: Array<string>): Array<string> {
         Continue = true;
       } else {
         for (const RCharge of Charges) {
-          const Sanitized = RCharge.replace(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
+          const Sanitized = RCharge.replaceAll(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
           if (AddStatutesRegexes.RecklessDriving.test(Sanitized)) {
             Charges[i] = AddChargeStatute(RawCharge, "2800.2(A)", "VC");
             Continue = true;
@@ -374,7 +374,7 @@ export function AddTrafficViolationCodes(
 
   for (let i = 0; i < Violations.length; i++) {
     const Violation = Violations[i];
-    const SanitizedViolation = Violation.replace(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
+    const SanitizedViolation = Violation.replaceAll(/[~`!@#$%^&()_=+;'":?><.,-]/g, " ").trim();
 
     // Speeding or going over the speed limit.
     if (ATVCodesRegexes.Speeding.test(SanitizedViolation)) {
@@ -596,7 +596,7 @@ export function FormatCitViolations(Input: string) {
  * FormatHeight("5 feet 11 inches")  // returns the string 5'11"
  */
 export function FormatHeight(Input: string): string {
-  const Sanitized = Input.trim().replace(/\s+/g, " ");
+  const Sanitized = Input.trim().replaceAll(/\s+/g, " ");
   if (Sanitized.match(/^[1-9]+'(?:\d|1[01]?)"$/)) {
     return Sanitized.match(/^(?:[8-9]|[1-9]\d+)/) ? "7'11\"" : Sanitized;
   }
@@ -838,7 +838,7 @@ export function ConcatenateLines(...Lines: (string | undefined | null)[]): strin
  * console.log(escapeRegExp("123.456"));  // Output: 123\.456
  */
 export function EscapeRegExp(Str: string): string {
-  return Str.replace(/[-[\]{}()*+!<=:?./\\^$|]/g, "\\$&");
+  return Str.replaceAll(/[-[\]{}()*+!<=:?./\\^$|]/g, "\\$&");
 }
 
 /**

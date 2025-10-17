@@ -12,12 +12,15 @@ export default async function GetGuildSettings(
   GuildId: string
 ): Promise<Guilds.GuildSettings | null> {
   const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
-  let GuildDocument: InstanceType<typeof GuildModel> | null = !MongoDBCache.StreamChangeConnected
-    .Guilds
-    ? ((await GuildModel.findById(GuildId).lean().exec()) as InstanceType<typeof GuildModel>)
-    : GuildDocumentCacheRef
-      ? new GuildModel(GuildDocumentCacheRef)
-      : null;
+  let GuildDocument: InstanceType<typeof GuildModel> | null;
+
+  if (MongoDBCache.StreamChangeConnected.Guilds === true) {
+    GuildDocument = GuildDocumentCacheRef ? new GuildModel(GuildDocumentCacheRef) : null;
+  } else {
+    GuildDocument = (await GuildModel.findById(GuildId).lean().exec()) as InstanceType<
+      typeof GuildModel
+    >;
+  }
 
   if (!GuildDocumentCacheRef && !GuildDocument) {
     const CreatedDocument = await GuildModel.create({

@@ -84,7 +84,7 @@ export default async function GetBookingMugshot<AsURL extends boolean | undefine
 
   // Calculate height positioning
   const HighestY = FindHighestNonTransparentPixelY(ThumbImage, true);
-  const HeadHeightPercentage = HighestY !== null ? (HighestY / ImgHeight) * 100 : 0;
+  const HeadHeightPercentage = HighestY === null ? 0 : (HighestY / ImgHeight) * 100;
   const PersonHeight = Options.height ? ParseHeight(Options.height) : 70;
   const HeadPosition = Options.head_position ?? 15;
   const BoardOffset = CalculateBoardOffset(

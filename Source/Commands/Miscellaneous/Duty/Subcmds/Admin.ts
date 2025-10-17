@@ -133,13 +133,13 @@ function GetShiftAdminButtonsRows(
       .setStyle(ButtonStyle.Danger)
   ) as ActionRowBuilder<ButtonBuilder & { data: { custom_id: string } }>;
 
-  ActionRowOne.components.forEach((Comp) =>
-    Comp.setCustomId(`${Comp.data.custom_id}:${Interaction.user.id}`)
-  );
+  for (const Comp of ActionRowOne.components) {
+    Comp.setCustomId(`${Comp.data.custom_id}:${Interaction.user.id}`);
+  }
 
-  ActionRowTwo.components.forEach((Comp) =>
-    Comp.setCustomId(`${Comp.data.custom_id}:${Interaction.user.id}`)
-  );
+  for (const Comp of ActionRowTwo.components) {
+    Comp.setCustomId(`${Comp.data.custom_id}:${Interaction.user.id}`);
+  }
 
   return [ActionRowOne, ActionRowTwo];
 }
@@ -662,7 +662,7 @@ async function RetrieveShiftRecordsAsContainers(
       )
       .addSeparatorComponents(new SeparatorBuilder({ divider: true, spacing: 2 }));
 
-    Descriptions.forEach((Description, Index) => {
+    for (const [Index, Description] of Descriptions.entries()) {
       PageContainer.addTextDisplayComponents(
         new TextDisplayBuilder({
           content: Description,
@@ -672,7 +672,7 @@ async function RetrieveShiftRecordsAsContainers(
       if (Index !== Descriptions.length - 1) {
         PageContainer.addSeparatorComponents(new SeparatorBuilder({ divider: true }));
       }
-    });
+    }
 
     return PageContainer;
   });
@@ -776,9 +776,9 @@ async function GetActiveShiftAndShiftDataContainer(
       ${CmdShiftType ? "" : `\n**Type:** \`${ActiveShift.type}\``}
       **Status:** ${StatusText}
       **Started:** ${FormatTime(ActiveShift.start_timestamp, "R")}
-      ${!ActiveShift.end_timestamp ? "" : `**On-Duty Time:** ${ReadableDuration(ActiveShift.durations.on_duty)}`}
+      ${ActiveShift.end_timestamp ? `**On-Duty Time:** ${ReadableDuration(ActiveShift.durations.on_duty)}` : ""}
       ${TotalBreakTime ?? ""}
-    `).replace(/\n+/g, "\n");
+    `).replaceAll(/\n+/g, "\n");
 
     RespContainer.addTextDisplayComponents({
       type: ComponentType.TextDisplay,
@@ -796,7 +796,7 @@ async function GetActiveShiftAndShiftDataContainer(
       **Started:** ${FormatTime(RecentlyEndedShift.start_timestamp, "R")}
       **Ended:** ${FormatTime(RecentlyEndedShift.end_timestamp ?? Interaction.createdAt, "R")}
       ${TotalBreakTime}
-    `).replace(/\n+/g, "\n");
+    `).replaceAll(/\n+/g, "\n");
 
     RespContainer.addTextDisplayComponents({
       type: ComponentType.TextDisplay,
@@ -890,7 +890,7 @@ async function HandleShiftModifications(
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     components: [RespContainer],
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const CompCollector = PromptMessage.createMessageComponentCollector({
     filter: (BInteract) => HandleCollectorFiltering(AdminInteract, BInteract),
@@ -1128,7 +1128,7 @@ async function HandleUserShiftsWipe(
     flags: MessageFlags.IsComponentsV2,
     components: [PromptContainer],
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   try {
     const ConfirmationInteract = await ConfirmationPrompt.awaitMessageComponent({
@@ -1268,16 +1268,20 @@ async function HandleUserShiftDelete(
       .setTitle("Shift Deleted")
       .setDescription(`The shift with the identifier \`${ShiftId}\` was successfully deleted.`)
       .replyToInteract(ModalSubmission),
-    setTimeout(
-      async () =>
-        GetActiveShiftAndShiftDataContainer(BInteract, { TargetUser, CmdShiftType }).then(
-          ({ RespContainer }) =>
-            ModalSubmission.editReply({
-              components: [RespContainer],
-              message: BInteract.message.id,
-            })
-        ),
-      300
+    new Promise((resolve) =>
+      setTimeout(async () => {
+        const { RespContainer } = await GetActiveShiftAndShiftDataContainer(BInteract, {
+          TargetUser,
+          CmdShiftType,
+        });
+
+        await ModalSubmission.editReply({
+          components: [RespContainer],
+          message: BInteract.message.id,
+        });
+
+        resolve(null);
+      }, 300)
     ),
   ]);
 }

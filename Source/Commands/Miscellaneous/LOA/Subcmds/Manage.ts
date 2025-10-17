@@ -6,7 +6,6 @@ import {
   ButtonBuilder,
   ComponentType,
   EmbedBuilder,
-  Message,
   ButtonStyle,
   userMention,
   ModalBuilder,
@@ -14,8 +13,8 @@ import {
   LabelBuilder,
   TextInputStyle,
   TextInputBuilder,
-  ModalSubmitInteraction,
   InteractionCollector,
+  ModalSubmitInteraction,
 } from "discord.js";
 
 import {
@@ -395,7 +394,7 @@ async function HandleLeaveEarlyEnd(
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationBtns)],
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const ButtonInteract = await ConfirmationMsg.awaitMessageComponent({
     componentType: ComponentType.Button,
@@ -495,7 +494,7 @@ async function HandlePendingLeaveCancellation(
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationBtns)],
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const ButtonInteract = await ConfirmationMsg.awaitMessageComponent({
     componentType: ComponentType.Button,
@@ -577,7 +576,7 @@ async function HandlePendingExtensionCancellation(
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationBtns)],
     flags: MessageFlags.Ephemeral,
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const ButtonInteract = await ConfirmationMsg.awaitMessageComponent({
     componentType: ComponentType.Button,
@@ -717,8 +716,9 @@ async function Callback(Interaction: PromptInteractType, CmdInteractReplyMsgId?:
   CompActionCollector.on("end", async (Collected, EndReason: string) => {
     if (EndReason === "Updated" || EndReason.match(/^\w+Delete/)) return;
     try {
-      ManagementComps[0].components.forEach((Btn) => Btn.setDisabled(true));
+      for (const Btn of ManagementComps[0].components) Btn.setDisabled(true);
       const LastInteract = Collected.last();
+
       if (LastInteract) {
         await LastInteract.editReply({
           components: ManagementComps,

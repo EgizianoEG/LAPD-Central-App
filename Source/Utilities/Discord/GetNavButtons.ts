@@ -66,13 +66,13 @@ export default function GetPredefinedNavButtons(
       .setDisabled(false)
   ) as NavButtonsActionRow;
 
-  ARInstance.components.forEach((Button) => {
+  for (const Button of ARInstance.components) {
     if (AddUniqueIds) {
       Button.setCustomId(`nav-${Button.data.custom_id}:${Interaction.user.id}:${RandomString(4)}`);
     } else {
       Button.setCustomId(`nav-${Button.data.custom_id}:${Interaction.user.id}`);
     }
-  });
+  }
 
   ARInstance.updateButtons = function UpdateNavigationButtons(
     ButtonsToEnable: { [key: string]: boolean | undefined },

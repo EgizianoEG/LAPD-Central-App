@@ -24,7 +24,7 @@ const FileLabel = "Utilities:ResolveDiscordUsernames";
 export default async function ResolveUsernamesToIds(
   GuildInstance: Guild,
   Usernames: string[],
-  MaxTimeMs: number = 5_000
+  MaxTimeMs: number = 5000
 ): Promise<Collection<string, string>> {
   const UsernameToUserIdMap = new Collection<string, string>();
   const MembersCached = GuildMembersCache.get(GuildInstance.id);
@@ -79,11 +79,11 @@ export default async function ResolveUsernamesToIds(
     }
 
     if (GuildMembers) {
-      GuildMembers.forEach((member) => {
-        if (Usernames.includes(member.user.username)) {
-          UsernameToUserIdMap.set(member.user.username, member.user.id);
+      for (const Member of GuildMembers.values()) {
+        if (Usernames.includes(Member.user.username)) {
+          UsernameToUserIdMap.set(Member.user.username, Member.user.id);
         }
-      });
+      }
     }
   } catch (Err: any) {
     AppLogger.error({

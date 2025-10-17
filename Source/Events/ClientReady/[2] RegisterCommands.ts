@@ -37,7 +37,7 @@ export default async function RegisterCommands(Client: DiscordClient): Promise<v
     const [AppCommands, LocalCommands, TestingGuildCommands] = await Promise.all([
       GetDeployedCommands(Client),
       GetLocalCommands(),
-      TestingGuild ? TestingGuild.commands.fetch() : null,
+      TestingGuild ? Promise.resolve(TestingGuild.commands.fetch()) : Promise.resolve(null),
     ]);
 
     const AppCommandsMap = new Collection(AppCommands.cache.map((Cmd) => [Cmd.name, Cmd]));
@@ -71,26 +71,17 @@ export default async function RegisterCommands(Client: DiscordClient): Promise<v
         GuildCommandsMap
       );
     } else {
-      const CommandProcessingPromises: Promise<any>[] = [];
-      CommandProcessingPromises.push(
-        ProcessCommandsToUpdate(Client, CategorizedCmds.CommandsToUpdate)
-      );
-
-      CommandProcessingPromises.push(
-        ProcessDeletedCommands(CategorizedCmds.DeletedCommands, AppCommandsMap, GuildCommandsMap)
-      );
-
-      if (CategorizedCmds.CommandsForScopeSwitch.length > 0) {
-        for (const LocalCommand of CategorizedCmds.CommandsForScopeSwitch) {
+      const CommandProcessingPromises: Promise<any>[] = [
+        ProcessCommandsToUpdate(Client, CategorizedCmds.CommandsToUpdate),
+        ProcessDeletedCommands(CategorizedCmds.DeletedCommands, AppCommandsMap, GuildCommandsMap),
+        ...CategorizedCmds.CommandsForScopeSwitch.map((LocalCommand) => {
           const CmdName = LocalCommand.data.name;
           const AppDeployedCmd = AppCommandsMap.get(CmdName) ?? GuildCommandsMap.get(CmdName);
-          if (AppDeployedCmd) {
-            CommandProcessingPromises.push(
-              HandleCommandScopeSwitching(Client, LocalCommand, AppDeployedCmd)
-            );
-          }
-        }
-      }
+          return AppDeployedCmd
+            ? HandleCommandScopeSwitching(Client, LocalCommand, AppDeployedCmd)
+            : Promise.resolve();
+        }),
+      ];
 
       await Promise.all(CommandProcessingPromises);
       if (TestingGuild && CategorizedCmds.GuildOnlyCommands.length > 0) {
@@ -888,14 +879,14 @@ async function DeployGlobalCommands(
     );
 
     const Deployed = await AppCmdsManager.set(CommandsToRegister);
-    GlobalCommandsToKeep.forEach((Cmd) => {
+    for (const Cmd of GlobalCommandsToKeep.values()) {
       if (Cmd instanceof ApplicationCommand) {
         const FoundLocalCmd = LocalCmdMap.get(Cmd.name);
         if (FoundLocalCmd) RegisterCommandInClient(Client, FoundLocalCmd);
       } else {
         RegisterCommandInClient(Client, Cmd);
       }
-    });
+    }
 
     AppLogger.info({
       message: "Successfully bulk processed and deployed %o global commands.",
@@ -950,14 +941,14 @@ async function DeployGuildCommands(
       );
 
       const Deployed = await AppCmdsManager.set(CommandsToRegister, GuildId);
-      CommandMap.forEach((Cmd) => {
+      for (const Cmd of CommandMap.values()) {
         if (Cmd instanceof ApplicationCommand) {
           const FoundLocalCmd = LocalCmdMap.get(Cmd.name);
           if (FoundLocalCmd) RegisterCommandInClient(Client, FoundLocalCmd);
         } else {
           RegisterCommandInClient(Client, Cmd);
         }
-      });
+      }
 
       AppLogger.info({
         message: "Successfully bulk processed and deployed %o commands for guild '%s' (%s).",

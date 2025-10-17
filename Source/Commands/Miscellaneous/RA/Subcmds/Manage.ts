@@ -8,7 +8,6 @@ import {
   MessageFlags,
   EmbedBuilder,
   ButtonStyle,
-  Message,
 } from "discord.js";
 
 import {
@@ -156,7 +155,7 @@ async function HandlePendingCancellation(
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationBtns)],
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const ButtonInteract = await ConfirmationMsg.awaitMessageComponent({
     componentType: ComponentType.Button,
@@ -249,7 +248,8 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
 
   CompCollector.on("end", async (Collected, EndReason) => {
     if (EndReason.match(/^\w+Delete/) || EndReason === "Cancelled") return;
-    ManagementComps[0]?.components.forEach((Btn) => Btn.setDisabled(true));
+    for (const Btn of ManagementComps[0].components) Btn.setDisabled(true);
+
     const LastInteract = (Collected.last() as ButtonInteraction<"cached">) || Interaction;
     await LastInteract.editReply({ message: ReplyMsg.id, components: ManagementComps }).catch(
       () => null

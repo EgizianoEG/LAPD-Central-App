@@ -1,6 +1,5 @@
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
-  Message,
   ButtonStyle,
   MessageFlags,
   ComponentType,
@@ -60,7 +59,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     components: [PromptContainer.attachPromptActionRows(PromptButtons)],
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     withResponse: true,
-  }).then((Resp) => Resp.resource!.message! as Message<true>);
+  }).then((Resp) => Resp.resource!.message!);
 
   const DisablePrompt = () => {
     const APICompatibleComps = PromptMessage.components.map((Comp) => Comp.toJSON());
