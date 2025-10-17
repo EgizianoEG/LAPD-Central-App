@@ -613,10 +613,10 @@ export namespace Shifts {
     /** The shift type; defaults to `"Default"`. */
     type: string;
 
-  /**
-   * Shift origin/source: `System` (auto), `Standard` (user),
-   * `Imported` (external), `Modified` (manual time modifiers), or `Administrative` (manual creation).
-   */
+    /**
+     * Shift origin/source: `System` (auto), `Standard` (user),
+     * `Imported` (external), `Modified` (manual time modifiers), or `Administrative` (manual creation).
+     */
     flag: keyof typeof ShiftFlags;
 
     /** The shift logged durations. */
