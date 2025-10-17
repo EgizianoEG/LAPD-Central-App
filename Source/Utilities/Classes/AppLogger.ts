@@ -114,10 +114,10 @@ const AddMemorySnapshot = Format(
     const MemUsage = process.memoryUsage();
 
     Info.memory = {
-      rss: `${(MemUsage.rss / 1024 / 1024).toFixed(2)} MB`,
-      external: `${(MemUsage.external / 1024 / 1024).toFixed(2)} MB`,
-      heap_used: `${(MemUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`,
-      heap_total: `${(MemUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+      rss: Math.round(MemUsage.rss / 1024 / 1024),
+      external: Math.round(MemUsage.external / 1024 / 1024),
+      heap_used: Math.round(MemUsage.heapUsed / 1024 / 1024),
+      heap_total: Math.round(MemUsage.heapTotal / 1024 / 1024),
     };
 
     return Info;
