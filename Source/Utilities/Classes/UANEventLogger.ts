@@ -393,6 +393,7 @@ export class BaseUserActivityNoticeLogger {
         .setDescription(
           Dedent(`
             Your leave of absence request, submitted on ${FormatTime(ApprovedRequest.request_date, "D")}, has been approved.
+
             Your LOA is set to expire on ${FormatTime(ApprovedRequest.end_date, "F")} (${FormatTime(ApprovedRequest.end_date, "R")}). \
             To manage your leave, including requesting an extension or an early termination, please use the \`/loa manage\` command on the server.
           `)
@@ -406,7 +407,7 @@ export class BaseUserActivityNoticeLogger {
       if (!this.is_leave) {
         DMApprovalNotice.setDescription(
           Dedent(`
-            Your reduced activity request, submitted on ${FormatTime(ApprovedRequest.request_date, "D")}, has been approved.
+            Your reduced activity request, submitted on ${FormatTime(ApprovedRequest.request_date, "D")}, has been approved. \
             Your RA is set to expire on ${FormatTime(ApprovedRequest.end_date, "F")} (${FormatTime(ApprovedRequest.end_date, "R")}).
           `)
         );
