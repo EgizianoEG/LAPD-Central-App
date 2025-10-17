@@ -1,4 +1,5 @@
 import CitationModel from "@Models/Citation.js";
+import { GuildCitations } from "@Source/Typings/Utilities/Database.js";
 import type { Types } from "mongoose";
 
 /**
@@ -13,12 +14,10 @@ export default async function GetCitationRecord(
   GuildId: string,
   CitNumId: number | string | Types.ObjectId,
   Lean: boolean = true
-) {
+): Promise<GuildCitations.AnyCitationData | null> {
   const SearchLabel = typeof CitNumId === "number" ? "num" : "_id";
   return CitationModel.findOne({
     guild: GuildId,
     [SearchLabel]: CitNumId,
-  })
-    .lean(Lean)
-    .exec();
+  }).lean(Lean);
 }

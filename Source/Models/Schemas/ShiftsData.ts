@@ -1,6 +1,6 @@
 import { Schema } from "mongoose";
 
-const Opts = { _id: false, versionKey: false };
+const Opts = { _id: false, versionKey: false } as const;
 const BaseFields = {
   all: {
     type: Number,

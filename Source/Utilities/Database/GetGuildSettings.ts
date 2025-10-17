@@ -5,7 +5,7 @@ import GuildModel from "@Models/Guild.js";
 /**
  * Retrieves the settings for a specific guild from the database.
  * @param GuildId - The unique identifier of the guild whose settings are to be retrieved.
- * @returns A promise that resolves to the guild's settings as a lean-ed object, or `null` if not found due to an edge case.
+ * @returns A promise that resolves to the guild's settings as a lean-ed flattened-ids object, or `null` if not found due to an edge case.
  * @remarks This function will attempt to create a new guild document if it doesn't exist in the database, and it will cache the settings for future use.
  */
 export default async function GetGuildSettings(
@@ -31,7 +31,8 @@ export default async function GetGuildSettings(
   }
 
   return GuildDocument
-    ? GuildDocument.toObject({ versionKey: false, flattenObjectIds: true }).settings
+    ? (GuildDocument.toObject({ versionKey: false, flattenObjectIds: true })
+        .settings as unknown as Guilds.GuildSettings)
     : null;
 }
 
@@ -43,9 +44,9 @@ export default async function GetGuildSettings(
 export function GetGuildSettingsSync(GuildId: string): Guilds.GuildSettings | null {
   const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
   return GuildDocumentCacheRef
-    ? new GuildModel(GuildDocumentCacheRef).toObject({
+    ? (new GuildModel(GuildDocumentCacheRef).toObject({
         versionKey: false,
         flattenObjectIds: true,
-      }).settings
+      }).settings as unknown as Guilds.GuildSettings)
     : null;
 }

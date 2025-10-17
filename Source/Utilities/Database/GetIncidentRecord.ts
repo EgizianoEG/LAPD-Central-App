@@ -10,7 +10,5 @@ export default async function GetIncidentRecord(
   const IsValidObjId = Types.ObjectId.isValid(IncidentDatabaseId);
   const SearchLabel = IsValidObjId ? "_id" : "num";
 
-  return IncidentModel.findOne({ guild: Guild, [SearchLabel]: IncidentDatabaseId })
-    .lean(Lean)
-    .exec();
+  return IncidentModel.findOne({ guild: Guild, [SearchLabel]: IncidentDatabaseId }).lean(Lean);
 }

@@ -1,3 +1,4 @@
+import { GuildArrests } from "@Source/Typings/Utilities/Database.js";
 import { Types } from "mongoose";
 import ArrestModel from "@Models/Arrest.js";
 
@@ -15,12 +16,10 @@ export default async function GetArrestRecord(
   Guild: string,
   BookingNumOrId: number | string | Types.ObjectId,
   Lean: boolean = true
-) {
+): Promise<GuildArrests.ArrestRecord | null> {
   const SearchLabel = typeof BookingNumOrId === "number" ? "booking_num" : "_id";
   return ArrestModel.findOne({
     guild: Guild,
     [SearchLabel]: BookingNumOrId,
-  })
-    .lean(Lean)
-    .exec();
+  }).lean(Lean);
 }
