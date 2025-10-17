@@ -1,6 +1,9 @@
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+# Development ignored app commands
+/Source/Commands/Development/**/*.ignored.[tj]s
+
 # Confedential data
 [Ss]ecrets.[jt]s
 [Ss]ecrets.json
