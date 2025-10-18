@@ -102,7 +102,7 @@ const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.Callsign
     type: Date,
     index: true,
     default: null,
-    required: true,
+    required: false,
   },
 
   /**
