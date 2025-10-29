@@ -31,8 +31,10 @@ export default async function GetGuildSettings(
   }
 
   return GuildDocument
-    ? (GuildDocument.toObject({ versionKey: false, flattenObjectIds: true })
-        .settings as unknown as Guilds.GuildSettings)
+    ? (("toObject" in GuildDocument
+        ? GuildDocument.toObject({ versionKey: false, flattenObjectIds: true })
+        : GuildDocument
+      ).settings as unknown as Guilds.GuildSettings)
     : null;
 }
 
