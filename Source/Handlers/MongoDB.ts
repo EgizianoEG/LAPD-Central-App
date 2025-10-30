@@ -152,7 +152,7 @@ async function ReloadGuildCache() {
 
 async function ReloadActiveShiftsCache() {
   const InitialRunShiftDocuments = await ShiftModel.find({
-    flag: { in: TrackedShiftFlags },
+    flag: { $in: TrackedShiftFlags },
     end_timestamp: null,
   })
     .lean()
