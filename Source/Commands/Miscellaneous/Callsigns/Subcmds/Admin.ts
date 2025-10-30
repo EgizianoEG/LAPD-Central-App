@@ -528,12 +528,11 @@ async function HandleCallsignApprovalOrDenial(
   let ReqCallsign = await CallsignModel.findById(TCallsignId).exec();
 
   if (!ReqCallsign || ReqCallsign.request_status !== GenericRequestStatuses.Pending) {
-    return PromiseAllSettledThenTrue([
-      CmdCallback(BtnInteract),
-      new ErrorContainer()
-        .useErrTemplate("CallsignRequestModified")
-        .replyToInteract(BtnInteract, true),
-    ]);
+    await new ErrorContainer()
+      .useErrTemplate("CallsignRequestModified")
+      .replyToInteract(BtnInteract, true);
+
+    return CmdCallback(BtnInteract).then(() => true);
   }
 
   const NotesModal = GetAdminModal(BtnInteract, ActionType, false);
@@ -551,7 +550,7 @@ async function HandleCallsignApprovalOrDenial(
       CmdCallback(BtnInteract),
       new ErrorContainer()
         .useErrTemplate("CallsignRequestModified")
-        .replyToInteract(BtnInteract, true),
+        .replyToInteract(SubmissionResponse, true, true, "editReply"),
     ]);
   }
 
@@ -595,12 +594,11 @@ async function HandleCallsignRelease(BtnInteract: ButtonInteraction<"cached">): 
   const TargetCallsign = await CallsignModel.findById(ActiveCallsignId).exec();
 
   if (!TargetCallsign || !TargetCallsign.is_active(BtnInteract.createdAt)) {
-    return PromiseAllSettledThenTrue([
-      CmdCallback(BtnInteract),
-      new ErrorContainer()
-        .useErrTemplate("CallsignNotAssignedToRelease")
-        .replyToInteract(BtnInteract, true),
-    ]);
+    await new ErrorContainer()
+      .useErrTemplate("CallsignNotAssignedToRelease")
+      .replyToInteract(BtnInteract, true);
+
+    return CmdCallback(BtnInteract).then(() => true);
   }
 
   const NotesModal = GetAdminModal(BtnInteract, "Release", false);
@@ -628,12 +626,11 @@ async function HandleCallsignRelease(BtnInteract: ButtonInteraction<"cached">): 
   );
 
   if (!ReleasedCallsign) {
-    return PromiseAllSettledThenTrue([
-      CmdCallback(BtnInteract),
-      new ErrorContainer()
-        .useErrTemplate("CallsignNotAssignedToRelease")
-        .replyToInteract(BtnInteract, true),
-    ]);
+    await new ErrorContainer()
+      .useErrTemplate("CallsignNotAssignedToRelease")
+      .replyToInteract(BtnInteract, true);
+
+    return CmdCallback(BtnInteract).then(() => true);
   }
 
   const NotesInput = SubmissionResponse.fields.getTextInputValue("notes") || null;
@@ -670,12 +667,11 @@ async function HandleCallsignAssignment(
     : false;
 
   if (!TargetMember || !IsRecognizedStaff) {
-    return PromiseAllSettledThenTrue([
-      CmdCallback(BtnInteract),
-      new ErrorContainer()
-        .useErrTemplate("CallsignCannotAssignNonStaffMember")
-        .replyToInteract(BtnInteract, true),
-    ]);
+    await new ErrorContainer()
+      .useErrTemplate("CallsignCannotAssignNonStaffMember")
+      .replyToInteract(BtnInteract, true);
+
+    return CmdCallback(BtnInteract).then(() => true);
   }
 
   const AssignmentModal = GetAdminModal(BtnInteract, "Assignment", false);
@@ -796,7 +792,7 @@ async function CmdCallback(Interaction: CmdOrButtonCachedInteraction) {
     else await Interaction.deferReply();
   }
 
-  const CallsignData = await GetCallsignAdminData(Interaction.guildId, TargetUser.id, new Date());
+  const CallsignData = await GetCallsignAdminData(Interaction.guildId, TargetUser.id);
   const PanelContainer = GetAdminOrMgmtPanelContainer(TargetUser, CallsignData);
   const PanelComponents = GetPanelComponents(
     Interaction,
