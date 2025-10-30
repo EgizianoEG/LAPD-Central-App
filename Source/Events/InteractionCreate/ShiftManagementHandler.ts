@@ -486,6 +486,10 @@ async function UpdateManagementPrompt(
   ActiveShift?: ShiftDocument | null,
   PreviousAction?: RecentShiftAction | null
 ) {
+  if (!(Interaction.deferred || Interaction.replied)) {
+    await Interaction.deferUpdate().catch(() => null);
+  }
+
   ActiveShift = ActiveShift || (await GetActiveShift({ UserOnly: true, Interaction }));
   if (ActiveShift?.end_timestamp !== null) ActiveShift = null;
 
@@ -611,16 +615,9 @@ async function UpdateManagementPrompt(
   }
 
   PromptContainer.attachPromptActionRows(ManagementComponents);
-  if (Interaction.deferred || Interaction.replied) {
-    return Interaction.editReply({
-      flags: MessageFlags.IsComponentsV2,
-      message: PromptMsgId,
-      components: [PromptContainer],
-    });
-  }
-
-  return Interaction.update({
+  return Interaction.editReply({
     flags: MessageFlags.IsComponentsV2,
+    message: PromptMsgId,
     components: [PromptContainer],
   });
 }
