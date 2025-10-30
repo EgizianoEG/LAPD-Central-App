@@ -1267,12 +1267,13 @@ async function HandleUserShiftDelete(
     );
   }
 
+  await new SuccessContainer()
+    .setTitle("Shift Deleted")
+    .setDescription(`The shift with the identifier \`${ShiftId}\` was successfully deleted.`)
+    .replyToInteract(ModalSubmission);
+
   return Promise.allSettled([
     ShiftActionLogger.LogShiftDelete(BInteract, ShiftDeleted),
-    new SuccessContainer()
-      .setTitle("Shift Deleted")
-      .setDescription(`The shift with the identifier \`${ShiftId}\` was successfully deleted.`)
-      .replyToInteract(ModalSubmission),
     new Promise((resolve) =>
       setTimeout(async () => {
         const { RespContainer } = await GetActiveShiftAndShiftDataContainer(BInteract, {
