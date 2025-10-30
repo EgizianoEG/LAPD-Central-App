@@ -267,7 +267,7 @@ export default class ShiftActionLogger {
       init_interact: UserInteract,
     });
 
-    const BreakStartedRT = FormatTime(Math.round(ShiftDoc.events.breaks[0]![0] / 1000), "R");
+    const BreakStartedRT = FormatTime(Math.round(ShiftDoc.events.breaks[0][0] / 1000), "R");
     const LogEmbed = BaseData.BaseEmbed.setTitle("Shift Break Started")
       .setColor(Colors.ShiftBreak)
       .setFields(
@@ -776,13 +776,15 @@ export default class ShiftActionLogger {
    * @param ShiftModified - ...
    * @param TimeAddedSub - The time which has been added/subtracted in milliseconds.
    * @param ActionType - The action taken on the shift; either adding or subtracting.
+   * @param IsNewShift - Whether the shift is newly created just for the sake of adding this time or not.
    * @returns A promise that resolves to the logging message sent or `undefined` if it wasn't.
    */
   public static async LogShiftTimeAddSub(
     UserInteract: Exclude<DiscordUserInteract, GuildMember>,
     ShiftModified: HydratedShiftDocument,
     TimeAddedSub: number,
-    ActionType: "Add" | "Subtract"
+    ActionType: "Add" | "Subtract",
+    IsNewShift: boolean = false
   ) {
     const LoggingChannel = await this.GetLoggingChannel(UserInteract.guild);
     const LogEmbed = new EmbedBuilder()
@@ -802,9 +804,13 @@ export default class ShiftActionLogger {
     if (ActionType === "Add") {
       LogEmbed.setTitle("Shift Modified — Time Add");
       LogEmbed.setColor(Colors.ShiftOn);
-    } else {
+    } else if (ActionType === "Subtract") {
       LogEmbed.setTitle("Shift Modified — Time Subtract");
       LogEmbed.setColor(Colors.ShiftOff);
+    }
+
+    if (IsNewShift) {
+      LogEmbed.setTitle("Shift Created — Time Added");
     }
 
     return LoggingChannel?.send({ embeds: [LogEmbed] });
