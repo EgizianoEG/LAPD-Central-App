@@ -35,5 +35,5 @@ export default function AutocompleteHeight(
     });
   }
 
-  return Suggestions.map((Choice) => ({ name: Choice, value: Choice }));
+  return Suggestions.slice(0, 25).map((Choice) => ({ name: Choice, value: Choice }));
 }
