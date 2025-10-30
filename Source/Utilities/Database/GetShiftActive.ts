@@ -41,6 +41,7 @@ export default async function GetShiftActive<UOType extends boolean | undefined 
       (Shift) =>
         Shift.guild === Interaction.guildId &&
         Shift.user === Interaction.user.id &&
+        Shift.end_timestamp == null &&
         (ShiftType == null ||
           (Array.isArray(ShiftType) ? ShiftType.includes(Shift.type) : Shift.type === ShiftType))
     );

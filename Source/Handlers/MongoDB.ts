@@ -13,8 +13,13 @@ import Mongoose from "mongoose";
 
 const FileLabel = "Handlers:MongoDB";
 const BaseGuildDocument: Guilds.GuildDocument = new GuildModel().toObject();
-Mongoose.Schema.Types.String.checkRequired((v: string | null | undefined) => v != null);
+const TrackedShiftFlags: readonly ShiftFlags[] = [
+  ShiftFlags.Standard,
+  ShiftFlags.Administrative,
+  ShiftFlags.Modified,
+];
 
+Mongoose.Schema.Types.String.checkRequired((v: string | null | undefined) => v != null);
 export default async function MongoDBHandler() {
   const DatabaseURI = MongoDB.URI.replace(
     /<username>:<password>/,
@@ -41,7 +46,7 @@ export default async function MongoDBHandler() {
       db_name: MongoDB.DBName,
       username: MongoDB.Username,
       stack: Err.stack,
-      error: { ...Err },
+      error: Err,
     });
   }
 }
@@ -105,7 +110,7 @@ async function SetupActiveShiftsChangeStream() {
     }
 
     if ("fullDocument" in Change && Change.fullDocument !== undefined) {
-      if (Change.fullDocument.flag !== ShiftFlags.Standard) return;
+      if (!TrackedShiftFlags.includes(Change.fullDocument.flag as ShiftFlags)) return;
       if (Change.fullDocument.end_timestamp === null) {
         MongoDBCache.ActiveShifts.set(Change.fullDocument._id, Change.fullDocument);
       } else {
@@ -147,7 +152,7 @@ async function ReloadGuildCache() {
 
 async function ReloadActiveShiftsCache() {
   const InitialRunShiftDocuments = await ShiftModel.find({
-    flag: ShiftFlags.Standard,
+    flag: { in: TrackedShiftFlags },
     end_timestamp: null,
   })
     .lean()

@@ -827,7 +827,10 @@ async function HandlePromptDisabling(
   Interaction: RepliableInteraction<"cached">,
   PromptMsg: Message
 ) {
-  const APICompatibleComps = PromptMsg.components.map((Comp) => Comp.toJSON());
+  const APICompatibleComps = (
+    (await PromptMsg.fetch().catch(() => null)) ?? PromptMsg
+  ).components.map((Comp) => Comp.toJSON());
+
   const DisabledComponents = DisableMessageComponents(APICompatibleComps);
   const EditMethod =
     Interaction.deferred || Interaction.replied
@@ -1357,9 +1360,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
           message: "An unexpected error occurred while responding to a button interaction;",
           label: FileLabel,
           stack: Err.stack,
-          details: {
-            ...Err,
-          },
+          error: Err,
         });
 
         return new ErrorEmbed().useErrTemplate("AppError").replyToInteract(ButtonInteract, true);
