@@ -1,3 +1,4 @@
+import { addMilliseconds, subMilliseconds } from "date-fns";
 import { GenericRequestStatuses } from "@Config/Constants.js";
 import { AggregationResults } from "@Typings/Utilities/Database.js";
 import CallsignModel from "@Models/Callsign.js";
@@ -128,6 +129,7 @@ export async function GetCallsignAdminData(
                 guild: GuildId,
                 requester: TargetUserId,
                 request_status: GenericRequestStatuses.Approved,
+                expiry_notified: false,
                 $or: [{ expiry: null }, { expiry: { $gt: ComparisonDate } }],
               },
             },
@@ -145,6 +147,14 @@ export async function GetCallsignAdminData(
                     request_status: GenericRequestStatuses.Approved,
                     expiry: { $lte: ComparisonDate },
                   },
+                  {
+                    request_status: GenericRequestStatuses.Approved,
+                    expiry_notified: true,
+                    expiry: {
+                      $lte: addMilliseconds(ComparisonDate, 1000),
+                      $gte: subMilliseconds(ComparisonDate, 1000),
+                    },
+                  },
                 ],
               },
             },
@@ -159,12 +169,20 @@ export async function GetCallsignAdminData(
                 requester: TargetUserId,
                 $or: [
                   {
+                    request_status: {
+                      $in: [GenericRequestStatuses.Denied, GenericRequestStatuses.Cancelled],
+                    },
+                  },
+                  {
                     request_status: GenericRequestStatuses.Approved,
                     expiry: { $lte: ComparisonDate },
                   },
                   {
-                    request_status: {
-                      $in: [GenericRequestStatuses.Denied, GenericRequestStatuses.Cancelled],
+                    request_status: GenericRequestStatuses.Approved,
+                    expiry_notified: true,
+                    expiry: {
+                      $lte: addMilliseconds(ComparisonDate, 1000),
+                      $gte: subMilliseconds(ComparisonDate, 1000),
                     },
                   },
                 ],
