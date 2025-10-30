@@ -32,7 +32,7 @@ export interface GetBookingMugshotOptions {
    * Whether to upload the generated mugshot to ImgBB and return its direct URL.
    * Defaults to `false`.
    */
-  return_url?: boolean;
+  return_url?: boolean | null;
 
   /**
    * The gender of the user, used to select an appropriate fallback thumbnail
@@ -45,26 +45,26 @@ export interface GetBookingMugshotOptions {
    * The booking date associated with the mugshot.
    * Defaults to the current date if not provided.
    */
-  booking_date?: Date;
+  booking_date?: Date | null;
 
   /**
    * The height of the person in inches or as a string representation (e.g., "5'10").
    * For example, a height of 5 feet 10 inches can be provided as `70` (in inches) or `"5'10"`.
    */
-  height?: number | string;
+  height?: number | string | null;
 
   /**
    * The percentage from the top of the image where the head should be positioned (0-100).
    * Defaults to 15%. This is used for height positioning, especially if the height
    * of a worn hat or similar accessory is known.
    */
-  head_position?: number;
+  head_position?: number | null;
 
   /**
    * The division or department associated with the mugshot.
    * This is used for the text overlay on the mugshot.
    */
-  division?: string;
+  division?: string | null;
 }
 
 /**

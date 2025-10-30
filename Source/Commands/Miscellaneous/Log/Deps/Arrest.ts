@@ -40,6 +40,7 @@ import { ReporterInfo } from "../Log.js";
 import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 
+import { DivisionBeats } from "@Source/Resources/LAPDCallsigns.js";
 import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
 import { ListSplitRegex } from "@Resources/RegularExpressions.js";
 import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
@@ -47,6 +48,7 @@ import { IsValidPersonHeight, IsValidRobloxUsername } from "@Utilities/Helpers/V
 
 import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
 import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
+import GetActiveCallsign from "@Source/Utilities/Database/GetActiveCallsign.js";
 import GetBookingMugshot from "@Utilities/ImageRendering/ThumbToMugshot.js";
 import GetAllBookingNums from "@Utilities/Database/GetBookingNums.js";
 import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
@@ -54,10 +56,10 @@ import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
 import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
 import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
 import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
+import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import AppError from "@Utilities/Classes/AppError.js";
 import Dedent from "dedent";
-import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
 
 const ListFormatter = new Intl.ListFormat("en");
 export type CmdOptionsType<IsPrimaryOfficerNullable extends boolean = false> = {
@@ -369,6 +371,10 @@ async function OnChargesAndDetailsModalSubmission(
     ? await GetUserInfo(ArrestingOfficerRobloxId)
     : null;
 
+  const ReporterDivisionBeat =
+    (await GetActiveCallsign(CmdInteract.guildId, CmdInteract.user.id))?.designation.division ??
+    null;
+
   const BookingMugshotURL = await GetBookingMugshot<true>({
     thumb_is_bust: true,
     return_url: true,
@@ -378,6 +384,7 @@ async function OnChargesAndDetailsModalSubmission(
     booking_num: BookingNumber,
     user_gender: CmdOptions.Gender,
     booking_date: CmdInteract.createdAt,
+    division: ReporterDivisionBeat ? DivisionBeats[ReporterDivisionBeat]?.name : null,
   });
 
   if (!PrimaryIsReporter) {
