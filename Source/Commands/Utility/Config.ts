@@ -3561,6 +3561,10 @@ async function HandleCallsignsModuleConfigPageInteracts(
     MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
   }
 
+  if (RecInteract.isStringSelectMenu() && CustomId.startsWith(ActionMap.AlertOnRequest)) {
+    MState.ModuleConfig.alert_on_request = RecInteract.values[0] === "true";
+  }
+
   if (RecInteract.isStringSelectMenu() && CustomId.startsWith(ActionMap.AutoRenameOnApproval)) {
     MState.ModuleConfig.update_nicknames = RecInteract.values[0] === "true";
   }
