@@ -200,13 +200,7 @@ async function HandleManualVerification(
           ? CurrentAccountInfo.description
           : CurrentAccountInfo.about;
 
-      if (AboutText === undefined) {
-        return new ErrorContainer()
-          .useErrTemplate("AppError")
-          .replyToInteract(ButtonInteract, true, true, "followUp");
-      }
-
-      if (AboutText.includes(SampleText)) {
+      if (AboutText?.includes(SampleText)) {
         await UpdateLinkedRobloxUser(CmdInteract, AccountRobloxId);
         ComponentCollector.stop("Confirmed");
 
@@ -218,19 +212,25 @@ async function HandleManualVerification(
             ),
           ],
         });
-      } else {
-        if (--AttemptsLeft === 0) ComponentCollector.stop("Limit");
+      }
+
+      if (--AttemptsLeft === 0) ComponentCollector.stop("Limit");
+      if (!AboutText) {
         return new ErrorContainer()
-          .useErrTemplate(
-            AttemptsLeft === 0
-              ? "RobloxUserVerificationFailedLimit"
-              : "RobloxUserVerificationFailed",
-            AccountExactUsername,
-            AttemptsLeft || ""
-          )
+          .useErrTemplate("RobloxVerificationNoAboutText")
           .replyToInteract(ButtonInteract, true, true, "followUp");
       }
-    } else if (ButtonInteract.customId.includes("cancel-login")) {
+
+      return new ErrorContainer()
+        .useErrTemplate(
+          AttemptsLeft === 0 ? "RobloxUserVerificationFailedLimit" : "RobloxUserVerificationFailed",
+          AccountExactUsername,
+          AttemptsLeft || ""
+        )
+        .replyToInteract(ButtonInteract, true, true, "followUp");
+    }
+
+    if (ButtonInteract.customId.includes("cancel-login")) {
       ComponentCollector.stop("Cancelled");
       return new InfoContainer()
         .setTitle("Login Cancelled")
@@ -242,7 +242,7 @@ async function HandleManualVerification(
   });
 
   ComponentCollector.on("end", async (CIs, EndReason) => {
-    if (!(EndReason !== "Cancelled" && EndReason !== "Confirmed")) return;
+    if (EndReason === "Cancelled" || EndReason === "Confirmed") return;
     const LastInteract = CIs.last() ?? CmdInteract;
     const APICompatibleComps = LoginPromptMsg.components.map((Comp) => Comp.toJSON());
     const DisabledComponents = DisableMessageComponents(APICompatibleComps);

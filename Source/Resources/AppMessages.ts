@@ -221,7 +221,13 @@ export const ErrorMessages = {
   RobloxUserVerificationFailedLimit: {
     Title: "Verification Failed",
     Description:
-      "Login verification as `%s` failed.\nPlease rerun the command and ensure you follow the appropriate instructions.",
+      "Verification for `%s` failed. Please re-run the command and follow the verification steps carefully; ensure that the provided sample text appears in your Roblox profile's About section before confirming the prompt.",
+  },
+
+  RobloxVerificationNoAboutText: {
+    Title: "Verification Failed",
+    Description:
+      "Your Roblox profile appears to have an empty 'About'. Add the required verification text to the About (profile description) section and attempt again.",
   },
 
   /**
@@ -1362,12 +1368,12 @@ export const InfoMessages = {
   RobloxAccountLoginManualSuccess: {
     Title: "Successfully Linked",
     Description:
-      "Your Roblox account, %s, has successfully been verified and linked to the application. You may now remove the sample text from your profile description.",
+      "Your Roblox account, %s, has been verified and linked to the application. You may now remove the verification text from your Roblox profile if you wish.",
   },
 
   CallsignsListNoRecordsWithActiveStatus: {
     Title: "No Call Signs Found",
-    Description: "There are currently no active call sign records in this server.",
+    Description: "There are no active call sign records in this server at the moment.",
   },
 
   CallsignsListNoRecordsWithPendingStatus: {
