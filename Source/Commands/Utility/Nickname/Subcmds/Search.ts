@@ -1,5 +1,4 @@
 import {
-  Collection,
   GuildMember,
   MessageFlags,
   ContainerBuilder,
@@ -11,6 +10,7 @@ import SafeRegex from "safe-regex";
 import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
 import { ErrorContainer, InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
 import { UserInputAllowedRegexFlags } from "@Source/Config/Constants.js";
+import { GetGuildMembersSnapshot } from "@Utilities/Helpers/Cache.js";
 import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import { GetErrorId } from "@Utilities/Strings/Random.js";
 
@@ -60,15 +60,8 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
         .replyToInteract(CmdInteract, true);
     }
 
-    let GuildMembers: Collection<string, GuildMember>;
     await CmdInteract.deferReply({ flags: ReplyFlags });
-
-    if (GuildMembersCache.has(CmdInteract.guildId)) {
-      GuildMembers = GuildMembersCache.get(CmdInteract.guildId)!;
-    } else {
-      GuildMembers = await CmdInteract.guild.members.fetch();
-      GuildMembersCache.set(CmdInteract.guildId, GuildMembers);
-    }
+    const GuildMembers = await GetGuildMembersSnapshot(CmdInteract.guild);
 
     const MembersMatching = GuildMembers.filter((Member) => {
       return (
@@ -106,9 +99,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
       message: "An error occurred while searching for members;",
       error_id: ErrorId,
       stack: Err.stack,
-      error: {
-        ...Err,
-      },
+      error: Err,
     });
 
     return new ErrorContainer()

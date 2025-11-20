@@ -25,7 +25,7 @@ import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
 import { UserInputAllowedRegexFlags } from "@Source/Config/Constants.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed, WarnEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
-  GuildMembersCache,
+  GetGuildMembersSnapshot,
   OngoingServerMemberNicknamesReplaceCache,
 } from "@Utilities/Helpers/Cache.js";
 
@@ -594,9 +594,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
         .replyToInteract(CmdInteract, true);
     }
 
-    const GuildMembers =
-      GuildMembersCache.get(CmdInteract.guildId) ?? (await CmdInteract.guild.members.fetch());
-
+    const GuildMembers = await GetGuildMembersSnapshot(CmdInteract.guild);
     const MembersMatching = GuildMembers.filter((Member) => {
       return (
         !Member.user.bot &&
