@@ -20,6 +20,7 @@ export const RiskyRolePermissions = [
   PermissionFlagsBits.ManageGuildExpressions,
 ];
 
+export const UserInputAllowedRegexFlags = ["i", "g", "gi"] as const;
 export const DASignatureFormats = {
   DiscordNickname: 1 << 0,
   DiscordUsername: 1 << 1,
