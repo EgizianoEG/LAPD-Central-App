@@ -43,6 +43,8 @@ export default async function CronJobsHandler(Client: DiscordClient) {
         }
 
         ScheduledTasks.set(JobFileName, CronTask);
+      } else if (JobData.cron_func === null) {
+        // Cron function is explicitly set to null; ignore this case.
       } else {
         AppLogger.warn({
           label: HandlerLabel,
