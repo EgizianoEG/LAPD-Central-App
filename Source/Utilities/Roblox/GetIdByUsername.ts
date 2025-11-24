@@ -1,5 +1,6 @@
-import { APIResponses } from "@Typings/External/Roblox.js";
+import { IsValidRobloxUsername } from "../Helpers/Validators.js";
 import { RobloxAPICache } from "../Helpers/Cache.js";
+import { APIResponses } from "@Typings/External/Roblox.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import Axios from "axios";
 
@@ -59,7 +60,7 @@ async function GetIdByProfileRedirect(Username: string): Promise<[number, string
  * Primarily retrieves the Roblox user Id(s) of the given username(s).
  * @param Usernames - The Roblox username(s) to get the Id(s) for. Can be a string or an array of strings.
  * @param ExcludeBanned - Whether to exclude banned users from the response and results. `false` by default.
- * @return An array of tuples or a single tuple (`[string, number, boolean]`), where each tuple contains the user ID, the exact found username, and a boolean indicating whether the user was found.
+ * @return An array of tuples or a single tuple (`[number, string, boolean]`), where each tuple contains the user Id, the exact found username, and a boolean indicating whether the user was found.
  *
  * @notice The returned tuple(s) value can be `[0, "", false]` indicating that the user was not found.
  * This can be a result of: input username wasn't found, the user is banned (optional parameter), or the HTTP request returned an error.
@@ -87,6 +88,14 @@ export default async function GetIdByUsername<Input extends string | string[]>(
 
   if (RobloxAPICache.IdByUsername.has(Stringified)) {
     return RobloxAPICache.IdByUsername.get(Stringified) as UserIdLookupResult<Input>;
+  }
+
+  if (RequestArray.every((Username) => IsValidRobloxUsername(Username) === false)) {
+    return (
+      Array.isArray(Usernames)
+        ? RequestArray.map((Username) => [0, Username, false] as const)
+        : [0, RequestArray[0], false]
+    ) as UserIdLookupResult<Input>;
   }
 
   try {
