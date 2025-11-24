@@ -212,7 +212,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       FileEntries.filter((Entry) => !Entry.user_id && Entry.username).map(
         (Entry) => Entry.username
       ),
-      30_000
+      60_000
     );
 
     for (const Entry of FileEntries) {

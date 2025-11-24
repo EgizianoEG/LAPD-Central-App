@@ -9,6 +9,10 @@ export interface CronJobFileDefReturn {
   /**
    * The function to be executed on each scheduled occurrence of the cron job.
    * This property is optional, and if not provided, the con job scheduling will be skipped (not registered and will not be executed at any time).
+   * Specifically setting this to `null` will not register the cron job neither log a warning unlike `undefined`.
+   *
+   * @param {Date | "manual" | "init"} [arg0] - The first argument representing the time or trigger type.
+   * @param {DiscordClient} [arg1] - The second argument representing the Discord client instance.
    *
    * - `arg0?: Date | "manual" | "init"`: The first argument is either a `Date` object representing
    *   the exact time when the cron job was triggered, or a string (`"manual"` or `"init"`) that
@@ -26,7 +30,7 @@ export interface CronJobFileDefReturn {
    * @returns The function can return either a value of any type or a promise that resolves to any value,
    * allowing it to perform asynchronous operations as needed.
    */
-  cron_func?: (arg0?: Date | "manual" | "init", arg1?: DiscordClient) => any | Promise<any>;
+  cron_func?: (arg0?: Date | "manual" | "init", arg1?: DiscordClient) => any | Promise<any> | null;
 
   cron_opts?: ScheduleOptions & {
     /**

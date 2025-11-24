@@ -11,6 +11,7 @@ import {
 
 import { differenceInMilliseconds, milliseconds } from "date-fns";
 import { Dedent, ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { GetGuildMembersSnapshot } from "@Utilities/Helpers/Cache.js";
 import { ShiftTypeExists } from "@Utilities/Database/ShiftTypeValidators.js";
 import { ParseDateInputs } from "./Officer.js";
 import { InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
@@ -117,8 +118,9 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   });
 
   const GuildSettings = await GetGuildSettings(CmdInteraction.guildId);
-  const FetchedGuildMembers = await CmdInteraction.guild.members.fetch();
+  const FetchedGuildMembers = await GetGuildMembersSnapshot(CmdInteraction.guild);
   const ServerDefaultQuota = GuildSettings?.shift_management.default_quota ?? 0;
+
   const ReportSpredsheetURL = await CreateActivityReport({
     guild: CmdInteraction.guild,
     after: DateRangeFilters.since,

@@ -22,13 +22,13 @@ import { GetErrorId } from "@Utilities/Strings/Random.js";
 import { Emojis, Colors } from "@Config/Shared.js";
 import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
 import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { UserInputAllowedRegexFlags } from "@Source/Config/Constants.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed, WarnEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
 import {
-  GuildMembersCache,
+  GetGuildMembersSnapshot,
   OngoingServerMemberNicknamesReplaceCache,
 } from "@Utilities/Helpers/Cache.js";
 
-const RegexFlags = ["i", "g", "gi"];
 // ---------------------------------------------------------------------------------------
 // Helpers & Handlers:
 // -------------------
@@ -594,9 +594,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
         .replyToInteract(CmdInteract, true);
     }
 
-    const GuildMembers =
-      GuildMembersCache.get(CmdInteract.guildId) ?? (await CmdInteract.guild.members.fetch());
-
+    const GuildMembers = await GetGuildMembersSnapshot(CmdInteract.guild);
     const MembersMatching = GuildMembers.filter((Member) => {
       return (
         !Member.user.bot &&
@@ -709,7 +707,7 @@ const CommandObject = {
         .setDescription("The regex flag(s) to use.")
         .setRequired(false)
         .setChoices(
-          ...RegexFlags.map((RegexFlag) => {
+          ...UserInputAllowedRegexFlags.map((RegexFlag) => {
             return { name: RegexFlag, value: RegexFlag };
           })
         )

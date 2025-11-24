@@ -1181,6 +1181,18 @@ export const ErrorMessages = {
     Description:
       "You do not have the required %s permission to perform this action. Kindly check your permissions and try again.",
   },
+
+  RobloxAuthRequiredSettingDisabled: {
+    Title: "Roblox Authentication Required",
+    Description:
+      "Cannot proceed with this change as Roblox authentication must stay enabled (Basic Configuration → Roblox Account Link Required) before you can enable Roblox-dependent features.",
+  },
+
+  RobloxDependentFeatureSettingConflict: {
+    Title: "Roblox-Dependent Feature Conflict",
+    Description:
+      "Cannot proceed with this change as one or more Roblox-dependent features are currently enabled. Please disable all Roblox-dependent features before disabling Roblox required authentication (Roblox Account Link Required).",
+  },
 };
 
 export const InfoMessages = {

@@ -8,9 +8,7 @@ import GuildModel from "@Models/Guild.js";
  * @returns A promise that resolves to the guild's settings as a lean-ed flattened-ids object, or `null` if not found due to an edge case.
  * @remarks This function will attempt to create a new guild document if it doesn't exist in the database, and it will cache the settings for future use.
  */
-export default async function GetGuildSettings(
-  GuildId: string
-): Promise<Guilds.GuildSettings | null> {
+export default async function GetGuildSettings(GuildId: string): Promise<Guilds.GuildSettings> {
   const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
   let GuildDocument: InstanceType<typeof GuildModel> | null;
 
@@ -30,12 +28,14 @@ export default async function GetGuildSettings(
     GuildDocument = CreatedDocument;
   }
 
-  return GuildDocument
-    ? (("toObject" in GuildDocument
-        ? GuildDocument.toObject({ versionKey: false, flattenObjectIds: true })
-        : GuildDocument
-      ).settings as unknown as Guilds.GuildSettings)
-    : null;
+  if (!GuildDocument) {
+    throw new Error(`Unexpected error: guild document for Id '${GuildId}' wasn't found.`);
+  }
+
+  return ("toObject" in GuildDocument
+    ? GuildDocument.toObject({ versionKey: false, flattenObjectIds: true })
+    : GuildDocument
+  ).settings as unknown as Guilds.GuildSettings;
 }
 
 /**

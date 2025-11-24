@@ -787,7 +787,7 @@ async function HandleIncidentSuspectsOrWitnessesEdit(
   });
 
   const InputSubmission = await SelectInteract.awaitModalSubmit({
-    filter: (Submision) => Submision.customId === TextInputModal.data.custom_id,
+    filter: (Submission) => Submission.customId === TextInputModal.data.custom_id,
     time: CompCollectorIdleTime,
   }).catch(() => null);
 
