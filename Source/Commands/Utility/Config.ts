@@ -81,8 +81,8 @@ import AppError from "@Utilities/Classes/AppError.js";
 import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
 
 // ---------------------------------------------------------------------------------------
-// Constants, Types, & Enums:
-// --------------------------
+// #region - Constants, Types, & Enums:
+// ------------------------------------
 const ListFormatter = new Intl.ListFormat("en");
 const MillisInDay = milliseconds({ days: 1 });
 const AccentColor = resolveColor("#5f9ea0");
@@ -485,9 +485,10 @@ const ConfigTopicsExplanations = {
   },
 } as const;
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// General Helpers:
-// ----------------
+// #region - General Helpers:
+// --------------------------
 /**
  * Converts a log deletion interval from milliseconds to a human-readable string.
  * @param Interval - The interval in milliseconds.
@@ -502,6 +503,25 @@ function GetHumanReadableLogDeletionInterval(Interval: number) {
   } else {
     return "Never";
   }
+}
+
+/**
+ * Determines whether the provided guild configuration has Roblox-dependent features enabled.
+ * @param Config - The guild settings object to evaluate.
+ * @returns `true` if the configuration has Roblox-dependent features enabled; otherwise, `false`.
+ *
+ * @remarks
+ * - Checks if the duty activity signature format includes
+ *   Roblox-specific identifiers (such as display name or username) and
+ *   if authorization is not required. If both conditions are met, returns `true`.
+ */
+function ConfigHasRobloxDependencyConflict(Config: GuildSettings): boolean {
+  const DASigFormat = Config.duty_activities.signature_format;
+  return (
+    (!!(DASigFormat & DASignatureFormats.RobloxDisplayName) ||
+      !!(DASigFormat & DASignatureFormats.RobloxUsername)) &&
+    Config.require_authorization === false
+  );
 }
 
 /**
@@ -631,9 +651,10 @@ async function UpdateConfigPrompt<T extends SettingsResolvable>(
   }
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Component Getters:
-// ------------------
+// #region - Component Getters:
+// ----------------------------
 function GetCSBeatNumRestrictionsPromptComps(
   BtnInteract: ButtonInteraction<"cached">,
   IsUnitType: boolean
@@ -817,7 +838,6 @@ function GetBasicConfigComponents(
   const RobloxAuthorizationAR = new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
     new StringSelectMenuBuilder()
       .setPlaceholder("Roblox Authorization Required")
-      .setDisabled(true)
       .setMinValues(1)
       .setMaxValues(1)
       .setCustomId(
@@ -1541,9 +1561,10 @@ function GetShowConfigurationsPageComponents(
   return [PaginationRow, BackButtonRow] as const;
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Container Getters:
-// -------------------
+// #region - Container Getters:
+// ----------------------------
 function GetBasicConfigContainers(
   SelectInteract: ModulePromptUpdateSupportedInteraction<"cached">,
   GuildSettings: GuildSettings
@@ -1671,8 +1692,9 @@ function GetShiftModuleConfigContainers(
 
 function GetDutyActivitiesModuleConfigContainers(
   SelectInteract: ModulePromptUpdateSupportedInteraction<"cached">,
-  DAModuleConfig: GuildSettings["duty_activities"]
+  AllConfig: GuildSettings
 ) {
+  const DAModuleConfig = AllConfig.duty_activities;
   const DutyActivitiesInteractComponents = GetDutyActModuleConfigComponents(
     SelectInteract,
     DAModuleConfig
@@ -2387,8 +2409,9 @@ function GetCSBeatOrUnitTypeRestrictionsListContainers(
   return Pages;
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Config Show Content Getters:
+// #region - Config Show Content Getters:
 // ----------------------------
 function GetCSBasicSettingsContent(GuildSettings: GuildSettings): string {
   const StaffRoles = GuildSettings.role_perms.staff.map((Role) => roleMention(Role));
@@ -2504,9 +2527,10 @@ function GetCSAdditionalConfigContent(GuildSettings: GuildSettings): string {
   `);
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Setting Save Handlers:
-// ----------------------
+// #region - Setting Save Handlers:
+// --------------------------------
 async function HandleConfigSave<T extends SettingsResolvable>(
   Interaction: ModulePromptUpdateSupportedInteraction<"cached">,
   MState: ModuleState<T>
@@ -2611,11 +2635,13 @@ async function HandleConfigSave<T extends SettingsResolvable>(
       .setDescription(SuccessMsgDescription)
       .replyToInteract(Interaction, true)
       .then(() => true);
-  } else {
+  } else if (SuccessMsgDescription === null) {
     return new ErrorContainer()
       .useErrTemplate("AppError")
       .replyToInteract(Interaction, true)
       .then(() => false);
+  } else {
+    return true;
   }
 }
 
@@ -2632,6 +2658,13 @@ async function HandleBasicConfigDBSave(
     await new WarnContainer()
       .useErrTemplate("InsufficientUTIFManageGuildPerm")
       .replyToInteract(Interaction, true, true, "reply");
+  }
+
+  if (ConfigHasRobloxDependencyConflict(MState.ModuleConfig)) {
+    return new ErrorContainer()
+      .useErrTemplate("RobloxDependentFeatureSettingConflict")
+      .replyToInteract(Interaction, true, true, "reply")
+      .then(() => "");
   }
 
   const UpdatedSettings = await GuildModel.findByIdAndUpdate(
@@ -3027,9 +3060,10 @@ async function HandleAdditionalConfigDBSave(
   }
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Module-Specific Interaction Handlers:
-// -------------------------------------
+// #region - Module-Specific Interaction Handlers:
+// -----------------------------------------------
 /**
  * Handles module-specific interactions and updates the configuration state if necessary.
  * @param CollectedInteract - The component interaction received from the user.
@@ -3075,7 +3109,7 @@ async function HandleModuleSpecificInteractions<SR extends SettingsResolvable>(
     case ConfigTopics.DutyActivitiesConfiguration: {
       return HandleDutyActivitiesConfigPageInteracts(
         CollectedInteract,
-        MState as ModuleState<GuildSettings["duty_activities"]>
+        MState as ModuleState<GuildSettings>
       );
     }
     case ConfigTopics.CallsignsConfiguration: {
@@ -3111,7 +3145,19 @@ async function HandleBasicConfigSpecificInteracts(
     RecInteract.isStringSelectMenu() &&
     RecInteract.customId.startsWith(CTAIds[ConfigTopics.BasicConfiguration].RobloxAuthRequired)
   ) {
-    MState.ModuleConfig.require_authorization = RecInteract.values[0] === "true";
+    const ShouldActivate = RecInteract.values[0] === "true";
+    const TempClone = clone(MState.ModuleConfig);
+    TempClone.require_authorization = ShouldActivate;
+
+    if (ConfigHasRobloxDependencyConflict(TempClone)) {
+      await new ErrorContainer()
+        .useErrTemplate("RobloxDependentFeatureSettingConflict")
+        .replyToInteract(RecInteract, true, true, "followUp")
+        .catch(() => null);
+      return true;
+    }
+
+    MState.ModuleConfig.require_authorization = ShouldActivate;
     RecInteract.deferUpdate().catch(() => null);
     return false;
   }
@@ -3152,6 +3198,7 @@ async function HandleShiftConfigSpecificInteracts(
   MState: ModuleState<GuildSettings["shift_management"]>
 ): Promise<boolean> {
   const ActionId = RecInteract.customId;
+  const ModuleConfig = MState.ModuleConfig;
 
   if (
     RecInteract.isButton() &&
@@ -3161,11 +3208,11 @@ async function HandleShiftConfigSpecificInteracts(
       RecInteract,
       CTAIds[ConfigTopics.ShiftConfiguration].LogChannel,
       "Shift Log",
-      MState.ModuleConfig.log_channel
+      ModuleConfig.log_channel
     );
 
     if (SelectedChannel !== undefined) {
-      MState.ModuleConfig.log_channel = SelectedChannel;
+      ModuleConfig.log_channel = SelectedChannel;
       return true;
     }
   }
@@ -3176,11 +3223,11 @@ async function HandleShiftConfigSpecificInteracts(
   ) {
     const ResolvedQuotaMs = await HandleDefaultShiftQuotaBtnInteract(
       RecInteract,
-      MState.ModuleConfig.default_quota
+      ModuleConfig.default_quota
     );
 
-    if (ResolvedQuotaMs !== MState.ModuleConfig.default_quota) {
-      MState.ModuleConfig.default_quota = ResolvedQuotaMs;
+    if (ResolvedQuotaMs !== ModuleConfig.default_quota) {
+      ModuleConfig.default_quota = ResolvedQuotaMs;
       return true;
     }
   }
@@ -3189,15 +3236,15 @@ async function HandleShiftConfigSpecificInteracts(
     RecInteract.isStringSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.ShiftConfiguration].ModuleEnabled)
   ) {
-    MState.ModuleConfig.enabled = RecInteract.values[0].toLowerCase() === "true";
+    ModuleConfig.enabled = RecInteract.values[0].toLowerCase() === "true";
   } else if (RecInteract.isRoleSelectMenu()) {
     if (ActionId.startsWith(CTAIds[ConfigTopics.ShiftConfiguration].OnDutyRoles)) {
-      MState.ModuleConfig.role_assignment.on_duty = await FilterUnsafeRoles(
+      ModuleConfig.role_assignment.on_duty = await FilterUnsafeRoles(
         RecInteract.guild,
         RecInteract.values
       );
     } else if (ActionId.startsWith(CTAIds[ConfigTopics.ShiftConfiguration].OnBreakRoles)) {
-      MState.ModuleConfig.role_assignment.on_break = await FilterUnsafeRoles(
+      ModuleConfig.role_assignment.on_break = await FilterUnsafeRoles(
         RecInteract.guild,
         RecInteract.values
       );
@@ -3214,17 +3261,19 @@ async function HandleLeaveConfigSpecificInteracts(
   MState: ModuleState<GuildSettings["leave_notices"]>
 ): Promise<boolean> {
   const ActionId = RecInteract.customId;
+  const ModuleConfig = MState.ModuleConfig;
+
   if (RecInteract.isButton()) {
     if (ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].LogChannel)) {
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
         CTAIds[ConfigTopics.LeaveConfiguration].LogChannel,
         "Leave Event Log",
-        MState.ModuleConfig.log_channel
+        ModuleConfig.log_channel
       );
 
       if (SelectedChannel !== undefined) {
-        MState.ModuleConfig.log_channel = SelectedChannel;
+        ModuleConfig.log_channel = SelectedChannel;
         return true;
       }
     } else if (ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].RequestsChannel)) {
@@ -3232,11 +3281,11 @@ async function HandleLeaveConfigSpecificInteracts(
         RecInteract,
         CTAIds[ConfigTopics.LeaveConfiguration].RequestsChannel,
         "Leave Requests",
-        MState.ModuleConfig.requests_channel
+        ModuleConfig.requests_channel
       );
 
       if (SelectedChannel !== undefined) {
-        MState.ModuleConfig.requests_channel = SelectedChannel;
+        ModuleConfig.requests_channel = SelectedChannel;
         return true;
       }
     } else if (ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].ActivePrefix)) {
@@ -3248,19 +3297,19 @@ async function HandleLeaveConfigSpecificInteracts(
     RecInteract.isStringSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].ModuleEnabled)
   ) {
-    MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
+    ModuleConfig.enabled = RecInteract.values[0] === "true";
   } else if (
     RecInteract.isRoleSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].OnLeaveRole)
   ) {
     const LeaveRole = await FilterUnsafeRoles(RecInteract.guild, [RecInteract.values[0]]);
-    MState.ModuleConfig.leave_role = LeaveRole[0] || null;
+    ModuleConfig.leave_role = LeaveRole[0] || null;
     if (RecInteract.values[0]?.length) return true;
   } else if (
     RecInteract.isRoleSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.LeaveConfiguration].AlertRoles)
   ) {
-    MState.ModuleConfig.alert_roles = RecInteract.values;
+    ModuleConfig.alert_roles = RecInteract.values;
   }
 
   return false;
@@ -3271,17 +3320,19 @@ async function HandleReducedActivityConfigPageInteracts(
   MState: ModuleState<GuildSettings["reduced_activity"]>
 ): Promise<boolean> {
   const ActionId = RecInteract.customId;
+  const ModuleConfig = MState.ModuleConfig;
+
   if (RecInteract.isButton()) {
     if (ActionId.startsWith(CTAIds[ConfigTopics.ReducedActivityConfiguration].LogChannel)) {
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
         CTAIds[ConfigTopics.ReducedActivityConfiguration].LogChannel,
         "Reduced Activity Event Logs",
-        MState.ModuleConfig.log_channel
+        ModuleConfig.log_channel
       );
 
       if (SelectedChannel !== undefined) {
-        MState.ModuleConfig.log_channel = SelectedChannel;
+        ModuleConfig.log_channel = SelectedChannel;
         return true;
       }
     } else if (
@@ -3291,11 +3342,11 @@ async function HandleReducedActivityConfigPageInteracts(
         RecInteract,
         CTAIds[ConfigTopics.ReducedActivityConfiguration].RequestsChannel,
         "Reduced Activity Requests",
-        MState.ModuleConfig.requests_channel
+        ModuleConfig.requests_channel
       );
 
       if (SelectedChannel !== undefined) {
-        MState.ModuleConfig.requests_channel = SelectedChannel;
+        ModuleConfig.requests_channel = SelectedChannel;
         return true;
       }
     } else if (
@@ -3309,19 +3360,19 @@ async function HandleReducedActivityConfigPageInteracts(
     RecInteract.isStringSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.ReducedActivityConfiguration].ModuleEnabled)
   ) {
-    MState.ModuleConfig.enabled = RecInteract.values[0].toLowerCase() === "true";
+    ModuleConfig.enabled = RecInteract.values[0].toLowerCase() === "true";
   } else if (
     RecInteract.isRoleSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.ReducedActivityConfiguration].RARole)
   ) {
     const RARole = await FilterUnsafeRoles(RecInteract.guild, [RecInteract.values[0]]);
-    MState.ModuleConfig.ra_role = RARole[0] || null;
+    ModuleConfig.ra_role = RARole[0] || null;
     if (RecInteract.values[0]?.length) return true;
   } else if (
     RecInteract.isRoleSelectMenu() &&
     ActionId.startsWith(CTAIds[ConfigTopics.ReducedActivityConfiguration].AlertRoles)
   ) {
-    MState.ModuleConfig.alert_roles = RecInteract.values;
+    ModuleConfig.alert_roles = RecInteract.values;
   }
 
   return false;
@@ -3329,9 +3380,11 @@ async function HandleReducedActivityConfigPageInteracts(
 
 async function HandleDutyActivitiesConfigPageInteracts(
   RecInteract: CollectedInteraction<"cached">,
-  MState: ModuleState<GuildSettings["duty_activities"]>
+  MState: ModuleState<GuildSettings>
 ): Promise<boolean> {
+  const ModuleConfig = MState.ModuleConfig.duty_activities;
   const CustomId = RecInteract.customId;
+
   const HandleOutsideLogChannelSet = async (
     ButtonInteract: ButtonInteraction<"cached">,
     CurrentChannels: string[]
@@ -3355,9 +3408,9 @@ async function HandleDutyActivitiesConfigPageInteracts(
     if (
       CustomId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].OutsideArrestLogChannel)
     ) {
-      MState.ModuleConfig.log_channels.arrests = await HandleOutsideLogChannelSet(
+      ModuleConfig.log_channels.arrests = await HandleOutsideLogChannelSet(
         RecInteract,
-        MState.ModuleConfig.log_channels.arrests
+        ModuleConfig.log_channels.arrests
       );
     }
 
@@ -3366,9 +3419,9 @@ async function HandleDutyActivitiesConfigPageInteracts(
         CTAIds[ConfigTopics.DutyActivitiesConfiguration].OutsideCitationLogChannel
       )
     ) {
-      MState.ModuleConfig.log_channels.citations = await HandleOutsideLogChannelSet(
+      ModuleConfig.log_channels.citations = await HandleOutsideLogChannelSet(
         RecInteract,
-        MState.ModuleConfig.log_channels.citations
+        ModuleConfig.log_channels.citations
       );
     }
 
@@ -3379,26 +3432,25 @@ async function HandleDutyActivitiesConfigPageInteracts(
         RecInteract,
         CTAIds[ConfigTopics.DutyActivitiesConfiguration].ArrestLogLocalChannel,
         "Arrest Reports",
-        MState.ModuleConfig.log_channels.arrests.find((C) => !C.includes(":")) || null
+        ModuleConfig.log_channels.arrests.find((C) => !C.includes(":")) || null
       );
 
       if (SelectedChannel === undefined) return false;
-      if (MState.ModuleConfig.log_channels.arrests.length) {
-        const ExistingChannelIndex = MState.ModuleConfig.log_channels.arrests.findIndex(
+      if (ModuleConfig.log_channels.arrests.length) {
+        const ExistingChannelIndex = ModuleConfig.log_channels.arrests.findIndex(
           (C) => !C.includes(":")
         );
         if (ExistingChannelIndex === -1 && SelectedChannel) {
-          MState.ModuleConfig.log_channels.arrests.push(SelectedChannel);
+          ModuleConfig.log_channels.arrests.push(SelectedChannel);
         } else if (SelectedChannel) {
-          MState.ModuleConfig.log_channels.arrests[ExistingChannelIndex] = SelectedChannel;
+          ModuleConfig.log_channels.arrests[ExistingChannelIndex] = SelectedChannel;
         } else {
-          MState.ModuleConfig.log_channels.arrests =
-            MState.ModuleConfig.log_channels.arrests.filter(
-              (C) => C !== MState.ModuleConfig.log_channels.arrests[ExistingChannelIndex]
-            );
+          ModuleConfig.log_channels.arrests = ModuleConfig.log_channels.arrests.filter(
+            (C) => C !== ModuleConfig.log_channels.arrests[ExistingChannelIndex]
+          );
         }
       } else if (SelectedChannel) {
-        MState.ModuleConfig.log_channels.arrests = [SelectedChannel];
+        ModuleConfig.log_channels.arrests = [SelectedChannel];
       }
 
       return SelectedChannel !== undefined;
@@ -3411,26 +3463,25 @@ async function HandleDutyActivitiesConfigPageInteracts(
         RecInteract,
         CTAIds[ConfigTopics.DutyActivitiesConfiguration].CitationLogLocalChannel,
         "Citation Log",
-        MState.ModuleConfig.log_channels.citations.find((C) => !C.includes(":")) || null
+        ModuleConfig.log_channels.citations.find((C) => !C.includes(":")) || null
       );
 
       if (SelectedChannel === undefined) return false;
-      if (MState.ModuleConfig.log_channels.citations.length) {
-        const ExistingChannelIndex = MState.ModuleConfig.log_channels.citations.findIndex(
+      if (ModuleConfig.log_channels.citations.length) {
+        const ExistingChannelIndex = ModuleConfig.log_channels.citations.findIndex(
           (C) => !C.includes(":")
         );
         if (ExistingChannelIndex === -1 && SelectedChannel) {
-          MState.ModuleConfig.log_channels.citations.push(SelectedChannel);
+          ModuleConfig.log_channels.citations.push(SelectedChannel);
         } else if (SelectedChannel) {
-          MState.ModuleConfig.log_channels.citations[ExistingChannelIndex] = SelectedChannel;
+          ModuleConfig.log_channels.citations[ExistingChannelIndex] = SelectedChannel;
         } else {
-          MState.ModuleConfig.log_channels.citations =
-            MState.ModuleConfig.log_channels.citations.filter(
-              (C) => C !== MState.ModuleConfig.log_channels.citations[ExistingChannelIndex]
-            );
+          ModuleConfig.log_channels.citations = ModuleConfig.log_channels.citations.filter(
+            (C) => C !== ModuleConfig.log_channels.citations[ExistingChannelIndex]
+          );
         }
       } else if (SelectedChannel) {
-        MState.ModuleConfig.log_channels.citations = [SelectedChannel];
+        ModuleConfig.log_channels.citations = [SelectedChannel];
       }
 
       return SelectedChannel !== undefined;
@@ -3443,11 +3494,11 @@ async function HandleDutyActivitiesConfigPageInteracts(
         RecInteract,
         CTAIds[ConfigTopics.DutyActivitiesConfiguration].IncidentLogLocalChannel,
         "Incident Reports",
-        MState.ModuleConfig.log_channels.incidents
+        ModuleConfig.log_channels.incidents
       );
 
       if (SelectedChannel !== undefined) {
-        MState.ModuleConfig.log_channels.incidents = SelectedChannel;
+        ModuleConfig.log_channels.incidents = SelectedChannel;
         return true;
       }
     }
@@ -3457,23 +3508,34 @@ async function HandleDutyActivitiesConfigPageInteracts(
 
   if (!RecInteract.isStringSelectMenu()) return false;
   if (CustomId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].ModuleEnabled)) {
-    MState.ModuleConfig.enabled = RecInteract.values[0] === "true";
+    ModuleConfig.enabled = RecInteract.values[0] === "true";
   } else if (
     CustomId.startsWith(CTAIds[ConfigTopics.DutyActivitiesConfiguration].SignatureFormatType)
   ) {
-    MState.ModuleConfig.signature_format = Number.parseInt(RecInteract.values[0]);
+    const SignatureFormat = Number.parseInt(RecInteract.values[0]);
+    const TempClone = clone(MState.ModuleConfig);
+    TempClone.duty_activities.signature_format = SignatureFormat;
+
+    if (ConfigHasRobloxDependencyConflict(TempClone)) {
+      await new ErrorContainer()
+        .useErrTemplate("RobloxAuthRequiredSettingDisabled")
+        .replyToInteract(RecInteract, true);
+      return true;
+    }
+
+    ModuleConfig.signature_format = Number.parseInt(RecInteract.values[0]);
   } else if (
     CustomId.startsWith(
       CTAIds[ConfigTopics.DutyActivitiesConfiguration].ArrestReportsImgHeaderEnabled
     )
   ) {
-    MState.ModuleConfig.arrest_reports.show_header_img = RecInteract.values[0] === "true";
+    ModuleConfig.arrest_reports.show_header_img = RecInteract.values[0] === "true";
   } else if (
     CustomId.startsWith(
       CTAIds[ConfigTopics.DutyActivitiesConfiguration].IncReportsAutoThreadsMgmtEnabled
     )
   ) {
-    MState.ModuleConfig.incident_reports.auto_thread_management = RecInteract.values[0] === "true";
+    ModuleConfig.incident_reports.auto_thread_management = RecInteract.values[0] === "true";
   }
 
   RecInteract.deferUpdate().catch(() => null);
@@ -3588,9 +3650,10 @@ async function HandleCallsignsModuleConfigPageInteracts(
   return false;
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Specific Config Helpers & Handlers:
-// -----------------------------------
+// #region - Specific Config Helpers & Handlers:
+// ---------------------------------------------
 async function HandleUANActivePrefixBtnInteract(
   RecInteract: ButtonInteraction<"cached">,
   MState: ModuleState<GuildSettings["leave_notices"] | GuildSettings["reduced_activity"]>
@@ -4357,9 +4420,10 @@ async function PromptBeatOrUnitRestrictionsMod(
   });
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Config Topic Selection:
-// -----------------------
+// #region - Config Topic Selection:
+// ---------------------------------
 async function HandleBasicConfigSelection(SelectInteract: StringSelectMenuInteraction<"cached">) {
   const GuildConfig = await GetGuildSettings(SelectInteract.guildId);
   if (GuildConfig) {
@@ -4455,11 +4519,7 @@ async function HandleDutyActivitiesModuleSelection(
 ) {
   const GuildConfig = await GetGuildSettings(SelectInteract.guildId);
   if (GuildConfig) {
-    const ModuleContainers = GetDutyActivitiesModuleConfigContainers(
-      SelectInteract,
-      GuildConfig.duty_activities
-    );
-
+    const ModuleContainers = GetDutyActivitiesModuleConfigContainers(SelectInteract, GuildConfig);
     const FirstPageContainer = AttachNavMgmtCompsToContainer({
       ConfigTopicId: ConfigTopics.DutyActivitiesConfiguration,
       Container: ModuleContainers[0],
@@ -4475,7 +4535,7 @@ async function HandleDutyActivitiesModuleSelection(
     return HandleModuleConfigInteractions(
       SelectInteract,
       ConfigPrompt,
-      GuildConfig.duty_activities,
+      GuildConfig,
       ConfigTopics.DutyActivitiesConfiguration,
       GetDutyActivitiesModuleConfigContainers
     );
@@ -4807,9 +4867,10 @@ async function HandleConfigShowPageInteractsWithPagination(
   }
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Initial Handlers:
-// -----------------
+// #region - Initial Handlers:
+// ---------------------------
 async function HandleInitialRespActions(
   CmdInteract: ModulePromptUpdateSupportedInteraction<"cached"> | SlashCommandInteraction<"cached">,
   CmdRespMsg: Message<true> | InteractionResponse<true>,
@@ -4926,9 +4987,10 @@ async function CmdCallback(
   return HandleInitialRespActions(PromptInteraction, PromptMessage, DisablePrompt);
 }
 
+// #endregion
 // ---------------------------------------------------------------------------------------
-// Command Structure:
-// ------------------
+// #region - Command Structure:
+// ----------------------------
 const CommandObject: SlashCommandObject = {
   callback: CmdCallback,
   options: { user_perms: [PermissionFlagsBits.ManageGuild] },
@@ -4939,5 +5001,6 @@ const CommandObject: SlashCommandObject = {
     .setIntegrationTypes(ApplicationIntegrationType.GuildInstall),
 };
 
+// #endregion
 // ---------------------------------------------------------------------------------------
 export default CommandObject;
