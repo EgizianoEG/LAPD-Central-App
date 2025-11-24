@@ -30,7 +30,7 @@ export default async function GetOSMetrics<Readable extends boolean = false>(
  * @returns
  */
 function GetSysDetails<Readable extends boolean = false>(HR: Readable): MData<Readable>["system"] {
-  if (global.gc) global.gc();
+  if (globalThis.gc) globalThis.gc();
   if (HR) {
     return {
       type: OS.type(),

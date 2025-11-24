@@ -1,5 +1,5 @@
 import { Collection, Guild } from "discord.js";
-import { GuildMembersCache } from "../Helpers/Cache.js";
+import { GetGuildMembersSnapshot, GuildMembersCache } from "../Helpers/Cache.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 const FileLabel = "Utilities:ResolveDiscordUsernames";
 
@@ -24,7 +24,7 @@ const FileLabel = "Utilities:ResolveDiscordUsernames";
 export default async function ResolveUsernamesToIds(
   GuildInstance: Guild,
   Usernames: string[],
-  MaxTimeMs: number = 5000
+  MaxTimeMs: number = 10_000
 ): Promise<Collection<string, string>> {
   const UsernameToUserIdMap = new Collection<string, string>();
   const MembersCached = GuildMembersCache.get(GuildInstance.id);
@@ -52,29 +52,19 @@ export default async function ResolveUsernamesToIds(
       );
     }
 
-    const StartTime = Date.now();
     let GuildMembers = MembersCached;
-    let FetchAttempts = 0;
-
-    while (!GuildMembers && FetchAttempts < 3 && Date.now() - StartTime < MaxTimeMs) {
+    if (!GuildMembers) {
       try {
-        GuildMembers = await GuildInstance.members.fetch({ time: MaxTimeMs });
-        if (!MembersCached) GuildMembersCache.set(GuildInstance.id, GuildMembers);
+        GuildMembers = await GetGuildMembersSnapshot(GuildInstance);
       } catch (Err: any) {
-        FetchAttempts++;
-        if (FetchAttempts >= 3 || Date.now() - StartTime >= MaxTimeMs) {
-          AppLogger.debug({
-            message: "Failed to fetch guild members after multiple attempts.",
-            guild_id: GuildInstance.id,
-            label: FileLabel,
-            stack: Err.stack,
-            error: { ...Err },
-          });
-          break;
-        }
-
-        const BufferTime = Math.min(1000, MaxTimeMs - (Date.now() - StartTime));
-        if (BufferTime > 0) await new Promise((resolve) => setTimeout(resolve, BufferTime));
+        AppLogger.debug({
+          message: "Failed to fetch guild members snapshot.",
+          guild_id: GuildInstance.id,
+          label: FileLabel,
+          max_time_ms: MaxTimeMs,
+          stack: Err.stack,
+          error: Err,
+        });
       }
     }
 
@@ -91,7 +81,7 @@ export default async function ResolveUsernamesToIds(
       guild_id: GuildInstance.id,
       label: FileLabel,
       stack: Err.stack,
-      error: { ...Err },
+      error: Err,
     });
   }
 
