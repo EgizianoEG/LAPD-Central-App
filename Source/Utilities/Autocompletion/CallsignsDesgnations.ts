@@ -220,7 +220,7 @@ function IsUnitTypeRestricted(
 ): boolean {
   const CSModuleSettings = GuildSettings.callsigns_module;
   const UnitTypeRestrictions = CSModuleSettings.unit_type_restrictions;
-  const MemberRoleIds = Member.roles.cache.map((role) => role.id);
+  const MemberRoleIds = new Set(Member.roles.cache.map((role) => role.id));
   const UnitTypeRestriction = UnitTypeRestrictions.find(
     (restriction) => restriction.unit_type === UnitType
   );
@@ -232,13 +232,13 @@ function IsUnitTypeRestricted(
 
     if (UnitTypeRestriction.permitted_roles.length > 0) {
       const HasPermittedRole = UnitTypeRestriction.permitted_roles.some((roleId) =>
-        MemberRoleIds.includes(roleId)
+        MemberRoleIds.has(roleId)
       );
       return !HasPermittedRole;
     }
   } else if (UnitTypeRestriction && UnitTypeRestriction.permitted_roles.length > 0) {
     const HasPermittedRole = UnitTypeRestriction.permitted_roles.some((roleId) =>
-      MemberRoleIds.includes(roleId)
+      MemberRoleIds.has(roleId)
     );
     return !HasPermittedRole;
   }
@@ -259,7 +259,7 @@ function IsBeatNumberRestricted(
   GuildSettings: Guilds.GuildSettings
 ): boolean {
   const BeatRestrictions = GuildSettings.callsigns_module.beat_restrictions;
-  const MemberRoleIds = Member.roles.cache.map((role) => role.id);
+  const MemberRoleIds = new Set(Member.roles.cache.map((role) => role.id));
   if (!BeatRestrictions.length) return false;
 
   for (const Restriction of BeatRestrictions) {
@@ -269,7 +269,7 @@ function IsBeatNumberRestricted(
     // if the user has any of the permitted roles for this range
     if (BeatNumber >= MinRange && BeatNumber <= MaxRange) {
       const HasPermittedRole = Restriction.permitted_roles.some((roleId) =>
-        MemberRoleIds.includes(roleId)
+        MemberRoleIds.has(roleId)
       );
 
       if (!HasPermittedRole || Restriction.permitted_roles.length === 0) {
