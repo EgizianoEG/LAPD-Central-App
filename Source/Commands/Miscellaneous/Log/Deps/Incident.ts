@@ -409,13 +409,6 @@ async function InsertIncidentRecord(
         );
       }
     });
-  } catch (Err: any) {
-    AppLogger.error({
-      message: Err.message,
-      label: CmdFileLabel,
-      stack: Err.stack,
-      error: Err,
-    });
   } finally {
     await Session.endSession();
   }
@@ -769,7 +762,9 @@ const CommandObject = {
   callback: IncidentLogCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("incident")
-    .setDescription("Creates and logs a traffic warning citation record for a person.")
+    .setDescription(
+      "File a formal incident report for recording and notification to configured incident channels."
+    )
     .addStringOption((Option) =>
       Option.setName("type")
         .setDescription("The type of incident being reported.")
@@ -781,10 +776,10 @@ const CommandObject = {
     .addStringOption((Option) =>
       Option.setName("location")
         .setDescription(
-          "The precise location of the incident, including landmarks and a possible route if applicable."
+          "The whereabouts of the incident, including landmarks and a possible route if applicable."
         )
         .setMinLength(6)
-        .setMaxLength(148)
+        .setMaxLength(80)
         .setRequired(true)
     )
     .addStringOption((Option) =>
