@@ -773,10 +773,10 @@ export default class ShiftActionLogger {
   /**
    * Logs a shift time add/subtract action done by an administrative user to the appropriate and specified channel of a guild.
    * @param UserInteract - The received discordjs interaction (button/cmd) from the admin user.
-   * @param ShiftModified - ...
+   * @param ShiftModified - The modified shift document.
    * @param TimeAddedSub - The time which has been added/subtracted in milliseconds.
    * @param ActionType - The action taken on the shift; either adding or subtracting.
-   * @param IsNewShift - Whether the shift is newly created just for the sake of adding this time or not.
+   * @param IsNewShift - Whether the shift is newly created just for the sake of adding this time or not. Defaults to `false`.
    * @returns A promise that resolves to the logging message sent or `undefined` if it wasn't.
    */
   public static async LogShiftTimeAddSub(
