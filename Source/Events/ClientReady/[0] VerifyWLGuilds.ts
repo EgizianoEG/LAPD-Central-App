@@ -8,7 +8,7 @@ import { Discord } from "@Config/Secrets.js";
  * @param Client - The Discord client instance used to access the bot's guilds.
  * @returns {void}
  */
-export default async function VerifyGuilds(Client: DiscordClient) {
+export default async function VerifyGuilds(Client: DiscordClient): Promise<void> {
   if (!Discord.WLGuilds) return;
   for (const JoinedGuild of Client.guilds.cache.values()) {
     if (!Discord.WLGuilds.includes(JoinedGuild.id) && JoinedGuild.id !== Discord.TestGuildId) {
