@@ -670,9 +670,7 @@ const CommandObject = {
   callback: CmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("arrest")
-    .setDescription(
-      "Creates a database entry to log an arrest and generate a corresponding report."
-    )
+    .setDescription("File an arrest and produce an official report for case records.")
     .addStringOption((Option) =>
       Option.setName("name")
         .setDescription("The username of the arrested suspect.")

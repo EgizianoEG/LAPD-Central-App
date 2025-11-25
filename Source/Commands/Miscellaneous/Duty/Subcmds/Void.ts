@@ -133,7 +133,7 @@ const CommandObject = {
   callback: Callback,
   data: new SlashCommandSubcommandBuilder()
     .setName("void")
-    .setDescription("Voids a currently active shift, removing it from shift records."),
+    .setDescription("Void your currently active shift, removing it from shift records."),
 };
 
 // ---------------------------------------------------------------------------------------

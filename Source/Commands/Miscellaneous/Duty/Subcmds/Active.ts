@@ -319,7 +319,7 @@ const CommandObject = {
   data: new SlashCommandSubcommandBuilder()
     .setName("active")
     .setDescription(
-      "Displays all personnel whose shifts are presently active, including their current duration on-duty."
+      "Display all personnel whose shifts are presently active, including their current duration on-duty."
     )
     .addStringOption((Option) =>
       Option.setName("type")
