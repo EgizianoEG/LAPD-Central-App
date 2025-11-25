@@ -32,9 +32,9 @@ export default async function MongoDBHandler() {
     });
 
     AppLogger.info({
-      message: "Connection to MongoDB has been established.",
+      message: "Connection to MongoDB has been established. Managing '%s'.",
+      splat: [MongoDB.DBName],
       label: FileLabel,
-      db_name: MongoDB.DBName,
       username: MongoDB.Username,
     });
 
