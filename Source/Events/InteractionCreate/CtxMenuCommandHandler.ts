@@ -60,6 +60,7 @@ export default async function ContextMenuCommandHandler(
         message: "Handled execution of context menu command %o.",
         label: FileLogLabel,
         splat: [CommandName],
+        guild: Interaction.guild?.id ?? null,
         execution_time: ReadableDuration(Date.now() - Interaction.createdTimestamp),
       });
 
@@ -81,10 +82,11 @@ export default async function ContextMenuCommandHandler(
     const ErrorId = GetErrorId();
     AppLogger.error({
       message: "An error occurred while executing context menu command %o;",
+      guild: Interaction.guild?.id ?? null,
       label: FileLogLabel,
       error_id: ErrorId,
       stack: Err.stack,
-      error: { ...Err },
+      error: Err,
       splat: [CommandName],
     });
 
