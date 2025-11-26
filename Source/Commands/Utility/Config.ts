@@ -2573,7 +2573,7 @@ async function HandleConfigSave<T extends SettingsResolvable>(
       case ConfigTopics.DutyActivitiesConfiguration: {
         SuccessMsgDescription = await HandleDutyActivitiesModuleDBSave(
           Interaction,
-          MState as ModuleState<GuildSettings["duty_activities"]>
+          MState as ModuleState<GuildSettings>
         );
         break;
       }
@@ -2885,23 +2885,22 @@ async function HandleReducedActivityModuleDBSave(
 
 async function HandleDutyActivitiesModuleDBSave(
   Interaction: ModulePromptUpdateSupportedInteraction<"cached">,
-  MState: ModuleState<GuildSettings["duty_activities"]>
+  MState: ModuleState<GuildSettings>
 ): Promise<string | null> {
+  const MConfig = MState.ModuleConfig.duty_activities;
   const UpdatedSettings = await GuildModel.findByIdAndUpdate(
     Interaction.guildId,
     {
       $set: {
-        "settings.duty_activities.enabled": MState.ModuleConfig.enabled,
-        "settings.duty_activities.signature_format": MState.ModuleConfig.signature_format,
-        "settings.duty_activities.log_channels.incidents":
-          MState.ModuleConfig.log_channels.incidents,
-        "settings.duty_activities.log_channels.citations":
-          MState.ModuleConfig.log_channels.citations,
-        "settings.duty_activities.log_channels.arrests": MState.ModuleConfig.log_channels.arrests,
+        "settings.duty_activities.enabled": MConfig.enabled,
+        "settings.duty_activities.signature_format": MConfig.signature_format,
+        "settings.duty_activities.log_channels.incidents": MConfig.log_channels.incidents,
+        "settings.duty_activities.log_channels.citations": MConfig.log_channels.citations,
+        "settings.duty_activities.log_channels.arrests": MConfig.log_channels.arrests,
         "settings.duty_activities.incident_reports.auto_thread_management":
-          MState.ModuleConfig.incident_reports.auto_thread_management,
+          MConfig.incident_reports.auto_thread_management,
         "settings.duty_activities.arrest_reports.show_header_img":
-          MState.ModuleConfig.arrest_reports.show_header_img,
+          MConfig.arrest_reports.show_header_img,
       },
     },
     {
@@ -2910,25 +2909,26 @@ async function HandleDutyActivitiesModuleDBSave(
       strict: true,
       runValidators: true,
       projection: {
-        "settings.duty_activities": 1,
+        settings: 1,
       },
     }
-  ).then((GuildDoc) => GuildDoc?.settings.duty_activities);
+  ).then((GuildDoc) => GuildDoc?.settings);
 
   if (UpdatedSettings) {
     MState.OriginalConfig = clone(UpdatedSettings);
     MState.ModuleConfig = clone(UpdatedSettings);
 
-    const ARSetChannels = UpdatedSettings.log_channels.arrests.map((CI) =>
+    const UpdatedDASettings = UpdatedSettings.duty_activities;
+    const ARSetChannels = UpdatedDASettings.log_channels.arrests.map((CI) =>
       channelMention(CI.match(/:?(\d+)$/)?.[1] || "0")
     );
 
-    const CLSetChannels = UpdatedSettings.log_channels.citations.map((CI) =>
+    const CLSetChannels = UpdatedDASettings.log_channels.citations.map((CI) =>
       channelMention(CI.match(/:?(\d+)$/)?.[1] || "0")
     );
 
-    const ILSetChannel = UpdatedSettings.log_channels.incidents
-      ? channelMention(UpdatedSettings.log_channels.incidents)
+    const ILSetChannel = UpdatedDASettings.log_channels.incidents
+      ? channelMention(UpdatedDASettings.log_channels.incidents)
       : "*None*";
 
     return Dedent(`
@@ -2936,10 +2936,10 @@ async function HandleDutyActivitiesModuleDBSave(
       
       **Current Configuration:**
       **General:**
-      > - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
-      > - **Signature Format:** \`${SignatureFormatResolved[UpdatedSettings.signature_format]}\`
-      > - **Inc. Reports Auto Thread Management:** ${UpdatedSettings.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
-      > - **Arrest Reports P&S Header Image:** ${UpdatedSettings.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
+      > - **Module Enabled:** ${UpdatedDASettings.enabled ? "Yes" : "No"}
+      > - **Signature Format:** \`${SignatureFormatResolved[UpdatedDASettings.signature_format]}\`
+      > - **Inc. Reports Auto Thread Management:** ${UpdatedDASettings.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
+      > - **Arrest Reports P&S Header Image:** ${UpdatedDASettings.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
 
       **Log Destinations:**
       > - **Incident Log:** ${ILSetChannel}
