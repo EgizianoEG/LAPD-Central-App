@@ -587,18 +587,27 @@ async function UpdatePromptReturnMessage(
  * configuration prompt has timed out.
  * @param Interact - Any prompt-related interaction which webhook hasn't expired yet.
  * @param CurrModule - The name of the current module for which the configuration prompt has timed out.
- * @param PromptMsg - The prompt message Id if available; to not edit an incorrect message.
+ * @param PromptMsg - The prompt message object.
  * @returns A promise that resolves to the result of the interaction update or edit operation,
  *          or `null` if the operation fails.
  */
 async function HandleConfigTimeoutResponse(
   Interact: MessageComponentInteraction<"cached">,
   CurrModule: string,
-  PromptMsg?: Message<true> | string
+  PromptMsg: Message<true>
 ) {
   const MsgContainer = new InfoContainer()
     .useInfoTemplate("TimedOutConfigPrompt")
     .setTitle(`Timed Out — ${CurrModule}`);
+
+  if (Date.now() - Interact.createdTimestamp <= 14.6 * 60 * 1000) {
+    return (
+      PromptMsg.editable &&
+      PromptMsg.edit({
+        components: [MsgContainer],
+      }).catch(() => null)
+    );
+  }
 
   if (Interact.deferred || Interact.replied) {
     return Interact.editReply({
@@ -4331,7 +4340,7 @@ async function PromptBeatOrUnitRestrictionsMod(
     time: 10 * 60 * 1000,
   });
 
-  ActionsCollector.on("collect", async (SelectInteract) => {
+  ActionsCollector.on("collect", async function OnActionSelection(SelectInteract) {
     const Selected = SelectInteract.values[0];
     try {
       switch (Selected) {
@@ -4400,9 +4409,9 @@ async function PromptBeatOrUnitRestrictionsMod(
     | GuildSettings["callsigns_module"]["beat_restrictions"]
     | GuildSettings["callsigns_module"]["unit_type_restrictions"]
   >((resolve) => {
-    ActionsCollector.on("end", async (Collected, EndReason) => {
+    ActionsCollector.on("end", async function OnActionCollectionEnd(Collected, EndReason) {
       const LastInteract = Collected.last() ?? BtnInteract;
-      if (!LastInteract.deferred && !LastInteract.replied) {
+      if (!(LastInteract.deferred || LastInteract.replied)) {
         await LastInteract.deferUpdate();
       }
 
