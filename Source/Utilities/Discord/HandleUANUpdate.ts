@@ -53,8 +53,8 @@ export default async function HandleUserActivityNoticeUpdate(
   } catch (Err: any) {
     AppLogger.error({
       message: "Error while handling user activity notice member update.",
-      error: { ...Err },
       stack: Err.stack,
+      error: Err,
     });
   }
 }

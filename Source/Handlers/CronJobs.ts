@@ -101,7 +101,7 @@ function HandleErrorMechanism(
   if (ErrorHandlingMechanism === "silent/log") {
     AppLogger.error({
       stack: Err.stack,
-      error: { ...Err },
+      error: Err,
       label: HandlerLabel,
       splat: [Chalk.bold(ScheduledTaskName)],
       message: "An error occurred while executing the cron job '%s'; see stack trace for details.",
@@ -109,7 +109,7 @@ function HandleErrorMechanism(
   } else if (ErrorHandlingMechanism === "silent/log/end_job") {
     AppLogger.error({
       stack: Err.stack,
-      error: { ...Err },
+      error: Err,
       label: HandlerLabel,
       splat: [Chalk.bold(ScheduledTaskName)],
       message: "An error occurred while executing the cron job '%s'; see stack trace for details.",

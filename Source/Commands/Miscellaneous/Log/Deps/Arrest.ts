@@ -358,8 +358,8 @@ async function OnChargesAndDetailsModalSubmission(
   const BookingNumber = Number.parseInt(
     `${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`
   );
-  const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
 
+  const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
   const ArrestingOfficerRobloxId = PrimaryIsReporter
     ? null
     : await IsLoggedIn({
