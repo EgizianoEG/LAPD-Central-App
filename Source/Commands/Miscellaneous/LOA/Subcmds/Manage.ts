@@ -574,7 +574,7 @@ async function HandlePendingExtensionCancellation(
 
   const ConfirmationMsg = await Interaction.reply({
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationBtns)],
-    flags: MessageFlags.Ephemeral,
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     withResponse: true,
   }).then((Resp) => Resp.resource!.message!);
 

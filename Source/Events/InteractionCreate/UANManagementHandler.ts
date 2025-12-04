@@ -175,29 +175,26 @@ async function HandleNoticeReviewValidation(
     }
 
     const Tasks: Promise<any>[] = [];
-    if (UpdatedReqEmbed) {
-      await Interaction.deferUpdate().catch(() => null);
-      Tasks.push(
-        Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
-        InitialInteraction.editReply({
-          content: null,
-          embeds: [UpdatedReqEmbed],
-          message: RequestDocument?.request_msg?.split(":")[1],
-          components: DisableMessageComponents(
-            InitialInteraction.message!.components.map((Comp) => Comp.toJSON())
-          ),
-        })
-      );
-    } else {
-      await Interaction.deferUpdate().catch(() => null);
-      Tasks.push(
-        Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }),
-        InitialInteraction.editReply({
-          components: DisableMessageComponents(
-            InitialInteraction.message!.components.map((Comp) => Comp.toJSON())
-          ),
-        })
-      );
+    const OriginalMessage = InitialInteraction.message;
+    const DisabledComponents = OriginalMessage
+      ? DisableMessageComponents(OriginalMessage.components.map((Comp) => Comp.toJSON()))
+      : null;
+
+    await Interaction.deferUpdate().catch(() => null);
+    Tasks.push(Interaction.followUp({ embeds: [ReplyEmbed], flags: MessageFlags.Ephemeral }));
+
+    if (OriginalMessage && DisabledComponents) {
+      if (UpdatedReqEmbed) {
+        Tasks.push(
+          OriginalMessage.edit({
+            content: null,
+            embeds: [UpdatedReqEmbed],
+            components: DisabledComponents,
+          })
+        );
+      } else {
+        Tasks.push(OriginalMessage.edit({ components: DisabledComponents }));
+      }
     }
 
     return Promise.all(Tasks).then(() => true);
