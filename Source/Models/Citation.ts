@@ -261,7 +261,7 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
       signature: {
         type: String,
         requited: true,
-        minLength: 3,
+        minLength: 1,
         maxLength: 100,
         default(this: CitationPlainDoc) {
           return FormatUsername(this.citing_officer, false, false);
