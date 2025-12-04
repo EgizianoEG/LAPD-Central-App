@@ -313,8 +313,8 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         .setDescription(
           Dedent(`
             The duty time import has been completed successfully. The following is a summary of the imported data:
-            - **Unique Staff Imported:** ${DataParsed.UniqueUsersImported}
-            - **Total Staff in File:** ${DataParsed.UsersTotal}${UnresolvedUsersText}
+            - **Imported Members Count:** ${DataParsed.UniqueUsersImported}
+            - **Total Members in File:** ${DataParsed.UsersTotal}${UnresolvedUsersText}
             - **Under Shift Type:** ${DataParsed.ShiftsOfType}
             - **Total Shift Time:** ${ReadableDuration(DataParsed.TotalShiftTime)}
           `)
