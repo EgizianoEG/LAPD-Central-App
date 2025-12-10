@@ -18,6 +18,13 @@ const OnboardingFeaturesModifiers = [
 /**
  * Handles and restores persistent roles to a guild member when their membership status changes.
  * It works for both cases: when a user completes onboarding/screening for join/rejoin cases, and when member roles are updated.
+ *
+ * @remarks
+ * For partial OutdatedMember objects (uncached members), screening detection won't work
+ * since `pending` is null. However, recently joined members are always cached via `GUILD_MEMBER_ADD` events,
+ * so this only affects long-standing members whose roles are being updated — for those,
+ * the handler still proceeds and restores roles if persistent records exist.
+ *
  * @param _ - The Discord client instance (not used).
  * @param OutdatedMember - The member's state before the update (used to detect screening completion).
  * @param UpdatedMember - The member's state after the update (used for role assignment and guild info).
@@ -34,7 +41,7 @@ export default async function OnMemberUpdateRolePersistHandler(
     UpdatedMember.guild.features.includes(Feature)
   );
 
-  const IsMemberRecentlyJoined =
+  const HasRecentlyJoined =
     HasUserCompletedScreening ||
     (UpdatedMember.joinedTimestamp &&
       differenceInMilliseconds(Date.now(), UpdatedMember.joinedTimestamp) <= 60 * 1000);
@@ -50,7 +57,7 @@ export default async function OnMemberUpdateRolePersistHandler(
   // - The member has joined very recently, completed the screening if any, and is not in a pending state
   if (
     (!HasUserCompletedScreening && !IsOnboardingFeaturesEnabled && UpdatedMember.pending) ||
-    (!IsMemberRecentlyJoined &&
+    (!HasRecentlyJoined &&
       OutdatedMember.roles.cache.difference(UpdatedMember.roles.cache).size === 0)
   ) {
     return;
@@ -70,7 +77,7 @@ export default async function OnMemberUpdateRolePersistHandler(
     const AppMember = await UpdatedMember.guild.members.fetchMe();
     if (!AppMember?.permissions.has(PermissionFlagsBits.ManageRoles)) return;
 
-    const RestorationReason = IsMemberRecentlyJoined
+    const RestorationReason = HasRecentlyJoined
       ? "user (re)joined"
       : "a persistent role was manually removed";
 
@@ -91,7 +98,7 @@ export default async function OnMemberUpdateRolePersistHandler(
     );
 
     if (!RolesToAssign.length) return;
-    if (IsMemberRecentlyJoined) {
+    if (HasRecentlyJoined) {
       await new Promise((resolve) => setTimeout(resolve, 800));
     } else {
       const CooldownInfo = PRCooldownMultiplier.get(UpdatedMember.id) ?? {
@@ -112,7 +119,7 @@ export default async function OnMemberUpdateRolePersistHandler(
 
     await UpdatedMember.roles.add(
       RolesToAssign,
-      `Role persistence restoration, ${RestorationReason}; record${RecordIdsProcessed.length > 1 ? "s" : ""}: ${RecordIdsProcessed.join(", ")}.`
+      `Role persistence restoration; ${RestorationReason}. Record${RecordIdsProcessed.length > 1 ? "s" : ""}: ${RecordIdsProcessed.join(", ")}.`
     );
   } catch (Err: any) {
     AppLogger.error({

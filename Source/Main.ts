@@ -1,6 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
+import { Client, Options, Collection, GatewayIntentBits, Status, Partials } from "discord.js";
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
-import { Client, Options, Collection, GatewayIntentBits, Status } from "discord.js";
 import { Discord as DiscordSecrets } from "@Config/Secrets.js";
 
 import Path from "node:path";
@@ -28,6 +28,7 @@ export const App: Client = new Client({
       filter: () => (Msg) => Msg.partial || (Msg.author !== null && Msg.author.id !== App.user?.id),
     },
   },
+  partials: [Partials.GuildMember],
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
