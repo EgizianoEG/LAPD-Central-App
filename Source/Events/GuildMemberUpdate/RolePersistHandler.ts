@@ -63,9 +63,16 @@ export default async function OnMemberUpdateRolePersistHandler(
     return;
   }
 
+  AppLogger.debug({
+    message: "Processing member update for role persistence restoration;",
+    old: OutdatedMember.toJSON(),
+    new: UpdatedMember.toJSON(),
+    label: "Events:GuildMemberUpdate:OnMemberRejoinRolePersistHandler",
+  });
+
   const ActiveRolePersistRecords = await RolePersistenceModel.find({
     guild: UpdatedMember.guild.id,
-    user: UpdatedMember.id,
+    user: UpdatedMember.user.id,
     $or: [{ expiry: null }, { expiry: { $gt: new Date() } }],
   })
     .sort({ saved_on: -1, expiry: -1 })
