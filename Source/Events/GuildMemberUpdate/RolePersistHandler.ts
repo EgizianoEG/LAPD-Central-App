@@ -5,6 +5,7 @@ import RolePersistenceModel from "@Models/RolePersist.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import TTLCache from "@isaacs/ttlcache";
 
+const FileLabel = "Events:GuildMemberUpdate:OnMemberRejoinRolePersistHandler";
 const PRCooldownMultiplier = new TTLCache<
   string,
   { last_reassigned: Date; assignment_count: number; current_op: null | Promise<any> }
@@ -49,6 +50,14 @@ export default async function OnMemberUpdateRolePersistHandler(
   // Case 1: If the guild uses onboarding features, only continue if the user has
   // just finished the screening process.
   if (IsOnboardingFeaturesEnabled && !HasUserCompletedScreening) {
+    AppLogger.debug({
+      message:
+        "Skipping role persistence restoration; onboarding features are enabled and the user has not completed screening.",
+      old: OutdatedMember.toJSON(),
+      new: UpdatedMember.toJSON(),
+      label: FileLabel,
+    });
+
     return;
   }
 
@@ -60,15 +69,14 @@ export default async function OnMemberUpdateRolePersistHandler(
     (!HasRecentlyJoined &&
       OutdatedMember.roles.cache.difference(UpdatedMember.roles.cache).size === 0)
   ) {
+    AppLogger.debug({
+      message:
+        "Skipping role persistence restoration; no relevant membership status change detected.",
+      label: FileLabel,
+    });
+
     return;
   }
-
-  AppLogger.debug({
-    message: "Processing member update for role persistence restoration;",
-    old: OutdatedMember.toJSON(),
-    new: UpdatedMember.toJSON(),
-    label: "Events:GuildMemberUpdate:OnMemberRejoinRolePersistHandler",
-  });
 
   const ActiveRolePersistRecords = await RolePersistenceModel.find({
     guild: UpdatedMember.guild.id,
@@ -78,6 +86,12 @@ export default async function OnMemberUpdateRolePersistHandler(
     .sort({ saved_on: -1, expiry: -1 })
     .lean()
     .exec();
+
+  AppLogger.debug({
+    message: "Processing member update for role persistence restoration;",
+    active_records: ActiveRolePersistRecords,
+    label: FileLabel,
+  });
 
   try {
     if (!ActiveRolePersistRecords.length) return;
@@ -103,6 +117,13 @@ export default async function OnMemberUpdateRolePersistHandler(
         !UpdatedMember.roles.cache.has(Role.id) &&
         Role.comparePositionTo(AppMember.roles.highest) < 0
     );
+
+    AppLogger.debug({
+      message: "Roles identified for assignment during role persistence restoration;",
+      label: FileLabel,
+      user_id: UpdatedMember.user.id,
+      guild_id: UpdatedMember.guild.id,
+    });
 
     if (!RolesToAssign.length) return;
     if (HasRecentlyJoined) {
@@ -131,7 +152,7 @@ export default async function OnMemberUpdateRolePersistHandler(
   } catch (Err: any) {
     AppLogger.error({
       message: "Failed to persist roles on member update;",
-      label: "Events:GuildMemberUpdate:OnMemberRejoinRolePersistHandler",
+      label: FileLabel,
       stack: Err.stack,
       error: Err,
     });
