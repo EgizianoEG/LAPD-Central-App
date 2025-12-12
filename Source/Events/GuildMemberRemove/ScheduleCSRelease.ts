@@ -2,8 +2,8 @@ import GetGuildSettings from "@Source/Utilities/Database/GetGuildSettings.js";
 import CallsignModel from "@Source/Models/Callsign.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 import { addHours } from "date-fns";
-import { GuildMember } from "discord.js";
 import { GenericRequestStatuses } from "@Source/Config/Constants.js";
+import { GuildMember, PartialGuildMember } from "discord.js";
 
 /**
  * Schedules the release of an active call sign for a guild member when they leave the server.
@@ -13,7 +13,7 @@ import { GenericRequestStatuses } from "@Source/Config/Constants.js";
  */
 export default async function ScheduleCallSignReleaseOnMemberLeave(
   _: DiscordClient,
-  Member: GuildMember
+  Member: GuildMember | PartialGuildMember
 ) {
   try {
     const GuildSettings = await GetGuildSettings(Member.guild.id);

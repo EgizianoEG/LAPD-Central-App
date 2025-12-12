@@ -1,4 +1,4 @@
-import type { GuildMember } from "discord.js";
+import type { GuildMember, PartialGuildMember } from "discord.js";
 import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
 import ShiftModel from "@Models/Shift.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
@@ -8,7 +8,10 @@ import AppLogger from "@Utilities/Classes/AppLogger.js";
  * @param _ - Unused parameter, included for compatibility.
  * @param Member - The guild member who left the server.
  */
-export default async function TerminateShiftOnMemberLeave(_: DiscordClient, Member: GuildMember) {
+export default async function TerminateShiftOnMemberLeave(
+  _: DiscordClient,
+  Member: GuildMember | PartialGuildMember
+) {
   try {
     const NowTimestamp = Date.now();
     const ActiveShift = await ShiftModel.findOne({
@@ -21,7 +24,7 @@ export default async function TerminateShiftOnMemberLeave(_: DiscordClient, Memb
       const TerminatedShift = await ActiveShift.end(NowTimestamp);
       await ShiftActionLogger.LogShiftAutomatedEnd(
         TerminatedShift,
-        Member,
+        Member as GuildMember,
         "Automatically ended due to member leaving the server."
       );
     }

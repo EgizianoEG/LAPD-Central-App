@@ -1,4 +1,4 @@
-import { GuildMember, PermissionFlagsBits } from "discord.js";
+import { GuildMember, PartialGuildMember, PermissionFlagsBits } from "discord.js";
 import { GenericRequestStatuses } from "@Source/Config/Constants.js";
 import { UserHasPermsV2 } from "@Source/Utilities/Database/UserHasPermissions.js";
 import { addHours } from "date-fns";
@@ -17,7 +17,7 @@ const FileLabel = "Events:GuildMemberUpdate:CallsignReleaseScheduler";
  */
 export default async function OnMemberUpdateCallsignReleaseScheduler(
   _: DiscordClient,
-  OutdatedMember: GuildMember,
+  OutdatedMember: GuildMember | PartialGuildMember,
   UpdatedMember: GuildMember
 ) {
   const UpdatedRoles = UpdatedMember.roles.cache;
