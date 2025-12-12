@@ -147,14 +147,6 @@ export default async function OnMemberUpdateRolePersistHandler(
     .lean()
     .exec();
 
-  AppLogger.debug({
-    message: "Processing member update for role persistence restoration;",
-    active_records: ActiveRolePersistRecords.map((R) => R._id),
-    label: FileLabel,
-    user_id: UpdatedMember.id,
-    guild_id: UpdatedMember.guild.id,
-  });
-
   try {
     if (!ActiveRolePersistRecords.length) return;
     const AppMember = await UpdatedMember.guild.members.fetchMe();
@@ -182,14 +174,6 @@ export default async function OnMemberUpdateRolePersistHandler(
         !UpdatedMember.roles.cache.has(Role.id) &&
         Role.comparePositionTo(AppMember.roles.highest) < 0
     );
-
-    AppLogger.debug({
-      message: "Roles identified for assignment during role persistence restoration;",
-      label: FileLabel,
-      user_id: UpdatedMember.user.id,
-      guild_id: UpdatedMember.guild.id,
-      roles_count: RolesToAssign.length,
-    });
 
     if (!RolesToAssign.length) return;
     if (IsJoinRelatedEvent) {
