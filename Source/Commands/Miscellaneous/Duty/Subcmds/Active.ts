@@ -21,7 +21,7 @@ import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
 // Constants:
 // ----------
 const ShiftsPerPage = 10;
-const BreakAnnotation = "***⁽ᶦ⁾***";
+const BreakAnnotation = " ***(𝑖 )***";
 const ActiveBreakNotification = "(𝒊): Currently on break";
 const PageTitle = `${Emojis.StopWatch}   Currently Active Shifts`;
 
