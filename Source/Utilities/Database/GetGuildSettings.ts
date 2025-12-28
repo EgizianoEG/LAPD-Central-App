@@ -1,6 +1,7 @@
 import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
 import { Guilds } from "@Typings/Utilities/Database.js";
 import GuildModel from "@Models/Guild.js";
+import AppError from "../Classes/AppError.js";
 
 /**
  * Retrieves the settings for a specific guild from the database.
@@ -29,7 +30,11 @@ export default async function GetGuildSettings(GuildId: string): Promise<Guilds.
   }
 
   if (!GuildDocument) {
-    throw new Error(`Unexpected error: guild document for Id '${GuildId}' wasn't found.`);
+    throw new AppError({
+      template: "GuildConfigNotFound",
+      showable: true,
+      code: 1,
+    });
   }
 
   return ("toObject" in GuildDocument
