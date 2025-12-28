@@ -274,7 +274,7 @@ function GetAdditionalInputsModal(CmdInteract: SlashCommandInteraction<"cached">
         ),
       new LabelBuilder()
         .setLabel("Violation(s)")
-        .setDescription("List all the violation(s) that the violator committed.")
+        .setDescription("List all the violations that the violator committed.")
         .setTextInputComponent(
           new TextInputBuilder()
             .setStyle(TextInputStyle.Paragraph)
@@ -489,13 +489,6 @@ async function OnModalSubmission(
     const ViolatorRobloxInfo = await GetUserInfo(PCitationData.violator.id);
     const OfficerRobloxInfo = await GetUserInfo(CitingOfficer.RobloxUserId);
     const GuildSettings = await GetGuildSettings(ModalSubmission.guildId);
-
-    if (!GuildSettings) {
-      return new ErrorEmbed()
-        .useErrTemplate("GuildConfigNotFound")
-        .replyToInteract(ModalSubmission, true);
-    }
-
     const UTIFOpts: FilterUserInputOptions = {
       replacement: "#",
       guild_instance: CmdInteract.guild,
@@ -547,7 +540,8 @@ async function OnModalSubmission(
         await FilterUserInput(
           ModalSubmission.fields.getTextInputValue("traffic-violations"),
           UTIFOpts
-        )
+        ),
+        GuildSettings.duty_activities.auto_annotate_ca_codes
       ),
 
       violation_loc: TitleCase(

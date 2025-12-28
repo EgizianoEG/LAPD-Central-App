@@ -189,6 +189,7 @@ const CTAIds = {
     SignatureFormatType: `${ConfigTopics.AdditionalConfiguration}-dasf`,
     ArrestReportsImgHeaderEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-ar-hdr`,
     IncReportsAutoThreadsMgmtEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-ir-atm`,
+    CACodesAutoAnnotationEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-cc-aca`,
 
     OutsideArrestLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oalc`,
     OutsideCitationLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oclc`,
@@ -359,6 +360,12 @@ const ConfigTopicsExplanations = {
           "When enabled, the app will automatically create a thread for each incident report message in the destination channel. " +
           "This allows discussing and investigating incidents in a dedicated space. The thread will be closed automatically when the incident status is updated to a closed category.\n\n" +
           "Note: Requires `Create Public Threads` permission and only works in non-forum channels.",
+      },
+      {
+        Name: "California Codes Auto-Annotation",
+        Description:
+          "When enabled, the app will attempt to detect and annotate California Vehicle Codes in citations and Penal Codes in arrest charges, and will attempt to remove any redundant code descriptions entered by staff. " +
+          "This option does not affect the current behavior of enforcing structured format; i.e. ordered list of charges or violations.",
       },
     ],
   },
@@ -1188,6 +1195,29 @@ function GetDutyActModuleConfigComponents(
         )
     );
 
+  const AutoCACodesAnnotationEnabledAR =
+    new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+      new StringSelectMenuBuilder()
+        .setPlaceholder("California Codes Auto-Annotation Enabled/Disabled")
+        .setMinValues(1)
+        .setMaxValues(1)
+        .setCustomId(
+          `${CTAIds[ConfigTopics.DutyActivitiesConfiguration].CACodesAutoAnnotationEnabled}:${Interaction.user.id}`
+        )
+        .setOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Enabled")
+            .setValue("true")
+            .setDescription("Enable automatic code assignment.")
+            .setDefault(DActivitiesConfig.auto_annotate_ca_codes),
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Disabled")
+            .setValue("false")
+            .setDescription("Disable automatic code assignment.")
+            .setDefault(!DActivitiesConfig.auto_annotate_ca_codes)
+        )
+    );
+
   return [
     ModuleEnabledAR,
     LocalCitsLogChannelBtn,
@@ -1197,6 +1227,7 @@ function GetDutyActModuleConfigComponents(
     SignatureFormatAR,
     ArrestReportsImgHeaderEnabledAR,
     IncidentReportsAutoThreadsMgmtEnabledAR,
+    AutoCACodesAnnotationEnabledAR,
   ] as const;
 }
 
@@ -1835,7 +1866,17 @@ function GetDutyActivitiesModuleConfigContainers(
         `)
       )
     )
-    .addActionRowComponents(DutyActivitiesInteractComponents[7]);
+    .addActionRowComponents(DutyActivitiesInteractComponents[7])
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          9. **${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[8].Name}**
+          ${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[8].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(DutyActivitiesInteractComponents[8]);
 
   return [Page_1, Page_2, Page_3] as const;
 }
@@ -2497,6 +2538,9 @@ function GetCSDutyActivitiesContent(GuildSettings: GuildSettings): string {
 
   return Dedent(`
     >>> **Module Enabled:** ${GuildSettings.duty_activities.enabled ? "Yes" : "No"}
+    **Auto-Annotate CA Codes:** ${GuildSettings.duty_activities.auto_annotate_ca_codes ? "Enabled" : "Disabled"}
+    **Arrest Reports P&S Header Image:** ${GuildSettings.duty_activities.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
+    **Inc. Reports Auto Thread Management:** ${GuildSettings.duty_activities.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
     **Signature Format:** \`${SignatureFormatResolved[GuildSettings.duty_activities.signature_format]}\`
     **Incident Log Channel:** ${IncidentLogChannel}
     **Citation Log Channel${CitationLogChannels.length > 1 ? "s" : ""}:** 
@@ -2903,6 +2947,7 @@ async function HandleDutyActivitiesModuleDBSave(
       $set: {
         "settings.duty_activities.enabled": MConfig.enabled,
         "settings.duty_activities.signature_format": MConfig.signature_format,
+        "settings.duty_activities.auto_annotate_ca_codes": MConfig.auto_annotate_ca_codes,
         "settings.duty_activities.log_channels.incidents": MConfig.log_channels.incidents,
         "settings.duty_activities.log_channels.citations": MConfig.log_channels.citations,
         "settings.duty_activities.log_channels.arrests": MConfig.log_channels.arrests,
@@ -2949,6 +2994,7 @@ async function HandleDutyActivitiesModuleDBSave(
       > - **Signature Format:** \`${SignatureFormatResolved[UpdatedDASettings.signature_format]}\`
       > - **Inc. Reports Auto Thread Management:** ${UpdatedDASettings.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
       > - **Arrest Reports P&S Header Image:** ${UpdatedDASettings.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
+      > - **Auto-Annotate CA Codes:** ${UpdatedDASettings.auto_annotate_ca_codes ? "`Enabled`" : "`Disabled`"}
 
       **Log Destinations:**
       > - **Incident Log:** ${ILSetChannel}
@@ -3545,6 +3591,12 @@ async function HandleDutyActivitiesConfigPageInteracts(
     )
   ) {
     ModuleConfig.incident_reports.auto_thread_management = RecInteract.values[0] === "true";
+  } else if (
+    CustomId.startsWith(
+      CTAIds[ConfigTopics.DutyActivitiesConfiguration].CACodesAutoAnnotationEnabled
+    )
+  ) {
+    ModuleConfig.auto_annotate_ca_codes = RecInteract.values[0] === "true";
   }
 
   RecInteract.deferUpdate().catch(() => null);
