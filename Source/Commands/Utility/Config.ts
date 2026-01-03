@@ -4075,12 +4075,12 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
           Define the nickname format template to automatically apply when assigning approved call signs to staff members.
           
           Available placeholders and tags:
-          >>> \`{division}\` - The division beat number
-          \`{unit_type}\` - The service unit type
-          \`{beat_num}\` - The beat number
-          \`{nickname}\` - The member's current server nickname at assignment time (defaults to display name if no nickname is set)
-          \`{display_name}\` - The member's current server display name at assignment time
-          \`{roblox_username}\` - The linked Roblox account username
+          >>> \`{division}\` - The division beat number; e.g., \`1\` for Central, \`7\` for Willshire, etc.,
+          \`{unit_type}\` - The service unit type; e.g., \`A\`, \`K9\`, \`SL\`, etc.,
+          \`{beat_num}\` - The beat number; e.g., \`20\`, \`134\`, \`250\`, etc.,
+          \`{nickname}\` - The member's current server nickname at assignment time; defaults to display name if no nickname is set,
+          \`{display_name}\` - The member's current server display name at assignment time, and,
+          \`{roblox_username}\` - The *linked* Roblox account username. This will be replaced empty if there is no linked account at the time of assignment.
         `)
       )
     )
