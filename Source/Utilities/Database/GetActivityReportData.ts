@@ -194,7 +194,7 @@ export default async function GetActivityReportData(
         if (StartCurrentDatesDifferenceInDays <= 2.5 || RecentUAN.type === "ReducedActivity") {
           const NewQuotaDeclaration =
             RecentUAN.type === "ReducedActivity"
-              ? `\nQuota Reduction: ~${Math.round((1 - (RecentUAN.quota_scale || 0)) * 100)}%`
+              ? `\nQuota Reduction: ~${Math.round((RecentUAN.quota_scale || 0) * 100)}%`
               : "";
 
           const RelativeDuration = ReadableDuration(
