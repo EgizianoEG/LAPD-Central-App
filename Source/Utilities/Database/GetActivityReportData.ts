@@ -185,13 +185,13 @@ export default async function GetActivityReportData(
         if (!Record.quota_met && Opts.quota_duration) {
           const ScaledQuota =
             RecentUAN.type === "ReducedActivity"
-              ? (RecentUAN.quota_scale || 1) * Opts.quota_duration
+              ? (1 - (RecentUAN.quota_scale || 0)) * Opts.quota_duration
               : Opts.quota_duration;
 
           Record.quota_met = Record.total_time >= ScaledQuota;
         }
 
-        if (StartCurrentDatesDifferenceInDays <= 2.5) {
+        if (StartCurrentDatesDifferenceInDays <= 2.5 || RecentUAN.type === "ReducedActivity") {
           const NewQuotaDeclaration =
             RecentUAN.type === "ReducedActivity"
               ? `\nQuota Reduction: ~${Math.round((1 - (RecentUAN.quota_scale || 0)) * 100)}%`
