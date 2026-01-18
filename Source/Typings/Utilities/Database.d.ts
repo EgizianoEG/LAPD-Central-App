@@ -1658,7 +1658,7 @@ export namespace AggregateResults {
     total_shifts: number;
     total_time: T;
 
-    recent_activity_notice: Pick<
+    activity_notices: Pick<
       UserActivityNotice.UserActivityNoticeDocument,
       | "type"
       | "quota_scale"
@@ -1669,7 +1669,7 @@ export namespace AggregateResults {
       | "reviewed_by"
       | "early_end_date"
       | "extension_request"
-    > | null;
+    >[];
 
     quota_met: boolean;
 
