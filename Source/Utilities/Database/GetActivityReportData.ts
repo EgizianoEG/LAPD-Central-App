@@ -181,21 +181,6 @@ export default async function GetActivityReportData(
           isAfter(LOANotice.end_date, RetrieveDate)
         ) {
           IsLeaveActive = true;
-          const StartCurrentDatesDifferenceInDays =
-            differenceInHours(RetrieveDate, LOANotice.review_date) / 24;
-
-          if (StartCurrentDatesDifferenceInDays <= 2.5) {
-            const RelativeDuration = ReadableDuration(
-              RetrieveDate.getTime() - LOANotice.review_date.getTime(),
-              {
-                conjunction: " and ",
-                largest: 2,
-                round: true,
-              }
-            );
-
-            NoticeNotes.leave = `Leave of absence started around ${RelativeDuration} ago.\nApproved by: @${LOANotice.reviewed_by.username}`;
-          }
         } else {
           const NoticeEndDate = LOANotice.early_end_date || LOANotice.end_date;
           const EndCurrentDatesDifferenceInDays =
@@ -215,21 +200,16 @@ export default async function GetActivityReportData(
           }
         }
       } else if (LOANotice.status === "Pending" && LOANotice.review_date === null) {
-        const RequestCurrentDatesDifferenceInDays =
-          differenceInHours(RetrieveDate, LOANotice.request_date) / 24;
+        const RelativeDuration = ReadableDuration(
+          RetrieveDate.getTime() - LOANotice.request_date.getTime(),
+          {
+            conjunction: " and ",
+            largest: 2,
+            round: true,
+          }
+        );
 
-        if (RequestCurrentDatesDifferenceInDays <= 3) {
-          const RelativeDuration = ReadableDuration(
-            RetrieveDate.getTime() - LOANotice.request_date.getTime(),
-            {
-              conjunction: " and ",
-              largest: 2,
-              round: true,
-            }
-          );
-
-          NoticeNotes.leave = `An unapproved leave of absence request was submitted around ${RelativeDuration} ago.`;
-        }
+        NoticeNotes.leave = `An unapproved leave of absence request was submitted around ${RelativeDuration} ago.`;
       }
     }
 
@@ -250,7 +230,7 @@ export default async function GetActivityReportData(
             Record.quota_met = Record.total_time >= ScaledQuota;
           }
 
-          if (StartCurrentDatesDifferenceInDays <= 2.5 || RANotice.type === "ReducedActivity") {
+          if (StartCurrentDatesDifferenceInDays <= 2 || RANotice.type === "ReducedActivity") {
             const QuotaReductionString = `\nQuota Reduction: ~${Math.round((RANotice.quota_scale || 0) * 100)}%`;
 
             const RelativeDuration = ReadableDuration(
@@ -283,21 +263,16 @@ export default async function GetActivityReportData(
           }
         }
       } else if (RANotice.status === "Pending" && RANotice.review_date === null) {
-        const RequestCurrentDatesDifferenceInDays =
-          differenceInHours(RetrieveDate, RANotice.request_date) / 24;
+        const RelativeDuration = ReadableDuration(
+          RetrieveDate.getTime() - RANotice.request_date.getTime(),
+          {
+            conjunction: " and ",
+            largest: 2,
+            round: true,
+          }
+        );
 
-        if (RequestCurrentDatesDifferenceInDays <= 3) {
-          const RelativeDuration = ReadableDuration(
-            RetrieveDate.getTime() - RANotice.request_date.getTime(),
-            {
-              conjunction: " and ",
-              largest: 2,
-              round: true,
-            }
-          );
-
-          NoticeNotes.ra = `An unapproved reduced activity request was submitted around ${RelativeDuration} ago.`;
-        }
+        NoticeNotes.ra = `An unapproved reduced activity request was submitted around ${RelativeDuration} ago.`;
       }
     }
 
