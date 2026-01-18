@@ -5,14 +5,14 @@ import { DummyText, RandomString } from "@Utilities/Strings/Random.js";
 import { faker as Faker } from "@faker-js/faker";
 import {
   FormatAge,
+  AddStatutes,
   FormatHeight,
+  EscapeRegExp,
   FormatCharges,
+  UnorderedList,
   FormatUsername,
   FormatVehicleName,
-  UnorderedList,
-  EscapeRegExp,
-  ListCharges,
-  AddStatutes,
+  ListViolationsOrCharges,
 } from "@Utilities/Strings/Formatters.js";
 
 import SampleTexts from "@Resources/SampleTexts.js";
@@ -521,31 +521,31 @@ describe("String Formatting Utilities", () => {
 
   describe("Formatting:ListCharges()", () => {
     it("Should return an empty string/array if input is considered an empty string", () => {
-      expect(ListCharges("", true, true)).toEqual([]);
-      expect(ListCharges("", false, false)).toEqual("");
-      expect(ListCharges(" \n\r \t  ", true, true)).toEqual([]);
-      expect(ListCharges(" \n\r \t  ", undefined, false)).toEqual("");
+      expect(ListViolationsOrCharges("", true, true)).toEqual([]);
+      expect(ListViolationsOrCharges("", false, false)).toEqual("");
+      expect(ListViolationsOrCharges(" \n\r \t  ", true, true)).toEqual([]);
+      expect(ListViolationsOrCharges(" \n\r \t  ", undefined, false)).toEqual("");
     });
 
     it("Should omit any numbering or listing characters from the multiline input of unformatted charges and properly renumber them", () => {
       const Input_1 = "- A charge \r\n * A second charge ";
       const ExpectedOutput_1 = "1. A charge\n2. A second charge";
-      expect(ListCharges(Input_1, true, false)).toBe(ExpectedOutput_1);
+      expect(ListViolationsOrCharges(Input_1, true, false)).toBe(ExpectedOutput_1);
 
       const Input_2 = "  4. First numbered item\n10. Second numbered item";
       const ExpectedOutput_2 = "1. First numbered item\n2. Second numbered item";
-      expect(ListCharges(Input_2, undefined, false)).toBe(ExpectedOutput_2);
+      expect(ListViolationsOrCharges(Input_2, undefined, false)).toBe(ExpectedOutput_2);
     });
 
     it("Should omit any lines that represents legal statute codes from the multiline input of unformatted charges and return normally", () => {
       const Input_1 =
         "Charge (1)\n  - Statute: x2\n\rCharge (2)\n  * Statute 3\r\nCharge (3)\n  - statute 4\nCharge (4)";
       const ExpectedOutput_1 = "1. Charge (1)\n2. Charge (2)\n3. Charge (3)\n4. Charge (4)";
-      expect(ListCharges(Input_1, undefined, false)).toBe(ExpectedOutput_1);
+      expect(ListViolationsOrCharges(Input_1, undefined, false)).toBe(ExpectedOutput_1);
 
       const Input_2 = "\r\n\n   1. Evasion of Peace Officer \n  - Statute: xxxxx (x)";
       const ExpectedOutput_2 = "1. Evasion of Peace Officer";
-      expect(ListCharges(Input_2, undefined, false)).toBe(ExpectedOutput_2);
+      expect(ListViolationsOrCharges(Input_2, undefined, false)).toBe(ExpectedOutput_2);
     });
     it("Should format a multiline input string into a formatted numbered list of charges or an array", () => {});
   });
