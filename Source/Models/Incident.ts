@@ -198,7 +198,7 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
       signature: {
         type: String,
         required: true,
-        minLength: 3,
+        minLength: 1,
         maxLength: 100,
         default(this: IncidentPlainDoc) {
           return `@${this.last_updated_by!.discord_username}`;

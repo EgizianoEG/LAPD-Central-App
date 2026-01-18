@@ -1037,7 +1037,13 @@ async function HandleShiftCreation(
   });
 
   return Promise.allSettled([
-    ShiftActionLogger.LogShiftTimeAddSub(ModalSubmission, NewShiftRecord, RoundedDuration, "Add"),
+    ShiftActionLogger.LogShiftTimeAddSub(
+      ModalSubmission,
+      NewShiftRecord,
+      RoundedDuration,
+      "Add",
+      true
+    ),
     GetActiveShiftAndShiftDataContainer(BInteract, {
       TargetUser,
       CmdShiftType: ShiftType,

@@ -153,8 +153,10 @@ export async function CheckShiftTypeRestrictions(
 
   if (UserHasMgmtPerms) return true;
   if (CmdShiftType && DesiredShiftType) {
+    if (DesiredShiftType.access_roles.length === 0) return true;
     return Interaction.member.roles.cache.hasAny(...DesiredShiftType.access_roles);
   } else if (GuildDefaultType) {
+    if (GuildDefaultType.access_roles.length === 0) return true;
     return Interaction.member.roles.cache.hasAny(...GuildDefaultType.access_roles);
   }
 

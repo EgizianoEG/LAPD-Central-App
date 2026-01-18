@@ -23,7 +23,7 @@ const CommandObject = {
   callback: CitFineCmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("citation-fine")
-    .setDescription("Creates and logs a notice to appear as a citation record for a person.")
+    .setDescription("Issue and record a citation fine as a notice to appear.")
     .addStringOption((Option) =>
       Option.setName("name")
         .setDescription("The username of the violator.")

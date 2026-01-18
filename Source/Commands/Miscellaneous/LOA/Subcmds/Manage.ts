@@ -171,7 +171,7 @@ async function GetManagementEmbedAndLOA(Interaction: PromptInteractType) {
         **Started:** ${FormatTime(ActiveOrPendingLOA.review_date!, "D")}
         **Ends On:** ${FormatTime(ActiveOrPendingLOA.end_date, "D")}
         **Duration:** ${ActiveOrPendingLOA.duration_hr}
-        **Approved By:** ${userMention(ActiveOrPendingLOA.reviewed_by.id)}
+        **Approved by:** ${userMention(ActiveOrPendingLOA.reviewed_by.id)}
         **Reason:** ${ActiveOrPendingLOA.reason}
       `),
     });
@@ -243,20 +243,20 @@ async function HandleLeaveExtend(
   });
 
   if (!ActiveLeave) {
+    CompCollector.stop("Updated");
     return Promise.allSettled([
       new ErrorEmbed().useErrTemplate("LOAIsOverForExtension").replyToInteract(Interaction, true),
       Callback(Interaction, MainPromptMsgId),
-      CompCollector.stop("Updated"),
     ]);
   }
 
   if (ActiveLeave.extension_request) {
+    CompCollector.stop("Updated");
     return Promise.allSettled([
       new ErrorEmbed()
         .useErrTemplate("LOAExtensionLimitReached")
         .replyToInteract(Interaction, true),
       Callback(Interaction, MainPromptMsgId),
-      CompCollector.stop("Updated"),
     ]);
   }
 
@@ -307,16 +307,16 @@ async function HandleLeaveExtend(
 
   if (SubmissionHandled) return;
   if (!ActiveLeave?.is_active) {
+    CompCollector.stop("Updated");
     return Promise.all([
       new ErrorEmbed().useErrTemplate("LOANotActive").replyToInteract(Submission, true),
       Callback(Submission, MainPromptMsgId),
-      CompCollector.stop("Updated"),
     ]);
   } else if (ActiveLeave.extension_request) {
+    CompCollector.stop("Updated");
     return Promise.all([
       new ErrorEmbed().useErrTemplate("LOAExtensionLimitReached").replyToInteract(Submission, true),
       Callback(Submission, MainPromptMsgId),
-      CompCollector.stop("Updated"),
     ]);
   }
 
@@ -341,10 +341,11 @@ async function HandleLeaveExtend(
     : null;
 
   await ActiveLeave.save();
+  CompCollector.stop("Updated");
+
   return Promise.allSettled([
     Submission.editReply({ embeds: [ReplyEmbed] }),
     Callback(Submission, MainPromptMsgId),
-    CompCollector.stop("Updated"),
   ]);
 }
 
@@ -362,8 +363,8 @@ async function HandleLeaveEarlyEnd(
   });
 
   if (!ActiveLeave) {
+    CompCollector.stop("Updated");
     return Promise.all([
-      CompCollector.stop("Updated"),
       Callback(Interaction, MainPromptMsgId),
       new ErrorEmbed().useErrTemplate("LOANotActive").replyToInteract(Interaction, true),
     ]);
@@ -421,9 +422,9 @@ async function HandleLeaveEarlyEnd(
 
   ActiveLeave = await ActiveLeave.getUpToDate();
   if (!ActiveLeave?.is_active) {
+    CompCollector.stop("Updated");
     return Promise.allSettled([
       Callback(ButtonInteract, MainPromptMsgId),
-      CompCollector.stop("Updated"),
       ButtonInteract.editReply({
         components: [
           new ErrorContainer()
@@ -443,8 +444,9 @@ async function HandleLeaveEarlyEnd(
     .setDescription("Your leave of absence has been successfully terminated at your request.");
 
   await ButtonInteract.update({ components: [RespContainer] }).catch(() => null);
+  CompCollector.stop("Updated");
+
   return Promise.allSettled([
-    CompCollector.stop("Updated"),
     Callback(ButtonInteract, MainPromptMsgId),
     LOAEventLogger.LogEarlyUANEnd(ButtonInteract, ActiveLeave, "Requester"),
     HandleUserActivityNoticeUpdate(ActiveLeave.user, ButtonInteract.guild, "LeaveOfAbsence", false),
@@ -463,10 +465,10 @@ async function HandlePendingLeaveCancellation(
   });
 
   if (!PendingLeave) {
+    CompCollector.stop("Updated");
     return Promise.allSettled([
       new ErrorEmbed().useErrTemplate("NoPendingLOAToCancel").replyToInteract(Interaction, true),
       Callback(Interaction, MainPromptMsgId),
-      CompCollector.stop("Updated"),
     ]);
   }
 
@@ -523,8 +525,8 @@ async function HandlePendingLeaveCancellation(
     .setTitle("Leave Request Cancelled")
     .setDescription("Your leave request was successfully cancelled at your request.");
 
+  CompCollector.stop("Updated");
   return Promise.allSettled([
-    CompCollector.stop("Updated"),
     Callback(ButtonInteract, MainPromptMsgId),
     LOAEventLogger.LogCancellation(ButtonInteract, PendingLeave),
     ButtonInteract.editReply({ components: [RespContainer] }),
@@ -545,10 +547,10 @@ async function HandlePendingExtensionCancellation(
   });
 
   if (!ActiveLeave) {
+    CompCollector.stop("Updated");
     return Promise.allSettled([
       new ErrorEmbed().useErrTemplate("LOANotActive").replyToInteract(Interaction, true),
       Callback(Interaction, MainPromptMsgId),
-      CompCollector.stop("Updated"),
     ]);
   }
 
@@ -574,7 +576,7 @@ async function HandlePendingExtensionCancellation(
 
   const ConfirmationMsg = await Interaction.reply({
     components: [ConfirmationContainer.attachPromptActionRows(ConfirmationBtns)],
-    flags: MessageFlags.Ephemeral,
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     withResponse: true,
   }).then((Resp) => Resp.resource!.message!);
 
@@ -606,8 +608,8 @@ async function HandlePendingExtensionCancellation(
     .setTitle("Extension Request Cancelled")
     .setDescription("Your leave extension request was successfully cancelled.");
 
+  CompCollector.stop("Updated");
   return Promise.allSettled([
-    CompCollector.stop("Updated"),
     Callback(ButtonInteract, MainPromptMsgId),
     LOAEventLogger.LogExtensionCancellation(Interaction, ActiveLeave),
     Interaction.editReply({ components: [SuccessCancellationContainer] }),

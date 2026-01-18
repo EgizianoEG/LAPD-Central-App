@@ -5,9 +5,9 @@ import type { UserIdLookupResult } from "@Utilities/Roblox/GetIdByUsername.js";
 import type { ThrottleTracker } from "@Utilities/Discord/CommandExecutionGuards.js";
 import type NobloxJs from "noblox.js";
 
-import { Collection } from "discord.js";
 import { millisecondsInDay } from "date-fns/constants";
 import { hoursToMilliseconds } from "date-fns";
+import { Collection, PartialGuildMember } from "discord.js";
 
 import MongoDBDocCollection from "@Utilities/Classes/MongoDBDocCollection.js";
 import ShiftModel from "@Models/Shift.js";
@@ -191,7 +191,7 @@ export function UpsertGuildMemberCacheEntry(Member: GuildMember): void {
  * Removes a member from the cached snapshot, deleting the cache entirely if it becomes empty.
  * @param Member - The guild member to remove from the cached collection.
  */
-export function RemoveGuildMemberCacheEntry(Member: GuildMember): void {
+export function RemoveGuildMemberCacheEntry(Member: GuildMember | PartialGuildMember): void {
   const CachedMembers = GuildMembersCache.get(Member.guild.id);
   if (!CachedMembers) return;
 

@@ -12,7 +12,7 @@ export const SavedRoleSchema = new Schema(
     name: {
       type: String,
       minLength: 1,
-      maxLength: 32,
+      maxLength: 100,
       required: true,
     },
   },

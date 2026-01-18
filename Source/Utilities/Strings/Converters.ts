@@ -39,7 +39,7 @@ export function TitleCase(Str: string, Strict: boolean = true): string {
     "fbi",
     "dea",
     "lc",
-    "mph",
+    "hw",
   ];
 
   const Lowers = [
@@ -75,6 +75,7 @@ export function TitleCase(Str: string, Strict: boolean = true): string {
     "past",
     "under",
     "until",
+    "mph",
   ];
 
   // Capitalize the first letter of each word except numbers starting with "x" (e.g. "Tasks: x3")

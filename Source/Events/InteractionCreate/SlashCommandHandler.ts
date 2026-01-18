@@ -66,6 +66,7 @@ export default async function SlashCommandHandler(
         message: "Handled execution of slash command %o.",
         label: FileLogLabel,
         splat: [FullCmdName],
+        guild: Interaction.guild?.id ?? null,
         execution_time: ReadableDuration(Date.now() - Interaction.createdTimestamp),
         stringified: Interaction.toString(),
         cmd_options: Interaction.options,
@@ -95,10 +96,11 @@ export default async function SlashCommandHandler(
       const ErrorId = GetErrorId();
       AppLogger.error({
         message: "An error occurred while executing slash command %o;",
+        guild: Interaction.guild?.id ?? null,
         label: FileLogLabel,
         error_id: ErrorId,
         stack: Err.stack,
-        error: { ...Err },
+        error: Err,
         splat: [FullCmdName],
         cmd_options: Interaction.options,
       });

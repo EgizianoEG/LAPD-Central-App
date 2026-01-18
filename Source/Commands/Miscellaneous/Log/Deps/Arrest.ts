@@ -84,7 +84,7 @@ function GetAdditionalArrestDetailsModal(CmdInteract: SlashCommandInteraction<"c
       new LabelBuilder()
         .setLabel("Charges")
         .setDescription(
-          "The list of charges and possibly warrants related to this arrest listed without statute codes."
+          "The list of charges and possibly warrants related to this arrest listed one by one."
         )
         .setTextInputComponent(
           new TextInputBuilder()
@@ -315,7 +315,7 @@ async function OnChargesAndDetailsModalSubmission(
 ) {
   await ModalInteraction.deferReply({ flags: MessageFlags.Ephemeral });
   const [ArresteeId] = await GetIdByUsername(CmdOptions.Arrestee, true);
-  const [ArresteeUserInfo, ArresteeThumbURL, ExistingBookingNums, UTIFEnabled] = await Promise.all([
+  const [ArresteeUserInfo, ArresteeThumbURL, ExistingBookingNums, GSettings] = await Promise.all([
     GetUserInfo(ArresteeId),
     GetUserThumbnail({
       UserIds: ArresteeId,
@@ -325,7 +325,7 @@ async function OnChargesAndDetailsModalSubmission(
       IsManCharacter: CmdOptions.Gender === "Male",
     }),
     GetAllBookingNums(CmdInteract.guildId).then((Nums) => Nums.map((Num) => Num.num)),
-    GetGuildSettings(CmdInteract.guildId).then((Doc) => Doc?.utif_enabled ?? false),
+    GetGuildSettings(CmdInteract.guildId),
   ]);
 
   let AsstOfficersDisIds: string[] = [];
@@ -335,7 +335,7 @@ async function OnChargesAndDetailsModalSubmission(
     guild_instance: CmdInteract.guild,
     replacement_type: "Character",
     filter_links_emails: true,
-    utif_setting_enabled: UTIFEnabled,
+    utif_setting_enabled: GSettings.utif_enabled,
   };
 
   const [FilteredArrestLocation, FilteredDetailArresting, InputCharges, ArrestNotes, EvidenceText] =
@@ -353,13 +353,13 @@ async function OnChargesAndDetailsModalSubmission(
   CmdOptions.ArrestLocation = FilteredArrestLocation.length ? FilteredArrestLocation : null;
   CmdOptions.DetailArresting = FilteredDetailArresting.length ? FilteredDetailArresting : null;
 
-  const FCharges = FormatCharges(InputCharges);
+  const FCharges = FormatCharges(InputCharges, GSettings.duty_activities.auto_annotate_ca_codes);
   const YearSuffix = new Date().getFullYear().toString().slice(-2);
   const BookingNumber = Number.parseInt(
     `${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`
   );
-  const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
 
+  const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
   const ArrestingOfficerRobloxId = PrimaryIsReporter
     ? null
     : await IsLoggedIn({
@@ -670,9 +670,7 @@ const CommandObject = {
   callback: CmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("arrest")
-    .setDescription(
-      "Creates a database entry to log an arrest and generate a corresponding report."
-    )
+    .setDescription("File an arrest and produce an official report for case records.")
     .addStringOption((Option) =>
       Option.setName("name")
         .setDescription("The username of the arrested suspect.")

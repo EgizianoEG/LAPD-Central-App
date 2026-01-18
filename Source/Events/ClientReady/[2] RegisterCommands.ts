@@ -136,7 +136,7 @@ export default async function RegisterCommands(Client: DiscordClient): Promise<v
       message: "An error occurred while registering commands.",
       label: LogLabel,
       stack: (Err as Error).stack,
-      error: { ...(Err as Error) },
+      error: Err,
     });
   }
 }
@@ -476,7 +476,7 @@ async function HandleCommandScopeSwitching(
       message: "Failed to delete '%s' %s from %s scope; skipping.",
       splat: [Chalk.bold(ExistingCmd.name), ContextOrSlash, SwitchFrom],
       stack: (Err as Error).stack,
-      error: { ...(Err as Error) },
+      error: Err,
       label: LogLabel,
     });
   });
@@ -501,7 +501,7 @@ async function HandleCommandScopeSwitching(
         message: "Failed to deploy '%s' %s on %s scope; skipping.",
         splat: [Chalk.bold(ExistingCmd.name), ContextOrSlash, SwitchTo],
         stack: (Err as Error).stack,
-        error: { ...(Err as Error) },
+        error: Err,
         label: LogLabel,
       });
     });
@@ -897,7 +897,7 @@ async function DeployGlobalCommands(
     AppLogger.error({
       message: "Failed to bulk process global commands.",
       stack: (Err as Error).stack,
-      error: { ...(Err as Error) },
+      error: Err,
       label: LogLabel,
     });
   }
@@ -960,7 +960,7 @@ async function DeployGuildCommands(
         message: "Failed to bulk process commands for guild '%s'.",
         splat: [GuildId],
         stack: (Err as Error).stack,
-        error: { ...(Err as Error) },
+        error: Err,
         label: LogLabel,
       });
     }

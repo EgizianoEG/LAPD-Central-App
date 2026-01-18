@@ -21,7 +21,7 @@ import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
 // Constants:
 // ----------
 const ShiftsPerPage = 10;
-const BreakAnnotation = "***⁽ᶦ⁾***";
+const BreakAnnotation = " ***(𝑖 )***";
 const ActiveBreakNotification = "(𝒊): Currently on break";
 const PageTitle = `${Emojis.StopWatch}   Currently Active Shifts`;
 
@@ -319,7 +319,7 @@ const CommandObject = {
   data: new SlashCommandSubcommandBuilder()
     .setName("active")
     .setDescription(
-      "Displays all personnel whose shifts are presently active, including their current duration on-duty."
+      "Display all personnel whose shifts are presently active, including their current duration on-duty."
     )
     .addStringOption((Option) =>
       Option.setName("type")

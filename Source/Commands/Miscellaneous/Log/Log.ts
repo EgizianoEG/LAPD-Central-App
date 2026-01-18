@@ -64,15 +64,6 @@ async function HandleInteractValidation(Interaction: SlashCommandInteraction<"ca
   }
 
   const ActiveShift = await GetShiftActive({ Interaction, UserOnly: true });
-  // Functionality is unnecessary at the moment.
-  // if (!HasActiveShift) {
-  //   IsHandled = true;
-  //   await new ErrorEmbed()
-  //     .setTitle(ErrorMessages.ShiftMustBeActive.Title)
-  //     .setDescription(ErrorMessages.ShiftMustBeActive.Description)
-  //     .replyToInteract(Interaction, true, true);
-  // }
-
   return IsHandled
     ? null
     : {

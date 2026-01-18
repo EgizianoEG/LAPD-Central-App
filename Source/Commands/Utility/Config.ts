@@ -189,6 +189,7 @@ const CTAIds = {
     SignatureFormatType: `${ConfigTopics.AdditionalConfiguration}-dasf`,
     ArrestReportsImgHeaderEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-ar-hdr`,
     IncReportsAutoThreadsMgmtEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-ir-atm`,
+    CACodesAutoAnnotationEnabled: `${ConfigTopics.DutyActivitiesConfiguration}-cc-aca`,
 
     OutsideArrestLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oalc`,
     OutsideCitationLogChannel: `${ConfigTopics.DutyActivitiesConfiguration}-oclc`,
@@ -359,6 +360,12 @@ const ConfigTopicsExplanations = {
           "When enabled, the app will automatically create a thread for each incident report message in the destination channel. " +
           "This allows discussing and investigating incidents in a dedicated space. The thread will be closed automatically when the incident status is updated to a closed category.\n\n" +
           "Note: Requires `Create Public Threads` permission and only works in non-forum channels.",
+      },
+      {
+        Name: "California Codes Auto-Annotation",
+        Description:
+          "When enabled, the app will attempt to detect and annotate California Vehicle Codes in citations and Penal Codes in arrest charges, and will attempt to remove any redundant code descriptions entered by staff. " +
+          "This option does not affect the current behavior of enforcing structured format; i.e. ordered list of charges or violations.",
       },
     ],
   },
@@ -587,18 +594,27 @@ async function UpdatePromptReturnMessage(
  * configuration prompt has timed out.
  * @param Interact - Any prompt-related interaction which webhook hasn't expired yet.
  * @param CurrModule - The name of the current module for which the configuration prompt has timed out.
- * @param PromptMsg - The prompt message Id if available; to not edit an incorrect message.
+ * @param PromptMsg - The prompt message object.
  * @returns A promise that resolves to the result of the interaction update or edit operation,
  *          or `null` if the operation fails.
  */
 async function HandleConfigTimeoutResponse(
   Interact: MessageComponentInteraction<"cached">,
   CurrModule: string,
-  PromptMsg?: Message<true> | string
+  PromptMsg: Message<true>
 ) {
   const MsgContainer = new InfoContainer()
     .useInfoTemplate("TimedOutConfigPrompt")
     .setTitle(`Timed Out — ${CurrModule}`);
+
+  if (Date.now() - Interact.createdTimestamp <= 14.6 * 60 * 1000) {
+    return (
+      PromptMsg.editable &&
+      PromptMsg.edit({
+        components: [MsgContainer],
+      }).catch(() => null)
+    );
+  }
 
   if (Interact.deferred || Interact.replied) {
     return Interact.editReply({
@@ -1179,6 +1195,29 @@ function GetDutyActModuleConfigComponents(
         )
     );
 
+  const AutoCACodesAnnotationEnabledAR =
+    new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
+      new StringSelectMenuBuilder()
+        .setPlaceholder("California Codes Auto-Annotation Enabled/Disabled")
+        .setMinValues(1)
+        .setMaxValues(1)
+        .setCustomId(
+          `${CTAIds[ConfigTopics.DutyActivitiesConfiguration].CACodesAutoAnnotationEnabled}:${Interaction.user.id}`
+        )
+        .setOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Enabled")
+            .setValue("true")
+            .setDescription("Enable automatic code assignment.")
+            .setDefault(DActivitiesConfig.auto_annotate_ca_codes),
+          new StringSelectMenuOptionBuilder()
+            .setLabel("Disabled")
+            .setValue("false")
+            .setDescription("Disable automatic code assignment.")
+            .setDefault(!DActivitiesConfig.auto_annotate_ca_codes)
+        )
+    );
+
   return [
     ModuleEnabledAR,
     LocalCitsLogChannelBtn,
@@ -1188,6 +1227,7 @@ function GetDutyActModuleConfigComponents(
     SignatureFormatAR,
     ArrestReportsImgHeaderEnabledAR,
     IncidentReportsAutoThreadsMgmtEnabledAR,
+    AutoCACodesAnnotationEnabledAR,
   ] as const;
 }
 
@@ -1826,7 +1866,17 @@ function GetDutyActivitiesModuleConfigContainers(
         `)
       )
     )
-    .addActionRowComponents(DutyActivitiesInteractComponents[7]);
+    .addActionRowComponents(DutyActivitiesInteractComponents[7])
+    .addSeparatorComponents(new SeparatorBuilder().setDivider())
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          9. **${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[8].Name}**
+          ${ConfigTopicsExplanations[ConfigTopics.DutyActivitiesConfiguration].Settings[8].Description}
+        `)
+      )
+    )
+    .addActionRowComponents(DutyActivitiesInteractComponents[8]);
 
   return [Page_1, Page_2, Page_3] as const;
 }
@@ -2488,6 +2538,9 @@ function GetCSDutyActivitiesContent(GuildSettings: GuildSettings): string {
 
   return Dedent(`
     >>> **Module Enabled:** ${GuildSettings.duty_activities.enabled ? "Yes" : "No"}
+    **Auto-Annotate CA Codes:** ${GuildSettings.duty_activities.auto_annotate_ca_codes ? "Enabled" : "Disabled"}
+    **Arrest Reports P&S Header Image:** ${GuildSettings.duty_activities.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
+    **Inc. Reports Auto Thread Management:** ${GuildSettings.duty_activities.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
     **Signature Format:** \`${SignatureFormatResolved[GuildSettings.duty_activities.signature_format]}\`
     **Incident Log Channel:** ${IncidentLogChannel}
     **Citation Log Channel${CitationLogChannels.length > 1 ? "s" : ""}:** 
@@ -2573,7 +2626,7 @@ async function HandleConfigSave<T extends SettingsResolvable>(
       case ConfigTopics.DutyActivitiesConfiguration: {
         SuccessMsgDescription = await HandleDutyActivitiesModuleDBSave(
           Interaction,
-          MState as ModuleState<GuildSettings["duty_activities"]>
+          MState as ModuleState<GuildSettings>
         );
         break;
       }
@@ -2885,23 +2938,23 @@ async function HandleReducedActivityModuleDBSave(
 
 async function HandleDutyActivitiesModuleDBSave(
   Interaction: ModulePromptUpdateSupportedInteraction<"cached">,
-  MState: ModuleState<GuildSettings["duty_activities"]>
+  MState: ModuleState<GuildSettings>
 ): Promise<string | null> {
+  const MConfig = MState.ModuleConfig.duty_activities;
   const UpdatedSettings = await GuildModel.findByIdAndUpdate(
     Interaction.guildId,
     {
       $set: {
-        "settings.duty_activities.enabled": MState.ModuleConfig.enabled,
-        "settings.duty_activities.signature_format": MState.ModuleConfig.signature_format,
-        "settings.duty_activities.log_channels.incidents":
-          MState.ModuleConfig.log_channels.incidents,
-        "settings.duty_activities.log_channels.citations":
-          MState.ModuleConfig.log_channels.citations,
-        "settings.duty_activities.log_channels.arrests": MState.ModuleConfig.log_channels.arrests,
+        "settings.duty_activities.enabled": MConfig.enabled,
+        "settings.duty_activities.signature_format": MConfig.signature_format,
+        "settings.duty_activities.auto_annotate_ca_codes": MConfig.auto_annotate_ca_codes,
+        "settings.duty_activities.log_channels.incidents": MConfig.log_channels.incidents,
+        "settings.duty_activities.log_channels.citations": MConfig.log_channels.citations,
+        "settings.duty_activities.log_channels.arrests": MConfig.log_channels.arrests,
         "settings.duty_activities.incident_reports.auto_thread_management":
-          MState.ModuleConfig.incident_reports.auto_thread_management,
+          MConfig.incident_reports.auto_thread_management,
         "settings.duty_activities.arrest_reports.show_header_img":
-          MState.ModuleConfig.arrest_reports.show_header_img,
+          MConfig.arrest_reports.show_header_img,
       },
     },
     {
@@ -2910,25 +2963,26 @@ async function HandleDutyActivitiesModuleDBSave(
       strict: true,
       runValidators: true,
       projection: {
-        "settings.duty_activities": 1,
+        settings: 1,
       },
     }
-  ).then((GuildDoc) => GuildDoc?.settings.duty_activities);
+  ).then((GuildDoc) => GuildDoc?.settings);
 
   if (UpdatedSettings) {
     MState.OriginalConfig = clone(UpdatedSettings);
     MState.ModuleConfig = clone(UpdatedSettings);
 
-    const ARSetChannels = UpdatedSettings.log_channels.arrests.map((CI) =>
+    const UpdatedDASettings = UpdatedSettings.duty_activities;
+    const ARSetChannels = UpdatedDASettings.log_channels.arrests.map((CI) =>
       channelMention(CI.match(/:?(\d+)$/)?.[1] || "0")
     );
 
-    const CLSetChannels = UpdatedSettings.log_channels.citations.map((CI) =>
+    const CLSetChannels = UpdatedDASettings.log_channels.citations.map((CI) =>
       channelMention(CI.match(/:?(\d+)$/)?.[1] || "0")
     );
 
-    const ILSetChannel = UpdatedSettings.log_channels.incidents
-      ? channelMention(UpdatedSettings.log_channels.incidents)
+    const ILSetChannel = UpdatedDASettings.log_channels.incidents
+      ? channelMention(UpdatedDASettings.log_channels.incidents)
       : "*None*";
 
     return Dedent(`
@@ -2936,10 +2990,11 @@ async function HandleDutyActivitiesModuleDBSave(
       
       **Current Configuration:**
       **General:**
-      > - **Module Enabled:** ${UpdatedSettings.enabled ? "Yes" : "No"}
-      > - **Signature Format:** \`${SignatureFormatResolved[UpdatedSettings.signature_format]}\`
-      > - **Inc. Reports Auto Thread Management:** ${UpdatedSettings.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
-      > - **Arrest Reports P&S Header Image:** ${UpdatedSettings.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
+      > - **Module Enabled:** ${UpdatedDASettings.enabled ? "Yes" : "No"}
+      > - **Signature Format:** \`${SignatureFormatResolved[UpdatedDASettings.signature_format]}\`
+      > - **Inc. Reports Auto Thread Management:** ${UpdatedDASettings.incident_reports.auto_thread_management ? "`Enabled`" : "`Disabled`"}
+      > - **Arrest Reports P&S Header Image:** ${UpdatedDASettings.arrest_reports.show_header_img ? "`Enabled`" : "`Disabled`"}
+      > - **Auto-Annotate CA Codes:** ${UpdatedDASettings.auto_annotate_ca_codes ? "`Enabled`" : "`Disabled`"}
 
       **Log Destinations:**
       > - **Incident Log:** ${ILSetChannel}
@@ -3536,6 +3591,12 @@ async function HandleDutyActivitiesConfigPageInteracts(
     )
   ) {
     ModuleConfig.incident_reports.auto_thread_management = RecInteract.values[0] === "true";
+  } else if (
+    CustomId.startsWith(
+      CTAIds[ConfigTopics.DutyActivitiesConfiguration].CACodesAutoAnnotationEnabled
+    )
+  ) {
+    ModuleConfig.auto_annotate_ca_codes = RecInteract.values[0] === "true";
   }
 
   RecInteract.deferUpdate().catch(() => null);
@@ -4014,12 +4075,12 @@ async function HandleCallsignNicknameFormatSetBtnInteract(
           Define the nickname format template to automatically apply when assigning approved call signs to staff members.
           
           Available placeholders and tags:
-          >>> \`{division}\` - The division beat number
-          \`{unit_type}\` - The service unit type
-          \`{beat_num}\` - The beat number
-          \`{nickname}\` - The member's current server nickname at assignment time (defaults to display name if no nickname is set)
-          \`{display_name}\` - The member's current server display name at assignment time
-          \`{roblox_username}\` - The linked Roblox account username
+          >>> \`{division}\` - The division beat number; e.g., \`1\` for Central, \`7\` for Willshire, etc.,
+          \`{unit_type}\` - The service unit type; e.g., \`A\`, \`K9\`, \`SL\`, etc.,
+          \`{beat_num}\` - The beat number; e.g., \`20\`, \`134\`, \`250\`, etc.,
+          \`{nickname}\` - The member's current server nickname at assignment time; defaults to display name if no nickname is set,
+          \`{display_name}\` - The member's current server display name at assignment time, and,
+          \`{roblox_username}\` - The *linked* Roblox account username. This will be replaced empty if there is no linked account at the time of assignment.
         `)
       )
     )
@@ -4331,7 +4392,7 @@ async function PromptBeatOrUnitRestrictionsMod(
     time: 10 * 60 * 1000,
   });
 
-  ActionsCollector.on("collect", async (SelectInteract) => {
+  ActionsCollector.on("collect", async function OnActionSelection(SelectInteract) {
     const Selected = SelectInteract.values[0];
     try {
       switch (Selected) {
@@ -4400,9 +4461,9 @@ async function PromptBeatOrUnitRestrictionsMod(
     | GuildSettings["callsigns_module"]["beat_restrictions"]
     | GuildSettings["callsigns_module"]["unit_type_restrictions"]
   >((resolve) => {
-    ActionsCollector.on("end", async (Collected, EndReason) => {
+    ActionsCollector.on("end", async function OnActionCollectionEnd(Collected, EndReason) {
       const LastInteract = Collected.last() ?? BtnInteract;
-      if (!LastInteract.deferred && !LastInteract.replied) {
+      if (!(LastInteract.deferred || LastInteract.replied)) {
         await LastInteract.deferUpdate();
       }
 

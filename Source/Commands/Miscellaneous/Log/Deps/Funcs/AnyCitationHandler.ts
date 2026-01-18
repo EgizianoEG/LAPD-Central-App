@@ -126,15 +126,15 @@ export default async function AnyCitationCallback(
     },
   } as GuildCitations.InitialProvidedCmdDetails;
 
-  const ValidationVars = await HandleCmdOptsValidation(
-    Interaction,
-    CitationDetailsPart1,
-    CitingOfficer
-  );
-
-  // If the validation failed and a feedback was given, return early.
-  if (ValidationVars === true) return;
   try {
+    const ValidationVars = await HandleCmdOptsValidation(
+      Interaction,
+      CitationDetailsPart1,
+      CitingOfficer
+    );
+
+    // If the validation failed and a feedback was given, return early.
+    if (ValidationVars === true) return;
     const [RespMsgButtons, Modal] = GetAdditionalInputsModal(Interaction);
     const ResponseMsg = await Interaction.editReply({
       embeds: [GetModalInputsPromptEmbed(CitationDetailsPart1, ValidationVars.vehicle)],
@@ -175,7 +175,7 @@ export default async function AnyCitationCallback(
           message: "An error occurred while handling additional citation details modal submission;",
           label: CmdFileLabel,
           stack: Err.stack,
-          error: { ...Err },
+          error: Err,
         });
       }
     });
@@ -274,7 +274,7 @@ function GetAdditionalInputsModal(CmdInteract: SlashCommandInteraction<"cached">
         ),
       new LabelBuilder()
         .setLabel("Violation(s)")
-        .setDescription("List all the violation(s) that the violator committed.")
+        .setDescription("List all the violations that the violator committed.")
         .setTextInputComponent(
           new TextInputBuilder()
             .setStyle(TextInputStyle.Paragraph)
@@ -484,26 +484,19 @@ async function OnModalSubmission(
     });
   }
 
-  const ViolatorRobloxInfo = await GetUserInfo(PCitationData.violator.id);
-  const OfficerRobloxInfo = await GetUserInfo(CitingOfficer.RobloxUserId);
-  const GuildSettings = await GetGuildSettings(ModalSubmission.guildId);
-
-  if (!GuildSettings) {
-    return new ErrorEmbed()
-      .useErrTemplate("GuildConfigNotFound")
-      .replyToInteract(ModalSubmission, true);
-  }
-
   let ConfirmationBtnResponse: ButtonInteraction<"cached"> | null = null;
-  const UTIFOpts: FilterUserInputOptions = {
-    replacement: "#",
-    guild_instance: CmdInteract.guild,
-    replacement_type: "Character",
-    filter_links_emails: true,
-    utif_setting_enabled: GuildSettings.utif_enabled,
-  };
-
   try {
+    const ViolatorRobloxInfo = await GetUserInfo(PCitationData.violator.id);
+    const OfficerRobloxInfo = await GetUserInfo(CitingOfficer.RobloxUserId);
+    const GuildSettings = await GetGuildSettings(ModalSubmission.guildId);
+    const UTIFOpts: FilterUserInputOptions = {
+      replacement: "#",
+      guild_instance: CmdInteract.guild,
+      replacement_type: "Character",
+      filter_links_emails: true,
+      utif_setting_enabled: GuildSettings.utif_enabled,
+    };
+
     const CitationNumber = await GenerateCitationNumber(ModalSubmission.guildId);
     const DateInfo = CmdInteract.createdAt
       .toLocaleDateString("en-US", {
@@ -547,7 +540,8 @@ async function OnModalSubmission(
         await FilterUserInput(
           ModalSubmission.fields.getTextInputValue("traffic-violations"),
           UTIFOpts
-        )
+        ),
+        GuildSettings.duty_activities.auto_annotate_ca_codes
       ),
 
       violation_loc: TitleCase(
@@ -680,12 +674,12 @@ async function OnModalSubmission(
       message: "An error occurred while handling submission process of a citation.",
       label: CmdFileLabel,
       stack: Err.stack,
-      error: { ...Err },
+      error: Err,
     });
 
     return new ErrorEmbed()
       .setDescription(
-        "Apologies; an error occurred while handling your traffic citation log request."
+        "Apologies; an error occurred while handling your traffic citation log request. Your citation has not been logged."
       )
       .replyToInteract(ConfirmationBtnResponse ?? ModalSubmission, true);
   }

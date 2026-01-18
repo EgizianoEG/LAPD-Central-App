@@ -241,7 +241,7 @@ export default class ChangeStreamManager<T extends object> {
         splat: [this.CollectionName],
         label: this.LoggerLabel,
         stack: Err.stack,
-        error: { ...Err },
+        error: Err,
       });
 
       await this.ScheduleReconnection();
@@ -260,7 +260,7 @@ export default class ChangeStreamManager<T extends object> {
             splat: [this.CollectionName],
             label: this.LoggerLabel,
             stack: Err.stack,
-            error: { ...Err },
+            error: Err,
           });
         }
       })
@@ -277,7 +277,7 @@ export default class ChangeStreamManager<T extends object> {
       label: this.LoggerLabel,
       resumable: IsResumable,
       stack: Err.stack,
-      error: { ...Err },
+      error: Err,
     });
 
     await this.CleanupChangeStream();
@@ -387,7 +387,7 @@ export default class ChangeStreamManager<T extends object> {
           splat: [this.CollectionName],
           label: this.LoggerLabel,
           stack: Err.stack,
-          error: { ...Err },
+          error: Err,
         });
 
         this.IsReconnecting = false;
@@ -412,7 +412,7 @@ export default class ChangeStreamManager<T extends object> {
             splat: [this.CollectionName],
             label: this.LoggerLabel,
             stack: Err.stack,
-            error: { ...Err },
+            error: Err,
           });
         }
       })

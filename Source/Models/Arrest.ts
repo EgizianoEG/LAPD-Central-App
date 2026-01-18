@@ -124,8 +124,8 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
             type: String,
             trim: true,
             required: true,
-            minLength: 6,
-            maxLength: 1028,
+            minLength: 4,
+            maxLength: 228,
           },
         ],
       },
@@ -150,7 +150,7 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
       signature: {
         type: String,
         required: true,
-        minLength: 3,
+        minLength: 1,
         maxLength: 100,
         default(this: ArrestPlainDoc) {
           return this.arresting_officer.formatted_name;

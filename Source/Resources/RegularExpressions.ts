@@ -43,7 +43,7 @@ export const ListSplitRegex = /\s*[,&]\s*(?:and\s|&)?\s*/i;
  */
 export const DutyLeaderboardEntryRegex =
   // eslint-disable-next-line sonarjs/regex-complexity
-  /^(?:\d+)?\.?\s*-?\s*@?(?<username>[\w.\s]+?)\s*-\s*(?<user_id>\d{15,22})\s*-\s*(?<shift_count>\d+)\s+shifts\s*-\s*(?<duty_ms>\d+)ms\s*-\s*(?<hr_time>[\w,\s]+?)$|^@?(?<username>[\w.\s]+?)\s*[-•]\s*(?<hr_time>[\w,\s]+?)$/i;
+  /^(?:\d+)?\s*[.-]?\s*<?@?(?<username>[\w.\s]+?)>?\s*-\s*(?<user_id>\d{15,22})\s*-\s*(?<shift_count>\d+)\s+shifts\s*-\s*(?<duty_ms>\d+)ms\s*-\s*(?<hr_time>[\w,\s]+?)$|^@?(?<username>[\w.\s]+?)\s*[-•]\s*(?<hr_time>[\w,\s]+?)$/i;
 
 /**
  * Regular expression to match a line containing an incident report number.

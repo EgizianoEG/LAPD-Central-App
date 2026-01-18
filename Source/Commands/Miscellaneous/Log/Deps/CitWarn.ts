@@ -205,7 +205,7 @@ const CommandObject = {
   callback: CitWrnCmdCallback,
   data: new SlashCommandSubcommandBuilder()
     .setName("citation-warning")
-    .setDescription("Creates and logs a notice to appear as a citation record for a person."),
+    .setDescription("Issue and record a citation warning as a notice to appear."),
 };
 
 for (const Option of SharedCmdOptions) {
