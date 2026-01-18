@@ -125,7 +125,7 @@ function GetPanelEmbed(
         **Started:** ${FormatTime(ActiveOrPendingLOA.review_date, "D")}
         **Ends On:** ${FormatTime(ActiveOrPendingLOA.end_date, "D")}
         **Duration:** ${ActiveOrPendingLOA.duration_hr}
-        **Approved By:** ${userMention(ActiveOrPendingLOA.reviewed_by.id)}
+        **Approved by:** ${userMention(ActiveOrPendingLOA.reviewed_by.id)}
         **Reason:** ${ActiveOrPendingLOA.reason}
       `),
     });
