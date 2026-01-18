@@ -25,6 +25,16 @@ export default function AppLogging(Client: DiscordClient) {
     });
   });
 
+  Client.rest.on(RESTEvents.Response, (Req, Resp) => {
+    if (Resp.status === 403 || Resp.status === 429) {
+      AppLogger.warn({
+        label: "DiscordClient",
+        message: `Received a ${Chalk.bold(Resp.status.toString())} response for ${Chalk.bold(Req.method)} ${Chalk.bold(Req.path)} request.`,
+        details: { request: Req, response: Resp },
+      });
+    }
+  });
+
   Mongoose.set("debug", function OnMongooseDebug(CollectionName, MethodName, ...MethodArgs) {
     AppLogger.debug({
       label: "Mongoose",
