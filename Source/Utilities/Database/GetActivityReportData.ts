@@ -191,6 +191,7 @@ export default async function GetActivityReportData(
           Record.quota_met = Record.total_time >= ScaledQuota;
         }
 
+        // TODO: Consider the override of pending LOA on active reduced activity
         if (StartCurrentDatesDifferenceInDays <= 2.5 || RecentUAN.type === "ReducedActivity") {
           const NewQuotaDeclaration =
             RecentUAN.type === "ReducedActivity"
@@ -494,7 +495,7 @@ function CreateActivityReportAggregationPipeline(
             },
           },
           {
-            $limit: 1,
+            $limit: 3,
           },
           {
             $project: {
