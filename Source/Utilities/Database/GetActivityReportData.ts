@@ -157,10 +157,6 @@ export default async function GetActivityReportData(
   const MembersById = new Map(Opts.members.map((Member) => [Member.id, Member]));
   const Records = RecordsBaseData.map((Record) => {
     const Member = MembersById.get(Record.id);
-    const RecentUAN = Record.recent_activity_notice;
-    const TypeAbbr = RecentUAN?.type === "LeaveOfAbsence" ? "leave" : "ra";
-    const NoticeTypeDesc =
-      RecentUAN?.type === "LeaveOfAbsence" ? "Leave of absence" : "Reduced activity";
 
     let IsLeaveActive = false;
     const NoticeNotes: { leave: string | null; ra: string | null } = {
@@ -171,34 +167,60 @@ export default async function GetActivityReportData(
     if (Member) ProcessedMemberIds.add(Member.user.id);
     else return null;
 
-    // Consider adding leave of absence comments/notes if it has ended, started, or requested recently.
-    if (RecentUAN?.status === "Approved" && RecentUAN.reviewed_by) {
-      if (
-        RecentUAN.review_date !== null &&
-        RecentUAN.early_end_date === null &&
-        isAfter(RecentUAN.end_date, RetrieveDate)
-      ) {
-        IsLeaveActive = RecentUAN.type === "LeaveOfAbsence";
-        const StartCurrentDatesDifferenceInDays =
-          differenceInHours(RetrieveDate, RecentUAN.review_date) / 24;
+    // Process all activity notices with priority: Active LOA > Active RA > Pending LOA > Pending RA
+    const PrioritizedNotices = ProcessActivityNotices(Record.activity_notices, RetrieveDate);
+    const LOANotice = PrioritizedNotices.loa;
+    const RANotice = PrioritizedNotices.ra;
 
-        if (!Record.quota_met && Opts.quota_duration) {
-          const ScaledQuota =
-            RecentUAN.type === "ReducedActivity"
-              ? (RecentUAN.quota_scale || 1) * Opts.quota_duration
-              : Opts.quota_duration;
+    // Process LOA notice (highest priority)
+    if (LOANotice) {
+      if (LOANotice.status === "Approved" && LOANotice.reviewed_by) {
+        if (
+          LOANotice.review_date !== null &&
+          LOANotice.early_end_date === null &&
+          isAfter(LOANotice.end_date, RetrieveDate)
+        ) {
+          IsLeaveActive = true;
+          const StartCurrentDatesDifferenceInDays =
+            differenceInHours(RetrieveDate, LOANotice.review_date) / 24;
 
-          Record.quota_met = Record.total_time >= ScaledQuota;
+          if (StartCurrentDatesDifferenceInDays <= 2.5) {
+            const RelativeDuration = ReadableDuration(
+              RetrieveDate.getTime() - LOANotice.review_date.getTime(),
+              {
+                conjunction: " and ",
+                largest: 2,
+                round: true,
+              }
+            );
+
+            NoticeNotes.leave = `Leave of absence started around ${RelativeDuration} ago.\nApproved by: @${LOANotice.reviewed_by.username}`;
+          }
+        } else {
+          const NoticeEndDate = LOANotice.early_end_date || LOANotice.end_date;
+          const EndCurrentDatesDifferenceInDays =
+            differenceInHours(RetrieveDate, NoticeEndDate) / 24;
+
+          if (EndCurrentDatesDifferenceInDays <= 2.5) {
+            const RelativeDuration = ReadableDuration(
+              RetrieveDate.getTime() - NoticeEndDate.getTime(),
+              {
+                conjunction: " and ",
+                largest: 2,
+                round: true,
+              }
+            );
+
+            NoticeNotes.leave = `Leave of absence ended around ${RelativeDuration} ago.`;
+          }
         }
+      } else if (LOANotice.status === "Pending" && LOANotice.review_date === null) {
+        const RequestCurrentDatesDifferenceInDays =
+          differenceInHours(RetrieveDate, LOANotice.request_date) / 24;
 
-        if (StartCurrentDatesDifferenceInDays <= 2.5) {
-          const NewQuotaDeclaration =
-            RecentUAN.type === "ReducedActivity"
-              ? `\nQuota Reduction: ~${Math.round((1 - (RecentUAN.quota_scale || 0)) * 100)}%`
-              : "";
-
+        if (RequestCurrentDatesDifferenceInDays <= 3) {
           const RelativeDuration = ReadableDuration(
-            RetrieveDate.getTime() - RecentUAN.review_date.getTime(),
+            RetrieveDate.getTime() - LOANotice.request_date.getTime(),
             {
               conjunction: " and ",
               largest: 2,
@@ -206,42 +228,76 @@ export default async function GetActivityReportData(
             }
           );
 
-          NoticeNotes[TypeAbbr] =
-            `${NoticeTypeDesc} started around ${RelativeDuration} ago. ${NewQuotaDeclaration}\nApproved by: @${RecentUAN.reviewed_by.username}`;
-        }
-      } else {
-        const NoticeEndDate = RecentUAN.early_end_date || RecentUAN.end_date;
-        const EndCurrentDatesDifferenceInDays = differenceInHours(RetrieveDate, NoticeEndDate) / 24;
-
-        if (EndCurrentDatesDifferenceInDays <= 2.5) {
-          const RelativeDuration = ReadableDuration(
-            RetrieveDate.getTime() - NoticeEndDate.getTime(),
-            {
-              conjunction: " and ",
-              largest: 2,
-              round: true,
-            }
-          );
-
-          NoticeNotes[TypeAbbr] = `${NoticeTypeDesc} ended around ${RelativeDuration} ago.`;
+          NoticeNotes.leave = `An unapproved leave of absence request was submitted around ${RelativeDuration} ago.`;
         }
       }
-    } else if (RecentUAN?.status === "Pending" && RecentUAN.review_date === null) {
-      const RequestCurrentDatesDifferenceInDays =
-        differenceInHours(RetrieveDate, RecentUAN.request_date) / 24;
+    }
 
-      if (RequestCurrentDatesDifferenceInDays <= 3) {
-        const RelativeDuration = ReadableDuration(
-          RetrieveDate.getTime() - RecentUAN.request_date.getTime(),
-          {
-            conjunction: " and ",
-            largest: 2,
-            round: true,
+    // Process RA notice (only if no active LOA exists)
+    if (RANotice) {
+      if (RANotice.status === "Approved" && RANotice.reviewed_by) {
+        if (
+          RANotice.review_date !== null &&
+          RANotice.early_end_date === null &&
+          isAfter(RANotice.end_date, RetrieveDate)
+        ) {
+          const StartCurrentDatesDifferenceInDays =
+            differenceInHours(RetrieveDate, RANotice.review_date) / 24;
+
+          // Apply quota scaling for active RA (only if no active LOA)
+          if (!Record.quota_met && Opts.quota_duration && !IsLeaveActive) {
+            const ScaledQuota = (1 - (RANotice.quota_scale || 0)) * Opts.quota_duration;
+            Record.quota_met = Record.total_time >= ScaledQuota;
           }
-        );
 
-        NoticeNotes[TypeAbbr] =
-          `An unapproved ${NoticeTypeDesc.toLowerCase()} request was submitted around ${RelativeDuration} ago.`;
+          if (StartCurrentDatesDifferenceInDays <= 2.5 || RANotice.type === "ReducedActivity") {
+            const QuotaReductionString = `\nQuota Reduction: ~${Math.round((RANotice.quota_scale || 0) * 100)}%`;
+
+            const RelativeDuration = ReadableDuration(
+              RetrieveDate.getTime() - RANotice.review_date.getTime(),
+              {
+                conjunction: " and ",
+                largest: 2,
+                round: true,
+              }
+            );
+
+            NoticeNotes.ra = `Reduced activity started around ${RelativeDuration} ago. ${QuotaReductionString}\nApproved by: @${RANotice.reviewed_by.username}`;
+          }
+        } else {
+          const NoticeEndDate = RANotice.early_end_date || RANotice.end_date;
+          const EndCurrentDatesDifferenceInDays =
+            differenceInHours(RetrieveDate, NoticeEndDate) / 24;
+
+          if (EndCurrentDatesDifferenceInDays <= 2.5) {
+            const RelativeDuration = ReadableDuration(
+              RetrieveDate.getTime() - NoticeEndDate.getTime(),
+              {
+                conjunction: " and ",
+                largest: 2,
+                round: true,
+              }
+            );
+
+            NoticeNotes.ra = `Reduced activity ended around ${RelativeDuration} ago.`;
+          }
+        }
+      } else if (RANotice.status === "Pending" && RANotice.review_date === null) {
+        const RequestCurrentDatesDifferenceInDays =
+          differenceInHours(RetrieveDate, RANotice.request_date) / 24;
+
+        if (RequestCurrentDatesDifferenceInDays <= 3) {
+          const RelativeDuration = ReadableDuration(
+            RetrieveDate.getTime() - RANotice.request_date.getTime(),
+            {
+              conjunction: " and ",
+              largest: 2,
+              round: true,
+            }
+          );
+
+          NoticeNotes.ra = `An unapproved reduced activity request was submitted around ${RelativeDuration} ago.`;
+        }
       }
     }
 
@@ -325,9 +381,9 @@ export default async function GetActivityReportData(
     });
   });
 
-  Records.forEach((Record, Index) => {
+  for (const [Index, Record] of Records.entries()) {
     Record.values[1].userEnteredValue.numberValue = Index + 1;
-  });
+  }
 
   return {
     quota: Opts.quota_duration ? ReadableDuration(Opts.quota_duration) : "None",
@@ -350,6 +406,66 @@ export default async function GetActivityReportData(
 // ---------------------------------------------------------------------------------------
 // Helpers:
 // --------
+/**
+ * Processes multiple activity notices and returns the prioritized notices for display.
+ * Priority order: Active LOA > Active RA > Pending LOA > Pending RA
+ *
+ * @param ActivityNotices - Array of activity notices from the database
+ * @param RetrieveDate - The date used to determine if notices are still active
+ * @returns An object containing the prioritized LOA and RA notices
+ */
+function ProcessActivityNotices(
+  ActivityNotices: AggregateResults.BaseActivityReportData["records"][number]["activity_notices"],
+  RetrieveDate: Date
+): {
+  loa:
+    | AggregateResults.BaseActivityReportData["records"][number]["activity_notices"][number]
+    | null;
+  ra: AggregateResults.BaseActivityReportData["records"][number]["activity_notices"][number] | null;
+} {
+  if (!ActivityNotices || ActivityNotices.length === 0) {
+    return { loa: null, ra: null };
+  }
+
+  type NoticeType =
+    AggregateResults.BaseActivityReportData["records"][number]["activity_notices"][number];
+  let ActiveLOA: NoticeType | null = null;
+  let ActiveRA: NoticeType | null = null;
+  let PendingLOA: NoticeType | null = null;
+  let PendingRA: NoticeType | null = null;
+
+  for (const Notice of ActivityNotices) {
+    const IsActive =
+      Notice.status === "Approved" &&
+      Notice.review_date !== null &&
+      Notice.early_end_date === null &&
+      isAfter(Notice.end_date, RetrieveDate);
+
+    const IsPending = Notice.status === "Pending" && Notice.review_date === null;
+
+    if (Notice.type === "LeaveOfAbsence") {
+      if (IsActive && !ActiveLOA) {
+        ActiveLOA = Notice;
+      } else if (IsPending && !PendingLOA) {
+        PendingLOA = Notice;
+      }
+    } else if (Notice.type === "ReducedActivity") {
+      if (IsActive && !ActiveRA) {
+        ActiveRA = Notice;
+      } else if (IsPending && !PendingRA) {
+        PendingRA = Notice;
+      }
+    }
+  }
+
+  // Priority: Active LOA > Active RA > Pending LOA > Pending RA
+  // LOA takes precedence; if active LOA exists, don't show any pending notices
+  const PrioritizedLOA = ActiveLOA || PendingLOA;
+  const PrioritizedRA = ActiveLOA ? null : ActiveRA || PendingRA;
+
+  return { loa: PrioritizedLOA, ra: PrioritizedRA };
+}
+
 /**
  * Formats the name of a guild member or a string representation of a name.
  * @param Member - The guild member or string to format. If a string is provided, it is returned as-is.
@@ -454,7 +570,7 @@ function CreateActivityReportAggregationPipeline(
       $lookup: {
         as: "activity_notices",
         from: "activity_notices",
-        let: { guild: "$guild", user: "$user" },
+        let: { guild: "$guild", user: "$user", retrieve_date: Opts.until || new Date() },
         pipeline: [
           {
             $match: {
@@ -489,13 +605,74 @@ function CreateActivityReportAggregationPipeline(
             },
           },
           {
-            $sort: {
-              request_date: -1,
+            $facet: {
+              active_loa: [
+                {
+                  $match: {
+                    type: "LeaveOfAbsence",
+                    status: "Approved",
+                    early_end_date: null,
+                    $expr: {
+                      $and: [
+                        { $ne: ["$review_date", null] },
+                        { $gt: ["$end_date", "$$retrieve_date"] },
+                      ],
+                    },
+                  },
+                },
+                { $sort: { request_date: -1 } },
+                { $limit: 1 },
+              ],
+              active_ra: [
+                {
+                  $match: {
+                    type: "ReducedActivity",
+                    status: "Approved",
+                    early_end_date: null,
+                    $expr: {
+                      $and: [
+                        { $ne: ["$review_date", null] },
+                        { $gt: ["$end_date", "$$retrieve_date"] },
+                      ],
+                    },
+                  },
+                },
+                { $sort: { request_date: -1 } },
+                { $limit: 1 },
+              ],
+              pending_loa: [
+                {
+                  $match: {
+                    type: "LeaveOfAbsence",
+                    status: "Pending",
+                    review_date: null,
+                  },
+                },
+                { $sort: { request_date: -1 } },
+                { $limit: 1 },
+              ],
+              pending_ra: [
+                {
+                  $match: {
+                    type: "ReducedActivity",
+                    status: "Pending",
+                    review_date: null,
+                  },
+                },
+                { $sort: { request_date: -1 } },
+                { $limit: 1 },
+              ],
             },
           },
           {
-            $limit: 1,
+            $project: {
+              notices: {
+                $concatArrays: ["$active_loa", "$active_ra", "$pending_loa", "$pending_ra"],
+              },
+            },
           },
+          { $unwind: { path: "$notices", preserveNullAndEmptyArrays: false } },
+          { $replaceRoot: { newRoot: "$notices" } },
           {
             $project: {
               type: 1,
@@ -631,7 +808,7 @@ function CreateActivityReportAggregationPipeline(
     {
       $set: {
         total_shifts: { $size: "$shifts" },
-        recent_activity_notice: { $first: "$activity_notices" },
+        activity_notices: "$activity_notices",
         total_on_duty_mod: { $sum: "$shifts.durations.on_duty_mod" },
         total_duration: {
           $sum: {
@@ -687,7 +864,7 @@ function CreateActivityReportAggregationPipeline(
         total_time: 1,
         total_shifts: 1,
         arrests_assisted: 1,
-        recent_activity_notice: 1,
+        activity_notices: 1,
         citations: 1,
         incidents: 1,
         arrests: 1,

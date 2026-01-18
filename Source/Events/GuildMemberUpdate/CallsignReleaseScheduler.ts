@@ -1,4 +1,4 @@
-import { GuildMember, PermissionFlagsBits } from "discord.js";
+import { GuildMember, PartialGuildMember, PermissionFlagsBits } from "discord.js";
 import { GenericRequestStatuses } from "@Source/Config/Constants.js";
 import { UserHasPermsV2 } from "@Source/Utilities/Database/UserHasPermissions.js";
 import { addHours } from "date-fns";
@@ -17,13 +17,13 @@ const FileLabel = "Events:GuildMemberUpdate:CallsignReleaseScheduler";
  */
 export default async function OnMemberUpdateCallsignReleaseScheduler(
   _: DiscordClient,
-  OutdatedMember: GuildMember,
+  OutdatedMember: GuildMember | PartialGuildMember,
   UpdatedMember: GuildMember
 ) {
   const UpdatedRoles = UpdatedMember.roles.cache;
   const OutdatedRoles = OutdatedMember.roles.cache;
 
-  if (UpdatedRoles.size === OutdatedRoles.size) return;
+  if (!OutdatedMember.partial && UpdatedRoles.size === OutdatedRoles.size) return;
   const GuildSettings = await GetGuildSettings(UpdatedMember.guild.id);
 
   if (
@@ -33,14 +33,12 @@ export default async function OnMemberUpdateCallsignReleaseScheduler(
     return;
   }
 
+  const RelevantRoles = [...GuildSettings.role_perms.staff, ...GuildSettings.role_perms.management];
   const IsRoleRelatedToStaffOrManagement =
-    UpdatedRoles.some((Role) => GuildSettings.role_perms.staff.includes(Role.id)) ||
-    UpdatedRoles.some((Role) => GuildSettings.role_perms.management.includes(Role.id)) ||
-    OutdatedRoles.some((Role) => GuildSettings.role_perms.staff.includes(Role.id)) ||
-    OutdatedRoles.some((Role) => GuildSettings.role_perms.management.includes(Role.id));
+    UpdatedRoles.some((Role) => RelevantRoles.includes(Role.id)) ||
+    OutdatedRoles.some((Role) => RelevantRoles.includes(Role.id));
 
   if (!IsRoleRelatedToStaffOrManagement) return;
-
   const HadStaffPerm =
     OutdatedMember.permissions.has(PermissionFlagsBits.ManageGuild, true) ||
     OutdatedRoles.some(
@@ -54,7 +52,7 @@ export default async function OnMemberUpdateCallsignReleaseScheduler(
   });
 
   if (!HadStaffPerm && HasStaffPerm) {
-    // User gained staff/management roles. Cancel scheduled call sign release if any.
+    // User gained staff/management roles. Cancel scheduled call sign release, if any.
     try {
       await CallsignModel.findOneAndUpdate(
         {
@@ -78,8 +76,9 @@ export default async function OnMemberUpdateCallsignReleaseScheduler(
         error: Err,
       });
     }
-  } else if (HadStaffPerm && !HasStaffPerm) {
-    // User lost all staff/management roles. Schedule call sign release if they have an active call sign.
+  } else if ((HadStaffPerm || OutdatedMember.partial) && !HasStaffPerm) {
+    // User lost all staff/management roles, or partial member currently lacks staff perms.
+    // Schedule call sign release if they have an active call sign.
     try {
       const DateNow = new Date();
       await CallsignModel.findOneAndUpdate(
@@ -105,7 +104,7 @@ export default async function OnMemberUpdateCallsignReleaseScheduler(
       });
     }
   } else {
-    // No relevant permission change.
+    // No relevant permission change detected.
     return;
   }
 }

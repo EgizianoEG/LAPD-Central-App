@@ -114,6 +114,12 @@ const GuildSettings = new Schema<Guilds.GuildSettings>({
         required: true,
       },
 
+      auto_annotate_ca_codes: {
+        type: Boolean,
+        default: true,
+        required: true,
+      },
+
       incident_reports: {
         _id: false,
         default: {},

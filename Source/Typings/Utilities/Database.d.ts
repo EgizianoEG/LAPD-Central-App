@@ -125,6 +125,20 @@ export namespace Guilds {
        */
       signature_format: DASignatureFormat;
 
+      /**
+       * Whether or not to automatically annotate applicable vehicle or penal code codes
+       * in the citation and arrest logs based on the typed charge or violation.
+       *
+       * Typically, this would insert a new line under the charge/violation description in a format similar to:
+       * ```
+       * - Basic Speed Law
+       *    VC 22350(a)
+       * ```
+       * @default true
+       * @notice This setting also makes the application attempt to remove user-inputted codes as well before re-annotating.
+       */
+      auto_annotate_ca_codes: boolean;
+
       /* 
         The interval in milliseconds that the application will delete logged records of citations, arrests, and incidents
         if the current date minus the creation/reporting timestamp/date is greater than this value
@@ -1644,7 +1658,7 @@ export namespace AggregateResults {
     total_shifts: number;
     total_time: T;
 
-    recent_activity_notice: Pick<
+    activity_notices: Pick<
       UserActivityNotice.UserActivityNoticeDocument,
       | "type"
       | "quota_scale"
@@ -1655,7 +1669,7 @@ export namespace AggregateResults {
       | "reviewed_by"
       | "early_end_date"
       | "extension_request"
-    > | null;
+    >[];
 
     quota_met: boolean;
 

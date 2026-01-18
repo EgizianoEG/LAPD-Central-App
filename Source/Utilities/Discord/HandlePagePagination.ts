@@ -36,7 +36,7 @@ const FileLabel = "Utilities:Other:HandlePagePagination.ts";
 const Clamp = (Value: number, Min: number, Max: number) => Math.min(Math.max(Value, Min), Max);
 interface PagePaginationOptions {
   /**
-   * The embeds to paginate between; e.g. embeds representing pages.
+   * The components/embeds to paginate between; i.e. the pages.
    * This should be an array of at least one embed or container component.
    */
   pages: (EmbedBuilder | ContainerBuilder)[];
@@ -87,7 +87,7 @@ interface PagePaginationOptions {
 }
 
 /**
- * Handles the pagination process for a given embeds array.
+ * Handles the pagination process for a given pages array.
  * @param {PagePaginationOptions} options - The options for the pagination handler.
  * @returns This function/handler does not return anything and it handles pagination on its own.
  * @throws {RangeError} If the `pages` array is empty.
@@ -217,7 +217,7 @@ export default async function HandlePagePagination({
       }
 
       AppLogger.error({
-        message: "An error occurred while handling embed pagination;",
+        message: "An error occurred while handling page pagination;",
         label: FileLabel,
         stack: Err.stack,
         context,

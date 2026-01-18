@@ -18,10 +18,11 @@ import _Dedent from "dedent";
  * @param [ReturnAsArray=true] - If the returned value should be as an array or a string; defaults to `true`.
  * @returns The list of charges either a string or an array depending on the value of `ReturnAsArray` parameter.
  */
-export function ListCharges<ReturnType extends boolean = true>(
+export function ListViolationsOrCharges<ReturnType extends boolean = true>(
   Input: string,
   Ordered: boolean = true,
-  ReturnAsArray?: ReturnType
+  ReturnAsArray?: ReturnType,
+  RemoveExistingCodes: boolean = true
 ): ReturnType extends true ? string[] : string {
   ReturnAsArray = (ReturnAsArray === undefined || ReturnAsArray === true) as any;
   const Charges: string[] =
@@ -45,7 +46,14 @@ export function ListCharges<ReturnType extends boolean = true>(
     Charges.push(...(Modified as RegExpMatchArray));
   }
 
-  const FormattedCharges = Charges.filter((Charge) => {
+  let FormattedCharges = Charges;
+  if (RemoveExistingCodes) {
+    FormattedCharges = FormattedCharges.filter((Charge) => {
+      return !Charge.match(/^\s*[-+=#*] Statute/i);
+    });
+  }
+
+  FormattedCharges = FormattedCharges.filter((Charge) => {
     return !Charge.match(/^\s*[-+=#*] Statute/i);
   })
     .map((Charge, Index) => {
@@ -569,10 +577,10 @@ export function AddTrafficViolationCodes(
  * @param Input - The input charges text to format and formalize.
  * @returns A formatted and number listed charges with its penal codes.
  */
-export function FormatCharges(Input: string): string[] {
+export function FormatCharges(Input: string, AddCalCodes: boolean = true): string[] {
   const Titled = TitleCase(Input, true);
-  const Listed = ListCharges(Titled, true, true);
-  return AddStatutes(Listed);
+  const Listed = ListViolationsOrCharges(Titled, true, true, AddCalCodes);
+  return AddCalCodes ? AddStatutes(Listed) : Listed;
 }
 
 /**
@@ -580,10 +588,13 @@ export function FormatCharges(Input: string): string[] {
  * @param {string} Input - A string that represents a text of violations.
  * @returns
  */
-export function FormatCitViolations(Input: string) {
+export function FormatCitViolations(
+  Input: string,
+  AddCalCodes: boolean = true
+): (GuildCitations.Violation | string)[] {
   const TitleCased = TitleCase(Input, true);
-  const ListedViolations = ListCharges(TitleCased, false, true);
-  return AddTrafficViolationCodes(ListedViolations);
+  const ListedViolations = ListViolationsOrCharges(TitleCased, false, true, AddCalCodes);
+  return AddCalCodes ? AddTrafficViolationCodes(ListedViolations) : ListedViolations;
 }
 
 /**

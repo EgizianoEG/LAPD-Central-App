@@ -1,9 +1,12 @@
+import { GuildMember, PartialGuildMember } from "discord.js";
 import { RemoveGuildMemberCacheEntry } from "@Utilities/Helpers/Cache.js";
-import { GuildMember } from "discord.js";
 import AppLogger from "@Utilities/Classes/AppLogger.js";
 const FileLabel = "Events:GuildMemberRemove:SyncMembersCache";
 
-export default function SyncGuildMembersCacheOnLeave(_: DiscordClient, Member: GuildMember) {
+export default function SyncGuildMembersCacheOnLeave(
+  _: DiscordClient,
+  Member: GuildMember | PartialGuildMember
+) {
   try {
     RemoveGuildMemberCacheEntry(Member);
   } catch (Err: any) {

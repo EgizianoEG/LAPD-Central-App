@@ -8,6 +8,7 @@ import {
   MessageFlags,
   EmbedBuilder,
   ButtonStyle,
+  userMention,
 } from "discord.js";
 
 import {
@@ -56,6 +57,7 @@ function GetManagementPromptEmbed(ActiveOrPendingRA?: RADocument | null) {
       value: Dedent(`
         **Started:** ${FormatTime(ActiveOrPendingRA.review_date!, "D")}
         **Ends On:** ${FormatTime(ActiveOrPendingRA.end_date, "D")}
+        **Approved by:** ${userMention(ActiveOrPendingRA.reviewed_by!.id)}
         **Quota Reduction:** ~${ActiveOrPendingRA.quota_reduction}
         **Reason:** ${ActiveOrPendingRA.reason}
       `),
