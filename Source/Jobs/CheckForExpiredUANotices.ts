@@ -37,7 +37,7 @@ async function HandleExpiredUserActivityNotices(
         $lookup: {
           from: "activity_notices",
           as: "active_notices",
-          let: { guild_id: "$guild", user_id: "$user" },
+          let: { guild_id: "$guild", user_id: "$user", type: "$type" },
           pipeline: [
             {
               $match: {
@@ -45,6 +45,7 @@ async function HandleExpiredUserActivityNotices(
                   $and: [
                     { $eq: ["$guild", "$$guild_id"] },
                     { $eq: ["$user", "$$user_id"] },
+                    { $eq: ["$type", "$$type"] },
                     { $eq: ["$status", "Approved"] },
                     { $eq: ["$early_end_date", null] },
                     { $gt: ["$end_date", CurrentDate] },
