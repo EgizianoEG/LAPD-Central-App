@@ -167,7 +167,7 @@ export default async function GetActivityReportData(
     if (Member) ProcessedMemberIds.add(Member.user.id);
     else return null;
 
-    // Process all activity notices to prioritize active LOA over everything else
+    // Process all activity notices with priority: Active LOA > Active RA > Pending LOA > Pending RA
     const PrioritizedNotices = ProcessActivityNotices(Record.activity_notices, RetrieveDate);
     const LOANotice = PrioritizedNotices.loa;
     const RANotice = PrioritizedNotices.ra;
