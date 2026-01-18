@@ -1,7 +1,7 @@
-import { AggregateResults } from "@Typings/Utilities/Database.js";
-import ArrestModel from "@Models/Arrest.js";
-import CitationModel from "@Models/Citation.js";
-import IncidentModel from "@Models/Incident.js";
+import { AggregateResults } from "#Typings/Utilities/Database.js";
+import ArrestModel from "#Models/Arrest.js";
+import CitationModel from "#Models/Citation.js";
+import IncidentModel from "#Models/Incident.js";
 
 /**
  * Retrieves user records (arrests, citations, and incidents as a suspect) from the database.

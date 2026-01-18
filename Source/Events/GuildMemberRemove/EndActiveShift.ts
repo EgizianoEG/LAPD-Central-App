@@ -1,7 +1,7 @@
 import type { GuildMember, PartialGuildMember } from "discord.js";
-import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import ShiftModel from "@Models/Shift.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
+import ShiftModel from "#Models/Shift.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 /**
  * Ends any active shift for a guild member when they leave the server.

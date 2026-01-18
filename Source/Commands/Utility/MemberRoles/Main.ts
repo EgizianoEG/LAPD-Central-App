@@ -1,4 +1,4 @@
-import AutocompleteMemRolesSave from "@Utilities/Autocompletion/MemRolesSave.js";
+import AutocompleteMemRolesSave from "#Utilities/Autocompletion/MemRolesSave.js";
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,

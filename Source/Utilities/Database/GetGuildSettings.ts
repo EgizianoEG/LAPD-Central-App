@@ -1,6 +1,6 @@
-import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
-import { Guilds } from "@Typings/Utilities/Database.js";
-import GuildModel from "@Models/Guild.js";
+import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
+import { Guilds } from "#Typings/Utilities/Database.js";
+import GuildModel from "#Models/Guild.js";
 import AppError from "../Classes/AppError.js";
 
 /**

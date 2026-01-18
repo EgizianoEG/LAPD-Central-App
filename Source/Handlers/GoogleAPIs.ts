@@ -1,9 +1,9 @@
 import { google, drive_v3, sheets_v4 } from "googleapis";
-import { ValidatePrivateKey } from "@Utilities/Helpers/Validators.js";
+import { ValidatePrivateKey } from "#Utilities/Helpers/Validators.js";
 import { GoogleAuth, JWT } from "google-auth-library";
 import { JSONClient } from "google-auth-library/build/src/auth/googleauth.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import Secrets from "@Config/Secrets.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import Secrets from "#Config/Secrets.js";
 
 export let Client: JWT;
 export let GAuth: GoogleAuth<JSONClient>;

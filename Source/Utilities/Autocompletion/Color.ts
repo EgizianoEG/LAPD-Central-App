@@ -1,4 +1,4 @@
-import Colors from "@Resources/BrickColors.js";
+import Colors from "#Resources/BrickColors.js";
 import ShuffleArray from "../Helpers/ShuffleArray.js";
 
 /**

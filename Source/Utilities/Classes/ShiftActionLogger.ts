@@ -23,12 +23,12 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 
-import { Shifts } from "@Typings/Utilities/Database.js";
-import { Colors } from "@Config/Shared.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { App as DiscordApp } from "@DiscordApp";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import GuildModel from "@Models/Guild.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import { Colors } from "#Config/Shared.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { App as DiscordApp } from "#DiscordApp";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import GuildModel from "#Models/Guild.js";
 import Dedent from "dedent";
 
 const BluewishText = (Text: string | number, ChannelId: string) => {

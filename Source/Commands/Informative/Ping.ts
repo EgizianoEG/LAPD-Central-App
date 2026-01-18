@@ -1,5 +1,5 @@
 import { InteractionContextType, SlashCommandBuilder, MessageFlags } from "discord.js";
-import { SuccessContainer } from "@Utilities/Classes/ExtraContainers.js";
+import { SuccessContainer } from "#Utilities/Classes/ExtraContainers.js";
 
 // ---------------------------------------------------------------------------------------
 async function Callback(Client: DiscordClient, Interaction: SlashCommandInteraction) {

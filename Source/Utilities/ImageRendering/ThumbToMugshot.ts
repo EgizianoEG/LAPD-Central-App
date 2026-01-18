@@ -1,5 +1,5 @@
 import { Canvas, Image, createCanvas, loadImage } from "@napi-rs/canvas/index.js";
-import { Thumbs } from "@Config/Shared.js";
+import { Thumbs } from "#Config/Shared.js";
 import { format } from "date-fns";
 import UploadToImgBB from "../External/ImgBBUpload.js";
 

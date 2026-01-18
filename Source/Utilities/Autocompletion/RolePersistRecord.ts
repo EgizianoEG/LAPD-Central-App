@@ -1,8 +1,8 @@
 import { ApplicationCommandOptionChoiceData } from "discord.js";
-import { GeneralAutocompletionCache } from "@Utilities/Helpers/Cache.js";
-import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
-import { type RolePersist } from "@Typings/Utilities/Database.js";
-import RolePersistenceModel from "@Models/RolePersist.js";
+import { GeneralAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { IsValidDiscordId } from "#Utilities/Helpers/Validators.js";
+import { type RolePersist } from "#Typings/Utilities/Database.js";
+import RolePersistenceModel from "#Models/RolePersist.js";
 
 /**
  * Autocompletes a persist record Id option for role persist commands.

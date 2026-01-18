@@ -14,19 +14,19 @@ import {
   WarnContainer,
   ErrorContainer,
   SuccessContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 import { GetAdminOrMgmtPanelContainer, PromiseAllSettledThenTrue } from "./Admin.js";
-import { FormatCallsignDesignation as FormatDesignation } from "@Utilities/Strings/Formatters.js";
-import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { GetCallsignAdminData } from "@Utilities/Database/CallsignData.js";
-import { Emojis } from "@Config/Shared.js";
+import { FormatCallsignDesignation as FormatDesignation } from "#Utilities/Strings/Formatters.js";
+import { AggregationResults, Callsigns } from "#Typings/Utilities/Database.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { GetCallsignAdminData } from "#Utilities/Database/CallsignData.js";
+import { Emojis } from "#Config/Shared.js";
 
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import CallsignModel from "@Models/Callsign.js";
-import CallsignsEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import CallsignModel from "#Models/Callsign.js";
+import CallsignsEventLogger from "#Utilities/Classes/CallsignsEventLogger.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
 
 type CmdOrButtonCachedInteraction = SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">;
 const CallsignEventLogger = new CallsignsEventLogger();

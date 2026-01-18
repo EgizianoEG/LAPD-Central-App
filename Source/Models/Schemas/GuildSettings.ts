@@ -1,8 +1,8 @@
 import { Schema } from "mongoose";
-import { DASignatureFormats } from "@Config/Constants.js";
-import { ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
+import { DASignatureFormats } from "#Config/Constants.js";
+import { ServiceUnitTypes } from "#Resources/LAPDCallsigns.js";
 import ShiftTypeSchema from "./ShiftType.js";
-import type { Guilds } from "@Typings/Utilities/Database.js";
+import type { Guilds } from "#Typings/Utilities/Database.js";
 
 const SnowflakeIdValidationN1: [RegExp, string] = [
   /^\d{15,22}$/,

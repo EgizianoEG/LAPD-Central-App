@@ -29,45 +29,45 @@ import {
 import {
   IncidentNotesLength,
   IncidentStatusesWithDescriptions,
-} from "@Resources/IncidentConstants.js";
+} from "#Resources/IncidentConstants.js";
 
 import {
   InfoContainer,
   ErrorContainer,
   SuccessContainer,
   BaseExtraContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 import { Types } from "mongoose";
-import { Emojis } from "@Config/Shared.js";
+import { Emojis } from "#Config/Shared.js";
 import { isDeepEqual } from "remeda";
-import { GuildIncidents } from "@Typings/Utilities/Database.js";
-import { ArraysAreEqual } from "@Utilities/Helpers/ArraysAreEqual.js";
-import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
-import { DASignatureFormats } from "@Config/Constants.js";
-import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { SanitizeDiscordAttachmentLink } from "@Utilities/Strings/OtherUtils.js";
+import { GuildIncidents } from "#Typings/Utilities/Database.js";
+import { ArraysAreEqual } from "#Utilities/Helpers/ArraysAreEqual.js";
+import { FilterUserInput } from "#Utilities/Strings/Redactor.js";
+import { DASignatureFormats } from "#Config/Constants.js";
+import { ErrorEmbed, UnauthorizedEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { SanitizeDiscordAttachmentLink } from "#Utilities/Strings/OtherUtils.js";
 
 import {
   ListSplitRegex,
   IncidentReportedOnTSRegex,
   IncidentReportNumberLineRegex,
-} from "@Resources/RegularExpressions.js";
+} from "#Resources/RegularExpressions.js";
 
 import {
   FormatSortRDInputNames,
   FormatDutyActivitiesLogSignature,
-} from "@Utilities/Strings/Formatters.js";
+} from "#Utilities/Strings/Formatters.js";
 
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
-import UserHasPerms from "@Utilities/Database/UserHasPermissions.js";
-import IncidentModel from "@Models/Incident.js";
-import GetIncidentRecord from "@Utilities/Database/GetIncidentRecord.js";
-import GetRobloxUserLinked from "@Utilities/Database/IsUserLoggedIn.js";
-import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import GetGuildSettings, { GetGuildSettingsSync } from "@Utilities/Database/GetGuildSettings.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
+import UserHasPerms from "#Utilities/Database/UserHasPermissions.js";
+import IncidentModel from "#Models/Incident.js";
+import GetIncidentRecord from "#Utilities/Database/GetIncidentRecord.js";
+import GetRobloxUserLinked from "#Utilities/Database/IsUserLoggedIn.js";
+import GetIncidentReportEmbeds from "#Utilities/Reports/GetIncidentReportEmbeds.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import GetGuildSettings, { GetGuildSettingsSync } from "#Utilities/Database/GetGuildSettings.js";
 
 const ListFormatter = new Intl.ListFormat("en");
 const NoneProvidedPlaceholder = "`[None Provided]`";

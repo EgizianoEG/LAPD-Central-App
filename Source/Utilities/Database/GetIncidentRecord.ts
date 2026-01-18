@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
-import { GuildIncidents } from "@Typings/Utilities/Database.js";
-import IncidentModel from "@Models/Incident.js";
+import { GuildIncidents } from "#Typings/Utilities/Database.js";
+import IncidentModel from "#Models/Incident.js";
 
 export default async function GetIncidentRecord(
   Guild: string,

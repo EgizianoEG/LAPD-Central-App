@@ -1,5 +1,5 @@
 import { IsValidShiftTypeName } from "./Validators.js";
-import { ShiftTypeExists } from "@Utilities/Database/ShiftTypeValidators.js";
+import { ShiftTypeExists } from "#Utilities/Database/ShiftTypeValidators.js";
 
 /**
  * Retrieves the **valid** target shift type(s) based on the provided interaction options.

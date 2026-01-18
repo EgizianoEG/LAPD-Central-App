@@ -1,4 +1,4 @@
-import { Guilds } from "@Typings/Utilities/Database.js";
+import { Guilds } from "#Typings/Utilities/Database.js";
 import GetGuildSettings from "./GetGuildSettings.js";
 
 /**

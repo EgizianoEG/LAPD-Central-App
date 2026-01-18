@@ -7,11 +7,11 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { TenCodes, ElevenCodes, LiteralCodes } from "@Resources/RadioCodes.js";
-import { PoliceCodeToWords, TitleCase } from "@Utilities/Strings/Converters.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Colors } from "@Config/Shared.js";
-import AutocompleteRadioCode from "@Utilities/Autocompletion/RadioCode.js";
+import { TenCodes, ElevenCodes, LiteralCodes } from "#Resources/RadioCodes.js";
+import { PoliceCodeToWords, TitleCase } from "#Utilities/Strings/Converters.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { Colors } from "#Config/Shared.js";
+import AutocompleteRadioCode from "#Utilities/Autocompletion/RadioCode.js";
 const AllCodes = [...TenCodes, ...ElevenCodes, ...LiteralCodes];
 // ---------------------------------------------------------------------------------------
 

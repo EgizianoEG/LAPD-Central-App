@@ -24,38 +24,38 @@ import {
   FormatVehicleName,
   FormatCitViolations,
   FormatDutyActivitiesLogSignature,
-} from "@Utilities/Strings/Formatters.js";
+} from "#Utilities/Strings/Formatters.js";
 
 import {
   IsValidLicensePlate,
   IsValidPersonHeight,
   IsValidRobloxUsername,
-} from "@Utilities/Helpers/Validators.js";
+} from "#Utilities/Helpers/Validators.js";
 
-import { FilterUserInput, FilterUserInputOptions } from "@Utilities/Strings/Redactor.js";
-import { AllVehicleModelNames, AllVehicleModels } from "@Resources/ERLC-Data/ERLCVehicles.js";
-import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { RenderFilledNTAForm } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
-import { GuildCitations } from "@Typings/Utilities/Database.js";
+import { FilterUserInput, FilterUserInputOptions } from "#Utilities/Strings/Redactor.js";
+import { AllVehicleModelNames, AllVehicleModels } from "#Resources/ERLC-Data/ERLCVehicles.js";
+import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { RenderFilledNTAForm } from "#Utilities/ImageRendering/GetFilledNTAForm.js";
+import { GuildCitations } from "#Typings/Utilities/Database.js";
 import { ReporterInfo } from "../../Log.js";
-import { RandomString } from "@Utilities/Strings/Random.js";
-import { TitleCase } from "@Utilities/Strings/Converters.js";
-import { Colors } from "@Config/Shared.js";
+import { RandomString } from "#Utilities/Strings/Random.js";
+import { TitleCase } from "#Utilities/Strings/Converters.js";
+import { Colors } from "#Config/Shared.js";
 
-import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
-import LogTrafficCitation from "@Utilities/Database/LogCitation.js";
+import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
+import LogTrafficCitation from "#Utilities/Database/LogCitation.js";
 import FindClosestMatch from "didyoumean2";
-import GetIdByUsername from "@Utilities/Roblox/GetIdByUsername.js";
-import BrickColors from "@Resources/BrickColors.js";
-import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
+import GetIdByUsername from "#Utilities/Roblox/GetIdByUsername.js";
+import BrickColors from "#Resources/BrickColors.js";
+import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 import Dedent from "dedent";
 
-import AppError from "@Utilities/Classes/AppError.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import GetAllCitationNums from "@Utilities/Database/GetCitationNumbers.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import CitationModel, { NTATypes } from "@Models/Citation.js";
+import AppError from "#Utilities/Classes/AppError.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import GetAllCitationNums from "#Utilities/Database/GetCitationNumbers.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import CitationModel, { NTATypes } from "#Models/Citation.js";
 
 const CmdFileLabel = "Commands:Miscellaneous:Log:CitWarn";
 const ColorNames = BrickColors.map((BC) => BC.name);

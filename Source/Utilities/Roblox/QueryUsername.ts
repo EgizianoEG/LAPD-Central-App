@@ -1,7 +1,7 @@
 import NobloxJs, { UserSearchResult } from "noblox.js";
 import { IsValidRobloxUsername } from "../Helpers/Validators.js";
-import { RobloxAPICache } from "@Utilities/Helpers/Cache.js";
-import { APIResponses } from "@Typings/External/Roblox.js";
+import { RobloxAPICache } from "#Utilities/Helpers/Cache.js";
+import { APIResponses } from "#Typings/External/Roblox.js";
 import Axios from "axios";
 
 /**

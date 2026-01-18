@@ -1,4 +1,4 @@
-import { App as Client } from "@DiscordApp";
+import { App as Client } from "#DiscordApp";
 
 /**
  * Mentions a command by its full name given.

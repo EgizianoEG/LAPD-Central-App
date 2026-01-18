@@ -1,7 +1,7 @@
-import { Discord } from "@Config/Secrets.js";
+import { Discord } from "#Config/Secrets.js";
 import { Guild } from "discord.js";
-import GuildModel from "@Models/Guild.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GuildModel from "#Models/Guild.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 /**
  * Updates the database by adding/updating/verifying guild data.

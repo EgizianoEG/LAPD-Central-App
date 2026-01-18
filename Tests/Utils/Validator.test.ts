@@ -10,7 +10,7 @@ import {
   IsValidPersonHeight,
   IsValidShiftTypeName,
   IsValidRobloxUsername,
-} from "@Utilities/Helpers/Validators";
+} from "#Utilities/Helpers/Validators.js";
 
 describe("IsValidRobloxUsername", () => {
   it("Should return false for strings of less than 3 or more than 20 characters in length", () => {

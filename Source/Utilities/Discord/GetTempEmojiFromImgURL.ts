@@ -1,7 +1,7 @@
 import { ApplicationEmoji, Client as DiscordClient, Events } from "discord.js";
-import { App as DiscordApp } from "@DiscordApp";
+import { App as DiscordApp } from "#DiscordApp";
 import { milliseconds } from "date-fns";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 interface GetTempEmojiFromImgURLOptions {
   /** The URL of the image to use for the emoji. */

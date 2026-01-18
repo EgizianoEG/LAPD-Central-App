@@ -1,6 +1,6 @@
 import { ContextMenuCommandBuilder, SlashCommandBuilder, SnowflakeUtil } from "discord.js";
 import { isAfter, isBefore } from "date-fns";
-import { FormatHeight } from "@Utilities/Strings/Formatters.js";
+import { FormatHeight } from "#Utilities/Strings/Formatters.js";
 import { createSign } from "node:crypto";
 const MinDiscordTimestamp = 1420070400000;
 
@@ -178,7 +178,7 @@ export function IsEmptyObject(Obj: any): boolean {
  * - Starts with "http://" or "https://".
  * - Optionally includes "www.".
  * - Contains "discord.com" or "discordapp.com".
- * - Includes "/channels/" followed by either "@me" or a server Id (15 to 22 digits).
+ * - Includes "/channels/" followed by either "#me" or a server Id (15 to 22 digits).
  * - Optionally followed by one or two message Ids (15 to 22 digits each).
  *
  * @param Str - The string to validate as a Discord channel or message link.

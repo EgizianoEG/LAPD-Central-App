@@ -1,6 +1,6 @@
 import Dedent from "dedent";
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import { FilterUserInput } from "#Utilities/Strings/Redactor.js";
 import {
   SlashCommandSubcommandsOnlyBuilder,
   InteractionContextType,

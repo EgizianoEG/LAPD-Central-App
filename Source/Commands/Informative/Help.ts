@@ -1,4 +1,4 @@
-import { Colors } from "@Config/Shared.js";
+import { Colors } from "#Config/Shared.js";
 import {
   InteractionContextType,
   SlashCommandBuilder,

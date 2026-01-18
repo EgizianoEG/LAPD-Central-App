@@ -1,5 +1,5 @@
 import { BaseInteraction } from "discord.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 export default async function AutocompletionHandler(
   Client: DiscordClient,

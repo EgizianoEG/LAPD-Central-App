@@ -1,4 +1,4 @@
-import GuildProfile from "@Models/GuildProfile.js";
+import GuildProfile from "#Models/GuildProfile.js";
 
 /**
  * Checks if a given user is already logged in using the bot.

@@ -25,35 +25,35 @@ import {
 import {
   GetCallsignAdminData,
   GetCallsignValidationData,
-} from "@Utilities/Database/CallsignData.js";
+} from "#Utilities/Database/CallsignData.js";
 
 import {
   BaseExtraContainer,
   SuccessContainer,
   ErrorContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 import {
   ParseExpiryDate,
   HandleUnauthorizedManagement,
-} from "@Source/Events/InteractionCreate/CallsignManagementHandler.js";
+} from "#Source/Events/InteractionCreate/CallsignManagementHandler.js";
 
-import { RandomString } from "@Utilities/Strings/Random.js";
-import { Colors, Emojis } from "@Config/Shared.js";
-import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
+import { RandomString } from "#Utilities/Strings/Random.js";
+import { Colors, Emojis } from "#Config/Shared.js";
+import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
 
-import { GenericRequestStatuses } from "@Config/Constants.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
 import { ValidateCallsignFormat } from "./Request.js";
-import { AggregationResults, Callsigns } from "@Typings/Utilities/Database.js";
-import { ConcatenateLines, FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
+import { AggregationResults, Callsigns } from "#Typings/Utilities/Database.js";
+import { ConcatenateLines, FormatCallsignDesignation } from "#Utilities/Strings/Formatters.js";
 
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import HandleCallsignStatusUpdates from "@Utilities/Discord/HandleCallsignStatusUpdates.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
-import CSEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
-import CallsignModel from "@Models/Callsign.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleCallsignStatusUpdates from "#Utilities/Discord/HandleCallsignStatusUpdates.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
+import CSEventLogger from "#Utilities/Classes/CallsignsEventLogger.js";
+import CallsignModel from "#Models/Callsign.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 const FileLabel = "Cmds:Misc:Callsigns:Subcmds:Admin";
 const CallsignsEventLogger = new CSEventLogger();

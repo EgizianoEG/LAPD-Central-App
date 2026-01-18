@@ -4,8 +4,7 @@
  * @param ChunkSize - The preferred chunk size.
  * @returns A result array.
  */
-export default function Chunks<T>(Arr: Array<T>, ChunkSize: number) {
-  ChunkSize = ChunkSize || Infinity;
+export default function Chunks<T>(Arr: Array<T>, ChunkSize: number = Infinity) {
   return Arr.reduce(
     (Result, Item, Index) => {
       const ChunkIndex = Math.floor(Index / ChunkSize);

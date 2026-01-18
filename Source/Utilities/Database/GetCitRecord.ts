@@ -1,5 +1,5 @@
-import CitationModel from "@Models/Citation.js";
-import { GuildCitations } from "@Source/Typings/Utilities/Database.js";
+import CitationModel from "#Models/Citation.js";
+import { GuildCitations } from "#Source/Typings/Utilities/Database.js";
 import type { Types } from "mongoose";
 
 /**

@@ -1,7 +1,7 @@
 import { Client, Guild } from "discord.js";
 import { addDays } from "date-fns";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import GuildModel from "@Models/Guild.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import GuildModel from "#Models/Guild.js";
 
 /**
  * Schedules the guild data deletion from the database after **7 days** of the client not being in it.

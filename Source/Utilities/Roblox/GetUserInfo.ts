@@ -1,6 +1,6 @@
-import { APIResponses, OpenCloud } from "@Typings/External/Roblox.js";
-import { RobloxOpenCloudV2Routes } from "@Config/Constants.js";
-import { Roblox } from "@Config/Secrets.js";
+import { APIResponses, OpenCloud } from "#Typings/External/Roblox.js";
+import { RobloxOpenCloudV2Routes } from "#Config/Constants.js";
+import { Roblox } from "#Config/Secrets.js";
 import Noblox from "noblox.js";
 import Axios from "axios";
 

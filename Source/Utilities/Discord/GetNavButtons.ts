@@ -1,6 +1,6 @@
 import { ActionRowBuilder, BaseInteraction, ButtonBuilder, ButtonStyle } from "discord.js";
-import { RandomString } from "@Utilities/Strings/Random.js";
-import { Emojis } from "@Config/Shared.js";
+import { RandomString } from "#Utilities/Strings/Random.js";
+import { Emojis } from "#Config/Shared.js";
 
 export type NavButtonsActionRow = ActionRowBuilder<
   ButtonBuilder & { data: { custom_id: string } }

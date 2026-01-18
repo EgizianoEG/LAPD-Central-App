@@ -1,12 +1,12 @@
 import { model, Model, Schema } from "mongoose";
-import { IsValidIncidentNum } from "@Utilities/Helpers/Validators.js";
-import { GuildIncidents } from "@Typings/Utilities/Database.js";
+import { IsValidIncidentNum } from "#Utilities/Helpers/Validators.js";
+import { GuildIncidents } from "#Typings/Utilities/Database.js";
 import {
   IncidentTypes,
   IncidentNotesLength,
   IncidentStatusesFlattened,
   IncidentDescriptionLength,
-} from "@Resources/IncidentConstants.js";
+} from "#Resources/IncidentConstants.js";
 
 type IncidentPlainDoc = GuildIncidents.IncidentRecord;
 type IncidentModelType = Model<IncidentPlainDoc, unknown>;

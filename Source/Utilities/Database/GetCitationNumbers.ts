@@ -1,6 +1,6 @@
-import { CitationAutocompletionCache } from "@Utilities/Helpers/Cache.js";
-import { AggregateResults } from "@Typings/Utilities/Database.js";
-import CitationModel from "@Models/Citation.js";
+import { CitationAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { AggregateResults } from "#Typings/Utilities/Database.js";
+import CitationModel from "#Models/Citation.js";
 
 export default async function GetAllCitationNums(
   GuildId: string,

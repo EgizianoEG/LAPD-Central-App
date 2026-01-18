@@ -1,5 +1,5 @@
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { OSMetrics } from "@Typings/Utilities/Generic.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { OSMetrics } from "#Typings/Utilities/Generic.js";
 import Convert from "convert-units";
 import Process from "node:process";
 import OSUtils from "node-os-utils";

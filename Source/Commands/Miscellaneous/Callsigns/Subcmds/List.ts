@@ -18,23 +18,23 @@ import {
 import {
   ConcatenateLines,
   FormatCallsignDesignation as FormatDesignation,
-} from "@Utilities/Strings/Formatters.js";
+} from "#Utilities/Strings/Formatters.js";
 
 import {
   BaseExtraContainer,
   ErrorContainer,
   InfoContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
-import { Emojis } from "@Config/Shared.js";
-import { Callsigns } from "@Typings/Utilities/Database.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { HandleUnauthorizedManagement } from "@Source/Events/InteractionCreate/CallsignManagementHandler.js";
+import { Emojis } from "#Config/Shared.js";
+import { Callsigns } from "#Typings/Utilities/Database.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { HandleUnauthorizedManagement } from "#Source/Events/InteractionCreate/CallsignManagementHandler.js";
 import { isValidObjectId, RootFilterQuery } from "mongoose";
 
-import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
-import CallsignModel from "@Models/Callsign.js";
-import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
+import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
+import CallsignModel from "#Models/Callsign.js";
+import Chunks from "#Utilities/Helpers/SliceIntoChunks.js";
 const CallsignRecordsPerPage = 4;
 
 // ---------------------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 import { GuildMember, PermissionFlagsBits, Guild, Role } from "discord.js";
-import { CronJobFileDefReturn } from "@Typings/Core/System.js";
-import RolePersistenceModel from "@Models/RolePersist.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import { RolePersist } from "@Typings/Utilities/Database.js";
+import { CronJobFileDefReturn } from "#Typings/Core/System.js";
+import RolePersistenceModel from "#Models/RolePersist.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import { RolePersist } from "#Typings/Utilities/Database.js";
 const FileLabel = "Jobs:AutodeleteExpiredRolePersistRecords";
 
 /**

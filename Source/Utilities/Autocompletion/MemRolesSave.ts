@@ -1,8 +1,8 @@
 import { ApplicationCommandOptionChoiceData } from "discord.js";
-import { GeneralAutocompletionCache } from "@Utilities/Helpers/Cache.js";
-import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
-import { MemberSavedRoles } from "@Typings/Utilities/Database.js";
-import MRolesModel from "@Models/MemberRoles.js";
+import { GeneralAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { IsValidDiscordId } from "#Utilities/Helpers/Validators.js";
+import { MemberSavedRoles } from "#Typings/Utilities/Database.js";
+import MRolesModel from "#Models/MemberRoles.js";
 
 /**
  * Autocompletes save Id option for member roles command.

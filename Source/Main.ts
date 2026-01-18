@@ -1,15 +1,15 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { Client, Options, Collection, GatewayIntentBits, Status, Partials } from "discord.js";
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
-import { Discord as DiscordSecrets } from "@Config/Secrets.js";
+import { Discord as DiscordSecrets } from "#Config/Secrets.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
 import Express from "express";
-import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GetFiles from "#Utilities/Helpers/GetFilesFrom.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import FileSystem from "node:fs";
-import GetOSMetrics from "@Utilities/Helpers/GetOSMetrics.js";
+import GetOSMetrics from "#Utilities/Helpers/GetOSMetrics.js";
 import DurHumanizer from "humanize-duration";
 AppLogger.info(Chalk.grey("=========================== New Run ==========================="));
 

@@ -1,14 +1,14 @@
 import { defaultComposer } from "default-composer";
-import { Guilds, Shifts } from "@Typings/Utilities/Database.js";
-import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
+import { Guilds, Shifts } from "#Typings/Utilities/Database.js";
+import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
 import { Collection } from "discord.js";
-import { MongoDB } from "@Config/Secrets.js";
+import { MongoDB } from "#Config/Secrets.js";
 
-import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
-import MongoDBDocumentCollection from "@Utilities/Classes/MongoDBDocCollection.js";
-import ChangeStreamManager from "@Utilities/Classes/ChangeStreamManager.js";
-import GuildModel from "@Models/Guild.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import ShiftModel, { ShiftFlags } from "#Models/Shift.js";
+import MongoDBDocumentCollection from "#Utilities/Classes/MongoDBDocCollection.js";
+import ChangeStreamManager from "#Utilities/Classes/ChangeStreamManager.js";
+import GuildModel from "#Models/Guild.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Mongoose from "mongoose";
 
 const FileLabel = "Handlers:MongoDB";

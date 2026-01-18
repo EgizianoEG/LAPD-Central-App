@@ -6,7 +6,7 @@ import AppConfig, {
   Roblox,
   MongoDB,
   Other,
-} from "@Config/Secrets.js";
+} from "#Config/Secrets.js";
 
 // ---------------------------------------------------------------------------------------
 // Helpers:

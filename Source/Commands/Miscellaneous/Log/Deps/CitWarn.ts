@@ -13,11 +13,11 @@ import {
   TrafficConditions,
   TravelDirections,
   WeatherConditions,
-} from "@Models/Citation.js";
+} from "#Models/Citation.js";
 
-import ERLCAgeGroups from "@Resources/ERLC-Data/ERLCAgeGroups.js";
+import ERLCAgeGroups from "#Resources/ERLC-Data/ERLCAgeGroups.js";
 import AnyCitationCallback from "./Funcs/AnyCitationHandler.js";
-import { EyeColors, HairColors } from "@Resources/ERLC-Data/ERLCPDColors.js";
+import { EyeColors, HairColors } from "#Resources/ERLC-Data/ERLCPDColors.js";
 import { ReporterInfo } from "../Log.js";
 
 const CmdFileLabel = "Commands:Miscellaneous:Log:CitWarn";

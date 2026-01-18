@@ -1,8 +1,8 @@
 // Dependencies:
 // -------------
 
-import { OpenWeather as OpenWeatherConfig } from "@Config/Secrets.js";
-import { WeatherDataTypings } from "@Typings/External/Weather.js";
+import { OpenWeather as OpenWeatherConfig } from "#Config/Secrets.js";
+import { WeatherDataTypings } from "#Typings/External/Weather.js";
 import Axios, { AxiosResponse } from "axios";
 import Convert from "convert-units";
 

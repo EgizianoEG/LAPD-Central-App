@@ -1,7 +1,7 @@
-import { CronJobFileDefReturn } from "@Typings/Core/System.js";
-import DeleteAllAssociatedGuildData from "@Utilities/Database/DeleteAssociatedGuildData.js";
-import GuildModel from "@Models/Guild.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import { CronJobFileDefReturn } from "#Typings/Core/System.js";
+import DeleteAllAssociatedGuildData from "#Utilities/Database/DeleteAssociatedGuildData.js";
+import GuildModel from "#Models/Guild.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 async function CleanupUnavailableGuilds(Now: Date | "init" | "manual", Client: DiscordClient) {
   const CurrentDate = Now instanceof Date ? Now : new Date();

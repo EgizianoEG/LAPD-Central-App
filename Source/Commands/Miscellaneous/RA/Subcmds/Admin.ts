@@ -18,18 +18,18 @@ import {
   User,
 } from "discord.js";
 
-import { HandleLeaveReviewValidation } from "@Cmds/Miscellaneous/LOA/Subcmds/Admin.js";
-import { ReducedActivityEventLogger } from "@Utilities/Classes/UANEventLogger.js";
-import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
+import { HandleLeaveReviewValidation } from "#Cmds/Miscellaneous/LOA/Subcmds/Admin.js";
+import { ReducedActivityEventLogger } from "#Utilities/Classes/UANEventLogger.js";
+import { GetErrorId, RandomString } from "#Utilities/Strings/Random.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { addMilliseconds } from "date-fns";
-import { Colors, Emojis } from "@Config/Shared.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { Colors, Emojis } from "#Config/Shared.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
-import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import GetUANData from "@Utilities/Database/GetUANData.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import HandleUserActivityNoticeUpdate from "#Utilities/Discord/HandleUANUpdate.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import GetUANData from "#Utilities/Database/GetUANData.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Dedent from "dedent";
 
 const PreviousRALimit = 5;

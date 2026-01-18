@@ -1,5 +1,5 @@
 import { IsValidCmdObject } from "../Helpers/Validators.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import GetFiles from "../Helpers/GetFilesFrom.js";
 import Path from "node:path";
 const FileLabel = "Utilities:Other:GetLocalCommands";

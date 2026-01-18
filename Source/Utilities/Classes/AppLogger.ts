@@ -1,7 +1,7 @@
 import { LogtailTransport } from "@logtail/winston";
 import { OmitByValue } from "utility-types";
 import { Logtail } from "@logtail/node";
-import { Other } from "@Config/Secrets.js";
+import { Other } from "#Config/Secrets.js";
 
 import SplatFormat from "./Splatter.js";
 import Winston from "winston";

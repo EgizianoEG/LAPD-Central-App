@@ -1,10 +1,10 @@
 import { userMention, SlashCommandSubcommandBuilder, MessageFlags, GuildMember } from "discord.js";
-import { SuccessContainer } from "@Utilities/Classes/ExtraContainers.js";
-import { RolePersist } from "@Typings/Utilities/Database.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Dedent } from "@Utilities/Strings/Formatters.js";
+import { SuccessContainer } from "#Utilities/Classes/ExtraContainers.js";
+import { RolePersist } from "#Typings/Utilities/Database.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { Dedent } from "#Utilities/Strings/Formatters.js";
 import { Types } from "mongoose";
-import RolePersistenceModel from "@Models/RolePersist.js";
+import RolePersistenceModel from "#Models/RolePersist.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

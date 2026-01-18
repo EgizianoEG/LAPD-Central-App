@@ -1,15 +1,15 @@
 import { EmbedBuilder, SlashCommandSubcommandBuilder } from "discord.js";
-import { ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ListFormatter, ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { ErrorEmbed, InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { formatDistance } from "date-fns/formatDistance";
 import { isAfter } from "date-fns/isAfter";
-import { Shifts } from "@Typings/Utilities/Database.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
 
-import GetValidTargetShiftTypes from "@Utilities/Helpers/GetTargetShiftType.js";
-import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
+import GetValidTargetShiftTypes from "#Utilities/Helpers/GetTargetShiftType.js";
+import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
 import * as Chrono from "chrono-node";
-import ShiftModel from "@Models/Shift.js";
-import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
+import ShiftModel from "#Models/Shift.js";
+import Chunks from "#Utilities/Helpers/SliceIntoChunks.js";
 import Util from "node:util";
 
 // ---------------------------------------------------------------------------------------

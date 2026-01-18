@@ -15,22 +15,22 @@ import {
 import {
   LeaveOfAbsenceEventLogger,
   ReducedActivityEventLogger,
-} from "@Utilities/Classes/UANEventLogger.js";
+} from "#Utilities/Classes/UANEventLogger.js";
 
-import { Colors } from "@Config/Shared.js";
-import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
-import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { UserActivityNoticeMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
+import { Colors } from "#Config/Shared.js";
+import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import { GetErrorId, RandomString } from "#Utilities/Strings/Random.js";
+import { ErrorEmbed, UnauthorizedEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { UserActivityNoticeMgmtCustomIdRegex } from "#Resources/RegularExpressions.js";
 
-import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
-import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
-import GetUANsData from "@Utilities/Database/GetUANData.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import HandleUserActivityNoticeUpdate from "#Utilities/Discord/HandleUANUpdate.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import LeaveOfAbsenceModel from "#Models/UserActivityNotice.js";
+import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
+import GetUANsData from "#Utilities/Database/GetUANData.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Dedent from "dedent";
 
 type HNoticeDocument = UserActivityNotice.ActivityNoticeHydratedDocument;

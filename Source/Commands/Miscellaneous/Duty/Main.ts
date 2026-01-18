@@ -1,5 +1,5 @@
-import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   SlashCommandBuilder,
   InteractionContextType,
@@ -9,10 +9,10 @@ import {
 } from "discord.js";
 
 import DutyTypesSubcommandGroup from "./Duty Types/Main.js";
-import AutocompleteShiftType from "@Utilities/Autocompletion/ShiftType.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import HasRobloxLinked from "@Utilities/Database/IsUserLoggedIn.js";
-import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
+import AutocompleteShiftType from "#Utilities/Autocompletion/ShiftType.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import HasRobloxLinked from "#Utilities/Database/IsUserLoggedIn.js";
+import IsModuleEnabled from "#Utilities/Database/IsModuleEnabled.js";
 
 const Subcommands = [
   (await import("./Subcmds/Void.js")).default,

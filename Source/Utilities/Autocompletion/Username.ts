@@ -1,5 +1,5 @@
 import { ApplicationCommandOptionChoiceData } from "discord.js";
-import { FormatUsername } from "@Utilities/Strings/Formatters.js";
+import { FormatUsername } from "#Utilities/Strings/Formatters.js";
 import QueryUsername from "../Roblox/QueryUsername.js";
 
 /**

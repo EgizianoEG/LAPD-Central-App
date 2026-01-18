@@ -1,11 +1,11 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-jest.mock("@Utilities/Discord/MentionCmd.js", () => {
+jest.mock("#Utilities/Discord/MentionCmd.js", () => {
   return jest.fn((CmdName: string) => `/${CmdName}`);
 });
 
-import AppError from "@Utilities/Classes/AppError.js";
-import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
-import { Colors } from "@Config/Shared.js";
+import AppError from "#Utilities/Classes/AppError.js";
+import { ErrorMessages, InfoMessages } from "#Resources/AppMessages.js";
+import { Colors } from "#Config/Shared.js";
 import {
   InfoContainer,
   WarnContainer,
@@ -13,7 +13,7 @@ import {
   SuccessContainer,
   BaseExtraContainer,
   UnauthorizedContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 import {
   ChatInputCommandInteraction,

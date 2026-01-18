@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------------------
 // Tests for Activity Notice Processing in Activity Reports
 // ---------------------------------------------------------------------------------------
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 
 // Mock the isAfter function from date-fns
 const MockIsAfter = (date: Date, compareDate: Date): boolean => {

@@ -1,8 +1,8 @@
 import TTLCache from "@isaacs/ttlcache";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import RolePersistenceModel from "@Models/RolePersist.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import RolePersistenceModel from "#Models/RolePersist.js";
 import { differenceInMilliseconds } from "date-fns";
-import { RiskyRolePermissions } from "@Config/Constants.js";
+import { RiskyRolePermissions } from "#Config/Constants.js";
 import {
   Role,
   GuildMember,

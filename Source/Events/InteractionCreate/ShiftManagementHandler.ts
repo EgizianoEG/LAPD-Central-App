@@ -16,30 +16,30 @@ import {
   RecentShiftAction,
   GetShiftManagementButtons,
   CheckShiftTypeRestrictions,
-} from "@Cmds/Miscellaneous/Duty/Subcmds/Manage.js";
+} from "#Cmds/Miscellaneous/Duty/Subcmds/Manage.js";
 
-import { Shifts } from "@Typings/Utilities/Database.js";
-import { GetErrorId } from "@Utilities/Strings/Random.js";
-import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import { GetErrorId } from "#Utilities/Strings/Random.js";
+import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
 import { secondsInDay } from "date-fns/constants";
-import { ErrorMessages } from "@Resources/AppMessages.js";
-import { Colors, Emojis } from "@Config/Shared.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { BaseExtraContainer } from "@Utilities/Classes/ExtraContainers.js";
+import { ErrorMessages } from "#Resources/AppMessages.js";
+import { Colors, Emojis } from "#Config/Shared.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { BaseExtraContainer } from "#Utilities/Classes/ExtraContainers.js";
 import { differenceInSeconds } from "date-fns";
-import { ErrorEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { DutyManagementBtnCustomIdRegex } from "@Resources/RegularExpressions.js";
-import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
+import { ErrorEmbed, UnauthorizedEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { DutyManagementBtnCustomIdRegex } from "#Resources/RegularExpressions.js";
+import { IsValidDiscordId, IsValidShiftTypeName } from "#Utilities/Helpers/Validators.js";
 
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import HandleRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
-import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
-import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import GetActiveShift from "@Utilities/Database/GetShiftActive.js";
-import ShiftModel from "@Models/Shift.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import HandleRoleAssignment from "#Utilities/Discord/HandleShiftRoleAssignment.js";
+import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
+import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import GetActiveShift from "#Utilities/Database/GetShiftActive.js";
+import ShiftModel from "#Models/Shift.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import AppError from "#Utilities/Classes/AppError.js";
 import Dedent from "dedent";
 
 type ShiftDocument = Shifts.HydratedShiftDocument;

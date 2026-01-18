@@ -1,4 +1,4 @@
-import GuildProfile from "@Models/GuildProfile.js";
+import GuildProfile from "#Models/GuildProfile.js";
 
 /**
  * Updates the linked Roblox user id and puts the given one instead

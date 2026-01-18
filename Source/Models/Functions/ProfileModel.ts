@@ -1,4 +1,4 @@
-import { GuildProfiles } from "@Typings/Utilities/Database.js";
+import { GuildProfiles } from "#Typings/Utilities/Database.js";
 import {
   CallbackWithoutResultAndOptionalError,
   HydratedDocument,
@@ -8,8 +8,8 @@ import {
   Query,
 } from "mongoose";
 
-import ShiftModel from "@Models/Shift.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import ShiftModel from "#Models/Shift.js";
+import AppError from "#Utilities/Classes/AppError.js";
 
 export function ProfilePostFind(
   Data: GuildProfiles.HydratedProfileDocument | GuildProfiles.HydratedProfileDocument[],

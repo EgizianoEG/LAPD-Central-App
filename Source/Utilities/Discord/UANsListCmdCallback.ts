@@ -1,6 +1,6 @@
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import { InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Colors } from "@Config/Shared.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import { InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { Colors } from "#Config/Shared.js";
 import {
   time as FormatTime,
   TimestampStylesString,
@@ -9,9 +9,9 @@ import {
   resolveColor,
 } from "discord.js";
 
-import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
-import UANModel from "@Models/UserActivityNotice.js";
-import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
+import Chunks from "#Utilities/Helpers/SliceIntoChunks.js";
+import UANModel from "#Models/UserActivityNotice.js";
+import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
 
 /**
  * Handles the User Activity Notice list command, displaying active or pending notices.

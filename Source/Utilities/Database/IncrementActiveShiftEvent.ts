@@ -1,5 +1,5 @@
-import { Shifts } from "@Typings/Utilities/Database.js";
-import ShiftModel from "@Models/Shift.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import ShiftModel from "#Models/Shift.js";
 
 export default async function IncrementActiveShiftEvent(
   Event: keyof Omit<Shifts.ShiftEvents, "breaks">,

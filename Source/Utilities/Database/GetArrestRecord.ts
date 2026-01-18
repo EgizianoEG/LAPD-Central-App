@@ -1,6 +1,6 @@
-import { GuildArrests } from "@Source/Typings/Utilities/Database.js";
+import { GuildArrests } from "#Source/Typings/Utilities/Database.js";
 import { Types } from "mongoose";
-import ArrestModel from "@Models/Arrest.js";
+import ArrestModel from "#Models/Arrest.js";
 
 /**
  * Retrieves an arrest record from the database based on the provided parameters.

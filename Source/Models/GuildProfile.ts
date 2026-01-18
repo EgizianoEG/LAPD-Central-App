@@ -1,6 +1,6 @@
 import { PreDelete, ProfilePostFind, FindOneOrCreate } from "./Functions/ProfileModel.js";
 import { Schema, model } from "mongoose";
-import { GuildProfiles } from "@Typings/Utilities/Database.js";
+import { GuildProfiles } from "#Typings/Utilities/Database.js";
 import ShiftsDataSchema from "./Schemas/ShiftsData.js";
 
 const ProfileSchema = new Schema<

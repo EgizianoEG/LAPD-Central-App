@@ -1,5 +1,5 @@
-import { Guilds } from "@Typings/Utilities/Database.js";
-import { Colors } from "@Config/Shared.js";
+import { Guilds } from "#Typings/Utilities/Database.js";
+import { Colors } from "#Config/Shared.js";
 import {
   SlashCommandSubcommandBuilder,
   TextDisplayBuilder,
@@ -9,8 +9,8 @@ import {
   resolveColor,
 } from "discord.js";
 
-import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
-import GetShiftTypes from "@Utilities/Database/GetShiftTypes.js";
+import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
+import GetShiftTypes from "#Utilities/Database/GetShiftTypes.js";
 import Dedent from "dedent";
 import Util from "node:util";
 

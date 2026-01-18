@@ -1,7 +1,7 @@
-import IsUserRobloxIdLinked from "@Utilities/Database/IsUserLoggedIn.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import IsUserRobloxIdLinked from "#Utilities/Database/IsUserLoggedIn.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import IsModuleEnabled from "#Utilities/Database/IsModuleEnabled.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   ApplicationIntegrationType,
   AutocompleteInteraction,
@@ -13,7 +13,7 @@ import {
   AutocompleteBeatNumber,
   AutocompleteDivisionBeat,
   AutocompleteServiceUnitType,
-} from "@Utilities/Autocompletion/CallsignsDesgnations.js";
+} from "#Utilities/Autocompletion/CallsignsDesgnations.js";
 
 const Subcommands = [
   (await import("./Subcmds/Request.js")).default,

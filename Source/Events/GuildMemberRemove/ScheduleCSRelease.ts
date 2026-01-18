@@ -1,8 +1,8 @@
-import GetGuildSettings from "@Source/Utilities/Database/GetGuildSettings.js";
-import CallsignModel from "@Source/Models/Callsign.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GetGuildSettings from "#Source/Utilities/Database/GetGuildSettings.js";
+import CallsignModel from "#Source/Models/Callsign.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import { addHours } from "date-fns";
-import { GenericRequestStatuses } from "@Source/Config/Constants.js";
+import { GenericRequestStatuses } from "#Source/Config/Constants.js";
 import { GuildMember, PartialGuildMember } from "discord.js";
 
 /**

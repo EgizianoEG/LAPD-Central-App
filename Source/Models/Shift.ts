@@ -1,9 +1,9 @@
 import ShiftDurations from "./Schemas/ShiftDurations.js";
 import ShiftInstFuncs, { UpdateShiftDurations, StartNewShift } from "./Functions/ShiftModel.js";
 import { randomInt as RandomInteger } from "node:crypto";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { Schema, model } from "mongoose";
-import { Shifts } from "@Typings/Utilities/Database.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
 
 enum ShiftFlags {
   /** Auto-generated/created by the system (e.g., scheduled shifts). Future usage 🤔? */

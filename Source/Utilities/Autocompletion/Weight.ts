@@ -1,5 +1,5 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import { EscapeRegExp } from "@Utilities/Strings/Formatters.js";
+import { EscapeRegExp } from "#Utilities/Strings/Formatters.js";
 
 const WeightOptions: string[] = [];
 const Cache: Record<string, { name: string; value: string }[]> = {};

@@ -20,21 +20,21 @@ import {
   User,
 } from "discord.js";
 
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Colors, Emojis } from "@Config/Shared.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { Colors, Emojis } from "#Config/Shared.js";
 import { addMilliseconds } from "date-fns";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import { GetErrorId, RandomString } from "#Utilities/Strings/Random.js";
 import { HandleDurationValidation } from "./Request.js";
 import { ValidateExtendedDuration } from "./Manage.js";
-import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
+import { LeaveOfAbsenceEventLogger } from "#Utilities/Classes/UANEventLogger.js";
 
-import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
+import HandleUserActivityNoticeUpdate from "#Utilities/Discord/HandleUANUpdate.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import UserActivityNoticeModel from "#Models/UserActivityNotice.js";
 import ParseDuration from "parse-duration";
-import GetLOAsData from "@Utilities/Database/GetUANData.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GetLOAsData from "#Utilities/Database/GetUANData.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Dedent from "dedent";
 
 const PreviousLOAsLimit = 5;

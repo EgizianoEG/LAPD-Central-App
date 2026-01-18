@@ -1,4 +1,4 @@
-import { Discord } from "@Config/Secrets.js";
+import { Discord } from "#Config/Secrets.js";
 
 /**
  * Verifies the guilds the bot is currently a member of and ensures they are in the whitelist.
