@@ -93,7 +93,11 @@ function GetAdminPromptEmbed(
 
   const PromptEmbed = new EmbedBuilder()
     .setTitle("Reduced Activity Administration")
-    .setColor(Colors.Info);
+    .setColor(Colors.Info)
+    .setAuthor({
+      name: `@${TargetMember.username}`,
+      iconURL: TargetMember.displayAvatarURL({ size: 128 }),
+    });
 
   if (ActiveOrPendingRA?.status === "Approved") {
     PromptEmbed.setColor(Colors.RequestApproved).addFields({
