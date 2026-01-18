@@ -1,4 +1,4 @@
-import { Events } from "discord.js";
+import { Events, RESTEvents } from "discord.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Mongoose from "mongoose";
 import Chalk from "chalk";
@@ -16,6 +16,14 @@ export default function AppLogging(Client: DiscordClient) {
       });
     });
   }
+
+  Client.rest.on(RESTEvents.RateLimited, (RLInfo) => {
+    AppLogger.warn({
+      label: "DiscordClient",
+      message: `Rate limited on route ${Chalk.bold(RLInfo.route)}. Retry after ${Chalk.bold(RLInfo.timeToReset + "ms")}`,
+      details: RLInfo,
+    });
+  });
 
   Mongoose.set("debug", function OnMongooseDebug(CollectionName, MethodName, ...MethodArgs) {
     AppLogger.debug({
