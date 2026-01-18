@@ -1,10 +1,10 @@
 import { add, sub, isAfter, differenceInHours, milliseconds } from "date-fns";
 import { Collection, Guild, GuildMember, Role } from "discord.js";
-import { AggregateResults } from "@Typings/Utilities/Database.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { AggregateResults } from "#Typings/Utilities/Database.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import GetGuildSettings from "./GetGuildSettings.js";
-import ProfileModel from "@Models/GuildProfile.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import ProfileModel from "#Models/GuildProfile.js";
+import AppError from "#Utilities/Classes/AppError.js";
 
 interface GetActivityReportDataOpts {
   /** The guild to get the activity report data for. */

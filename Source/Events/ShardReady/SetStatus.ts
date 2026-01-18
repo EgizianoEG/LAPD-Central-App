@@ -1,5 +1,5 @@
 import { Client, ActivityType, PresenceUpdateStatus } from "discord.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 export default function SetAppStatus(Client: Client<true>, ShardId: number) {
   Client.user.setPresence({

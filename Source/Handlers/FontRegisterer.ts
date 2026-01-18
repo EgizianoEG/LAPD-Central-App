@@ -1,5 +1,5 @@
 import { GlobalFonts } from "@napi-rs/canvas/index.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Path from "node:path";
 
 export default function FontRegisters() {

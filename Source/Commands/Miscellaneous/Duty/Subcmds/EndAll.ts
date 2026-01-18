@@ -1,5 +1,5 @@
-import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
-import { InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { HandleShiftTypeValidation } from "#Utilities/Database/ShiftTypeValidators.js";
+import { InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   ButtonStyle,
   ButtonBuilder,
@@ -13,13 +13,13 @@ import {
   InfoContainer,
   WarnContainer,
   SuccessContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
-import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
-import HandleShiftRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
-import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
-import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import ShiftModel from "@Models/Shift.js";
+import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
+import HandleShiftRoleAssignment from "#Utilities/Discord/HandleShiftRoleAssignment.js";
+import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
+import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
+import ShiftModel from "#Models/Shift.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

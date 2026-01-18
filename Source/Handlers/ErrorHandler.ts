@@ -1,7 +1,7 @@
 import { DiscordAPIError, DiscordjsError, DiscordjsErrorCodes } from "discord.js";
 import { AxiosError } from "axios";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import AppError from "#Utilities/Classes/AppError.js";
 import Mongoose from "mongoose";
 
 const FileLabel = "Handlers:ErrorHandler";

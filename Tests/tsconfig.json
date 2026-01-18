@@ -8,20 +8,19 @@
 
   "compilerOptions": {
     /* Modules */
-    "baseUrl": "./",
     "rootDir": "../",
     "module": "nodenext",
     "types": ["node", "jest"],
     "moduleResolution": "nodenext",
     "typeRoots": ["../node_modules/@types", "../Source/Typings"],
     "paths": {
-      "@Cmds/*": ["./../Source/Commands/*"],
-      "@Config/*": ["./../Source/Config/*"],
-      "@Models/*": ["./../Source/Models/*"],
-      "@Typings/*": ["./../Source/Typings/*"],
-      "@Resources/*": ["./../Source/Resources/*"],
-      "@Utilities/*": ["./../Source/Utilities/*"],
-      "@DiscordApp": ["./../Source/Main.ts"]
+      "#Cmds/*": ["./../Source/Commands/*"],
+      "#Config/*": ["./../Source/Config/*"],
+      "#Models/*": ["./../Source/Models/*"],
+      "#Typings/*": ["./../Source/Typings/*"],
+      "#Resources/*": ["./../Source/Resources/*"],
+      "#Utilities/*": ["./../Source/Utilities/*"],
+      "#DiscordApp": ["./../Source/Main.ts"]
     }
   }
 }

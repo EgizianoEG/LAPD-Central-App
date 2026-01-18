@@ -15,15 +15,15 @@ import {
   WarnContainer,
   ErrorContainer,
   SuccessContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
-import { ReducedActivityEventLogger } from "@Utilities/Classes/UANEventLogger.js";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import { Colors, Emojis } from "@Config/Shared.js";
+import { ReducedActivityEventLogger } from "#Utilities/Classes/UANEventLogger.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import { Colors, Emojis } from "#Config/Shared.js";
 import { compareDesc } from "date-fns";
 
-import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
-import GetUANData from "@Utilities/Database/GetUANData.js";
+import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
+import GetUANData from "#Utilities/Database/GetUANData.js";
 import Dedent from "dedent";
 
 type RADocument = UserActivityNotice.ActivityNoticeHydratedDocument;

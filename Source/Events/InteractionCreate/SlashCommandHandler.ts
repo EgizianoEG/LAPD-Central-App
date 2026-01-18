@@ -1,15 +1,15 @@
-import AppError from "@Utilities/Classes/AppError.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppError from "#Utilities/Classes/AppError.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import { MessageFlags, ChatInputCommandInteraction } from "discord.js";
-import { InfoEmbed, ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { GetErrorId } from "@Utilities/Strings/Random.js";
+import { InfoEmbed, ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { GetErrorId } from "#Utilities/Strings/Random.js";
 import {
   HandleCommandCooldowns,
   HandleDevOnlyCommands,
   HandleUserPermissions,
   HandleAppPermissions,
-} from "@Utilities/Discord/CommandExecutionGuards.js";
+} from "#Utilities/Discord/CommandExecutionGuards.js";
 
 const FileLogLabel = "Events:InteractionCreate:SlashCommandHandler";
 // ------------------------------------------------------------------------------------------------------------------------------------------------------

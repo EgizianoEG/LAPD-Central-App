@@ -1,6 +1,6 @@
 import type { ApplicationCommandOptionChoiceData } from "discord.js";
-import { TenCodes, ElevenCodes, LiteralCodes } from "@Resources/RadioCodes.js";
-import { PoliceCodeToWords } from "@Utilities/Strings/Converters.js";
+import { TenCodes, ElevenCodes, LiteralCodes } from "#Resources/RadioCodes.js";
+import { PoliceCodeToWords } from "#Utilities/Strings/Converters.js";
 
 const AllCodes = [...LiteralCodes, ...TenCodes, ...ElevenCodes];
 const CodeNames: string[] = [];

@@ -1,4 +1,4 @@
-import { Discord } from "@Config/Secrets.js";
+import { Discord } from "#Config/Secrets.js";
 import {
   type RESTPostAPIChatInputApplicationCommandsJSONBody,
   type RESTPostAPIContextMenuApplicationCommandsJSONBody,
@@ -11,10 +11,10 @@ import {
   Guild,
 } from "discord.js";
 
-import GetDeployedCommands from "@Utilities/Discord/GetAppCmds.js";
-import CmdsAreIdentical from "@Utilities/Discord/CmdsAreIdentical.js";
-import GetLocalCommands from "@Utilities/Discord/GetLocalCmds.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GetDeployedCommands from "#Utilities/Discord/GetAppCmds.js";
+import CmdsAreIdentical from "#Utilities/Discord/CmdsAreIdentical.js";
+import GetLocalCommands from "#Utilities/Discord/GetLocalCmds.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Chalk from "chalk";
 import Util from "node:util";
 

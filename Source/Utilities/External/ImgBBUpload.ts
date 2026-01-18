@@ -1,5 +1,5 @@
-import { ImgBB } from "@Typings/External/ImgBB.js";
-import { Other } from "@Config/Secrets.js";
+import { ImgBB } from "#Typings/External/ImgBB.js";
+import { Other } from "#Config/Secrets.js";
 import Axios from "axios";
 
 /**

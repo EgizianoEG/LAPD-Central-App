@@ -1,8 +1,8 @@
-import { CronJobFileDefReturn } from "@Typings/Core/System.js";
+import { CronJobFileDefReturn } from "#Typings/Core/System.js";
 import { Events } from "discord.js";
 
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import GetFiles from "@Utilities/Helpers/GetFilesFrom.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import GetFiles from "#Utilities/Helpers/GetFilesFrom.js";
 import Chalk from "chalk";
 import Cron from "node-cron";
 import Path from "node:path";

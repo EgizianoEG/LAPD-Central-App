@@ -1,7 +1,7 @@
 import { addDays } from "date-fns";
 import { Collection } from "discord.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import GuildModel from "@Models/Guild.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import GuildModel from "#Models/Guild.js";
 const FileLabel = "Events:Ready:VerifyDatabase";
 const GuildDataDeletionScheduleDays = 7;
 

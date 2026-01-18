@@ -1,14 +1,14 @@
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import DisableComponents from "@Utilities/Discord/DisableMsgComps.js";
-import { IsValidDiscordId } from "@Utilities/Helpers/Validators.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import DisableComponents from "#Utilities/Discord/DisableMsgComps.js";
+import { IsValidDiscordId } from "#Utilities/Helpers/Validators.js";
 import { differenceInMilliseconds } from "date-fns";
-import { InfoEmbed, UnauthorizedEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { InfoEmbed, UnauthorizedEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { MessageFlags, ComponentType, BaseInteraction } from "discord.js";
 import {
   CallsignMgmtCustomIdRegex,
   DutyManagementBtnCustomIdRegex,
   UserActivityNoticeMgmtCustomIdRegex,
-} from "@Resources/RegularExpressions.js";
+} from "#Resources/RegularExpressions.js";
 
 const UnauthorizedUsageIgnoredCompsWithCustomIds: RegExp[] = [
   UserActivityNoticeMgmtCustomIdRegex,

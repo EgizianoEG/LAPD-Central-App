@@ -5,14 +5,14 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
-import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
+import { LeaveOfAbsenceEventLogger } from "#Utilities/Classes/UANEventLogger.js";
+import { ErrorEmbed, InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { differenceInHours } from "date-fns";
 import { milliseconds } from "date-fns/milliseconds";
 
-import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
-import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
+import UserActivityNoticeModel from "#Models/UserActivityNotice.js";
+import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
 import ParseDuration from "parse-duration";
 
 const MaxLeaveDuration = milliseconds({ months: 3 });

@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 // ---------------------------------------------------------------------------------------
-import { UpperFirst, TitleCase, CamelCase, PascalToNormal } from "@Utilities/Strings/Converters.js";
-import { DummyText, RandomString } from "@Utilities/Strings/Random.js";
+import { UpperFirst, TitleCase, CamelCase, PascalToNormal } from "#Utilities/Strings/Converters.js";
+import { DummyText, RandomString } from "#Utilities/Strings/Random.js";
 import { faker as Faker } from "@faker-js/faker";
 import {
   FormatAge,
@@ -13,9 +13,9 @@ import {
   FormatUsername,
   FormatVehicleName,
   ListViolationsOrCharges,
-} from "@Utilities/Strings/Formatters.js";
+} from "#Utilities/Strings/Formatters.js";
 
-import SampleTexts from "@Resources/SampleTexts.js";
+import SampleTexts from "#Resources/SampleTexts.js";
 import Dedent from "dedent";
 
 // ---------------------------------------------------------------------------------------

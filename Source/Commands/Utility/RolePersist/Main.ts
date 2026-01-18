@@ -1,4 +1,4 @@
-import AutocompleteRolePersistRecord from "@Utilities/Autocompletion/RolePersistRecord.js";
+import AutocompleteRolePersistRecord from "#Utilities/Autocompletion/RolePersistRecord.js";
 import {
   SlashCommandBuilder,
   PermissionFlagsBits,

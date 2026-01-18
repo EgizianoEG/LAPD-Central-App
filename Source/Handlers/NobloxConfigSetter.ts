@@ -1,6 +1,6 @@
-import { FormatUsername } from "@Utilities/Strings/Formatters.js";
-import { Roblox } from "@Config/Secrets.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import { FormatUsername } from "#Utilities/Strings/Formatters.js";
+import { Roblox } from "#Config/Secrets.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import NobloxJs from "noblox.js";
 import Chalk from "chalk";
 

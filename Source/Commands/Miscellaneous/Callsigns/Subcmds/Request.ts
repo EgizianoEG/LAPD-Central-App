@@ -1,20 +1,20 @@
-import { type Guilds } from "@Typings/Utilities/Database.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
-import { ErrorContainer, InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
-import { ServiceUnitTypes, DivisionBeats } from "@Resources/LAPDCallsigns.js";
+import { type Guilds } from "#Typings/Utilities/Database.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { FormatCallsignDesignation } from "#Utilities/Strings/Formatters.js";
+import { ErrorContainer, InfoContainer } from "#Utilities/Classes/ExtraContainers.js";
+import { ServiceUnitTypes, DivisionBeats } from "#Resources/LAPDCallsigns.js";
 import { differenceInMilliseconds, milliseconds } from "date-fns";
 import { SlashCommandSubcommandBuilder, RepliableInteraction, MessageFlags } from "discord.js";
 import {
   CallsignValidationData,
   GetCallsignValidationData,
-} from "@Utilities/Database/CallsignData.js";
+} from "#Utilities/Database/CallsignData.js";
 
-import CallsignsEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
-import CallsignModel from "@Models/Callsign.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import CallsignsEventLogger from "#Utilities/Classes/CallsignsEventLogger.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
+import CallsignModel from "#Models/Callsign.js";
+import AppError from "#Utilities/Classes/AppError.js";
 
 const CallsignEventLogger = new CallsignsEventLogger();
 const DeniedRequestCooldown = milliseconds({ hours: 1 });

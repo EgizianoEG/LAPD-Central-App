@@ -1,5 +1,5 @@
-import type { Vehicles } from "@Typings/Resources.js";
-import { FormatVehicleName } from "@Utilities/Strings/Formatters.js";
+import type { Vehicles } from "#Typings/Resources.js";
+import { FormatVehicleName } from "#Utilities/Strings/Formatters.js";
 
 /**
  * An array containing data for all ERLC vehicles, grouped by brand.

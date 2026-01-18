@@ -1,5 +1,5 @@
 import { Events } from "discord.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Mongoose from "mongoose";
 import Chalk from "chalk";
 import Util from "node:util";

@@ -26,13 +26,13 @@ import {
 import {
   ConcatenateLines,
   FormatCallsignDesignation as FormatCallsign,
-} from "@Utilities/Strings/Formatters.js";
+} from "#Utilities/Strings/Formatters.js";
 
-import { Colors, Emojis, Thumbs } from "@Config/Shared.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
+import { Colors, Emojis, Thumbs } from "#Config/Shared.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
 import { BaseExtraContainer } from "./ExtraContainers.js";
-import { Callsigns } from "@Typings/Utilities/Database.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import { Callsigns } from "#Typings/Utilities/Database.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 
 type CallsignDoc = Callsigns.CallsignDocument;
 type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">;

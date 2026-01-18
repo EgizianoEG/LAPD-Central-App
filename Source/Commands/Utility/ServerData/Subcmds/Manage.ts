@@ -25,9 +25,9 @@ import * as UANDataModule from "./Modules/UANData.js";
 import * as ShiftDataModule from "./Modules/ShiftData.js";
 import * as CallsignDataModule from "./Modules/CallsignData.js";
 
-import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 // ---------------------------------------------------------------------------------------
 // File Constants, Types, & Enums:

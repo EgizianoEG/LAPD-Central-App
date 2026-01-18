@@ -1,8 +1,8 @@
-import { FormatCallsignDesignation } from "@Utilities/Strings/Formatters.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
+import { FormatCallsignDesignation } from "#Utilities/Strings/Formatters.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { ServiceUnitTypes } from "#Resources/LAPDCallsigns.js";
 import { Schema, model } from "mongoose";
-import { Callsigns } from "@Typings/Utilities/Database.js";
+import { Callsigns } from "#Typings/Utilities/Database.js";
 
 const CallSignSchema = new Schema<Callsigns.CallsignDocument, Callsigns.CallsignModel>({
   guild: {

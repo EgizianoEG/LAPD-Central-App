@@ -1,9 +1,9 @@
 // Dependencies:
 // -------------
-import AutocompleteIncidentNum from "@Utilities/Autocompletion/IncidentNum.js";
-import AutocompleteCitationNum from "@Utilities/Autocompletion/NoticeToAppearNum.js";
-import AutocompleteBookingNum from "@Utilities/Autocompletion/BookingNum.js";
-import AutocompleteUsername from "@Utilities/Autocompletion/Username.js";
+import AutocompleteIncidentNum from "#Utilities/Autocompletion/IncidentNum.js";
+import AutocompleteCitationNum from "#Utilities/Autocompletion/NoticeToAppearNum.js";
+import AutocompleteBookingNum from "#Utilities/Autocompletion/BookingNum.js";
+import AutocompleteUsername from "#Utilities/Autocompletion/Username.js";
 import SearchSubcmdGroup from "./Search/Search.js";
 import {
   SlashCommandBuilder,

@@ -1,6 +1,6 @@
-import { IsValidDiscordId, IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
+import { IsValidDiscordId, IsValidShiftTypeName } from "#Utilities/Helpers/Validators.js";
 import { RepliableInteraction } from "discord.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import GetGuildSettings from "./GetGuildSettings.js";
 
 /**

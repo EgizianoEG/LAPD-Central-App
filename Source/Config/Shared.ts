@@ -1,6 +1,6 @@
 import { type ColorResolvable, Colors as DiscordColors } from "discord.js";
 import { env as Env } from "node:process";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 /**
  * Environment variable override for emoji configurations.

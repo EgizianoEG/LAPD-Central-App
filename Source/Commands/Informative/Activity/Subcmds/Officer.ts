@@ -10,16 +10,16 @@ import {
 } from "discord.js";
 
 import { format, formatDistance, isAfter, isBefore } from "date-fns";
-import { FormatUsername, ConcatenateLines } from "@Utilities/Strings/Formatters.js";
-import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { FormatUsername, ConcatenateLines } from "#Utilities/Strings/Formatters.js";
+import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
-import GetStaffFieldActivity from "@Utilities/Database/GetFieldActivity.js";
-import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
-import GetUserThumbnail from "@Utilities/Roblox/GetUserThumb.js";
-import GeneratePortrait from "@Utilities/ImageRendering/ThumbToPortrait.js";
-import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
-import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
+import GetStaffFieldActivity from "#Utilities/Database/GetFieldActivity.js";
+import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
+import GetUserThumbnail from "#Utilities/Roblox/GetUserThumb.js";
+import GeneratePortrait from "#Utilities/ImageRendering/ThumbToPortrait.js";
+import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
+import IsLoggedIn from "#Utilities/Database/IsUserLoggedIn.js";
 import * as Chrono from "chrono-node";
 
 // ---------------------------------------------------------------------------------------

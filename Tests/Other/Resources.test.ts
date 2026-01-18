@@ -1,15 +1,15 @@
-jest.mock("@Utilities/Discord/MentionCmd.js", () => {
+jest.mock("#Utilities/Discord/MentionCmd.js", () => {
   return jest.fn((CmdName: string) => `/${CmdName}`);
 });
 
-import { TenCodes, ElevenCodes, LiteralCodes, CodeType } from "@Resources/RadioCodes.js";
-import { AllVehicleModels, ERLCVehiclesData } from "@Resources/ERLC-Data/ERLCVehicles.js";
-import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
-import { FormatVehicleName } from "@Utilities/Strings/Formatters.js";
+import { TenCodes, ElevenCodes, LiteralCodes, CodeType } from "#Resources/RadioCodes.js";
+import { AllVehicleModels, ERLCVehiclesData } from "#Resources/ERLC-Data/ERLCVehicles.js";
+import { ErrorMessages, InfoMessages } from "#Resources/AppMessages.js";
+import { FormatVehicleName } from "#Utilities/Strings/Formatters.js";
 import { resolveColor } from "discord.js";
-import { Vehicles } from "@Typings/Resources.js";
-import BrickColors from "@Resources/BrickColors.js";
-import SampleTexts from "@Resources/SampleTexts.js";
+import { Vehicles } from "#Typings/Resources.js";
+import BrickColors from "#Resources/BrickColors.js";
+import SampleTexts from "#Resources/SampleTexts.js";
 
 const ValidateVehicleModel = (Model: Vehicles.VehicleModel) => {
   expect(Model).toHaveProperty("name");

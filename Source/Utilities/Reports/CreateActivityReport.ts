@@ -1,11 +1,11 @@
-import { SheetsAPI, DriveAPI } from "@Handlers/GoogleAPIs.js";
-import { ListFormatter } from "@Utilities/Strings/Formatters.js";
-import { GoogleAPI } from "@Config/Secrets.js";
+import { SheetsAPI, DriveAPI } from "#Handlers/GoogleAPIs.js";
+import { ListFormatter } from "#Utilities/Strings/Formatters.js";
+import { GoogleAPI } from "#Config/Secrets.js";
 import { format } from "date-fns";
 
 import Util from "node:util";
-import AppError from "@Utilities/Classes/AppError.js";
-import GetActivityReportData from "@Utilities/Database/GetActivityReportData.js";
+import AppError from "#Utilities/Classes/AppError.js";
+import GetActivityReportData from "#Utilities/Database/GetActivityReportData.js";
 
 export default async function CreateActivityReport(
   Opts: Parameters<typeof GetActivityReportData>[0]

@@ -1,14 +1,14 @@
 import { SlashCommandSubcommandBuilder, time as FormatTime, MessageFlags } from "discord.js";
-import { ReducedActivityEventLogger } from "@Utilities/Classes/UANEventLogger.js";
-import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ReducedActivityEventLogger } from "#Utilities/Classes/UANEventLogger.js";
+import { ErrorEmbed, InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   HandleDurationValidation,
   EvaluatePendingOrActiveNotices,
   HasRecentlyEndedDeniedCancelledUAN,
-} from "@Cmds/Miscellaneous/LOA/Subcmds/Request.js";
+} from "#Cmds/Miscellaneous/LOA/Subcmds/Request.js";
 
-import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
-import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
+import UserActivityNoticeModel from "#Models/UserActivityNotice.js";
+import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
 import ParseDuration from "parse-duration";
 const RAEventLogger = new ReducedActivityEventLogger();
 

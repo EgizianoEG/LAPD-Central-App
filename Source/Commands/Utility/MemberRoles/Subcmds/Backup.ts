@@ -10,9 +10,9 @@ import {
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import { BaseExtraContainer } from "@Utilities/Classes/ExtraContainers.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import MSRolesModel from "@Models/MemberRoles.js";
+import { BaseExtraContainer } from "#Utilities/Classes/ExtraContainers.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import MSRolesModel from "#Models/MemberRoles.js";
 import Dedent from "dedent";
 
 // ---------------------------------------------------------------------------------------

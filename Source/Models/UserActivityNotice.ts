@@ -1,6 +1,6 @@
 import { isAfter, milliseconds, addMilliseconds, differenceInMilliseconds } from "date-fns";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { Schema, model } from "mongoose";
 
 type NoticeDocument = UserActivityNotice.ActivityNoticeHydratedDocument;

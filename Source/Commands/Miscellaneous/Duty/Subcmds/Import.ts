@@ -1,9 +1,9 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { randomInt as RandomInteger } from "node:crypto";
-import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
-import { DutyLeaderboardEntryRegex } from "@Resources/RegularExpressions.js";
-import { Dedent, ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { GetErrorId } from "@Utilities/Strings/Random.js";
+import { HandleShiftTypeValidation } from "#Utilities/Database/ShiftTypeValidators.js";
+import { DutyLeaderboardEntryRegex } from "#Resources/RegularExpressions.js";
+import { Dedent, ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { GetErrorId } from "#Utilities/Strings/Random.js";
 import {
   SlashCommandSubcommandBuilder,
   ButtonInteraction,
@@ -20,14 +20,14 @@ import {
   ErrorContainer,
   InfoContainer,
   WarnContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
-import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
-import ResolveUsernamesToIds from "@Utilities/Discord/ResolveDiscordUsernames.js";
-import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
+import ShiftModel, { ShiftFlags } from "#Models/Shift.js";
+import ResolveUsernamesToIds from "#Utilities/Discord/ResolveDiscordUsernames.js";
+import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
 import ParseDuration from "parse-duration";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import AppError from "#Utilities/Classes/AppError.js";
 
 type LeaderboardEntry = {
   // Common to both formats

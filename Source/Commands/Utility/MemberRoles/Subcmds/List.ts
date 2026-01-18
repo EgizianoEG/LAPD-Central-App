@@ -18,14 +18,14 @@ import {
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import { Emojis } from "@Config/Shared.js";
+import { Emojis } from "#Config/Shared.js";
 import { isValidObjectId } from "mongoose";
-import { ErrorEmbed, InfoEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ErrorEmbed, InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { GetSaveDetailsContainer } from "./View.js";
 
-import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
-import MSRolesModel from "@Models/MemberRoles.js";
-import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
+import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
+import MSRolesModel from "#Models/MemberRoles.js";
+import Chunks from "#Utilities/Helpers/SliceIntoChunks.js";
 import Dedent from "dedent";
 
 // ---------------------------------------------------------------------------------------

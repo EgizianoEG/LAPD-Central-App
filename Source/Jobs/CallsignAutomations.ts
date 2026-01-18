@@ -1,12 +1,12 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { CronJobFileDefReturn } from "@Typings/Core/System.js";
-import { Callsigns } from "@Typings/Utilities/Database.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { CronJobFileDefReturn } from "#Typings/Core/System.js";
+import { Callsigns } from "#Typings/Utilities/Database.js";
 import { subDays } from "date-fns";
 
-import CallsignModel from "@Models/Callsign.js";
-import CallsignsEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
-import HandleCallsignStatusUpdates from "@Utilities/Discord/HandleCallsignStatusUpdates.js";
+import CallsignModel from "#Models/Callsign.js";
+import CallsignsEventLogger from "#Utilities/Classes/CallsignsEventLogger.js";
+import HandleCallsignStatusUpdates from "#Utilities/Discord/HandleCallsignStatusUpdates.js";
 
 const CallsignEventLogger = new CallsignsEventLogger();
 interface ProcessingResult {

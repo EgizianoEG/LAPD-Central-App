@@ -1,5 +1,5 @@
 import { HydratedDocumentFromSchema, Schema } from "mongoose";
-import { Shifts } from "@Typings/Utilities/Database.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
 
 const ShiftDurations = new Schema({
   total: {

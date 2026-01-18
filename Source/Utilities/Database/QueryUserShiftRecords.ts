@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import type { AggregateResults } from "@Typings/Utilities/Database.js";
+import type { AggregateResults } from "#Typings/Utilities/Database.js";
 import type { Guild, User } from "discord.js";
-import ShiftModel from "@Models/Shift.js";
+import ShiftModel from "#Models/Shift.js";
 
 /**
  * Retrieves shift records with calculated durations for a specific user.

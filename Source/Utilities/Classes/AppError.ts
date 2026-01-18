@@ -1,4 +1,4 @@
-import { ErrorMessages } from "@Resources/AppMessages.js";
+import { ErrorMessages } from "#Resources/AppMessages.js";
 import { format as FormatString } from "node:util";
 
 export interface AppErrorOptions {

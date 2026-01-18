@@ -16,14 +16,14 @@ import {
   Colors,
 } from "discord.js";
 
-import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
-import { ShiftTypeExists } from "@Utilities/Database/ShiftTypeValidators.js";
+import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { IsValidShiftTypeName } from "#Utilities/Helpers/Validators.js";
+import { ShiftTypeExists } from "#Utilities/Database/ShiftTypeValidators.js";
 
 import Dedent from "dedent";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import CreateShiftType from "@Utilities/Database/CreateShiftType.js";
-import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import CreateShiftType from "#Utilities/Database/CreateShiftType.js";
+import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
 const ListFormatter = new Intl.ListFormat("en");
 
 // ---------------------------------------------------------------------------------------

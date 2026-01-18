@@ -23,12 +23,12 @@ import {
   ModalSubmitInteraction,
 } from "discord.js";
 
-import { ReadableDuration, Dedent, ConcatenateLines } from "@Utilities/Strings/Formatters.js";
-import { Colors, Emojis, Images, Thumbs } from "@Config/Shared.js";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
+import { ReadableDuration, Dedent, ConcatenateLines } from "#Utilities/Strings/Formatters.js";
+import { Colors, Emojis, Images, Thumbs } from "#Config/Shared.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { addMilliseconds } from "date-fns";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import GuildModel from "@Models/Guild.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import GuildModel from "#Models/Guild.js";
 
 type UserActivityNoticeDoc = UserActivityNotice.ActivityNoticeHydratedDocument;
 type ManagementInteraction = ButtonInteraction<"cached"> | ModalSubmitInteraction<"cached">;

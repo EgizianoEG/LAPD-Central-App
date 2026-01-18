@@ -1,6 +1,6 @@
 import { compareDesc } from "date-fns";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import UserActivityNoticeModel from "@Models/UserActivityNotice.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import UserActivityNoticeModel from "#Models/UserActivityNotice.js";
 
 interface GetUANDataOptions {
   guild_id: string;

@@ -1,4 +1,4 @@
-import GuildModel from "@Models/Guild.js";
+import GuildModel from "#Models/Guild.js";
 import AppError from "../Classes/AppError.js";
 import GetGuildSettings from "./GetGuildSettings.js";
 
