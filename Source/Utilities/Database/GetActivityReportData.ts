@@ -251,7 +251,7 @@ export default async function GetActivityReportData(
           }
 
           if (StartCurrentDatesDifferenceInDays <= 2.5 || RANotice.type === "ReducedActivity") {
-            const NewQuotaDeclaration = `\nQuota Reduction: ~${Math.round((RANotice.quota_scale || 0) * 100)}%`;
+            const QuotaReductionString = `\nQuota Reduction: ~${Math.round((RANotice.quota_scale || 0) * 100)}%`;
 
             const RelativeDuration = ReadableDuration(
               RetrieveDate.getTime() - RANotice.review_date.getTime(),
@@ -262,7 +262,7 @@ export default async function GetActivityReportData(
               }
             );
 
-            NoticeNotes.ra = `Reduced activity started around ${RelativeDuration} ago. ${NewQuotaDeclaration}\nApproved by: @${RANotice.reviewed_by.username}`;
+            NoticeNotes.ra = `Reduced activity started around ${RelativeDuration} ago. ${QuotaReductionString}\nApproved by: @${RANotice.reviewed_by.username}`;
           }
         } else {
           const NoticeEndDate = RANotice.early_end_date || RANotice.end_date;
@@ -381,9 +381,9 @@ export default async function GetActivityReportData(
     });
   });
 
-  Records.forEach((Record, Index) => {
+  for (const [Index, Record] of Records.entries()) {
     Record.values[1].userEnteredValue.numberValue = Index + 1;
-  });
+  }
 
   return {
     quota: Opts.quota_duration ? ReadableDuration(Opts.quota_duration) : "None",
