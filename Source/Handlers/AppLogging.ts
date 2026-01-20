@@ -1,3 +1,4 @@
+import { RedactTextByOptions } from "#Utilities/Strings/Redactor.js";
 import { Events, RESTEvents } from "discord.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Mongoose from "mongoose";
@@ -26,13 +27,18 @@ export default function AppLogging(Client: DiscordClient) {
   });
 
   Client.rest.on(RESTEvents.Response, (Req, Resp) => {
-    if (Resp.status === 403 || Resp.status === 429) {
-      AppLogger.warn({
-        label: "DiscordClient",
-        message: `Received a ${Chalk.bold(Resp.status.toString())} response for ${Chalk.bold(Req.method)} ${Chalk.bold(Req.path)} request.`,
-        details: { request: Req, response: Resp },
-      });
-    }
+    if (!(Resp.status === 403 || Resp.status === 429)) return;
+
+    const SafeResp = {
+      ...Resp,
+      headers: RedactHeaders(Resp.headers),
+    };
+
+    AppLogger.warn({
+      label: "DiscordClient",
+      message: `Received a ${Chalk.bold(Resp.status.toString())} response for ${Chalk.bold(Req.method)} ${Chalk.bold(Req.path)} request.`,
+      details: { request: Req, response: SafeResp },
+    });
   });
 
   Mongoose.set("debug", function OnMongooseDebug(CollectionName, MethodName, ...MethodArgs) {
@@ -53,4 +59,15 @@ export default function AppLogging(Client: DiscordClient) {
       },
     });
   });
+}
+
+function RedactHeaders(Headers: Record<string, any>) {
+  if (!Headers) return Headers;
+  const Redacted = { ...Headers };
+  for (const Key of Object.keys(Redacted)) {
+    if (/authorization|cookie|set-cookie|token|api[-_]key|secret/i.test(Key)) {
+      Redacted[Key] = RedactTextByOptions(Redacted[Key], { from_pattern: /\b\w+$/ });
+    }
+  }
+  return Redacted;
 }
