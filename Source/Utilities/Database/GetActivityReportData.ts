@@ -3,7 +3,7 @@ import { Collection, Guild, GuildMember, Role } from "discord.js";
 import { AggregateResults } from "#Typings/Utilities/Database.js";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import GetGuildSettings from "./GetGuildSettings.js";
-import ProfileModel from "#Models/GuildProfile.js";
+import ShiftModel from "#Models/Shift.js";
 import AppError from "#Utilities/Classes/AppError.js";
 
 interface GetActivityReportDataOpts {
@@ -132,9 +132,9 @@ export default async function GetActivityReportData(
   }
 
   const RetrieveDate = Opts.until ?? new Date();
-  const RecordsBaseData = await ProfileModel.aggregate<
-    AggregateResults.BaseActivityReportData["records"][number]
-  >(CreateActivityReportAggregationPipeline({ ...Opts, shift_type: SpecifiedShiftTypes })).exec();
+  const RecordsBaseData = (await ShiftModel.aggregate(
+    CreateActivityReportAggregationPipeline({ ...Opts, shift_type: SpecifiedShiftTypes }) as any[]
+  ).exec()) as AggregateResults.BaseActivityReportData["records"];
 
   if (!RecordsBaseData.length) {
     throw new AppError({
@@ -481,64 +481,55 @@ function GetHighestHoistedRole(
 
 /**
  * Generates an aggregation pipeline for MongoDB to retrieve activity report data
- * for a specific guild and its members. The pipeline includes filtering, projecting,
- * and calculating various metrics such as total shifts, arrests, citations, incidents,
- * and total time on duty.
+ * for a specific guild and its members. The pipeline starts from the shifts collection
+ * to ensure users with shift records but no profile records are included.
  *
  * @param Opts - Options for generating the activity report aggregation pipeline.
- * @returns An aggregation pipeline array to be used with the `aggregate` method of the `ProfileModel`.
+ * @returns An aggregation pipeline array to be used with the `aggregate` method of the Shift collection.
  */
 function CreateActivityReportAggregationPipeline(
   Opts: Exclude<GetActivityReportDataOpts, "shift_type"> & { shift_type: string[] }
-): Parameters<typeof ProfileModel.aggregate>[0] {
+) {
   return [
     {
       $match: {
         guild: Opts.guild.id,
+        end_timestamp: { $ne: null },
         ...(Opts.members.size > 0 && { user: { $in: Opts.members.map((U) => U.id) } }),
+        ...(Opts.after && { start_timestamp: { $gte: Opts.after } }),
+        ...(Opts.until && { end_timestamp: { $lte: Opts.until } }),
+        ...(Opts.shift_type.length && { type: { $in: Opts.shift_type } }),
       },
     },
     {
       $project: {
         guild: 1,
         user: 1,
+        events: 1,
+        end_timestamp: 1,
+        start_timestamp: 1,
+        "durations.on_duty_mod": 1,
       },
     },
     {
-      $lookup: {
-        as: "shifts",
-        from: "shifts",
-        let: { guild: "$guild", user: "$user" },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$guild", "$$guild"] },
-                  { $eq: ["$user", "$$user"] },
-                  { $ne: ["$end_timestamp", null] },
-                  {
-                    $or: [Opts.after ? { $gte: ["$start_timestamp", Opts.after] } : true],
-                  },
-                  {
-                    $or: [Opts.until ? { $lte: ["$end_timestamp", Opts.until] } : true],
-                  },
-                  {
-                    $or: [Opts.shift_type.length ? { $in: ["$type", Opts.shift_type] } : true],
-                  },
-                ],
-              },
-            },
+      $group: {
+        _id: { guild: "$guild", user: "$user" },
+        shifts: {
+          $push: {
+            events: "$events",
+            end_timestamp: "$end_timestamp",
+            start_timestamp: "$start_timestamp",
+            durations: { on_duty_mod: "$durations.on_duty_mod" },
           },
-          {
-            $project: {
-              events: 1,
-              end_timestamp: 1,
-              start_timestamp: 1,
-              "durations.on_duty_mod": 1,
-            },
-          },
-        ],
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        guild: "$_id.guild",
+        user: "$_id.user",
+        shifts: 1,
       },
     },
     {
