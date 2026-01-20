@@ -109,6 +109,11 @@ export const GeneralAutocompletionCache = new TTLCache<string, unknown>({
   checkAgeOnGet: true,
 });
 
+export const HTTP429OccurrencesTracker = new TTLCache<string, number>({
+  ttl: 1 * 60 * 1000,
+  checkAgeOnGet: true,
+});
+
 // ---------------------------------------------------------------------------------------
 // Cache Helpers:
 // --------------

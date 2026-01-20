@@ -1,3 +1,4 @@
+import { HTTP429OccurrencesTracker } from "#Utilities/Helpers/Cache.js";
 import { RedactTextByOptions } from "#Utilities/Strings/Redactor.js";
 import { Events, RESTEvents } from "discord.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
@@ -28,6 +29,14 @@ export default function AppLogging(Client: DiscordClient) {
 
   Client.rest.on(RESTEvents.Response, (Req, Resp) => {
     if (!(Resp.status === 403 || Resp.status === 429)) return;
+    if (Resp.status === 429) {
+      const Now = Date.now();
+      if (!HTTP429OccurrencesTracker.get("http429:first")) {
+        HTTP429OccurrencesTracker.set("http429:first", Now);
+      }
+
+      HTTP429OccurrencesTracker.set("http429:last", Now);
+    }
 
     const SafeResp = {
       ...Resp,
