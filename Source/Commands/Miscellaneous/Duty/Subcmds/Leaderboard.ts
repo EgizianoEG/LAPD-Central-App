@@ -88,7 +88,20 @@ function GetPaginatedDurations(ShiftsData: Shifts.HydratedShiftDocument[]) {
     MappedData.set(
       User,
       Shifts.reduce((OnDutySum, CurrDoc) => {
-        OnDutySum += CurrDoc.durations.on_duty;
+        const EndTimestamp = CurrDoc.end_timestamp!.valueOf();
+        const StartTimestamp = CurrDoc.start_timestamp.valueOf();
+
+        const TotalDuration = EndTimestamp - StartTimestamp;
+        const BreakDuration = CurrDoc.events.breaks.reduce((Total, [StartEpoch, EndEpoch]) => {
+          return Total + Math.max((EndEpoch || EndTimestamp) - StartEpoch, 0);
+        }, 0);
+
+        const OnDutyDuration = Math.max(
+          TotalDuration - BreakDuration + CurrDoc.durations.on_duty_mod,
+          0
+        );
+
+        OnDutySum += OnDutyDuration;
         return OnDutySum;
       }, 0)
     );

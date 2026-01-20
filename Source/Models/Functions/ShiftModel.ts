@@ -324,7 +324,9 @@ export async function SetShiftTime(
     return Total + Math.max((EndEpoch || EndTimestamp) - StartEpoch, 0);
   }, 0);
 
-  DBShiftDoc.durations.on_duty_mod = DesiredDuration - (ElapsedTime - BreakTime);
+  const BaseOnDuty = ElapsedTime - BreakTime;
+  DBShiftDoc.durations.on_duty_mod = DesiredDuration - BaseOnDuty;
+
   if (DBShiftDoc.flag === ShiftFlags.Standard) {
     DBShiftDoc.flag = ShiftFlags.Modified;
   }
