@@ -27,6 +27,13 @@ interface GetActivityReportDataOpts {
 
   /** Whether or not to include member nicknames in the activity report data. Defaults to `false`. */
   include_member_nicknames?: boolean;
+
+  /**
+   * Whether or not to include non-staff members in the activity report data if and only if they got any shift time recorded.
+   * This will take into account members with staff/management roles as well as members without those roles but have recorded shift time (e.g., retired staff).
+   * @default false
+   */
+  include_non_staff?: boolean;
 }
 
 interface UserEnteredValue {
@@ -118,16 +125,21 @@ export default async function GetActivityReportData(
     });
 
     Opts.members = Opts.members.filter((Member) => {
-      const HasStaffMgmtRoles = Member.roles.cache.hasAny(...GuildStaffMgmtRoles);
-      const HasShiftTypeRoles = ValidShiftTypes.some((ShiftType) =>
-        Member.roles.cache.hasAny(...ShiftType.access_roles)
-      );
+      const HasStaffMgmtRoles = Opts.include_non_staff
+        ? true
+        : Member.roles.cache.hasAny(...GuildStaffMgmtRoles);
+
+      const HasShiftTypeRoles = Opts.include_non_staff
+        ? true
+        : ValidShiftTypes.some((ShiftType) => Member.roles.cache.hasAny(...ShiftType.access_roles));
 
       return HasStaffMgmtRoles && HasShiftTypeRoles && !Member.user.bot;
     });
   } else {
     Opts.members = Opts.members.filter(
-      (Member) => Member.roles.cache.hasAny(...GuildStaffMgmtRoles) && !Member.user.bot
+      (Member) =>
+        (Opts.include_non_staff ? true : Member.roles.cache.hasAny(...GuildStaffMgmtRoles)) &&
+        !Member.user.bot
     );
   }
 
@@ -152,6 +164,14 @@ export default async function GetActivityReportData(
         ? ReadableDuration(TotalShiftTimeCombined / RecordsBaseData.length)
         : "Insufficient Data",
   };
+
+  if (Opts.include_non_staff) {
+    const MemberIdsWithRecords = new Set(RecordsBaseData.map((R) => R.id));
+    Opts.members = Opts.members.filter((Member) => {
+      const HasStaffMgmtRoles = Member.roles.cache.hasAny(...GuildStaffMgmtRoles);
+      return HasStaffMgmtRoles || MemberIdsWithRecords.has(Member.id);
+    });
+  }
 
   const ProcessedMemberIds = new Set<string>();
   const MembersById = new Map(Opts.members.map((Member) => [Member.id, Member]));
