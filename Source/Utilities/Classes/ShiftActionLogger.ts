@@ -24,13 +24,15 @@ import {
 } from "discord.js";
 
 import { Shifts } from "#Typings/Utilities/Database.js";
-import { Colors } from "#Config/Shared.js";
+import { Colors, Thumbs } from "#Config/Shared.js";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { App as DiscordApp } from "#DiscordApp";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import ProfileModel from "#Models/GuildProfile.js";
 import GuildModel from "#Models/Guild.js";
 import Dedent from "dedent";
 
+const ChannelLink = (Id: string) => `https://discord.com/channels/${Id}`;
 const BluewishText = (Text: string | number, ChannelId: string) => {
   return `[${Text}](${channelLink(ChannelId)})`;
 };
@@ -442,6 +444,35 @@ export default class ShiftActionLogger {
       LogEmbed.setAuthor({
         name: `@${TargetUser.username}`,
         iconURL: TargetUser.displayAvatarURL(this.AvatarIconOpts),
+      });
+    }
+
+    const Recipient = TargetUser ?? UserInteract.user;
+    const UserPreferences = await ProfileModel.findOne({
+      guild: UserInteract.guild.id,
+      user: Recipient.id,
+    })
+      .select("preferences")
+      .then((Doc) => Doc?.preferences ?? null);
+
+    if (UserPreferences?.dm_shift_reports) {
+      const LogClone = EmbedBuilder.from(LogEmbed);
+      LogClone.spliceFields(0, 1);
+      LogClone.setTitle("End-of-Shift Report")
+        .setDescription(`**Officer:** ${inlineCode(BaseData.CurrNickname)}`)
+        .setAuthor({
+          url: ChannelLink(UserInteract.guild.id),
+          name: UserInteract.guild.name,
+          iconURL: UserInteract.guild.iconURL(this.AvatarIconOpts) ?? Thumbs.Transparent,
+        });
+
+      Recipient.send({ embeds: [LogClone] }).catch(async (Err) => {
+        if (Err.code === 50_007) {
+          await ProfileModel.updateOne(
+            { guild: UserInteract.guild.id, user: Recipient.id },
+            { $set: { "preferences.dm_shift_reports": false } }
+          ).catch(() => null);
+        }
       });
     }
 
