@@ -6,6 +6,10 @@ import OSUtils from "node-os-utils";
 import OS from "node:os";
 
 type MData<HR extends boolean = false> = OSMetrics.OSMetricsData<HR>;
+export const AppResponse = {
+  ratelimited: false,
+};
+
 export default async function GetOSMetrics<Readable extends boolean = false>(
   HumanReadable: Readable
 ): Promise<MData<Readable>> {

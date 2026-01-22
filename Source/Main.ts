@@ -9,8 +9,8 @@ import Express from "express";
 import GetFiles from "#Utilities/Helpers/GetFilesFrom.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import FileSystem from "node:fs";
-import GetOSMetrics from "#Utilities/Helpers/GetOSMetrics.js";
 import DurHumanizer from "humanize-duration";
+import GetOSMetrics, { AppResponse } from "#Utilities/Helpers/GetOSMetrics.js";
 AppLogger.info(Chalk.grey("=========================== New Run ==========================="));
 
 // -------------------------------------------------------------------------------------------
@@ -106,6 +106,7 @@ ExpressApp.get("/metrics", (_, Res) => {
           message: "OK",
           client: {
             ready: App.isReady(),
+            ratelimited: AppResponse.ratelimited,
             websocket: {
               ping: App.ws.ping,
               status: Status[App.ws.status],
