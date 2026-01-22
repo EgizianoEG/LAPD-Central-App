@@ -63,6 +63,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
     },
     {},
     {
+      setDefaultsOnInsert: true,
       upsert: true,
       new: true,
     }
