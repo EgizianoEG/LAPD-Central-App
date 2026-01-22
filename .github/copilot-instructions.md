@@ -210,16 +210,18 @@ Tests/
 As mapped in `tsconfig.json`:
 
 ```typescript
-@Source/*     -> ./Source/*
-@Cmds/*       -> ./Source/Commands/*
-@Config/*     -> ./Source/Config/*
-@Models/*     -> ./Source/Models/*
-@Typings/*    -> ./Source/Typings/*
-@Resources/*  -> ./Source/Resources/*
-@Utilities/*  -> ./Source/Utilities/*
-@Handlers/*   -> ./Source/Handlers/*
-@DiscordApp   -> ./Source/Main.ts
+#Source/*     -> ./Source/*
+#Cmds/*       -> ./Source/Commands/*
+#Config/*     -> ./Source/Config/*
+#Models/*     -> ./Source/Models/*
+#Typings/*    -> ./Source/Typings/*
+#Resources/*  -> ./Source/Resources/*
+#Utilities/*  -> ./Source/Utilities/*
+#Handlers/*   -> ./Source/Handlers/*
+#DiscordApp   -> ./Source/Main.ts
 ```
+
+These will be replaced with relative paths during the build process. The final compiled code will replace `Source/` with `Build/` accordingly and the file extension to `.js`. Starting the app with `npm run start:js` runs the compiled JavaScript.
 
 ## GitHub Workflows & CI/CD
 
