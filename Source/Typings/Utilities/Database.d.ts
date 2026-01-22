@@ -704,6 +704,14 @@ export namespace GuildProfiles {
       roblox_user_id: number;
     };
 
+    /**
+     * User preferences and settings.
+     */
+    preferences: {
+      /** Whether to send DM shift end reports. */
+      dm_shift_reports: boolean;
+    };
+
     /** User activity notice records. */
     activity_notices: string[];
 

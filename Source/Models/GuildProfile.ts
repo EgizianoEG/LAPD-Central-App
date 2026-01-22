@@ -25,13 +25,25 @@ const ProfileSchema = new Schema<
 
   linked_account: {
     _id: false,
-    default: {},
     required: true,
+    default: {},
     type: {
       roblox_user_id: {
         min: 0,
         default: 0,
         type: Number,
+      },
+    },
+  },
+
+  preferences: {
+    _id: false,
+    required: true,
+    default: {},
+    type: {
+      dm_shift_reports: {
+        type: Boolean,
+        default: false,
       },
     },
   },
