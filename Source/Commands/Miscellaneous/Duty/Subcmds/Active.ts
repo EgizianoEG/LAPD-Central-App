@@ -1,5 +1,6 @@
 import {
   SlashCommandSubcommandBuilder,
+  time as FormatTime,
   APIEmbedField,
   EmbedBuilder,
   userMention,
@@ -25,17 +26,6 @@ const ShiftsPerPage = 10;
 const PageTitle = `${Emojis.StopWatch}   Currently Active Shifts`;
 const BreakAnnotation = " ***(𝑖 )***";
 const ActiveBreakNotification = "(𝒊): Currently on break";
-const LocalDateFormatterOpts = [
-  "en-US",
-  {
-    timeZone: "America/Los_Angeles",
-    weekday: "long",
-    month: "long",
-    year: "numeric",
-    day: "numeric",
-    hour12: true,
-  },
-] as const;
 
 // ---------------------------------------------------------------------------------------
 // Helper Functions:
@@ -45,48 +35,90 @@ const LocalDateFormatterOpts = [
  * @param SelectedShiftTypes - Array of selected shift types.
  * @returns Formatted description text.
  */
-function GetDescriptionText(SelectedShiftTypes: string[]): string {
-  if (SelectedShiftTypes.length > 1) {
-    return `**The server's current active shifts of types: ${ListFormatter.format(
+function GetDescriptionText(
+  SelectedShiftTypes: string[],
+  TimeframeStart?: Date | null,
+  TimeframeEnd?: Date | null
+): string {
+  const IsHistoricalView = !!(TimeframeStart && TimeframeEnd);
+  const DescriptionSuffix = IsHistoricalView
+    ? `\nTimeframe: ${FormatTime(TimeframeStart, "D")}   ${FormatTime(TimeframeEnd, "D")}`
+    : "";
+
+  if (SelectedShiftTypes.length > 0) {
+    const Pl = SelectedShiftTypes.length > 1 ? "s: " : "";
+    return `The server's ${IsHistoricalView ? "" : "currently "}active shifts of type${Pl} ${ListFormatter.format(
       SelectedShiftTypes.map((t) => inlineCode(t))
-    )}.**`;
+    )}.${DescriptionSuffix}`;
   }
-  return "The server's current active shifts, categorized by type.";
+
+  return `The server's ${IsHistoricalView ? "" : "currently "}active shifts, categorized by type.${DescriptionSuffix}`;
 }
 
 /**
- * Calculates the total on-duty time in milliseconds for a specific shift within a given time period.
+ * Calculates the total on-duty time in milliseconds for a shift up to the end of a specified period.
  *
- * This function determines the effective overlap between the shift duration and the requested period,
- * then subtracts any break time that occurred during that overlap.
+ * This function calculates the total elapsed time from the shift start until the period end,
+ * then subtracts any break time that occurred during that duration (breaks that started before
+ * the period end). Breaks that start after the period end are ignored.
  *
  * @param Shift - The hydrated shift document containing timestamp and break event data.
- * @param PeriodStart - The start date of the period to calculate duration for.
- * @param PeriodEnd - The end date of the period to calculate duration for.
- * @returns The total number of milliseconds the user was on duty during the specified period.
+ * @param PeriodEnd - The end date of the period to calculate duration up to.
+ * @returns The total number of milliseconds the user was on duty from shift start until period end.
  * @remarks
- * The on-duty time modifier from the shift document is added to account for any manual adjustments,
- * regardless of when it was applied.
+ * The on-duty time modifier from the shift document is added to account for any manual adjustments.
+ * @example
+ * // Shift: 10:30-10:50, Break: 10:35-10:40, Period: 10:37-10:40
+ * // Calculation: (10:40 - 10:30) - (10:40 - 10:35) = 10min - 5min = 5min
  */
 function CalculateOnDutyTimeForPeriod(
   Shift: Shifts.HydratedShiftDocument,
-  PeriodStart: Date,
   PeriodEnd: Date
 ): number {
-  const EffectiveStart = Math.max(Shift.start_timestamp.getTime(), PeriodStart.getTime());
+  const ShiftStart = Shift.start_timestamp.getTime();
   const EffectiveEnd = Math.min(Shift.end_timestamp?.getTime() || Date.now(), PeriodEnd.getTime());
+  const GrossTime = EffectiveEnd - ShiftStart;
   let TotalBreakTime = 0;
 
   for (const [BreakStart, BreakEnd] of Shift.events.breaks) {
-    const BreakStartTime = Math.max(BreakStart, EffectiveStart);
+    if (BreakStart >= EffectiveEnd) continue;
     const BreakEndTime = Math.min(BreakEnd || EffectiveEnd, EffectiveEnd);
+    const BreakDuration = BreakEndTime - BreakStart;
 
-    if (BreakStartTime < BreakEndTime) {
-      TotalBreakTime += BreakEndTime - BreakStartTime;
+    if (BreakDuration > 0) {
+      TotalBreakTime += BreakDuration;
     }
   }
 
-  return EffectiveEnd - EffectiveStart - TotalBreakTime + Shift.durations.on_duty_mod;
+  return GrossTime - TotalBreakTime + Shift.durations.on_duty_mod;
+}
+
+/**
+ * Checks if a given shift had a break active at the end of a specified period.
+ * - If no period is provided, checks if the shift currently has an active break.
+ * - If a period is specified, returns `true` if any break was still active at `PeriodEnd`.
+ *
+ * @param Shift - The hydrated shift document to check.
+ * @param [PeriodEnd] - The end date of the period to check for an active break.
+ * @returns `true` if there is an active break at the end of the period (or currently); otherwise, `false`.
+ * @example
+ * // For a shift with a break from 10:00 to 11:00, and `PeriodEnd` at 10:30, returns `true`.
+ * // For a shift with a break from 10:00 to 11:00, and `PeriodEnd` at 11:30, returns `false`.
+ */
+function ShiftHasActiveBreak(
+  Shift: Shifts.HydratedShiftDocument,
+  PeriodEnd?: Date | null
+): boolean {
+  if (!PeriodEnd) return Shift.hasBreakActive();
+  const PeriodEndMs = PeriodEnd.getTime();
+
+  for (const [BreakStart, BreakEnd] of Shift.events.breaks) {
+    if ((BreakEnd === null || BreakEnd >= PeriodEndMs) && BreakStart <= PeriodEndMs) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -106,10 +138,10 @@ function ListShifts(
 
   for (let I = 0; I < ActiveShifts.length; I++) {
     const Shift = ActiveShifts[I];
-    const BAnnotaion = Shift.hasBreakActive() ? BreakAnnotation : "";
+    const BAnnotaion = ShiftHasActiveBreak(Shift, TimeframeEnd) ? BreakAnnotation : "";
     const TOnDutyDuration =
       TimeframeStart && TimeframeEnd
-        ? CalculateOnDutyTimeForPeriod(Shift, TimeframeStart, TimeframeEnd)
+        ? CalculateOnDutyTimeForPeriod(Shift, TimeframeEnd)
         : Shift.durations.on_duty;
 
     const Line = `${StartIndex + I + 1}. ${userMention(Shift.user)} \u{1680} ${ReadableDuration(TOnDutyDuration)} ${BAnnotaion}`;
@@ -132,23 +164,14 @@ function ListShifts(
 function CreateActiveShiftsEmbed(
   Description: string,
   Fields: APIEmbedField[],
-  HasBreakAnnotation: boolean,
-  TimeframeStart?: Date | null,
-  TimeframeEnd?: Date | null
+  HasBreakAnnotation: boolean
 ): EmbedBuilder {
-  let FooterText = HasBreakAnnotation ? ActiveBreakNotification : "";
-
-  if (TimeframeStart && TimeframeEnd) {
-    const TimeframeText = `Timeframe: ${TimeframeStart.toLocaleDateString(...LocalDateFormatterOpts)} - ${TimeframeEnd.toLocaleDateString(...LocalDateFormatterOpts)}`;
-    FooterText = FooterText ? `${FooterText}; ${TimeframeText}` : TimeframeText;
-  }
-
   return new EmbedBuilder()
     .setTitle(PageTitle)
     .setColor(Colors.Info)
     .setFields(Fields)
     .setDescription(Description)
-    .setFooter(FooterText.length ? { text: FooterText } : null);
+    .setFooter(HasBreakAnnotation ? { text: ActiveBreakNotification } : null);
 }
 
 /**
@@ -167,7 +190,7 @@ function CreateSingleTypeEmbeds(
 ): [EmbedBuilder[], boolean] {
   const Pages: EmbedBuilder[] = [];
   let HasBreakAnnotation = false;
-  const Description = `The server's current active shifts of type \`${ShiftType}\`.`;
+  const Description = GetDescriptionText([ShiftType], TimeframeStart, TimeframeEnd);
   const TotalShifts = ShiftData.length;
 
   if (TotalShifts > ShiftsPerPage) {
@@ -176,7 +199,9 @@ function CreateSingleTypeEmbeds(
     for (let PageIndex = 0; PageIndex < ShiftChunks.length; PageIndex++) {
       const [ListedShifts, AnnotationsIncluded] = ListShifts(
         ShiftChunks[PageIndex],
-        PageIndex * ShiftsPerPage
+        PageIndex * ShiftsPerPage,
+        TimeframeStart,
+        TimeframeEnd
       );
 
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
@@ -188,23 +213,25 @@ function CreateSingleTypeEmbeds(
         CreateActiveShiftsEmbed(
           Description,
           [{ name: FieldName, value: ListedShifts.join("\n") }],
-          HasBreakAnnotation,
-          TimeframeStart,
-          TimeframeEnd
+          HasBreakAnnotation
         )
       );
     }
   } else {
-    const [ListedShifts, AnnotationsIncluded] = ListShifts(ShiftData);
+    const [ListedShifts, AnnotationsIncluded] = ListShifts(
+      ShiftData,
+      undefined,
+      TimeframeStart,
+      TimeframeEnd
+    );
+
     const ShiftCountText = ListedShifts.length > 1 ? ` - ${ListedShifts.length}` : "";
     HasBreakAnnotation = AnnotationsIncluded;
     Pages.push(
       CreateActiveShiftsEmbed(
         Description,
         [{ name: `Shifts${ShiftCountText}`, value: ListedShifts.join("\n") }],
-        HasBreakAnnotation,
-        TimeframeStart,
-        TimeframeEnd
+        HasBreakAnnotation
       )
     );
   }
@@ -239,7 +266,13 @@ function ProcessMultiTypeShifts(
     const Fields: Array<APIEmbedField> = [];
 
     for (const [ShiftType, ActiveShifts] of Object.entries(GroupedShifts)) {
-      const [ListedShifts, AnnotationsIncluded] = ListShifts(ActiveShifts);
+      const [ListedShifts, AnnotationsIncluded] = ListShifts(
+        ActiveShifts,
+        undefined,
+        TimeframeStart,
+        TimeframeEnd
+      );
+
       const ShiftsUnderTypeCountText = ActiveShifts.length > 1 ? ` - ${ActiveShifts.length}` : "";
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
 
@@ -249,9 +282,7 @@ function ProcessMultiTypeShifts(
       });
     }
 
-    Pages.push(
-      CreateActiveShiftsEmbed(Description, Fields, HasBreakAnnotation, TimeframeStart, TimeframeEnd)
-    );
+    Pages.push(CreateActiveShiftsEmbed(Description, Fields, HasBreakAnnotation));
     return Pages;
   }
 
@@ -281,8 +312,13 @@ function ProcessMultiTypeShifts(
       const AvailableSpace = ShiftsPerPage - CurrentPageShiftCount;
       const ShiftsToTake = Math.min(RemainingTypeShifts.length, AvailableSpace);
       const ShiftsToProcess = RemainingTypeShifts.slice(0, ShiftsToTake);
+      const [ListedShifts, AnnotationsIncluded] = ListShifts(
+        ShiftsToProcess,
+        ShiftsProcessed,
+        TimeframeStart,
+        TimeframeEnd
+      );
 
-      const [ListedShifts, AnnotationsIncluded] = ListShifts(ShiftsToProcess, ShiftsProcessed);
       CurrentPageHasBreakAnnotation = CurrentPageHasBreakAnnotation || AnnotationsIncluded;
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
 
@@ -307,13 +343,7 @@ function ProcessMultiTypeShifts(
 
     if (CurrentPageFields.length > 0) {
       Pages.push(
-        CreateActiveShiftsEmbed(
-          Description,
-          CurrentPageFields,
-          CurrentPageHasBreakAnnotation,
-          TimeframeStart,
-          TimeframeEnd
-        )
+        CreateActiveShiftsEmbed(Description, CurrentPageFields, CurrentPageHasBreakAnnotation)
       );
     }
   }
@@ -345,7 +375,7 @@ function BuildActiveShiftEmbedPages(
 
     return TypePages;
   } else {
-    const Description = GetDescriptionText(SelectedShiftTypes);
+    const Description = GetDescriptionText(SelectedShiftTypes, TimeframeStart, TimeframeEnd);
     return ProcessMultiTypeShifts(ActiveGroupedShifts, Description, TimeframeStart, TimeframeEnd);
   }
 }
@@ -361,7 +391,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       .replyToInteract(Interaction, true, false);
   }
 
-  const ParsedTimeframe = await ParseDateInputs(Interaction, { from: "from", to: "until" });
+  const ParsedTimeframe = await ParseDateInputs(Interaction, { from: "from", to: "to" });
   if (ParsedTimeframe === true) return;
 
   const TimeframeStart = ParsedTimeframe.since;
@@ -439,19 +469,19 @@ const CommandObject = {
     )
     .addStringOption((Option) =>
       Option.setName("from")
-        .setAutocomplete(true)
         .setDescription("The start date of the timeframe. Leave blank for current active shifts.")
         .setMinLength(2)
         .setMaxLength(40)
+        .setAutocomplete(true)
         .setAutocomplete(true)
         .setRequired(false)
     )
     .addStringOption((Option) =>
       Option.setName("to")
-        .setAutocomplete(true)
         .setDescription("The end date of the timeframe. Leave blank for current active shifts.")
         .setMinLength(2)
         .setMaxLength(40)
+        .setAutocomplete(true)
         .setAutocomplete(true)
         .setRequired(false)
     ),
