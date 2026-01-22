@@ -41,7 +41,7 @@ function GetPreferencesContainer(
           new TextDisplayBuilder().setContent(
             Dedent(`
             **End-of-Shift DM Reports**
-            When a shift ends, I’ll DM you a summary of your shift for this server. Requires DMs enabled for this server.
+            When a shift ends, I’ll DM you a summary of your shift for this server. Delivery depends on your Discord privacy settings.
           `)
           )
         )
