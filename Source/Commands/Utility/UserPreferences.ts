@@ -146,7 +146,6 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
 // ------------------
 const CommandObject: SlashCommandObject<any> = {
   callback: Callback,
-  options: { dev_only: true },
   data: new SlashCommandBuilder()
     .setName("preferences")
     .setDescription("Manage your notification and profile preferences in this server.")
