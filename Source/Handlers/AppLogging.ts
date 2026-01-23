@@ -38,6 +38,14 @@ export default function AppLogging(Client: DiscordClient) {
       HTTP429OccurrencesTracker.set("http429:last", Now);
     }
 
+    const SafeReq = {
+      ...Req,
+      options: {
+        ...Req.options,
+        headers: RedactHeaders(Req.options?.headers || {}),
+      },
+    };
+
     const SafeResp = {
       ...Resp,
       headers: RedactHeaders(Resp.headers),
@@ -46,7 +54,7 @@ export default function AppLogging(Client: DiscordClient) {
     AppLogger.warn({
       label: "DiscordClient",
       message: `Received a ${Chalk.bold(Resp.status.toString())} response for ${Chalk.bold(Req.method)} ${Chalk.bold(Req.path)} request.`,
-      details: { request: Req, response: SafeResp },
+      details: { request: SafeReq, response: SafeResp },
     });
   });
 
