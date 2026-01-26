@@ -1,6 +1,6 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 
-name: Build and deploy Node.js app to Azure Web App - LAPD-Central-App
+name: Build & Deploy to Azure Web App
 on:
   workflow_dispatch:
 
