@@ -32,10 +32,11 @@ import {
   ListFormatter,
   FormatDuration,
   FilterUnsafeRoles,
-  PromptChannelOrThreadSelection,
   PromptInteraction,
+  PromptChannelOrThreadSelection,
 } from "./Shared.js";
 
+import { clone } from "remeda";
 import { Dedent } from "#Utilities/Strings/Formatters.js";
 import { RandomString } from "#Utilities/Strings/Random.js";
 import { ErrorContainer } from "#Utilities/Classes/ExtraContainers.js";
@@ -419,7 +420,9 @@ export async function HandleShiftModuleDBSave(
   ).then((GuildDoc) => GuildDoc?.settings.shift_management);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = { ...UpdatedSettings };
+    MState.OriginalConfig = clone(UpdatedSettings);
+    MState.ModuleConfig = clone(UpdatedSettings);
+
     const SetLogChannel = UpdatedSettings.log_channel
       ? channelMention(UpdatedSettings.log_channel)
       : "`None`";
