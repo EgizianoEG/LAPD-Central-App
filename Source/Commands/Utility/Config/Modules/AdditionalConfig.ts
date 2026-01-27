@@ -14,13 +14,13 @@ import {
 } from "discord.js";
 
 import {
-  PromptInteraction,
   GetHumanReadableLogDeletionInterval,
+  PromptInteraction,
+  GuildSettings,
+  ConfigTopics,
   AccentColor,
   MillisInDay,
   ModuleState,
-  ConfigTopics,
-  GuildSettings,
 } from "./Shared.js";
 
 import { clone } from "remeda";

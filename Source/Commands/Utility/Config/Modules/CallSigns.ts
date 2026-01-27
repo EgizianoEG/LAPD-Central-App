@@ -205,7 +205,7 @@ export function GetCallsignsModuleConfigComponents(
       .setMinValues(0)
       .setMaxValues(6)
       .setPlaceholder("Select up to 6 manager roles...")
-      .setDefaultRoles(CSModuleConfig.manager_roles)
+      .setDefaultRoles(CSModuleConfig.manager_roles.slice(0, 6))
   );
 
   const AlertOnNewRequestsAR = new ActionRowBuilder<StringSelectMenuBuilder>().setComponents(
@@ -1069,8 +1069,9 @@ export async function PromptBeatOrUnitRestrictionsMod(
     | GuildSettings["callsigns_module"]["beat_restrictions"]
     | GuildSettings["callsigns_module"]["unit_type_restrictions"]
   >((resolve) => {
-    ActionsCollector.on("end", async (Collects, Reason) => {
-      PromptMessage.delete().catch(() => null);
+    ActionsCollector.on("end", async (Collected, Reason) => {
+      const LastInteract = Collected.last() ?? BtnInteract;
+
       if (Reason === "ChangesConfirmed") {
         resolve(
           ScopeIsUnitType
@@ -1083,6 +1084,12 @@ export async function PromptBeatOrUnitRestrictionsMod(
             ? MStateObj.ModuleConfig.unit_type_restrictions
             : MStateObj.ModuleConfig.beat_restrictions
         );
+      }
+
+      if (!LastInteract.deferred && !LastInteract.replied) {
+        await LastInteract.deferUpdate()
+          .then(() => LastInteract.deleteReply(PromptMessage))
+          .catch(() => null);
       }
     });
   });
