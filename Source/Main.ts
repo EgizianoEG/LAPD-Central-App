@@ -1,7 +1,12 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { Client, Options, Collection, GatewayIntentBits, Status, Partials } from "discord.js";
-import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
+import { connections as MongooseConnection } from "mongoose";
 import { Discord as DiscordSecrets } from "#Config/Secrets.js";
+import {
+  CollectHealthMetrics,
+  GetOSMetrics,
+  AppResponse,
+} from "#Source/Utilities/Helpers/MetricsCollector.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
@@ -10,7 +15,6 @@ import GetFiles from "#Utilities/Helpers/GetFilesFrom.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import FileSystem from "node:fs";
 import DurHumanizer from "humanize-duration";
-import GetOSMetrics, { AppResponse } from "#Utilities/Helpers/GetOSMetrics.js";
 AppLogger.info(Chalk.grey("=========================== New Run ==========================="));
 
 // -------------------------------------------------------------------------------------------
@@ -97,13 +101,17 @@ const NotFoundPage = FileSystem.readFileSync(
   { encoding: "utf-8" }
 );
 
-ExpressApp.get("/metrics", (_, Res) => {
-  GetOSMetrics(true).then((Metrics) => {
-    Res.setHeader("Content-Type", "application/json");
-    Res.end(
+ExpressApp.get("/metrics", async (_, Res) => {
+  const HealthMetrics = await CollectHealthMetrics(App);
+  const OSMetrics = await GetOSMetrics(true);
+
+  Res.status(HealthMetrics.status === "healthy" ? 200 : 503)
+    .setHeader("Content-Type", "application/json")
+    .end(
       JSON.stringify(
         {
-          message: "OK",
+          status: HealthMetrics.status,
+          timestamp: new Date().toISOString(),
           client: {
             ready: App.isReady(),
             ratelimited: AppResponse.ratelimited,
@@ -111,20 +119,41 @@ ExpressApp.get("/metrics", (_, Res) => {
               ping: App.ws.ping,
               status: Status[App.ws.status],
             },
+            api_latency: {
+              latency: HealthMetrics.discord.latency,
+              healthy: HealthMetrics.discord.healthy,
+            },
             uptime: DurHumanizer(App.uptime ?? 0, {
               conjunction: " and ",
               largest: 4,
               round: true,
             }),
           },
-          database: { status: DBStates[MongooseConnection[0].readyState] },
-          metrics: Metrics,
+          database: HealthMetrics.database,
+          os_metrics: OSMetrics,
         },
         null,
         2
       )
     );
-  });
+});
+
+ExpressApp.get("/health", (_, Res) => {
+  const IsHealthy =
+    App.isReady() && MongooseConnection[0].readyState === 1 && !AppResponse.ratelimited;
+
+  if (IsHealthy) {
+    Res.status(200).json({ status: "healthy" });
+  } else {
+    Res.status(503).json({
+      status: "unhealthy",
+      checks: {
+        discord: App.isReady(),
+        database: MongooseConnection[0].readyState === 1,
+        ratelimited: !AppResponse.ratelimited,
+      },
+    });
+  }
 });
 
 ExpressApp.get("/", (_, Res) => {

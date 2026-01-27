@@ -1,7 +1,7 @@
 import { PresenceUpdateStatus, Routes } from "discord.js";
 import { HTTP429OccurrencesTracker } from "#Utilities/Helpers/Cache.js";
 import { CronJobFileDefReturn } from "#Typings/Core/System.js";
-import { AppResponse } from "#Source/Utilities/Helpers/GetOSMetrics.js";
+import { AppResponse } from "#Source/Utilities/Helpers/MetricsCollector.js";
 import TriggerAppStatus from "#Utilities/Discord/TriggerAppStatus.js";
 import AppLogger from "#Source/Utilities/Classes/AppLogger.js";
 
