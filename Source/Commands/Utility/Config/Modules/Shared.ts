@@ -625,7 +625,6 @@ export function ConfigHasRobloxDependencyConflict(Config: GuildSettings): boolea
  *     (e.g., "Roblox Display Name", "Roblox Username")
  *   - `DisabledSetting`: The name of the setting that needs to be enabled to resolve conflicts
  *     ("Roblox Account Link Required")
- * }
  */
 export function GetRobloxDependencyConflictDetails(Config: GuildSettings): {
   HasConflict: boolean;

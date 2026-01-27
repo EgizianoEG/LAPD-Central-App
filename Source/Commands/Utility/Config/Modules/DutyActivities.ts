@@ -621,61 +621,69 @@ export async function HandleDutyActivitiesConfigPageInteracts(
     }
 
     if (CustomId.startsWith(DutyActivitiesCTAIds.ArrestLogLocalChannel)) {
+      const ExistingChannelIndex = ModuleConfig.log_channels.arrests.findIndex(
+        (C) => !C.includes(":")
+      );
+
+      const CurrentChannel =
+        ExistingChannelIndex === -1
+          ? null
+          : ModuleConfig.log_channels.arrests[ExistingChannelIndex];
+
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
         DutyActivitiesCTAIds.ArrestLogLocalChannel,
         "Arrest Reports",
-        ModuleConfig.log_channels.arrests.find((C) => !C.includes(":")) || null
+        CurrentChannel
       );
 
       if (SelectedChannel === undefined) return false;
       if (ModuleConfig.log_channels.arrests.length) {
-        const ExistingChannelIndex = ModuleConfig.log_channels.arrests.findIndex(
-          (C) => !C.includes(":")
-        );
         if (ExistingChannelIndex === -1 && SelectedChannel) {
           ModuleConfig.log_channels.arrests.push(SelectedChannel);
         } else if (SelectedChannel) {
           ModuleConfig.log_channels.arrests[ExistingChannelIndex] = SelectedChannel;
         } else {
-          ModuleConfig.log_channels.arrests = ModuleConfig.log_channels.arrests.filter(
-            (C) => C !== ModuleConfig.log_channels.arrests[ExistingChannelIndex]
-          );
+          ModuleConfig.log_channels.arrests.splice(ExistingChannelIndex, 1);
         }
       } else if (SelectedChannel) {
         ModuleConfig.log_channels.arrests = [SelectedChannel];
       }
 
-      return SelectedChannel !== undefined;
+      return true;
     }
 
     if (CustomId.startsWith(DutyActivitiesCTAIds.CitationLogLocalChannel)) {
+      const ExistingChannelIndex = ModuleConfig.log_channels.citations.findIndex(
+        (C) => !C.includes(":")
+      );
+
+      const CurrentChannel =
+        ExistingChannelIndex === -1
+          ? null
+          : ModuleConfig.log_channels.citations[ExistingChannelIndex];
+
       const SelectedChannel = await PromptChannelOrThreadSelection(
         RecInteract,
         DutyActivitiesCTAIds.CitationLogLocalChannel,
         "Citation Log",
-        ModuleConfig.log_channels.citations.find((C) => !C.includes(":")) || null
+        CurrentChannel
       );
 
       if (SelectedChannel === undefined) return false;
       if (ModuleConfig.log_channels.citations.length) {
-        const ExistingChannelIndex = ModuleConfig.log_channels.citations.findIndex(
-          (C) => !C.includes(":")
-        );
         if (ExistingChannelIndex === -1 && SelectedChannel) {
           ModuleConfig.log_channels.citations.push(SelectedChannel);
         } else if (SelectedChannel) {
           ModuleConfig.log_channels.citations[ExistingChannelIndex] = SelectedChannel;
         } else {
-          ModuleConfig.log_channels.citations = ModuleConfig.log_channels.citations.filter(
-            (C) => C !== ModuleConfig.log_channels.citations[ExistingChannelIndex]
-          );
+          ModuleConfig.log_channels.citations.splice(ExistingChannelIndex, 1);
         }
       } else if (SelectedChannel) {
         ModuleConfig.log_channels.citations = [SelectedChannel];
       }
 
-      return SelectedChannel !== undefined;
+      return true;
     }
 
     if (CustomId.startsWith(DutyActivitiesCTAIds.IncidentLogLocalChannel)) {
