@@ -29,6 +29,7 @@ import {
   ModuleState,
   ConfigTopics,
   GuildSettings,
+  PromptInteraction,
   SettingsResolvable,
   UpdateConfigPrompt,
   ConfigTopicMgmtButtonsIds,
@@ -38,7 +39,6 @@ import {
   HandleConfigTimeoutResponse,
   AttachNavMgmtCompsToContainer,
   GetShowConfigurationsPageComponents,
-  PromptInteraction,
 } from "./Modules/Shared.js";
 
 import {
