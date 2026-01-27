@@ -550,15 +550,11 @@ async function HandleModuleSelection<T extends keyof ConfigModuleMapType>(
   if (!GuildConfig) throw new AppError("GuildConfigNotFound");
 
   const ModuleDescriptor = ConfigModuleMap[ConfigTopic];
-  // Type assertion is necessary here because TypeScript cannot fully infer the mapping
-  // between ConfigTopic and the return type of GetConfig due to the union nature of GuildSettings.
-  // The extracted ConfigData is correctly typed as ConfigTypeForTopic<T>, but TypeScript's
-  // union type inference cannot verify the type matches at the call site, so we use 'any' here.
   const ConfigData: ConfigTypeForTopic<T> = ModuleDescriptor.GetConfig(
     GuildConfig
   ) as ConfigTypeForTopic<T>;
-  const ModuleContainers = ModuleDescriptor.GetContainers(SelectInteract, ConfigData as any);
 
+  const ModuleContainers = ModuleDescriptor.GetContainers(SelectInteract, ConfigData as any);
   const FirstPageContainer = AttachNavMgmtCompsToContainer({
     ConfigTopicId: ConfigTopic,
     Container: ModuleContainers[0],

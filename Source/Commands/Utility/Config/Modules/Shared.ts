@@ -639,11 +639,11 @@ export function GetRobloxDependencyConflictDetails(Config: GuildSettings): {
     (DASigFormat & DASignatureFormats.RobloxDisplayName) ===
     DASignatureFormats.RobloxDisplayName
   ) {
-    EnabledFeatures.push("DA: Roblox Display Name signature format");
+    EnabledFeatures.push("`DA: Roblox Display Name signature format`");
   }
 
   if ((DASigFormat & DASignatureFormats.RobloxUsername) === DASignatureFormats.RobloxUsername) {
-    EnabledFeatures.push("DA: Roblox Username signature format");
+    EnabledFeatures.push("`DA: Roblox Username signature format`");
   }
 
   return {
