@@ -31,7 +31,7 @@ import {
   ListFormatter,
   PromptInteraction,
   PromptChannelOrThreadSelection,
-  ConfigHasRobloxDependencyConflict,
+  GetRobloxDependencyConflictDetails,
 } from "./Shared.js";
 
 import { clone } from "remeda";
@@ -703,9 +703,14 @@ export async function HandleDutyActivitiesConfigPageInteracts(
     const TempClone = clone(MState.ModuleConfig);
     TempClone.duty_activities.signature_format = SignatureFormat;
 
-    if (ConfigHasRobloxDependencyConflict(TempClone)) {
+    const ConflictDetails = GetRobloxDependencyConflictDetails(TempClone);
+    if (ConflictDetails.HasConflict) {
       await new ErrorContainer()
-        .useErrTemplate("RobloxAuthRequiredSettingDisabled")
+        .useErrTemplate(
+          "RobloxDependentFeatureSettingConflict",
+          ListFormatter.format(ConflictDetails.EnabledFeatures),
+          ConflictDetails.DisabledSetting
+        )
         .replyToInteract(RecInteract, true);
       return true;
     }

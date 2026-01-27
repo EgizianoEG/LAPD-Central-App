@@ -23,7 +23,7 @@ import {
   GuildSettings,
   ListFormatter,
   PromptInteraction,
-  ConfigHasRobloxDependencyConflict,
+  GetRobloxDependencyConflictDetails,
 } from "./Shared.js";
 
 import { ErrorContainer, WarnContainer } from "#Utilities/Classes/ExtraContainers.js";
@@ -199,9 +199,14 @@ export async function HandleBasicConfigSpecificInteracts(
     const TempClone = clone(MState.ModuleConfig);
     TempClone.require_authorization = ShouldActivate;
 
-    if (ConfigHasRobloxDependencyConflict(TempClone)) {
+    const ConflictDetails = GetRobloxDependencyConflictDetails(TempClone);
+    if (ConflictDetails.HasConflict) {
       await new ErrorContainer()
-        .useErrTemplate("RobloxDependentFeatureSettingConflict")
+        .useErrTemplate(
+          "RobloxDependentFeatureSettingConflict",
+          ListFormatter.format(ConflictDetails.EnabledFeatures),
+          ConflictDetails.DisabledSetting
+        )
         .replyToInteract(RecInteract, true, true, "followUp")
         .catch(() => null);
       return true;
@@ -233,9 +238,14 @@ export async function HandleBasicConfigDBSave(
       .replyToInteract(Interaction, true, true, "reply");
   }
 
-  if (ConfigHasRobloxDependencyConflict(MState.ModuleConfig)) {
+  const ConflictDetails = GetRobloxDependencyConflictDetails(MState.ModuleConfig);
+  if (ConflictDetails.HasConflict) {
     return new ErrorContainer()
-      .useErrTemplate("RobloxDependentFeatureSettingConflict")
+      .useErrTemplate(
+        "RobloxDependentFeatureSettingConflict",
+        ListFormatter.format(ConflictDetails.EnabledFeatures),
+        ConflictDetails.DisabledSetting
+      )
       .replyToInteract(Interaction, true, true, "reply")
       .then(() => "");
   }

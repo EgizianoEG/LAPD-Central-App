@@ -1198,7 +1198,7 @@ export const ErrorMessages = {
   RobloxDependentFeatureSettingConflict: {
     Title: "Roblox-Dependent Feature Conflict",
     Description:
-      "Cannot proceed with this change as one or more Roblox-dependent features are currently enabled. Please disable all Roblox-dependent features before disabling Roblox required authentication (Roblox Account Link Required).",
+      "Cannot proceed with this change as the following Roblox-dependent feature(s) are currently enabled: %s. Please disable these features before disabling %s.",
   },
 };
 

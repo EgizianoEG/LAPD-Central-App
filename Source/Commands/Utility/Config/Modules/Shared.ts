@@ -611,6 +611,49 @@ export function ConfigHasRobloxDependencyConflict(Config: GuildSettings): boolea
 }
 
 /**
+ * Extracts detailed information about Roblox-dependent feature conflicts in the configuration.
+ *
+ * Detects when Roblox-dependent duty activity signature formats (Roblox Display Name or
+ * Roblox Username) are enabled but Roblox account link requirement is disabled. This creates
+ * a conflict because logging cannot function properly without linked Roblox accounts.
+ *
+ * @param Config - The guild settings to check for conflicts
+ * @returns An object containing:
+ *   - `HasConflict`: Boolean indicating if a conflict exists (Roblox-dependent features enabled
+ *     while Roblox account link requirement is disabled)
+ *   - `EnabledFeatures`: Array of specific Roblox-dependent features currently enabled
+ *     (e.g., "Roblox Display Name", "Roblox Username")
+ *   - `DisabledSetting`: The name of the setting that needs to be enabled to resolve conflicts
+ *     ("Roblox Account Link Required")
+ * }
+ */
+export function GetRobloxDependencyConflictDetails(Config: GuildSettings): {
+  HasConflict: boolean;
+  EnabledFeatures: string[];
+  DisabledSetting: string;
+} {
+  const DASigFormat = Config.duty_activities.signature_format;
+  const EnabledFeatures: string[] = [];
+
+  if (
+    (DASigFormat & DASignatureFormats.RobloxDisplayName) ===
+    DASignatureFormats.RobloxDisplayName
+  ) {
+    EnabledFeatures.push("DA: Roblox Display Name signature format");
+  }
+
+  if ((DASigFormat & DASignatureFormats.RobloxUsername) === DASignatureFormats.RobloxUsername) {
+    EnabledFeatures.push("DA: Roblox Username signature format");
+  }
+
+  return {
+    HasConflict: EnabledFeatures.length > 0 && Config.require_authorization === false,
+    EnabledFeatures,
+    DisabledSetting: "Roblox Account Link Required",
+  };
+}
+
+/**
  * Prompts a user to select a channel or thread destination through an interactive message component.
  *
  * @param RecInteract - The message component interaction that triggered the prompt
