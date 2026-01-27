@@ -1217,6 +1217,36 @@ export async function HandleCallsignsModuleConfigPageInteracts(
 }
 
 // ---------------------------------------------------------------------------------------
+// Helper Functions:
+// -----------------
+/**
+ * Normalizes callsigns module configuration by converting ObjectId instances to strings.
+ * This ensures compatibility with clone operations that strip ObjectId prototypes.
+ *
+ * @param Config - The callsigns module configuration from MongoDB
+ * @returns Configuration with ObjectIds converted to strings
+ */
+function NormalizeCallsignsConfigObjectIds(Config: GuildSettings["callsigns_module"]): Omit<
+  GuildSettings["callsigns_module"],
+  "beat_restrictions" | "unit_type_restrictions"
+> & {
+  beat_restrictions: { _id: string; range: [number, number]; permitted_roles: string[] }[];
+  unit_type_restrictions: { _id: string; unit_type: string; permitted_roles: string[] }[];
+} {
+  return {
+    ...Config,
+    beat_restrictions: Config.beat_restrictions.map((R) => ({
+      ...R,
+      _id: R._id.toString(),
+    })),
+    unit_type_restrictions: Config.unit_type_restrictions.map((R) => ({
+      ...R,
+      _id: R._id.toString(),
+    })),
+  };
+}
+
+// ---------------------------------------------------------------------------------------
 // Database Save Handler:
 // ----------------------
 export async function HandleCallsignsModuleDBSave(
@@ -1224,6 +1254,7 @@ export async function HandleCallsignsModuleDBSave(
   MState: ModuleState<GuildSettings["callsigns_module"]>
 ): Promise<string | null> {
   const MPath = "settings.callsigns_module";
+  const NormalizedConfig = NormalizeCallsignsConfigObjectIds(MState.ModuleConfig);
   const UpdatedSettings = await GuildModel.findByIdAndUpdate(
     Interaction.guildId,
     {
@@ -1236,9 +1267,9 @@ export async function HandleCallsignsModuleDBSave(
         [`${MPath}.update_nicknames`]: MState.ModuleConfig.update_nicknames,
         [`${MPath}.alert_on_request`]: MState.ModuleConfig.alert_on_request,
         [`${MPath}.unit_type_whitelist`]: MState.ModuleConfig.unit_type_whitelist,
-        [`${MPath}.beat_restrictions`]: MState.ModuleConfig.beat_restrictions,
-        [`${MPath}.unit_type_restrictions`]: MState.ModuleConfig.unit_type_restrictions,
         [`${MPath}.release_on_inactivity`]: MState.ModuleConfig.release_on_inactivity,
+        [`${MPath}.beat_restrictions`]: NormalizedConfig.beat_restrictions,
+        [`${MPath}.unit_type_restrictions`]: NormalizedConfig.unit_type_restrictions,
       },
     },
     {
@@ -1253,8 +1284,12 @@ export async function HandleCallsignsModuleDBSave(
   ).then((GuildDoc) => GuildDoc?.settings.callsigns_module);
 
   if (UpdatedSettings) {
-    MState.OriginalConfig = clone(UpdatedSettings);
-    MState.ModuleConfig = clone(UpdatedSettings);
+    const NormalizedSettings = NormalizeCallsignsConfigObjectIds(
+      UpdatedSettings
+    ) as unknown as GuildSettings["callsigns_module"];
+
+    MState.OriginalConfig = clone(NormalizedSettings);
+    MState.ModuleConfig = clone(NormalizedSettings);
 
     const SetRequestsChannel = UpdatedSettings.requests_channel
       ? channelMention(UpdatedSettings.requests_channel)
