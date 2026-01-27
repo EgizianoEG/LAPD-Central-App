@@ -1185,6 +1185,13 @@ export async function HandleCallsignsModuleConfigPageInteracts(
 
   if (
     RecInteract.isStringSelectMenu() &&
+    CustomId.startsWith(CallSignsCTAIds.AutoCallsignRelease)
+  ) {
+    MState.ModuleConfig.release_on_inactivity = RecInteract.values[0] === "true";
+  }
+
+  if (
+    RecInteract.isStringSelectMenu() &&
     CustomId.startsWith(CallSignsCTAIds.AutoRenameOnApproval)
   ) {
     MState.ModuleConfig.update_nicknames = RecInteract.values[0] === "true";
@@ -1231,6 +1238,7 @@ export async function HandleCallsignsModuleDBSave(
         [`${MPath}.unit_type_whitelist`]: MState.ModuleConfig.unit_type_whitelist,
         [`${MPath}.beat_restrictions`]: MState.ModuleConfig.beat_restrictions,
         [`${MPath}.unit_type_restrictions`]: MState.ModuleConfig.unit_type_restrictions,
+        [`${MPath}.release_on_inactivity`]: MState.ModuleConfig.release_on_inactivity,
       },
     },
     {
@@ -1265,6 +1273,7 @@ export async function HandleCallsignsModuleDBSave(
       - **Log Channel:** ${SetLogChannel}
       - **Manager Roles:** ${UpdatedSettings.manager_roles.length ? ListFormatter.format(UpdatedSettings.manager_roles.map(roleMention)) : "`None`"}
       - **Alert on New Requests:** ${UpdatedSettings.alert_on_request ? "Enabled" : "Disabled"}
+      - **Auto-Release Inactive Call Signs:** ${UpdatedSettings.release_on_inactivity ? "Enabled" : "Disabled"}
 
       - **Nickname Format:** \`${UpdatedSettings.nickname_format}\`
       - **Auto-Rename on Approval:** ${UpdatedSettings.update_nicknames ? "Enabled" : "Disabled"}
