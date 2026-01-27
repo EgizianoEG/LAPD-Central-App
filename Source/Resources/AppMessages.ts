@@ -1182,6 +1182,13 @@ export const ErrorMessages = {
       "You do not have the required %s permission to perform this action. Kindly check your permissions and try again.",
   },
 
+  GuildConfigSaveInsufficientPermissions: {
+    Title: "Insufficient Permissions",
+    Description:
+      "You no longer have the required `Manage Guild` permission to save configuration changes. " +
+      "Please ensure you have the necessary permissions and try again.",
+  },
+
   RobloxAuthRequiredSettingDisabled: {
     Title: "Roblox Authentication Required",
     Description:

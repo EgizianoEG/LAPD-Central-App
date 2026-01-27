@@ -220,6 +220,13 @@ async function HandleConfigSave<SR extends SettingsResolvable>(
       .then(() => false);
   }
 
+  if (!Interaction.memberPermissions.has(PermissionFlagsBits.ManageGuild)) {
+    return new ErrorContainer()
+      .useErrTemplate("GuildConfigSaveInsufficientPermissions")
+      .replyToInteract(Interaction, true)
+      .then(() => false);
+  }
+
   if (!Interaction.deferred) {
     await Interaction.deferReply({
       flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
