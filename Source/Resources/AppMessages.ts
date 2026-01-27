@@ -1182,6 +1182,13 @@ export const ErrorMessages = {
       "You do not have the required %s permission to perform this action. Kindly check your permissions and try again.",
   },
 
+  GuildConfigSaveInsufficientPermissions: {
+    Title: "Insufficient Permissions",
+    Description:
+      "You no longer have the required `Manage Guild` permission to save configuration changes. " +
+      "Please ensure you have the necessary permissions and try again.",
+  },
+
   RobloxAuthRequiredSettingDisabled: {
     Title: "Roblox Authentication Required",
     Description:
@@ -1191,7 +1198,7 @@ export const ErrorMessages = {
   RobloxDependentFeatureSettingConflict: {
     Title: "Roblox-Dependent Feature Conflict",
     Description:
-      "Cannot proceed with this change as one or more Roblox-dependent features are currently enabled. Please disable all Roblox-dependent features before disabling Roblox required authentication (Roblox Account Link Required).",
+      "Cannot proceed with this change as the following Roblox-dependent feature(s) are currently enabled: %s. Please disable these features before disabling %s.",
   },
 };
 
