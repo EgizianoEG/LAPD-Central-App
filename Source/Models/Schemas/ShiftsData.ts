@@ -57,7 +57,7 @@ const ShiftDataSchema = new Schema({
   },
 });
 
-ShiftDataSchema.pre("save", function PreShiftDataSaveFind(next) {
+ShiftDataSchema.pre("save", async function PreShiftDataSaveFind() {
   const ShiftCount = this.logs.length;
 
   if (ShiftCount === 0) {
@@ -67,8 +67,6 @@ ShiftDataSchema.pre("save", function PreShiftDataSaveFind(next) {
     this.average_periods.on_duty = Math.round(this.total_durations.on_duty / ShiftCount) || 0;
     this.average_periods.on_break = Math.round(this.total_durations.on_break / ShiftCount) || 0;
   }
-
-  return next();
 });
 
 export default ShiftDataSchema;

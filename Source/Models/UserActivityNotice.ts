@@ -1,7 +1,7 @@
 import { isAfter, milliseconds, addMilliseconds, differenceInMilliseconds } from "date-fns";
+import { Schema, Document, model } from "mongoose";
 import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
-import { Schema, model } from "mongoose";
 
 type NoticeDocument = UserActivityNotice.ActivityNoticeHydratedDocument;
 const ActivityNoticeSchema = new Schema<
@@ -60,7 +60,7 @@ const ActivityNoticeSchema = new Schema<
     type: Date,
     required: true,
 
-    default() {
+    default(this: Document & UserActivityNotice.UserActivityNoticeDocument) {
       return addMilliseconds(
         this.review_date || this.request_date,
         this.duration + (this.extension_request?.duration || 0)

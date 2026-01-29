@@ -1,5 +1,7 @@
 import { HandleShiftTypeValidation } from "#Utilities/Database/ShiftTypeValidators.js";
+import { QueryFilter } from "mongoose";
 import { InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { Shifts } from "#Source/Typings/Utilities/Database.js";
 import {
   ButtonStyle,
   ButtonBuilder,
@@ -28,7 +30,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   const ShiftType = Interaction.options.getString("type");
   if (ShiftType && (await HandleShiftTypeValidation(Interaction, ShiftType, true))) return;
 
-  const QueryMatch = {
+  const QueryMatch: QueryFilter<Shifts.ShiftDocument> = {
     guild: Interaction.guildId,
     type: ShiftType || { $type: "string" },
     end_timestamp: null,

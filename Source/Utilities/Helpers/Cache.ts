@@ -46,7 +46,7 @@ export const MongoDBCache = {
   ActiveShifts: new MongoDBDocCollection<
     string,
     Shifts.ShiftDocument,
-    Shifts.HydratedShiftDocument
+    Shifts.BasicHydratedShiftDocument
   >(ShiftModel),
 };
 

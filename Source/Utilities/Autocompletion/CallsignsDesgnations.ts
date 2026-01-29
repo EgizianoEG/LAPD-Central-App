@@ -3,7 +3,7 @@ import { ServiceUnitTypes, DivisionBeats } from "#Resources/LAPDCallsigns.js";
 import { GeneralAutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { GenericRequestStatuses } from "#Config/Constants.js";
 import { Callsigns, Guilds } from "#Typings/Utilities/Database.js";
-import { RootFilterQuery } from "mongoose";
+import { QueryFilter } from "mongoose";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 import CallsignModel from "#Models/Callsign.js";
 
@@ -322,7 +322,7 @@ async function GetTakenBeatNums(
   const CacheHit = GeneralAutocompletionCache.get<string[]>(CacheKey);
   if (CacheHit) return CacheHit;
 
-  const InUseFilter: RootFilterQuery<Callsigns.CallsignDocument> = {
+  const InUseFilter: QueryFilter<Callsigns.CallsignDocument> = {
     guild: GuildId,
     $or: [{ expiry: null }, { expiry: { $gt: new Date() } }],
     request_status: GenericRequestStatuses.Approved,

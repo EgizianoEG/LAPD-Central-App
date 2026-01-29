@@ -9,7 +9,7 @@ import MongoDBDocumentCollection from "#Utilities/Classes/MongoDBDocCollection.j
 import ChangeStreamManager from "#Utilities/Classes/ChangeStreamManager.js";
 import GuildModel from "#Models/Guild.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
-import Mongoose from "mongoose";
+import Mongoose, { Model } from "mongoose";
 
 const FileLabel = "Handlers:MongoDB";
 const BaseGuildDocument: Guilds.GuildDocument = new GuildModel().toObject();
@@ -124,10 +124,13 @@ async function SetupGuildChangeStream() {
 
 async function SetupActiveShiftsChangeStream() {
   await ReloadActiveShiftsCache();
-  const ActiveShiftsStream = new ChangeStreamManager<Shifts.ShiftDocument>(ShiftModel, {
-    LoggerLabel: `${FileLabel}:ActiveShiftsStream`,
-    MaxReconnectAttempts: 8,
-  });
+  const ActiveShiftsStream = new ChangeStreamManager<Shifts.ShiftDocument>(
+    ShiftModel as unknown as Model<Shifts.ShiftDocument>,
+    {
+      LoggerLabel: `${FileLabel}:ActiveShiftsStream`,
+      MaxReconnectAttempts: 8,
+    }
+  );
 
   ActiveShiftsStream.OnChange(async (Change) => {
     if (Change.operationType === "delete") {
@@ -187,7 +190,7 @@ async function ReloadActiveShiftsCache() {
   MongoDBCache.ActiveShifts = new MongoDBDocumentCollection<
     string,
     Shifts.ShiftDocument,
-    Shifts.HydratedShiftDocument
+    Shifts.BasicHydratedShiftDocument
   >(
     ShiftModel,
     InitialRunShiftDocuments.map((Doc) => [Doc._id, Doc] as [string, Shifts.ShiftDocument])
