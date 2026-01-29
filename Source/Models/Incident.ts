@@ -172,7 +172,7 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
   last_updated: {
     type: Date,
     required: true,
-    default() {
+    default(this: IncidentPlainDoc) {
       return this.reported_on || Date.now();
     },
   },

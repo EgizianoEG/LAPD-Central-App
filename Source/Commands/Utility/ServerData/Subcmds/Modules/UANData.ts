@@ -37,7 +37,7 @@ import {
 import { Dedent } from "#Utilities/Strings/Formatters.js";
 import { Emojis } from "#Config/Shared.js";
 import { isAfter } from "date-fns";
-import { FilterQuery } from "mongoose";
+import { QueryFilter } from "mongoose";
 import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { GetErrorId, RandomString } from "#Utilities/Strings/Random.js";
 import { GenericRequestStatuses as GRStatuses } from "#Source/Config/Constants.js";
@@ -515,7 +515,7 @@ async function HandleUANDataDeleteWithDateConfirm(
   ConfirmInteract: ButtonInteraction<"cached">,
   ComparisonDate: Date,
   ComparisonType: DataDeletionWithDateType,
-  QueryFilter: FilterQuery<UserActivityNotice.UserActivityNoticeDocument>,
+  QueryFilter: QueryFilter<UserActivityNotice.UserActivityNoticeDocument>,
   IsLOA: boolean,
   NoticeStatuses: string[] = []
 ) {
@@ -589,7 +589,7 @@ async function HandleUANDataDeleteBeforeOrAfterDate(
   }
 
   const NoticeType = GetUANNoticeType(IsLOA);
-  const MatchFilter: FilterQuery<UserActivityNotice.UserActivityNoticeDocument> = {
+  const MatchFilter: QueryFilter<UserActivityNotice.UserActivityNoticeDocument> = {
     guild: BtnInteract.guildId,
     type: NoticeType,
   };

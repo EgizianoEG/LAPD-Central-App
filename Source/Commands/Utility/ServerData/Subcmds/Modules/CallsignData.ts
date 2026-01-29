@@ -26,7 +26,7 @@ import {
 import { Dedent } from "#Utilities/Strings/Formatters.js";
 import { Emojis } from "#Config/Shared.js";
 import { Callsigns } from "#Typings/Utilities/Database.js";
-import { FilterQuery } from "mongoose";
+import { QueryFilter } from "mongoose";
 import { GenericRequestStatuses } from "#Config/Constants.js";
 import { GetErrorId, RandomString } from "#Utilities/Strings/Random.js";
 import { AwaitDeleteConfirmation, SendReplyAndFetchMessage } from "../Manage.js";
@@ -324,7 +324,7 @@ function BuildStatusFilter(
     .filter((S) => S.length > 0);
 
   const NormalizedStatuses: string[] = [];
-  const StatusConditions: FilterQuery<Callsigns.CallsignDocument> = [];
+  const StatusConditions: QueryFilter<Callsigns.CallsignDocument> = [];
 
   for (const Status of Statuses) {
     if (/^(?:active|assigned|approved)$/i.test(Status)) {
@@ -390,7 +390,7 @@ async function HandleNoRecordsToTakeActionOn(
 // --------------------------
 async function HandleCallsignDataWipeConfirm(
   ConfirmInteract: ButtonInteraction<"cached">,
-  MatchFilter: FilterQuery<Callsigns.CallsignDocument>,
+  MatchFilter: QueryFilter<Callsigns.CallsignDocument>,
   FilterInputs: { div_beats?: string; unit_types?: string; beat_nums?: string },
   Statuses?: string[]
 ) {
@@ -436,7 +436,7 @@ async function HandleCallsignDataWipe(BtnInteract: ButtonInteraction<"cached">) 
   const BeatNumbersInput = ModalSubmission.fields.getTextInputValue("beat_numbers")?.trim();
   const StatusInput = ModalSubmission.fields.getTextInputValue("status")?.trim();
 
-  const MatchFilter: FilterQuery<Callsigns.CallsignDocument> = {
+  const MatchFilter: QueryFilter<Callsigns.CallsignDocument> = {
     guild: BtnInteract.guildId,
   };
 
@@ -491,7 +491,7 @@ async function HandleCallsignDataWipe(BtnInteract: ButtonInteraction<"cached">) 
 
 async function HandleCallsignDataReleaseConfirm(
   ConfirmInteract: ButtonInteraction<"cached">,
-  MatchFilter: FilterQuery<Callsigns.CallsignDocument>,
+  MatchFilter: QueryFilter<Callsigns.CallsignDocument>,
   FilterInputs: { div_beats?: string; unit_types?: string; beat_nums?: string }
 ) {
   await new InfoContainer()
@@ -552,7 +552,7 @@ async function HandleCallsignDataRelease(BtnInteract: ButtonInteraction<"cached"
   const UnitTypesInput = ModalSubmission.fields.getTextInputValue("unit_types");
   const BeatNumbersInput = ModalSubmission.fields.getTextInputValue("beat_numbers");
 
-  const MatchFilter: FilterQuery<Callsigns.CallsignDocument> = {
+  const MatchFilter: QueryFilter<Callsigns.CallsignDocument> = {
     guild: BtnInteract.guildId,
     request_status: GenericRequestStatuses.Approved,
     $or: [{ expiry: null }, { expiry: { $gt: ModalSubmission.createdAt } }],
