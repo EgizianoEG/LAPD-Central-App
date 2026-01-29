@@ -1,12 +1,12 @@
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { OSMetrics } from "#Typings/Utilities/Generic.js";
+import { OSUtils } from "node-os-utils";
 import { Client } from "discord.js";
 
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Convert from "convert-units";
 import Process from "node:process";
-import OSUtils from "node-os-utils";
 import OS from "node:os";
 
 // -----------------------------------------------------------------------------
@@ -14,6 +14,7 @@ import OS from "node:os";
 // -------------------------------
 type MData<HR extends boolean = false> = OSMetrics.OSMetricsData<HR>;
 
+const OSUtilsInstance = new OSUtils();
 const DiscordPingTimeout = 4000;
 const DatabasePingTimeout = 5000;
 
@@ -104,9 +105,10 @@ function GetMemoryDetails<Readable extends boolean = false>(
  * @returns
  */
 async function GetCPUDetails(): Promise<MData["cpu"]> {
+  const CPUUsage = await OSUtilsInstance.cpu.usage();
   return {
-    model: OSUtils.cpu.model(),
-    utilization: await OSUtils.cpu.usage(),
+    model: OSUtilsInstance.cpu.model(),
+    utilization: CPUUsage.success ? CPUUsage.data : null,
   };
 }
 
