@@ -21,53 +21,60 @@ export namespace GeneralTypings {
 }
 
 export namespace OSMetrics {
+  /**
+   * Represents a set of metrics and information about the running Node.js process and the underlying operating system.
+   *
+   * @template HR - If `true`, certain numeric fields are returned in a human-readable string format instead of as numbers.
+   */
   interface OSMetricsData<HR extends boolean = false> {
-    /** Running node version */
+    /** The version of Node.js currently running. */
     node_ver: string;
 
-    /** Process uptime in seconds or in a human-readable format if specified. */
+    /** The uptime of the Node.js process, in seconds or as a human-readable string if `HR` is `true`. */
     process_uptime: HR extends true ? string : number;
 
-    /** Package or application version. */
+    /** The version of the package or application. */
     package_ver: string;
 
     system: {
-      /** Running OS type. See {@link https://en.wikipedia.org/wiki/Uname#Examples}. */
+      /** The type of operating system (see https://en.wikipedia.org/wiki/Uname#Examples). */
       type: string;
 
-      /** Running OS platform */
+      /** The platform of the operating system (e.g., "win32", "linux"). */
       platform: "aix" | "darwin" | "freebsd" | "linux" | "openbsd" | "sunos" | "win32";
 
-      /** Running OS version */
+      /** The version of the operating system. */
       version: string;
 
-      /** System uptime in seconds or in a human-readable format if specified. */
+      /** The uptime of the operating system, in seconds or as a human-readable string if `HR` is `true`. */
       uptime: HR extends true ? string : number;
     };
 
-    /** Process CPU usage */
     cpu: {
-      /** CPU utilization in general */
-      utilization: number;
+      /** The overall CPU utilization, or `null` if unavailable. */
+      utilization: number | null;
 
-      /** CPU model */
+      /** The model of the CPU. */
       model: string;
     };
 
     memory: {
-      /** OS memory size in Megabytes */
+      /** The total memory size of the OS, in megabytes or as a human-readable string if `HR` is `true`. */
       total: HR extends true ? string : number;
 
-      /** Free OS memory in Bytes Megabytes */
+      /** The available/free memory of the OS, in megabytes or as a human-readable string if `HR` is `true`. */
       available: HR extends true ? string : number;
 
-      /** OS memory usage in Megabytes */
+      /** The used memory of the OS, in megabytes or as a human-readable string if `HR` is `true`. */
       used: HR extends true ? string : number;
 
-      /** Process memory rss in Megabytes */
+      /** The resident set size (RSS) of the process, in megabytes or as a human-readable string if `HR` is `true`. */
       rss: HR extends true ? string : number;
 
+      /** The total heap memory allocated, in megabytes or as a human-readable string if `HR` is `true`. */
       heap_total: HR extends true ? string : number;
+
+      /** The heap memory currently used, in megabytes or as a human-readable string if `HR` is `true`. */
       heap_used: HR extends true ? string : number;
     };
   }
