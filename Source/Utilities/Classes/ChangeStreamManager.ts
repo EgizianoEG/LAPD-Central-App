@@ -326,7 +326,11 @@ export default class ChangeStreamManager<T extends object> {
   }
 
   private async CleanupChangeStream(): Promise<void> {
-    if (this.Stream && !this.Stream.closed) {
+    if (
+      this.Stream &&
+      !this.Stream.closed &&
+      Mongoose.connection.readyState !== Mongoose.ConnectionStates.disconnected
+    ) {
       try {
         await this.Stream.close();
       } catch (Err) {

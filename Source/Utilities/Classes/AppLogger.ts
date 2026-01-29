@@ -186,8 +186,10 @@ const AppLogger = Winston.createLogger({
 // --------------------------------------------------------------------------------------
 // Cloud Logging on Production:
 // ----------------------------
+let LogTailInst: Logtail | null = null;
+
 if (Other.IsProdEnv && Other.LogTailSourceToken && Other.LogTailIngestingHost) {
-  const LogTailInst = new Logtail(Other.LogTailSourceToken, {
+  LogTailInst = new Logtail(Other.LogTailSourceToken, {
     endpoint: Other.LogTailIngestingHost,
     batchInterval: 2500,
     syncMax: 8,
@@ -207,6 +209,20 @@ if (Other.IsProdEnv && Other.LogTailSourceToken && Other.LogTailIngestingHost) {
       ),
     })
   );
+}
+
+// --------------------------------------------------------------------------------------
+/**
+ * Flushes pending logs to cloud. Waits for Logtail to send any batched logs
+ * before resolving. No-op if cloud logging is disabled.
+ * Timeout is 10 seconds; if flush doesn't complete in time, resolves anyway.
+ */
+export async function FlushCloudLogs(): Promise<void> {
+  if (!LogTailInst) return;
+  return Promise.race([
+    LogTailInst.flush(),
+    new Promise<void>((Resolve) => setTimeout(Resolve, 10_000)),
+  ]);
 }
 
 // --------------------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import { defaultComposer } from "default-composer";
 import { Guilds, Shifts } from "#Typings/Utilities/Database.js";
+import { ShutdownStatus } from "./ProcessShutdownHandler.js";
 import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
 import { Collection } from "discord.js";
 import { MongoDB } from "#Config/Secrets.js";
@@ -116,6 +117,7 @@ async function SetupGuildChangeStream() {
 
   GuildStream.OnDisconnected(() => {
     MongoDBCache.StreamChangeConnected.Guilds = false;
+    if (ShutdownStatus.IsShuttingDown) return GuildStream.Stop();
   });
 
   await GuildStream.Start();
@@ -158,6 +160,7 @@ async function SetupActiveShiftsChangeStream() {
 
   ActiveShiftsStream.OnDisconnected(() => {
     MongoDBCache.StreamChangeConnected.ActiveShifts = false;
+    if (ShutdownStatus.IsShuttingDown) return ActiveShiftsStream.Stop();
   });
 
   await ActiveShiftsStream.Start();
