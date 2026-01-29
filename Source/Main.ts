@@ -1,16 +1,10 @@
-/* eslint-disable sonarjs/no-duplicate-string */
-import { Client, Options, Collection, GatewayIntentBits, Status, Partials } from "discord.js";
-import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
+import { Client, Options, Collection, GatewayIntentBits, Partials } from "discord.js";
 import { Discord as DiscordSecrets } from "#Config/Secrets.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
-import Express from "express";
 import GetFiles from "#Utilities/Helpers/GetFilesFrom.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
-import FileSystem from "node:fs";
-import GetOSMetrics from "#Utilities/Helpers/GetOSMetrics.js";
-import DurHumanizer from "humanize-duration";
 AppLogger.info(Chalk.grey("=========================== New Run ==========================="));
 
 // -------------------------------------------------------------------------------------------
@@ -84,58 +78,3 @@ App.buttonListeners = new Collection();
       });
     });
 })();
-
-// -------------------------------------------------------------------------------------------
-// Express Application:
-// --------------------
-const EAppPort = process.env.PORT ?? 10_000;
-const ExpressApp = Express();
-ExpressApp.disable("x-powered-by");
-
-const NotFoundPage = FileSystem.readFileSync(
-  Path.join(import.meta.dirname, "Resources", "HTML", "404.html"),
-  { encoding: "utf-8" }
-);
-
-ExpressApp.get("/metrics", (_, Res) => {
-  GetOSMetrics(true).then((Metrics) => {
-    Res.setHeader("Content-Type", "application/json");
-    Res.end(
-      JSON.stringify(
-        {
-          message: "OK",
-          client: {
-            ready: App.isReady(),
-            websocket: {
-              ping: App.ws.ping,
-              status: Status[App.ws.status],
-            },
-            uptime: DurHumanizer(App.uptime ?? 0, {
-              conjunction: " and ",
-              largest: 4,
-              round: true,
-            }),
-          },
-          database: { status: DBStates[MongooseConnection[0].readyState] },
-          metrics: Metrics,
-        },
-        null,
-        2
-      )
-    );
-  });
-});
-
-ExpressApp.get("/", (_, Res) => {
-  Res.setHeader("Content-Type", "application/json");
-  Res.end(JSON.stringify({ message: "OK" }, null, 2));
-});
-
-ExpressApp.use((_, Res) => {
-  Res.setHeader("Content-Type", "text/html");
-  Res.end(NotFoundPage);
-});
-
-ExpressApp.listen(EAppPort, () => {
-  AppLogger.info("Express app listening on port %o.", EAppPort);
-});

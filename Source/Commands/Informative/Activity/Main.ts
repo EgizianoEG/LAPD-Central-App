@@ -1,6 +1,7 @@
 // Dependencies:
 // -------------
 import AutocompleteShiftType from "#Utilities/Autocompletion/ShiftType.js";
+import AutocompleteDateTimeExpressions from "#Utilities/Autocompletion/DateTimeExpressions.js";
 import AutocompleteTimeDuration from "../../../Utilities/Autocompletion/TimeDuration.js";
 import { secondsInDay, secondsInHour } from "date-fns/constants";
 import {
@@ -12,7 +13,6 @@ import {
   type SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
-const DateOffsets = ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"];
 const Subcommands = [
   (await import("./Subcmds/Officer.js")).default,
   (await import("./Subcmds/Report.js")).default,
@@ -40,15 +40,10 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">): Pro
 
   if (name === "shift-type") {
     Suggestions = await AutocompleteShiftType(value, Interaction.guildId);
-  } else if (name === "since" && value.match(/^\s*$/)) {
-    Suggestions = DateOffsets.map((Choice) => ({ name: Choice, value: Choice }));
-  } else if (["to", "until"].includes(name) && value.match(/^\s*$/)) {
-    Suggestions = DateOffsets.map((Choice) => ({
-      name: Choice,
-      value: Choice,
-    }));
-
-    Suggestions.unshift({ name: "today", value: "today" });
+  } else if (name === "since") {
+    Suggestions = AutocompleteDateTimeExpressions(value, { mode: "start" });
+  } else if (["to", "until"].includes(name)) {
+    Suggestions = AutocompleteDateTimeExpressions(value, { mode: "end" });
   } else if (name === "time-requirement") {
     Suggestions = AutocompleteTimeDuration(value);
   } else {

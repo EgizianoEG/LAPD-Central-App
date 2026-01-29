@@ -46,7 +46,7 @@ export const MongoDBCache = {
   ActiveShifts: new MongoDBDocCollection<
     string,
     Shifts.ShiftDocument,
-    Shifts.HydratedShiftDocument
+    Shifts.BasicHydratedShiftDocument
   >(ShiftModel),
 };
 
@@ -106,6 +106,11 @@ export const GuildAutomodRulesCache = new TTLCache<string, Collection<string, Au
 
 export const GeneralAutocompletionCache = new TTLCache<string, unknown>({
   ttl: 15 * 1000,
+  checkAgeOnGet: true,
+});
+
+export const HTTP429OccurrencesTracker = new TTLCache<string, number>({
+  ttl: 1 * 60 * 1000,
   checkAgeOnGet: true,
 });
 

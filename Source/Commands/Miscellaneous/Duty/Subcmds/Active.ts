@@ -1,5 +1,6 @@
 import {
   SlashCommandSubcommandBuilder,
+  time as FormatTime,
   APIEmbedField,
   EmbedBuilder,
   userMention,
@@ -9,6 +10,7 @@ import {
 import { Shifts } from "#Typings/Utilities/Database.js";
 import { compareAsc } from "date-fns";
 import { Colors, Emojis } from "#Config/Shared.js";
+import { ParseDateInputs } from "#Cmds/Informative/Activity/Subcmds/Officer.js";
 import { ErrorEmbed, InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { ListFormatter, ReadableDuration } from "#Utilities/Strings/Formatters.js";
 
@@ -21,9 +23,9 @@ import Chunks from "#Utilities/Helpers/SliceIntoChunks.js";
 // Constants:
 // ----------
 const ShiftsPerPage = 10;
+const PageTitle = `${Emojis.StopWatch}   Currently Active Shifts`;
 const BreakAnnotation = " ***(𝑖 )***";
 const ActiveBreakNotification = "(𝒊): Currently on break";
-const PageTitle = `${Emojis.StopWatch}   Currently Active Shifts`;
 
 // ---------------------------------------------------------------------------------------
 // Helper Functions:
@@ -33,13 +35,90 @@ const PageTitle = `${Emojis.StopWatch}   Currently Active Shifts`;
  * @param SelectedShiftTypes - Array of selected shift types.
  * @returns Formatted description text.
  */
-function GetDescriptionText(SelectedShiftTypes: string[]): string {
-  if (SelectedShiftTypes.length > 1) {
-    return `**The server's current active shifts of types: ${ListFormatter.format(
+function GetDescriptionText(
+  SelectedShiftTypes: string[],
+  TimeframeStart?: Date | null,
+  TimeframeEnd?: Date | null
+): string {
+  const IsHistoricalView = !!(TimeframeStart && TimeframeEnd);
+  const DescriptionSuffix = IsHistoricalView
+    ? `\nTimeframe: ${FormatTime(TimeframeStart, "D")}   ${FormatTime(TimeframeEnd, "D")}`
+    : "";
+
+  if (SelectedShiftTypes.length > 0) {
+    const Pl = SelectedShiftTypes.length > 1 ? "s: " : "";
+    return `The server's ${IsHistoricalView ? "" : "currently "}active shifts of type${Pl} ${ListFormatter.format(
       SelectedShiftTypes.map((t) => inlineCode(t))
-    )}.**`;
+    )}.${DescriptionSuffix}`;
   }
-  return "The server's current active shifts, categorized by type.";
+
+  return `The server's ${IsHistoricalView ? "" : "currently "}active shifts, categorized by type.${DescriptionSuffix}`;
+}
+
+/**
+ * Calculates the total on-duty time in milliseconds for a shift up to the end of a specified period.
+ *
+ * This function calculates the total elapsed time from the shift start until the period end,
+ * then subtracts any break time that occurred during that duration (breaks that started before
+ * the period end). Breaks that start after the period end are ignored.
+ *
+ * @param Shift - The hydrated shift document containing timestamp and break event data.
+ * @param PeriodEnd - The end date of the period to calculate duration up to.
+ * @returns The total number of milliseconds the user was on duty from shift start until period end.
+ * @remarks
+ * The on-duty time modifier from the shift document is added to account for any manual adjustments.
+ * @example
+ * // Shift: 10:30-10:50, Break: 10:35-10:40, Period: 10:37-10:40
+ * // Calculation: (10:40 - 10:30) - (10:40 - 10:35) = 10min - 5min = 5min
+ */
+function CalculateOnDutyTimeForPeriod(
+  Shift: Shifts.HydratedShiftDocument,
+  PeriodEnd: Date
+): number {
+  const ShiftStart = Shift.start_timestamp.getTime();
+  const EffectiveEnd = Math.min(Shift.end_timestamp?.getTime() || Date.now(), PeriodEnd.getTime());
+  const GrossTime = EffectiveEnd - ShiftStart;
+  let TotalBreakTime = 0;
+
+  for (const [BreakStart, BreakEnd] of Shift.events.breaks) {
+    if (BreakStart >= EffectiveEnd) continue;
+    const BreakEndTime = Math.min(BreakEnd || EffectiveEnd, EffectiveEnd);
+    const BreakDuration = BreakEndTime - BreakStart;
+
+    if (BreakDuration > 0) {
+      TotalBreakTime += BreakDuration;
+    }
+  }
+
+  return GrossTime - TotalBreakTime + Shift.durations.on_duty_mod;
+}
+
+/**
+ * Checks if a given shift had a break active at the end of a specified period.
+ * - If no period is provided, checks if the shift currently has an active break.
+ * - If a period is specified, returns `true` if any break was still active at `PeriodEnd`.
+ *
+ * @param Shift - The hydrated shift document to check.
+ * @param [PeriodEnd] - The end date of the period to check for an active break.
+ * @returns `true` if there is an active break at the end of the period (or currently); otherwise, `false`.
+ * @example
+ * // For a shift with a break from 10:00 to 11:00, and `PeriodEnd` at 10:30, returns `true`.
+ * // For a shift with a break from 10:00 to 11:00, and `PeriodEnd` at 11:30, returns `false`.
+ */
+function ShiftHasActiveBreak(
+  Shift: Shifts.HydratedShiftDocument,
+  PeriodEnd?: Date | null
+): boolean {
+  if (!PeriodEnd) return Shift.hasBreakActive();
+  const PeriodEndMs = PeriodEnd.getTime();
+
+  for (const [BreakStart, BreakEnd] of Shift.events.breaks) {
+    if ((BreakEnd === null || BreakEnd >= PeriodEndMs) && BreakStart <= PeriodEndMs) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -48,14 +127,23 @@ function GetDescriptionText(SelectedShiftTypes: string[]): string {
  * @param StartIndex - Optional start index for correct numbering across pages.
  * @returns A tuple containing the list of personnels on duty and a boolean indicating break notification need.
  */
-function ListShifts(ActiveShifts: Array<Shifts.HydratedShiftDocument>, StartIndex: number = 0) {
+function ListShifts(
+  ActiveShifts: Array<Shifts.HydratedShiftDocument>,
+  StartIndex: number = 0,
+  TimeframeStart?: Date | null,
+  TimeframeEnd?: Date | null
+) {
   let BreakAnnotationNeeded = false;
   const Listed: string[] = [];
 
   for (let I = 0; I < ActiveShifts.length; I++) {
     const Shift = ActiveShifts[I];
-    const BAnnotaion = Shift.hasBreakActive() ? BreakAnnotation : "";
-    const TOnDutyDuration = Shift.durations.on_duty;
+    const BAnnotaion = ShiftHasActiveBreak(Shift, TimeframeEnd) ? BreakAnnotation : "";
+    const TOnDutyDuration =
+      TimeframeStart && TimeframeEnd
+        ? CalculateOnDutyTimeForPeriod(Shift, TimeframeEnd)
+        : Shift.durations.on_duty;
+
     const Line = `${StartIndex + I + 1}. ${userMention(Shift.user)} \u{1680} ${ReadableDuration(TOnDutyDuration)} ${BAnnotaion}`;
     BreakAnnotationNeeded = BreakAnnotationNeeded || BAnnotaion.length > 0;
     Listed.push(Line);
@@ -69,10 +157,11 @@ function ListShifts(ActiveShifts: Array<Shifts.HydratedShiftDocument>, StartInde
  * @param Description - The description text for the embed.
  * @param Fields - Fields to be included in the embed.
  * @param HasBreakAnnotation - Whether to include break annotation in footer.
- * @param Timestamp - Timestamp for the embed.
+ * @param TimeframeStart - Optional start date of the timeframe.
+ * @param TimeframeEnd - Optional end date of the timeframe.
  * @returns Configured embed.
  */
-function CreateActiveShiftEmbed(
+function CreateActiveShiftsEmbed(
   Description: string,
   Fields: APIEmbedField[],
   HasBreakAnnotation: boolean
@@ -89,16 +178,19 @@ function CreateActiveShiftEmbed(
  * Creates a paginated set of embeds for a single shift type.
  * @param ShiftData - The shift data for a single type.
  * @param ShiftType - The type name.
- * @param Timestamp - Timestamp for the embeds.
+ * @param TimeframeStart - Optional start date of the timeframe.
+ * @param TimeframeEnd - Optional end date of the timeframe.
  * @returns Array of embeds.
  */
 function CreateSingleTypeEmbeds(
   ShiftData: Array<Shifts.HydratedShiftDocument>,
-  ShiftType: string
+  ShiftType: string,
+  TimeframeStart?: Date | null,
+  TimeframeEnd?: Date | null
 ): [EmbedBuilder[], boolean] {
   const Pages: EmbedBuilder[] = [];
   let HasBreakAnnotation = false;
-  const Description = `The server's current active shifts of type \`${ShiftType}\`.`;
+  const Description = GetDescriptionText([ShiftType], TimeframeStart, TimeframeEnd);
   const TotalShifts = ShiftData.length;
 
   if (TotalShifts > ShiftsPerPage) {
@@ -107,7 +199,9 @@ function CreateSingleTypeEmbeds(
     for (let PageIndex = 0; PageIndex < ShiftChunks.length; PageIndex++) {
       const [ListedShifts, AnnotationsIncluded] = ListShifts(
         ShiftChunks[PageIndex],
-        PageIndex * ShiftsPerPage
+        PageIndex * ShiftsPerPage,
+        TimeframeStart,
+        TimeframeEnd
       );
 
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
@@ -116,7 +210,7 @@ function CreateSingleTypeEmbeds(
       const FieldName = `Shifts ${StartRange}-${EndRange} of ${TotalShifts}`;
 
       Pages.push(
-        CreateActiveShiftEmbed(
+        CreateActiveShiftsEmbed(
           Description,
           [{ name: FieldName, value: ListedShifts.join("\n") }],
           HasBreakAnnotation
@@ -124,11 +218,17 @@ function CreateSingleTypeEmbeds(
       );
     }
   } else {
-    const [ListedShifts, AnnotationsIncluded] = ListShifts(ShiftData);
+    const [ListedShifts, AnnotationsIncluded] = ListShifts(
+      ShiftData,
+      undefined,
+      TimeframeStart,
+      TimeframeEnd
+    );
+
     const ShiftCountText = ListedShifts.length > 1 ? ` - ${ListedShifts.length}` : "";
     HasBreakAnnotation = AnnotationsIncluded;
     Pages.push(
-      CreateActiveShiftEmbed(
+      CreateActiveShiftsEmbed(
         Description,
         [{ name: `Shifts${ShiftCountText}`, value: ListedShifts.join("\n") }],
         HasBreakAnnotation
@@ -143,12 +243,15 @@ function CreateSingleTypeEmbeds(
  * Processes shifts for multiple types pagination.
  * @param GroupedShifts - Shifts grouped by type.
  * @param Description - Description text for the embeds.
- * @param Timestamp - Timestamp for the embeds.
+ * @param TimeframeStart - Optional start date of the timeframe.
+ * @param TimeframeEnd - Optional end date of the timeframe.
  * @returns Array of embeds.
  */
 function ProcessMultiTypeShifts(
   GroupedShifts: Record<string, Array<Shifts.HydratedShiftDocument>>,
-  Description: string
+  Description: string,
+  TimeframeStart?: Date | null,
+  TimeframeEnd?: Date | null
 ): EmbedBuilder[] {
   const Pages: EmbedBuilder[] = [];
   let HasBreakAnnotation = false;
@@ -163,7 +266,13 @@ function ProcessMultiTypeShifts(
     const Fields: Array<APIEmbedField> = [];
 
     for (const [ShiftType, ActiveShifts] of Object.entries(GroupedShifts)) {
-      const [ListedShifts, AnnotationsIncluded] = ListShifts(ActiveShifts);
+      const [ListedShifts, AnnotationsIncluded] = ListShifts(
+        ActiveShifts,
+        undefined,
+        TimeframeStart,
+        TimeframeEnd
+      );
+
       const ShiftsUnderTypeCountText = ActiveShifts.length > 1 ? ` - ${ActiveShifts.length}` : "";
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
 
@@ -173,7 +282,7 @@ function ProcessMultiTypeShifts(
       });
     }
 
-    Pages.push(CreateActiveShiftEmbed(Description, Fields, HasBreakAnnotation));
+    Pages.push(CreateActiveShiftsEmbed(Description, Fields, HasBreakAnnotation));
     return Pages;
   }
 
@@ -203,8 +312,13 @@ function ProcessMultiTypeShifts(
       const AvailableSpace = ShiftsPerPage - CurrentPageShiftCount;
       const ShiftsToTake = Math.min(RemainingTypeShifts.length, AvailableSpace);
       const ShiftsToProcess = RemainingTypeShifts.slice(0, ShiftsToTake);
+      const [ListedShifts, AnnotationsIncluded] = ListShifts(
+        ShiftsToProcess,
+        ShiftsProcessed,
+        TimeframeStart,
+        TimeframeEnd
+      );
 
-      const [ListedShifts, AnnotationsIncluded] = ListShifts(ShiftsToProcess, ShiftsProcessed);
       CurrentPageHasBreakAnnotation = CurrentPageHasBreakAnnotation || AnnotationsIncluded;
       HasBreakAnnotation = HasBreakAnnotation || AnnotationsIncluded;
 
@@ -229,7 +343,7 @@ function ProcessMultiTypeShifts(
 
     if (CurrentPageFields.length > 0) {
       Pages.push(
-        CreateActiveShiftEmbed(Description, CurrentPageFields, CurrentPageHasBreakAnnotation)
+        CreateActiveShiftsEmbed(Description, CurrentPageFields, CurrentPageHasBreakAnnotation)
       );
     }
   }
@@ -241,28 +355,29 @@ function ProcessMultiTypeShifts(
  * Returns formatted informative embeds displaying the active shifts, paginated as needed.
  * @param ActiveGroupedShifts - Object containing shifts sorted and grouped by shift type.
  * @param SelectedShiftTypes - Array of selected shift types.
- * @param CurrentTimestamp - Timestamp of the data retrieval, to be stated in footer.
+ * @param TimeframeStart - Optional start date of the timeframe.
+ * @param TimeframeEnd - Optional end date of the timeframe.
  * @returns Array of `EmbedBuilder` pages.
  */
 function BuildActiveShiftEmbedPages(
   ActiveGroupedShifts: Record<string, Array<Shifts.HydratedShiftDocument>>,
-  SelectedShiftTypes: string[]
+  SelectedShiftTypes: string[],
+  TimeframeStart?: Date | null,
+  TimeframeEnd?: Date | null
 ): EmbedBuilder[] {
-  let Pages: EmbedBuilder[] = [];
-
   if (SelectedShiftTypes.length === 1) {
     const [TypePages] = CreateSingleTypeEmbeds(
       ActiveGroupedShifts[SelectedShiftTypes[0]],
-      SelectedShiftTypes[0]
+      SelectedShiftTypes[0],
+      TimeframeStart,
+      TimeframeEnd
     );
 
-    Pages = TypePages;
+    return TypePages;
   } else {
-    const Description = GetDescriptionText(SelectedShiftTypes);
-    Pages = ProcessMultiTypeShifts(ActiveGroupedShifts, Description);
+    const Description = GetDescriptionText(SelectedShiftTypes, TimeframeStart, TimeframeEnd);
+    return ProcessMultiTypeShifts(ActiveGroupedShifts, Description, TimeframeStart, TimeframeEnd);
   }
-
-  return Pages;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -276,14 +391,32 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       .replyToInteract(Interaction, true, false);
   }
 
-  const ActiveShifts = await ShiftModel.find({
+  const ParsedTimeframe = await ParseDateInputs(Interaction, { from: "from", to: "to" });
+  if (ParsedTimeframe === true) return;
+
+  const TimeframeStart = ParsedTimeframe.since;
+  const TimeframeEnd = ParsedTimeframe.until;
+  const IsHistoricalView = !!(TimeframeStart && TimeframeEnd);
+
+  let QueryFilter: any = {
     type: TargetShiftTypes.length ? { $in: ValidShiftTypes } : { $type: "string" },
     guild: Interaction.guildId,
-    end_timestamp: null,
-  });
+  };
 
-  const GAShifts = Object.groupBy(ActiveShifts, ({ type }) => type);
-  const ASOrdered = Object.entries(GAShifts as unknown as UnPartial<typeof GAShifts>)
+  if (IsHistoricalView) {
+    QueryFilter = {
+      ...QueryFilter,
+      start_timestamp: { $lte: TimeframeStart },
+      $or: [{ end_timestamp: null }, { end_timestamp: { $gte: TimeframeEnd } }],
+    };
+  } else {
+    QueryFilter.end_timestamp = null;
+  }
+
+  const ActiveShifts = await ShiftModel.find(QueryFilter);
+  const TGActiveShifts = Object.groupBy(ActiveShifts, ({ type }) => type);
+
+  const ASOrdered = Object.entries(TGActiveShifts as unknown as UnPartial<typeof TGActiveShifts>)
     .sort((a, b) => b[1].length - a[1].length)
     .reduce((obj, [key, value]) => {
       obj[key] = value.toSorted((a, b) => {
@@ -296,13 +429,16 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     return HandlePagePagination({
       interact: Interaction,
       context: "Commands:Miscellaneous:Duty:Active",
-      pages: BuildActiveShiftEmbedPages(ASOrdered, ValidShiftTypes),
+      pages: BuildActiveShiftEmbedPages(ASOrdered, ValidShiftTypes, TimeframeStart, TimeframeEnd),
     });
   } else {
     const PluralSTT = ValidShiftTypes.length > 1 ? "types" : "type";
+    const TimeframeText = IsHistoricalView ? " during the specified timeframe" : " at this moment";
+    const CurrentStateVerb = IsHistoricalView ? "were" : "are";
+
     const RespEmbedDesc = ValidShiftTypes.length
-      ? `There are no active shifts at this moment for the specified shift ${PluralSTT}.`
-      : "There are no active shifts at this moment.";
+      ? `There ${CurrentStateVerb} no active shifts${TimeframeText} for the specified shift ${PluralSTT}.`
+      : `There ${CurrentStateVerb} no active shifts${TimeframeText}.`;
 
     return new InfoEmbed()
       .setTitle("No Active Shifts")
@@ -323,11 +459,31 @@ const CommandObject = {
     )
     .addStringOption((Option) =>
       Option.setName("type")
-        .setDescription("The type(s) of duty shift to display.")
+        .setDescription(
+          "Filter by shift type. Leave blank to show all active shifts regardless of type."
+        )
         .setMinLength(3)
         .setMaxLength(40)
         .setRequired(false)
         .setAutocomplete(true)
+    )
+    .addStringOption((Option) =>
+      Option.setName("from")
+        .setDescription("The start date of the timeframe. Leave blank for current active shifts.")
+        .setMinLength(2)
+        .setMaxLength(40)
+        .setAutocomplete(true)
+        .setAutocomplete(true)
+        .setRequired(false)
+    )
+    .addStringOption((Option) =>
+      Option.setName("to")
+        .setDescription("The end date of the timeframe. Leave blank for current active shifts.")
+        .setMinLength(2)
+        .setMaxLength(40)
+        .setAutocomplete(true)
+        .setAutocomplete(true)
+        .setRequired(false)
     ),
 };
 

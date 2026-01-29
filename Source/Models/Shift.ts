@@ -143,9 +143,8 @@ ShiftSchema.virtual("on_break_time").get(function () {
   return ReadableDuration(this.durations.on_break, { largest: 3 });
 });
 
-ShiftSchema.pre("save", function (next) {
-  UpdateShiftDurations(this);
-  next();
+ShiftSchema.pre("save", async function () {
+  return UpdateShiftDurations(this);
 });
 
 for (const [MethodName, MethodFunc] of Object.entries(ShiftInstFuncs)) {

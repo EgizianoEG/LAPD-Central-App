@@ -393,12 +393,19 @@ export namespace Guilds {
 }
 
 export namespace Shifts {
-  type HydratedShiftDocument<IsActive extends boolean | undefined = undefined> = HydratedDocument<
-    ShiftDocument<true, IsActive>,
-    ShiftDocumentOverrides
-  >;
+  type HydratedShiftDocument<IsActive extends boolean | undefined = undefined> =
+    IsActive extends undefined
+      ?
+          | HydratedDocument<ShiftDocument<true, true>, ShiftDocumentOverrides>
+          | HydratedDocument<ShiftDocument<true, any>, ShiftDocumentOverrides>
+      : HydratedDocument<ShiftDocument<true, IsActive>, ShiftDocumentOverrides>;
 
-  interface ShiftModel extends Model<Shifts.ShiftDocument, unknown, Shifts.ShiftDocumentOverrides> {
+  interface BasicHydratedShiftDocument
+    extends HydratedDocument<ShiftDocument, ShiftDocumentOverrides> {
+    id: string;
+  }
+
+  interface ShiftModelStatics {
     /**
      * Starts a new shift for a user in a specific guild, ensuring that no duplicate active shifts exist.
      * This function atomically checks if the user already has an active shift (i.e., a shift without an `end_timestamp`)
@@ -419,6 +426,20 @@ export namespace Shifts {
       opts: Required<Pick<Shifts.ShiftDocument, "user" | "guild">> & Partial<Shifts.ShiftDocument>
     ): Promise<Shifts.HydratedShiftDocument<true>>;
   }
+
+  interface ShiftModel
+    extends Model<
+        Shifts.ShiftDocument,
+        unknown,
+        Shifts.ShiftDocumentOverrides,
+        unknown,
+        BasicHydratedShiftDocument
+      >,
+      ShiftModelStatics {}
+
+  // interface ShiftModel<Active extends boolean | undefined = false>
+  //   extends Model<ShiftDocument<true, Active>, unknown, ShiftDocumentOverrides>,
+  //     ShiftModelStatics {}
 
   interface ShiftDurations {
     /**
@@ -702,6 +723,14 @@ export namespace GuildProfiles {
     /** Roblox linked account information. */
     linked_account: {
       roblox_user_id: number;
+    };
+
+    /**
+     * User preferences and settings.
+     */
+    preferences: {
+      /** Whether to send DM shift end reports. */
+      dm_shift_reports: boolean;
     };
 
     /** User activity notice records. */

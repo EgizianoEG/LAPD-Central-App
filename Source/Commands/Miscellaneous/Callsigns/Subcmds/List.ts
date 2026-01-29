@@ -30,7 +30,7 @@ import { Emojis } from "#Config/Shared.js";
 import { Callsigns } from "#Typings/Utilities/Database.js";
 import { GenericRequestStatuses } from "#Config/Constants.js";
 import { HandleUnauthorizedManagement } from "#Source/Events/InteractionCreate/CallsignManagementHandler.js";
-import { isValidObjectId, RootFilterQuery } from "mongoose";
+import { isValidObjectId, QueryFilter } from "mongoose";
 
 import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
 import CallsignModel from "#Models/Callsign.js";
@@ -196,7 +196,7 @@ async function CmdCallback(Interaction: SlashCommandInteraction<"cached">) {
   if (IsUnauthorized) return;
 
   const IsPrivate = Interaction.options.getBoolean("private", false) ?? false;
-  const QueryFilter: RootFilterQuery<Callsigns.CallsignDocument> = {
+  const QueryFilter: QueryFilter<Callsigns.CallsignDocument> = {
     guild: Interaction.guildId,
     request_status: GenericRequestStatuses.Pending,
   };

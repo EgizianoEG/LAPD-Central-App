@@ -79,7 +79,7 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
     type: String,
     enum: Object.values(CitationTypes),
     required: true,
-    default() {
+    default(this: CitationPlainDoc) {
       return this.fine_amount ? CitationTypes.Fine : CitationTypes.Warning;
     },
   },

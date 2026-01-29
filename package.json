@@ -1,6 +1,6 @@
 {
   "name": "lapd-central-bot",
-  "version": "1.10.1",
+  "version": "1.11.0",
   "description": "A discord.js bot designed to be used as a helper to LAPD-themed Roblox roleplay communities.",
   "author": "EgizianoEG",
   "license": "MIT",
@@ -57,7 +57,7 @@
     "humanize-duration": "^3.33.0",
     "jsbarcode": "^3.12.1",
     "linkifyjs": "^4.3.2",
-    "mongoose": "^8.19.1",
+    "mongoose": "^9.1.5",
     "noblox.js": "^6.2.0",
     "node-cron": "^4.2.1",
     "node-ffi-rs": "^1.3.0",

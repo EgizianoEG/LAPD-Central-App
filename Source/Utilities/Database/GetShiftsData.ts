@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import type { PropertiesToString } from "utility-types";
 import type { Shifts } from "#Typings/Utilities/Database.js";
-import type { FilterQuery } from "mongoose";
+import type { QueryFilter } from "mongoose";
+import type { PropertiesToString } from "utility-types";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import ShiftModel, { ShiftFlags } from "#Models/Shift.js";
 import GetGuildSettings from "./GetGuildSettings.js";
@@ -44,27 +44,27 @@ export type UserMainShiftsData = {
  * - `frequent_shift_type`: The shift type with the highest total on-duty time.
  */
 export default async function GetMainShiftsData(
-  InputQueryFilter: FilterQuery<Shifts.ShiftDocument>,
+  InputQueryFilter: QueryFilter<Shifts.ShiftDocument> & { guild: string },
   HasActiveShift: boolean = false
 ) {
-  const QueryFilter = { ...InputQueryFilter };
-  QueryFilter.type = QueryFilter.type || { $exists: true };
+  const Filter = { ...InputQueryFilter };
+  Filter.type = Filter.type || { $exists: true };
 
-  if (typeof QueryFilter.end_timestamp === "object" && QueryFilter.end_timestamp !== null) {
-    QueryFilter.end_timestamp = {
+  if (typeof Filter.end_timestamp === "object" && Filter.end_timestamp !== null) {
+    Filter.end_timestamp = {
       $ne: null,
-      ...QueryFilter.end_timestamp,
+      ...Filter.end_timestamp,
     };
   } else {
-    QueryFilter.end_timestamp = { $ne: null };
+    Filter.end_timestamp = { $ne: null };
   }
 
-  const ServerSetShiftQuota = await GetGuildSettings(QueryFilter.guild)
+  const ServerSetShiftQuota = await GetGuildSettings(Filter.guild)
     .then((Settings) => Settings?.shift_management.default_quota || 0)
     .catch(() => 0);
 
   return ShiftModel.aggregate<UserMainShiftsData>([
-    { $match: QueryFilter },
+    { $match: Filter as Record<string, unknown> },
     {
       $addFields: {
         total_duration: {

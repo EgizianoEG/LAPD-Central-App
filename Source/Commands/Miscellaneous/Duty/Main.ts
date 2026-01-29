@@ -8,6 +8,7 @@ import {
   SlashCommandSubcommandsOnlyBuilder,
 } from "discord.js";
 
+import AutocompleteDateTimeExpressions from "#Utilities/Autocompletion/DateTimeExpressions.js";
 import DutyTypesSubcommandGroup from "./Duty Types/Main.js";
 import AutocompleteShiftType from "#Utilities/Autocompletion/ShiftType.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
@@ -86,13 +87,16 @@ async function Autocomplete(Interaction: AutocompleteInteraction<"cached">) {
   const SubcommandGroup = Interaction.options.getSubcommandGroup();
   const SubcommandName = Interaction.options.getSubcommand();
 
-  if (name === "since" && value.match(/^\s*$/)) {
-    return Interaction.respond(
-      ["yesterday", "3 days ago", "7 days ago", "14 days ago", "30 days ago"].map((Choice) => ({
-        name: Choice,
-        value: Choice,
-      }))
-    );
+  if (name === "since") {
+    return Interaction.respond(AutocompleteDateTimeExpressions(value, { mode: "start" }));
+  }
+
+  if (name === "from" && SubcommandName === "active") {
+    return Interaction.respond(AutocompleteDateTimeExpressions(value, { mode: "start" }));
+  }
+
+  if (name === "to" && SubcommandName === "active") {
+    return Interaction.respond(AutocompleteDateTimeExpressions(value, { mode: "end" }));
   }
 
   if (
