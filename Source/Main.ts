@@ -1,20 +1,10 @@
-/* eslint-disable sonarjs/no-duplicate-string */
-import { Client, Options, Collection, GatewayIntentBits, Status, Partials } from "discord.js";
-import { connections as MongooseConnection } from "mongoose";
+import { Client, Options, Collection, GatewayIntentBits, Partials } from "discord.js";
 import { Discord as DiscordSecrets } from "#Config/Secrets.js";
-import {
-  CollectHealthMetrics,
-  GetOSMetrics,
-  AppResponse,
-} from "#Source/Utilities/Helpers/MetricsCollector.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
-import Express from "express";
 import GetFiles from "#Utilities/Helpers/GetFilesFrom.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
-import FileSystem from "node:fs";
-import DurHumanizer from "humanize-duration";
 AppLogger.info(Chalk.grey("=========================== New Run ==========================="));
 
 // -------------------------------------------------------------------------------------------
@@ -88,84 +78,3 @@ App.buttonListeners = new Collection();
       });
     });
 })();
-
-// -------------------------------------------------------------------------------------------
-// Express Application:
-// --------------------
-const EAppPort = process.env.PORT ?? 10_000;
-const ExpressApp = Express();
-ExpressApp.disable("x-powered-by");
-
-const NotFoundPage = FileSystem.readFileSync(
-  Path.join(import.meta.dirname, "Resources", "HTML", "404.html"),
-  { encoding: "utf-8" }
-);
-
-ExpressApp.get("/metrics", async (_, Res) => {
-  const HealthMetrics = await CollectHealthMetrics(App);
-  const OSMetrics = await GetOSMetrics(true);
-
-  Res.status(HealthMetrics.status === "healthy" ? 200 : 503)
-    .setHeader("Content-Type", "application/json")
-    .end(
-      JSON.stringify(
-        {
-          status: HealthMetrics.status,
-          timestamp: new Date().toISOString(),
-          client: {
-            ready: App.isReady(),
-            ratelimited: AppResponse.ratelimited,
-            websocket: {
-              ping: App.ws.ping,
-              status: Status[App.ws.status],
-            },
-            api_latency: {
-              latency: HealthMetrics.discord.latency,
-              healthy: HealthMetrics.discord.healthy,
-            },
-            uptime: DurHumanizer(App.uptime ?? 0, {
-              conjunction: " and ",
-              largest: 4,
-              round: true,
-            }),
-          },
-          database: HealthMetrics.database,
-          os_metrics: OSMetrics,
-        },
-        null,
-        2
-      )
-    );
-});
-
-ExpressApp.get("/health", (_, Res) => {
-  const IsHealthy =
-    App.isReady() && MongooseConnection[0].readyState === 1 && !AppResponse.ratelimited;
-
-  if (IsHealthy) {
-    Res.status(200).json({ status: "healthy" });
-  } else {
-    Res.status(503).json({
-      status: "unhealthy",
-      checks: {
-        discord: App.isReady(),
-        database: MongooseConnection[0].readyState === 1,
-        ratelimited: !AppResponse.ratelimited,
-      },
-    });
-  }
-});
-
-ExpressApp.get("/", (_, Res) => {
-  Res.setHeader("Content-Type", "application/json");
-  Res.end(JSON.stringify({ message: "OK" }, null, 2));
-});
-
-ExpressApp.use((_, Res) => {
-  Res.setHeader("Content-Type", "text/html");
-  Res.end(NotFoundPage);
-});
-
-ExpressApp.listen(EAppPort, () => {
-  AppLogger.info("Express app listening on port %o.", EAppPort);
-});

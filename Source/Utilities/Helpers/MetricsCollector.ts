@@ -14,7 +14,11 @@ import OS from "node:os";
 // -------------------------------
 type MData<HR extends boolean = false> = OSMetrics.OSMetricsData<HR>;
 
+const DiscordPingTimeout = 4000;
+const DatabasePingTimeout = 5000;
+
 export const AppResponse = {
+  /* Indicates whether the application is currently rate-limited by Discord API or Cloudflare. */
   ratelimited: false,
 };
 
@@ -149,7 +153,13 @@ export async function GetDatabaseLatency(): Promise<number | null> {
   try {
     const Start = Date.now();
     const TimeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Database ping timeout.")), 5000)
+      setTimeout(
+        () =>
+          reject(
+            new Error(`Discord ping timed out after ${(DatabasePingTimeout / 60).toFixed(1)}s.`)
+          ),
+        DatabasePingTimeout
+      )
     );
 
     await Promise.race([MongooseConnection[0].db.admin().ping(), TimeoutPromise]);
@@ -170,7 +180,7 @@ export async function GetDatabaseLatency(): Promise<number | null> {
  * @param DiscordApp - The Discord client instance.
  * @returns Latency in milliseconds, `-1` if failed, or `null` if not ready.
  */
-export async function GetDiscordApiLatency(DiscordApp: Client): Promise<number | null> {
+export async function GetDiscordAPILatency(DiscordApp: Client): Promise<number | null> {
   if (!DiscordApp.isReady()) {
     return null;
   }
@@ -178,7 +188,13 @@ export async function GetDiscordApiLatency(DiscordApp: Client): Promise<number |
   try {
     const Start = Date.now();
     const TimeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Discord ping timeout.")), 5000)
+      setTimeout(
+        () =>
+          reject(
+            new Error(`Discord ping timed out after ${(DiscordPingTimeout / 60).toFixed(1)}s.`)
+          ),
+        DiscordPingTimeout
+      )
     );
 
     await Promise.race([DiscordApp.user.fetch(), TimeoutPromise]);
@@ -202,7 +218,7 @@ export async function GetDiscordApiLatency(DiscordApp: Client): Promise<number |
 export async function CollectHealthMetrics(DiscordApp: Client): Promise<HealthMetrics> {
   const [DBLatency, DiscordApiLatency] = await Promise.all([
     GetDatabaseLatency(),
-    GetDiscordApiLatency(DiscordApp),
+    GetDiscordAPILatency(DiscordApp),
   ]);
 
   const IsHealthy =
@@ -223,7 +239,7 @@ export async function CollectHealthMetrics(DiscordApp: Client): Promise<HealthMe
     },
     discord: {
       latency: DiscordApiLatency,
-      healthy: DiscordApiLatency !== null && DiscordApiLatency >= 0 && DiscordApiLatency < 2000,
+      healthy: DiscordApiLatency !== null && DiscordApiLatency >= 0 && DiscordApiLatency < 2500,
     },
   };
 }
