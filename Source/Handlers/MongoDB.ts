@@ -21,8 +21,8 @@ const TrackedShiftFlags: readonly ShiftFlags[] = [
 
 Mongoose.Schema.Types.String.checkRequired((v: string | null | undefined) => v != null);
 export default async function MongoDBHandler() {
-  const MaxRetries = 5;
-  const BaseDelay = 2000;
+  const MaxRetries = 8;
+  const BaseDelay = 2500;
   const DatabaseURI = MongoDB.URI.replace(
     /<username>:<password>/,
     `${MongoDB.Username}:${MongoDB.UserPass}`
