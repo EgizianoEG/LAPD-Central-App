@@ -1,6 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 // Credits for icons goes to Meteocons, Bas Milius, https://github.com/basmilius/weather-icons
-import { Icons } from "@Config/Shared.js";
+import { Icons } from "#Config/Shared.js";
 
 const IconMap = {
   200: {

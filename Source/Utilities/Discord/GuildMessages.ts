@@ -1,4 +1,4 @@
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import {
   type Message,
   type Interaction,

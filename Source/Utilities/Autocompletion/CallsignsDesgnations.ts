@@ -1,11 +1,11 @@
 import type { ApplicationCommandOptionChoiceData, GuildMember } from "discord.js";
-import { ServiceUnitTypes, DivisionBeats } from "@Resources/LAPDCallsigns.js";
-import { GeneralAutocompletionCache } from "@Utilities/Helpers/Cache.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { Callsigns, Guilds } from "@Typings/Utilities/Database.js";
+import { ServiceUnitTypes, DivisionBeats } from "#Resources/LAPDCallsigns.js";
+import { GeneralAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { Callsigns, Guilds } from "#Typings/Utilities/Database.js";
 import { RootFilterQuery } from "mongoose";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import CallsignModel from "@Models/Callsign.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import CallsignModel from "#Models/Callsign.js";
 
 // ---------------------------------------------------------------------------------------
 // Autocompletion Functions:

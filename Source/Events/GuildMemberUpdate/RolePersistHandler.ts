@@ -1,8 +1,8 @@
 import TTLCache from "@isaacs/ttlcache";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import RolePersistenceModel from "@Models/RolePersist.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import RolePersistenceModel from "#Models/RolePersist.js";
 import { differenceInMilliseconds } from "date-fns";
-import { RiskyRolePermissions } from "@Config/Constants.js";
+import { RiskyRolePermissions } from "#Config/Constants.js";
 import {
   Role,
   GuildMember,
@@ -82,14 +82,6 @@ export default async function OnMemberUpdateRolePersistHandler(
   // Recently joined member
   if (IsOnboardingEnabled) {
     if (!IsScreeningComplete || !IsOnboardingComplete) {
-      AppLogger.debug({
-        message: "Skipping role persistence; awaiting screening/onboarding completion.",
-        label: FileLabel,
-        user_id: UpdatedMember.id,
-        guild_id: UpdatedMember.guild.id,
-        screening_complete: IsScreeningComplete,
-        onboarding_complete: IsOnboardingComplete,
-      });
       return;
     }
 

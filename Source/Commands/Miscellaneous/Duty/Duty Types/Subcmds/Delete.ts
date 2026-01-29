@@ -11,14 +11,14 @@ import {
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import { ShiftTypeExists } from "@Utilities/Database/ShiftTypeValidators.js";
-import { IsValidShiftTypeName } from "@Utilities/Helpers/Validators.js";
-import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ShiftTypeExists } from "#Utilities/Database/ShiftTypeValidators.js";
+import { IsValidShiftTypeName } from "#Utilities/Helpers/Validators.js";
+import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
 import Dedent from "dedent";
-import DeleteShiftType from "@Utilities/Database/DeleteShiftType.js";
-import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
-import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
+import DeleteShiftType from "#Utilities/Database/DeleteShiftType.js";
+import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
+import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

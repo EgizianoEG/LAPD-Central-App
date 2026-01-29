@@ -1,7 +1,7 @@
 import { BaseInteraction, GuildMember, PermissionFlagsBits } from "discord.js";
 import { IsPlainObject, IsEmptyObject } from "../Helpers/Validators.js";
-import { GeneralTypings } from "@Typings/Utilities/Generic.js";
-import { App as Client } from "@DiscordApp";
+import { GeneralTypings } from "#Typings/Utilities/Generic.js";
+import { App as Client } from "#DiscordApp";
 import { DeepPartial } from "utility-types";
 import GetGuildSettings from "./GetGuildSettings.js";
 

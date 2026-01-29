@@ -1,8 +1,8 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from "discord.js";
-import { IsValidIncidentNum } from "@Utilities/Helpers/Validators.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import GetIncidentRecord from "@Utilities/Database/GetIncidentRecord.js";
-import GetIncidentReportEmbeds from "@Utilities/Reports/GetIncidentReportEmbeds.js";
+import { IsValidIncidentNum } from "#Utilities/Helpers/Validators.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import GetIncidentRecord from "#Utilities/Database/GetIncidentRecord.js";
+import GetIncidentReportEmbeds from "#Utilities/Reports/GetIncidentReportEmbeds.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

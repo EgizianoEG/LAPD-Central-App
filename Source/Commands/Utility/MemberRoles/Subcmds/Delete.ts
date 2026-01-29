@@ -2,10 +2,10 @@
 // -------------
 
 import { Types } from "mongoose";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { SuccessContainer } from "@Utilities/Classes/ExtraContainers.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { SuccessContainer } from "#Utilities/Classes/ExtraContainers.js";
 import { SlashCommandSubcommandBuilder, channelLink, time } from "discord.js";
-import MSRolesModel from "@Models/MemberRoles.js";
+import MSRolesModel from "#Models/MemberRoles.js";
 import Dedent from "dedent";
 
 // ---------------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
-import { APIResponses, OpenCloud } from "@Typings/External/Roblox.js";
-import { Dedent, FormatUsername } from "@Utilities/Strings/Formatters.js";
-import { GuildCitations } from "@Typings/Utilities/Database.js";
-import { UpperFirst } from "@Utilities/Strings/Converters.js";
+import { APIResponses, OpenCloud } from "#Typings/External/Roblox.js";
+import { Dedent, FormatUsername } from "#Utilities/Strings/Formatters.js";
+import { GuildCitations } from "#Typings/Utilities/Database.js";
+import { UpperFirst } from "#Utilities/Strings/Converters.js";
 import {
   time,
   Colors,

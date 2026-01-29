@@ -1,10 +1,10 @@
 import { add, sub, isAfter, differenceInHours, milliseconds } from "date-fns";
 import { Collection, Guild, GuildMember, Role } from "discord.js";
-import { AggregateResults } from "@Typings/Utilities/Database.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
+import { AggregateResults } from "#Typings/Utilities/Database.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import GetGuildSettings from "./GetGuildSettings.js";
-import ProfileModel from "@Models/GuildProfile.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import ShiftModel from "#Models/Shift.js";
+import AppError from "#Utilities/Classes/AppError.js";
 
 interface GetActivityReportDataOpts {
   /** The guild to get the activity report data for. */
@@ -27,6 +27,13 @@ interface GetActivityReportDataOpts {
 
   /** Whether or not to include member nicknames in the activity report data. Defaults to `false`. */
   include_member_nicknames?: boolean;
+
+  /**
+   * Whether or not to include non-staff members in the activity report data if and only if they got any shift time recorded.
+   * This will take into account members with staff/management roles as well as members without those roles but have recorded shift time (e.g., retired staff).
+   * @default false
+   */
+  include_non_staff?: boolean;
 }
 
 interface UserEnteredValue {
@@ -118,23 +125,28 @@ export default async function GetActivityReportData(
     });
 
     Opts.members = Opts.members.filter((Member) => {
-      const HasStaffMgmtRoles = Member.roles.cache.hasAny(...GuildStaffMgmtRoles);
-      const HasShiftTypeRoles = ValidShiftTypes.some((ShiftType) =>
-        Member.roles.cache.hasAny(...ShiftType.access_roles)
-      );
+      const HasStaffMgmtRoles = Opts.include_non_staff
+        ? true
+        : Member.roles.cache.hasAny(...GuildStaffMgmtRoles);
+
+      const HasShiftTypeRoles = Opts.include_non_staff
+        ? true
+        : ValidShiftTypes.some((ShiftType) => Member.roles.cache.hasAny(...ShiftType.access_roles));
 
       return HasStaffMgmtRoles && HasShiftTypeRoles && !Member.user.bot;
     });
   } else {
     Opts.members = Opts.members.filter(
-      (Member) => Member.roles.cache.hasAny(...GuildStaffMgmtRoles) && !Member.user.bot
+      (Member) =>
+        (Opts.include_non_staff ? true : Member.roles.cache.hasAny(...GuildStaffMgmtRoles)) &&
+        !Member.user.bot
     );
   }
 
   const RetrieveDate = Opts.until ?? new Date();
-  const RecordsBaseData = await ProfileModel.aggregate<
-    AggregateResults.BaseActivityReportData["records"][number]
-  >(CreateActivityReportAggregationPipeline({ ...Opts, shift_type: SpecifiedShiftTypes })).exec();
+  const RecordsBaseData = (await ShiftModel.aggregate(
+    CreateActivityReportAggregationPipeline({ ...Opts, shift_type: SpecifiedShiftTypes }) as any[]
+  ).exec()) as AggregateResults.BaseActivityReportData["records"];
 
   if (!RecordsBaseData.length) {
     throw new AppError({
@@ -152,6 +164,14 @@ export default async function GetActivityReportData(
         ? ReadableDuration(TotalShiftTimeCombined / RecordsBaseData.length)
         : "Insufficient Data",
   };
+
+  if (Opts.include_non_staff) {
+    const MemberIdsWithRecords = new Set(RecordsBaseData.map((R) => R.id));
+    Opts.members = Opts.members.filter((Member) => {
+      const HasStaffMgmtRoles = Member.roles.cache.hasAny(...GuildStaffMgmtRoles);
+      return HasStaffMgmtRoles || MemberIdsWithRecords.has(Member.id);
+    });
+  }
 
   const ProcessedMemberIds = new Set<string>();
   const MembersById = new Map(Opts.members.map((Member) => [Member.id, Member]));
@@ -181,21 +201,6 @@ export default async function GetActivityReportData(
           isAfter(LOANotice.end_date, RetrieveDate)
         ) {
           IsLeaveActive = true;
-          const StartCurrentDatesDifferenceInDays =
-            differenceInHours(RetrieveDate, LOANotice.review_date) / 24;
-
-          if (StartCurrentDatesDifferenceInDays <= 2.5) {
-            const RelativeDuration = ReadableDuration(
-              RetrieveDate.getTime() - LOANotice.review_date.getTime(),
-              {
-                conjunction: " and ",
-                largest: 2,
-                round: true,
-              }
-            );
-
-            NoticeNotes.leave = `Leave of absence started around ${RelativeDuration} ago.\nApproved by: @${LOANotice.reviewed_by.username}`;
-          }
         } else {
           const NoticeEndDate = LOANotice.early_end_date || LOANotice.end_date;
           const EndCurrentDatesDifferenceInDays =
@@ -215,21 +220,16 @@ export default async function GetActivityReportData(
           }
         }
       } else if (LOANotice.status === "Pending" && LOANotice.review_date === null) {
-        const RequestCurrentDatesDifferenceInDays =
-          differenceInHours(RetrieveDate, LOANotice.request_date) / 24;
+        const RelativeDuration = ReadableDuration(
+          RetrieveDate.getTime() - LOANotice.request_date.getTime(),
+          {
+            conjunction: " and ",
+            largest: 2,
+            round: true,
+          }
+        );
 
-        if (RequestCurrentDatesDifferenceInDays <= 3) {
-          const RelativeDuration = ReadableDuration(
-            RetrieveDate.getTime() - LOANotice.request_date.getTime(),
-            {
-              conjunction: " and ",
-              largest: 2,
-              round: true,
-            }
-          );
-
-          NoticeNotes.leave = `An unapproved leave of absence request was submitted around ${RelativeDuration} ago.`;
-        }
+        NoticeNotes.leave = `An unapproved leave of absence request was submitted around ${RelativeDuration} ago.`;
       }
     }
 
@@ -250,7 +250,7 @@ export default async function GetActivityReportData(
             Record.quota_met = Record.total_time >= ScaledQuota;
           }
 
-          if (StartCurrentDatesDifferenceInDays <= 2.5 || RANotice.type === "ReducedActivity") {
+          if (StartCurrentDatesDifferenceInDays <= 2 || RANotice.type === "ReducedActivity") {
             const QuotaReductionString = `\nQuota Reduction: ~${Math.round((RANotice.quota_scale || 0) * 100)}%`;
 
             const RelativeDuration = ReadableDuration(
@@ -283,21 +283,16 @@ export default async function GetActivityReportData(
           }
         }
       } else if (RANotice.status === "Pending" && RANotice.review_date === null) {
-        const RequestCurrentDatesDifferenceInDays =
-          differenceInHours(RetrieveDate, RANotice.request_date) / 24;
+        const RelativeDuration = ReadableDuration(
+          RetrieveDate.getTime() - RANotice.request_date.getTime(),
+          {
+            conjunction: " and ",
+            largest: 2,
+            round: true,
+          }
+        );
 
-        if (RequestCurrentDatesDifferenceInDays <= 3) {
-          const RelativeDuration = ReadableDuration(
-            RetrieveDate.getTime() - RANotice.request_date.getTime(),
-            {
-              conjunction: " and ",
-              largest: 2,
-              round: true,
-            }
-          );
-
-          NoticeNotes.ra = `An unapproved reduced activity request was submitted around ${RelativeDuration} ago.`;
-        }
+        NoticeNotes.ra = `An unapproved reduced activity request was submitted around ${RelativeDuration} ago.`;
       }
     }
 
@@ -506,64 +501,55 @@ function GetHighestHoistedRole(
 
 /**
  * Generates an aggregation pipeline for MongoDB to retrieve activity report data
- * for a specific guild and its members. The pipeline includes filtering, projecting,
- * and calculating various metrics such as total shifts, arrests, citations, incidents,
- * and total time on duty.
+ * for a specific guild and its members. The pipeline starts from the shifts collection
+ * to ensure users with shift records but no profile records are included.
  *
  * @param Opts - Options for generating the activity report aggregation pipeline.
- * @returns An aggregation pipeline array to be used with the `aggregate` method of the `ProfileModel`.
+ * @returns An aggregation pipeline array to be used with the `aggregate` method of the Shift collection.
  */
 function CreateActivityReportAggregationPipeline(
   Opts: Exclude<GetActivityReportDataOpts, "shift_type"> & { shift_type: string[] }
-): Parameters<typeof ProfileModel.aggregate>[0] {
+) {
   return [
     {
       $match: {
         guild: Opts.guild.id,
+        end_timestamp: { $ne: null },
         ...(Opts.members.size > 0 && { user: { $in: Opts.members.map((U) => U.id) } }),
+        ...(Opts.after && { start_timestamp: { $gte: Opts.after } }),
+        ...(Opts.until && { end_timestamp: { $lte: Opts.until } }),
+        ...(Opts.shift_type.length && { type: { $in: Opts.shift_type } }),
       },
     },
     {
       $project: {
         guild: 1,
         user: 1,
+        events: 1,
+        end_timestamp: 1,
+        start_timestamp: 1,
+        "durations.on_duty_mod": 1,
       },
     },
     {
-      $lookup: {
-        as: "shifts",
-        from: "shifts",
-        let: { guild: "$guild", user: "$user" },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$guild", "$$guild"] },
-                  { $eq: ["$user", "$$user"] },
-                  { $ne: ["$end_timestamp", null] },
-                  {
-                    $or: [Opts.after ? { $gte: ["$start_timestamp", Opts.after] } : true],
-                  },
-                  {
-                    $or: [Opts.until ? { $lte: ["$end_timestamp", Opts.until] } : true],
-                  },
-                  {
-                    $or: [Opts.shift_type.length ? { $in: ["$type", Opts.shift_type] } : true],
-                  },
-                ],
-              },
-            },
+      $group: {
+        _id: { guild: "$guild", user: "$user" },
+        shifts: {
+          $push: {
+            events: "$events",
+            end_timestamp: "$end_timestamp",
+            start_timestamp: "$start_timestamp",
+            durations: { on_duty_mod: "$durations.on_duty_mod" },
           },
-          {
-            $project: {
-              events: 1,
-              end_timestamp: 1,
-              start_timestamp: 1,
-              "durations.on_duty_mod": 1,
-            },
-          },
-        ],
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        guild: "$_id.guild",
+        user: "$_id.user",
+        shifts: 1,
       },
     },
     {

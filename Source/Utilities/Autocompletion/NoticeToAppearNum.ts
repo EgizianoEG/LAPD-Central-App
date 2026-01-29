@@ -1,5 +1,5 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import GetAllCitationNums from "@Utilities/Database/GetCitationNumbers.js";
+import GetAllCitationNums from "#Utilities/Database/GetCitationNumbers.js";
 
 /**
  * Autocompletes an input citation number.

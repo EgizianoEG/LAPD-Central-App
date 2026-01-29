@@ -1,15 +1,15 @@
 import { ModalSubmitInteraction, ButtonInteraction, MessageFlags } from "discord.js";
-import { APIResponses, OpenCloud } from "@Typings/External/Roblox.js";
-import { TemplateDimensions } from "@Utilities/ImageRendering/GetFilledNTAForm.js";
-import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
+import { APIResponses, OpenCloud } from "#Typings/External/Roblox.js";
+import { TemplateDimensions } from "#Utilities/ImageRendering/GetFilledNTAForm.js";
+import { SendGuildMessages } from "#Utilities/Discord/GuildMessages.js";
 
-import AppError from "@Utilities/Classes/AppError.js";
-import CitationModel from "@Models/Citation.js";
+import AppError from "#Utilities/Classes/AppError.js";
+import CitationModel from "#Models/Citation.js";
 import UploadToImgBB from "../External/ImgBBUpload.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 import GetPlaceholderImgURL from "../Helpers/GetPlaceholderImg.js";
-import ConstructNTAContainer from "@Utilities/Reports/ConstructNTAContainer.js";
-import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
+import ConstructNTAContainer from "#Utilities/Reports/ConstructNTAContainer.js";
+import IncrementActiveShiftEvent from "#Utilities/Database/IncrementActiveShiftEvent.js";
 
 /**
  * Creates a traffic citation record on a specific guild.

@@ -1,6 +1,6 @@
-import { Shifts } from "@Typings/Utilities/Database.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { DASignatureFormats } from "@Config/Constants.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { DASignatureFormats } from "#Config/Constants.js";
 import {
   SlashCommandBuilder,
   InteractionContextType,
@@ -9,16 +9,16 @@ import {
   ApplicationCommandOptionChoiceData,
 } from "discord.js";
 
-import AutocompleteIncidentType from "@Utilities/Autocompletion/IncidentType.js";
-import AutocompleteUsername from "@Utilities/Autocompletion/Username.js";
-import AutocompleteVehicle from "@Utilities/Autocompletion/Vehicle.js";
-import AutocompleteHeight from "@Utilities/Autocompletion/Height.js";
-import AutocompleteWeight from "@Utilities/Autocompletion/Weight.js";
-import AutocompleteColor from "@Utilities/Autocompletion/Color.js";
-import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
-import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import GetRobloxUserLinked from "@Utilities/Database/IsUserLoggedIn.js";
+import AutocompleteIncidentType from "#Utilities/Autocompletion/IncidentType.js";
+import AutocompleteUsername from "#Utilities/Autocompletion/Username.js";
+import AutocompleteVehicle from "#Utilities/Autocompletion/Vehicle.js";
+import AutocompleteHeight from "#Utilities/Autocompletion/Height.js";
+import AutocompleteWeight from "#Utilities/Autocompletion/Weight.js";
+import AutocompleteColor from "#Utilities/Autocompletion/Color.js";
+import IsModuleEnabled from "#Utilities/Database/IsModuleEnabled.js";
+import GetShiftActive from "#Utilities/Database/GetShiftActive.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import GetRobloxUserLinked from "#Utilities/Database/IsUserLoggedIn.js";
 
 const Subcommands = [
   (await import("./Deps/CitFine.js")).default,

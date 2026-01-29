@@ -1,10 +1,10 @@
 import { milliseconds, subMilliseconds } from "date-fns";
-import { CronJobFileDefReturn } from "@Typings/Core/System.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import GuildModel from "@Models/Guild.js";
-import ArrestModel from "@Models/Arrest.js";
-import CitationModel from "@Models/Citation.js";
-import IncidentModel from "@Models/Incident.js";
+import { CronJobFileDefReturn } from "#Typings/Core/System.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import GuildModel from "#Models/Guild.js";
+import ArrestModel from "#Models/Arrest.js";
+import CitationModel from "#Models/Citation.js";
+import IncidentModel from "#Models/Incident.js";
 
 const FileLabel = "Jobs:AutodeleteGuildLogs";
 const GuildCleanupInterval = milliseconds({ minutes: 15 });

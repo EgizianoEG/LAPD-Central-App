@@ -1,8 +1,8 @@
 // Dependencies:
 // -------------
 
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { ErrorMessages } from "@Resources/AppMessages.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { ErrorMessages } from "#Resources/AppMessages.js";
 import {
   ApplicationIntegrationType,
   InteractionContextType,
@@ -18,12 +18,12 @@ import {
   WarnContainer,
   InfoContainer,
   SuccessContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
-import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
-import UpdateLinkedRobloxUser from "@Utilities/Database/UpdateLinkedUser.js";
-import IsUserLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
-import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
+import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
+import UpdateLinkedRobloxUser from "#Utilities/Database/UpdateLinkedUser.js";
+import IsUserLoggedIn from "#Utilities/Database/IsUserLoggedIn.js";
+import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

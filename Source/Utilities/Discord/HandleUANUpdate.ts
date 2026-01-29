@@ -1,8 +1,8 @@
 import { Guild, GuildMember, GuildMemberEditOptions, PermissionFlagsBits } from "discord.js";
-import { Guilds, UserActivityNotice } from "@Typings/Utilities/Database.js";
+import { Guilds, UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { HasSufficientPermissions } from "./HandleShiftRoleAssignment.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 /**
  * Updates user activity notice state (Leave of Absence or Reduced Activity) for guild members.

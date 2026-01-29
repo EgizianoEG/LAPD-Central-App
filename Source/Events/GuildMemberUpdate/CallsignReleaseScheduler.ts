@@ -1,11 +1,11 @@
 import { GuildMember, PartialGuildMember, PermissionFlagsBits } from "discord.js";
-import { GenericRequestStatuses } from "@Source/Config/Constants.js";
-import { UserHasPermsV2 } from "@Source/Utilities/Database/UserHasPermissions.js";
+import { GenericRequestStatuses } from "#Source/Config/Constants.js";
+import { UserHasPermsV2 } from "#Source/Utilities/Database/UserHasPermissions.js";
 import { addHours } from "date-fns";
 
-import AppLogger from "@Source/Utilities/Classes/AppLogger.js";
-import CallsignModel from "@Source/Models/Callsign.js";
-import GetGuildSettings from "@Source/Utilities/Database/GetGuildSettings.js";
+import AppLogger from "#Source/Utilities/Classes/AppLogger.js";
+import CallsignModel from "#Source/Models/Callsign.js";
+import GetGuildSettings from "#Source/Utilities/Database/GetGuildSettings.js";
 const FileLabel = "Events:GuildMemberUpdate:CallsignReleaseScheduler";
 
 /**

@@ -1,7 +1,7 @@
 import { addMilliseconds, subMilliseconds } from "date-fns";
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { AggregationResults } from "@Typings/Utilities/Database.js";
-import CallsignModel from "@Models/Callsign.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { AggregationResults } from "#Typings/Utilities/Database.js";
+import CallsignModel from "#Models/Callsign.js";
 export type CallsignValidationData = AggregationResults.CallsignsModel.GetCallsignValidationData;
 
 /**

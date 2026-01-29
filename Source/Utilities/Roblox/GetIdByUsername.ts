@@ -1,7 +1,7 @@
 import { IsValidRobloxUsername } from "../Helpers/Validators.js";
 import { RobloxAPICache } from "../Helpers/Cache.js";
-import { APIResponses } from "@Typings/External/Roblox.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import { APIResponses } from "#Typings/External/Roblox.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Axios from "axios";
 
 export type UserIdLookupResult<Input> = Input extends string[]

@@ -5,14 +5,14 @@ import {
   SlashCommandSubcommandBuilder,
 } from "discord.js";
 
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import SafeRegex from "safe-regex";
-import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
-import { ErrorContainer, InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
-import { UserInputAllowedRegexFlags } from "@Source/Config/Constants.js";
-import { GetGuildMembersSnapshot } from "@Utilities/Helpers/Cache.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { GetErrorId } from "@Utilities/Strings/Random.js";
+import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
+import { ErrorContainer, InfoContainer } from "#Utilities/Classes/ExtraContainers.js";
+import { UserInputAllowedRegexFlags } from "#Source/Config/Constants.js";
+import { GetGuildMembersSnapshot } from "#Utilities/Helpers/Cache.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { GetErrorId } from "#Utilities/Strings/Random.js";
 
 const FileLogLabel = "Commands:Utility:Nickname:Search";
 const ListFormatter = new Intl.ListFormat("en");

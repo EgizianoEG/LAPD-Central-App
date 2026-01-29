@@ -1,7 +1,7 @@
 import { isAfter } from "date-fns";
 import { Schema, model, Model } from "mongoose";
 import GSettingsSchema from "./Schemas/GuildSettings.js";
-import type { Guilds } from "@Typings/Utilities/Database.js";
+import type { Guilds } from "#Typings/Utilities/Database.js";
 
 const GuildSchema = new Schema<Guilds.GuildDocument>({
   _id: {

@@ -3,9 +3,9 @@ import Path from "node:path";
 import FileSys from "node:fs";
 import Process from "node:process";
 import Linkify from "linkifyjs";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
-import { GuildAutomodRulesCache } from "@Utilities/Helpers/Cache.js";
+import { GuildAutomodRulesCache } from "#Utilities/Helpers/Cache.js";
 import {
   Guild,
   Collection,
@@ -19,7 +19,7 @@ import {
 import {
   IsValidChannelOrMessageLink,
   IsValidDiscordAttachmentLink,
-} from "@Utilities/Helpers/Validators.js";
+} from "#Utilities/Helpers/Validators.js";
 
 // ---------------------------------------------------------------------------------------
 // Definitions:

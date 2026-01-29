@@ -1,9 +1,9 @@
-import { FormatSortRDInputNames, FormatUsername } from "@Utilities/Strings/Formatters.js";
+import { FormatSortRDInputNames, FormatUsername } from "#Utilities/Strings/Formatters.js";
 import { Colors, EmbedBuilder, userMention } from "discord.js";
-import { GuildArrests } from "@Typings/Utilities/Database.js";
-import { Icons } from "@Config/Shared.js";
+import { GuildArrests } from "#Typings/Utilities/Database.js";
+import { Icons } from "#Config/Shared.js";
 
-import GetUserInfo from "@Utilities/Roblox/GetUserInfo.js";
+import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 import Dedent from "dedent";
 const ListFormatter = new Intl.ListFormat("en");
 

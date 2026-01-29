@@ -14,12 +14,12 @@ import {
   BaseExtraContainer,
   SuccessContainer,
   ErrorContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 import { Types } from "mongoose";
-import { Emojis } from "@Config/Shared.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import MSRolesModel from "@Models/MemberRoles.js";
+import { Emojis } from "#Config/Shared.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import MSRolesModel from "#Models/MemberRoles.js";
 import Dedent from "dedent";
 
 // ---------------------------------------------------------------------------------------

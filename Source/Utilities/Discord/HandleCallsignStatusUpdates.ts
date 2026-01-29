@@ -1,11 +1,11 @@
-import { FormatCallsignDesignation as FormatDesignation } from "@Utilities/Strings/Formatters.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
+import { FormatCallsignDesignation as FormatDesignation } from "#Utilities/Strings/Formatters.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
 import { PermissionFlagsBits } from "discord.js";
-import { Callsigns } from "@Typings/Utilities/Database.js";
+import { Callsigns } from "#Typings/Utilities/Database.js";
 
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import IsLoggedIn from "@Utilities/Database/IsUserLoggedIn.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import IsLoggedIn from "#Utilities/Database/IsUserLoggedIn.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Noblox from "noblox.js";
 const FileLabel = "Utilities:Discord:HandleCallsignStatusUpdates";
 

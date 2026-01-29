@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { Canvas, createCanvas, loadImage, SKRSContext2D } from "@napi-rs/canvas/index.js";
-import { GuildCitations } from "@Typings/Utilities/Database.js";
-import { CitationTypes } from "@Models/Citation.js";
+import { GuildCitations } from "#Typings/Utilities/Database.js";
+import { CitationTypes } from "#Models/Citation.js";
 
 import Path from "node:path";
 import JSBarcode from "jsbarcode";

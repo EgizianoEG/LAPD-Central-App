@@ -1,9 +1,9 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { PropertiesToString } from "utility-types";
-import type { Shifts } from "@Typings/Utilities/Database.js";
+import type { Shifts } from "#Typings/Utilities/Database.js";
 import type { FilterQuery } from "mongoose";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import ShiftModel, { ShiftFlags } from "#Models/Shift.js";
 import GetGuildSettings from "./GetGuildSettings.js";
 
 export type UserMainShiftsData = {

@@ -1,5 +1,5 @@
-import IsModuleEnabled from "@Utilities/Database/IsModuleEnabled.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import IsModuleEnabled from "#Utilities/Database/IsModuleEnabled.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   ApplicationIntegrationType,
   InteractionContextType,

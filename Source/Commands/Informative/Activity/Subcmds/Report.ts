@@ -10,18 +10,18 @@ import {
 } from "discord.js";
 
 import { differenceInMilliseconds, milliseconds } from "date-fns";
-import { Dedent, ListFormatter, ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { GetGuildMembersSnapshot } from "@Utilities/Helpers/Cache.js";
-import { ShiftTypeExists } from "@Utilities/Database/ShiftTypeValidators.js";
+import { Dedent, ListFormatter, ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { GetGuildMembersSnapshot } from "#Utilities/Helpers/Cache.js";
+import { ShiftTypeExists } from "#Utilities/Database/ShiftTypeValidators.js";
 import { ParseDateInputs } from "./Officer.js";
-import { InfoContainer } from "@Utilities/Classes/ExtraContainers.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { InfoContainer } from "#Utilities/Classes/ExtraContainers.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
-import ShiftModel from "@Models/Shift.js";
+import ShiftModel from "#Models/Shift.js";
 import ParseDuration from "parse-duration";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import CreateActivityReport from "@Utilities/Reports/CreateActivityReport.js";
-import GetValidTargetShiftTypes from "@Utilities/Helpers/GetTargetShiftType.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import CreateActivityReport from "#Utilities/Reports/CreateActivityReport.js";
+import GetValidTargetShiftTypes from "#Utilities/Helpers/GetTargetShiftType.js";
 
 // ---------------------------------------------------------------------------------------
 // Command Handling:
@@ -32,6 +32,9 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const EphemeralResponse = CmdInteraction.options.getBoolean("private", false) ?? false;
   const InputShiftType = CmdInteraction.options.getString("shift-type", false);
   const IMNicknames = CmdInteraction.options.getBoolean("include-nicknames", false);
+  const AllMembersIncluded =
+    CmdInteraction.options.getBoolean("include-all-members", false) ?? false;
+
   const RespFlags = EphemeralResponse
     ? MessageFlags.Ephemeral | MessageFlags.IsComponentsV2
     : MessageFlags.IsComponentsV2;
@@ -128,6 +131,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     members: FetchedGuildMembers,
     shift_type: ValidShiftTypes,
     quota_duration: QuotaDur || ServerDefaultQuota,
+    include_non_staff: AllMembersIncluded,
     include_member_nicknames: !!IMNicknames,
   });
 
@@ -232,6 +236,13 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
         .setMaxLength(40)
         .setRequired(false)
         .setAutocomplete(true)
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("include-all-members")
+        .setDescription(
+          "Include members without staff roles if they have recorded shift time in the selected period."
+        )
+        .setRequired(false)
     ),
 };
 

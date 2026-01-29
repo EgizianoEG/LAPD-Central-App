@@ -16,18 +16,18 @@ import {
 } from "discord.js";
 
 import Dedent from "dedent";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import SafeRegex from "safe-regex";
-import { GetErrorId } from "@Utilities/Strings/Random.js";
-import { Emojis, Colors } from "@Config/Shared.js";
-import { FilterUserInput } from "@Utilities/Strings/Redactor.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { UserInputAllowedRegexFlags } from "@Source/Config/Constants.js";
-import { ErrorEmbed, InfoEmbed, SuccessEmbed, WarnEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { GetErrorId } from "#Utilities/Strings/Random.js";
+import { Emojis, Colors } from "#Config/Shared.js";
+import { FilterUserInput } from "#Utilities/Strings/Redactor.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { UserInputAllowedRegexFlags } from "#Source/Config/Constants.js";
+import { ErrorEmbed, InfoEmbed, SuccessEmbed, WarnEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   GetGuildMembersSnapshot,
   OngoingServerMemberNicknamesReplaceCache,
-} from "@Utilities/Helpers/Cache.js";
+} from "#Utilities/Helpers/Cache.js";
 
 // ---------------------------------------------------------------------------------------
 // Helpers & Handlers:

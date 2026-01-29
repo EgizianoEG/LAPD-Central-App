@@ -18,31 +18,31 @@ import {
   SuccessContainer,
   BaseExtraContainer,
   UnauthorizedContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 import {
   Dedent,
   FormatCallsignDesignation as FormatCallsign,
-} from "@Utilities/Strings/Formatters.js";
+} from "#Utilities/Strings/Formatters.js";
 
 import { isAfter } from "date-fns";
-import { Callsigns } from "@Typings/Utilities/Database.js";
-import { ErrorMessages } from "@Resources/AppMessages.js";
-import { UserHasPermsV2 } from "@Utilities/Database/UserHasPermissions.js";
-import { GenericRequestStatuses } from "@Config/Constants.js";
-import { RandomString, GetErrorId } from "@Utilities/Strings/Random.js";
-import { GetCallsignValidationData } from "@Utilities/Database/CallsignData.js";
-import { CallsignMgmtCustomIdRegex } from "@Resources/RegularExpressions.js";
-import { DivisionBeats, ServiceUnitTypes } from "@Resources/LAPDCallsigns.js";
+import { Callsigns } from "#Typings/Utilities/Database.js";
+import { ErrorMessages } from "#Resources/AppMessages.js";
+import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
+import { GenericRequestStatuses } from "#Config/Constants.js";
+import { RandomString, GetErrorId } from "#Utilities/Strings/Random.js";
+import { GetCallsignValidationData } from "#Utilities/Database/CallsignData.js";
+import { CallsignMgmtCustomIdRegex } from "#Resources/RegularExpressions.js";
+import { DivisionBeats, ServiceUnitTypes } from "#Resources/LAPDCallsigns.js";
 
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import HandleCallsignStatusUpdates from "@Utilities/Discord/HandleCallsignStatusUpdates.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import CallsignsEventLogger from "@Utilities/Classes/CallsignsEventLogger.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import CallsignModel from "@Models/Callsign.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleCallsignStatusUpdates from "#Utilities/Discord/HandleCallsignStatusUpdates.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import CallsignsEventLogger from "#Utilities/Classes/CallsignsEventLogger.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import CallsignModel from "#Models/Callsign.js";
 import * as Chrono from "chrono-node";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 type HCallsignDocument = Callsigns.HydratedCallsignDocument;
 type CSReviewResponse = {

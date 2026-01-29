@@ -1,5 +1,5 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import GetAllBookingNums from "@Utilities/Database/GetBookingNums.js";
+import GetAllBookingNums from "#Utilities/Database/GetBookingNums.js";
 
 /**
  * Autocompletes an input booking number.

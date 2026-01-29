@@ -22,22 +22,22 @@ import {
   WarnContainer,
   ErrorContainer,
   SuccessContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Colors, Emojis } from "@Config/Shared.js";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
-import { GetErrorId, RandomString } from "@Utilities/Strings/Random.js";
-import { LeaveOfAbsenceEventLogger } from "@Utilities/Classes/UANEventLogger.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { Colors, Emojis } from "#Config/Shared.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import { GetErrorId, RandomString } from "#Utilities/Strings/Random.js";
+import { LeaveOfAbsenceEventLogger } from "#Utilities/Classes/UANEventLogger.js";
 import { milliseconds, addMilliseconds } from "date-fns";
 
-import HandleUserActivityNoticeUpdate from "@Utilities/Discord/HandleUANUpdate.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import LeaveOfAbsenceModel from "@Models/UserActivityNotice.js";
-import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
+import HandleUserActivityNoticeUpdate from "#Utilities/Discord/HandleUANUpdate.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import LeaveOfAbsenceModel from "#Models/UserActivityNotice.js";
+import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
 import ParseDuration from "parse-duration";
-import GetLOAsData from "@Utilities/Database/GetUANData.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import GetLOAsData from "#Utilities/Database/GetUANData.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Dedent from "dedent";
 
 const PreviousLOAsLimit = 5;

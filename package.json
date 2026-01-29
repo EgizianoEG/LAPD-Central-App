@@ -1,6 +1,6 @@
 {
   "name": "lapd-central-bot",
-  "version": "1.10.1",
+  "version": "1.11.0",
   "description": "A discord.js bot designed to be used as a helper to LAPD-themed Roblox roleplay communities.",
   "author": "EgizianoEG",
   "license": "MIT",
@@ -24,7 +24,7 @@
     "start:ts": "tsx --env-file=.env .",
     "start": "npm run start:ts",
     "lint": "tsc --noEmit && eslint \"Source/**/*.{js,ts}\" && prettier -c --end-of-line auto \"Source/**/*.{js,ts,json}\"",
-    "build": "tsc && tsconfig-replace-paths --project tsconfig.json && npm run cp:sf-to-b",
+    "build": "tsc && npm run cp:sf-to-b",
     "clean-build": "rm -rf Build & npm run build",
     "cp:secrets": "cp ./Source/Config/Secrets.example.ts ./Source/Config/Secrets.ts",
     "cp:sf-to-b": "cp -r ./Source/Resources/Imgs ./Build/Resources && cp -r ./Source/Resources/Fonts ./Build/Resources && cp -r ./Source/Resources/HTML ./Build/Resources && cp -r ./Source/Resources/Libs ./Build/Resources",
@@ -50,7 +50,7 @@
     "dedent": "1.7.0",
     "default-composer": "^0.6.0",
     "didyoumean2": "^7.0.4",
-    "discord.js": "^14.25.0",
+    "discord.js": "^14.25.1",
     "express": "^5.1.0",
     "fuse.js": "^7.1.0",
     "googleapis": "^149.0.0",
@@ -90,10 +90,20 @@
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.4",
     "ts-node": "^10.9.2",
-    "tsconfig-replace-paths": "^0.0.14",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "utility-types": "^3.11.0"
+  },
+  "imports": {
+    "#Source/*": "./Build/*",
+    "#Cmds/*": "./Build/Commands/*",
+    "#Config/*": "./Build/Config/*",
+    "#Models/*": "./Build/Models/*",
+    "#Typings/*": "./Build/Typings/*",
+    "#Resources/*": "./Build/Resources/*",
+    "#Utilities/*": "./Build/Utilities/*",
+    "#Handlers/*": "./Build/Handlers/*",
+    "#DiscordApp": "./Build/Main.js"
   },
   "engines": {
     "node": "^24.1.0",

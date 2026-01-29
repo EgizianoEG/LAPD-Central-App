@@ -1,9 +1,9 @@
 import { CallbackWithoutResultAndOptionalError, Model, Query, UpdateWriteOpResult } from "mongoose";
 import { randomInt as RandomInteger } from "node:crypto";
 import { ShiftFlags } from "../Shift.js";
-import { Shifts } from "@Typings/Utilities/Database.js";
-import ProfileModel from "@Models/GuildProfile.js";
-import AppError from "@Utilities/Classes/AppError.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import ProfileModel from "#Models/GuildProfile.js";
+import AppError from "#Utilities/Classes/AppError.js";
 
 const ErrorTitle = "Invalid Action";
 type ThisType = Shifts.HydratedShiftDocument;
@@ -324,7 +324,9 @@ export async function SetShiftTime(
     return Total + Math.max((EndEpoch || EndTimestamp) - StartEpoch, 0);
   }, 0);
 
-  DBShiftDoc.durations.on_duty_mod = DesiredDuration - (ElapsedTime - BreakTime);
+  const BaseOnDuty = ElapsedTime - BreakTime;
+  DBShiftDoc.durations.on_duty_mod = DesiredDuration - BaseOnDuty;
+
   if (DBShiftDoc.flag === ShiftFlags.Standard) {
     DBShiftDoc.flag = ShiftFlags.Modified;
   }

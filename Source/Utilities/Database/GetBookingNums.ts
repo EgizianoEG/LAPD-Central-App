@@ -1,6 +1,6 @@
-import { BookingAutocompletionCache } from "@Utilities/Helpers/Cache.js";
-import { AggregateResults } from "@Typings/Utilities/Database.js";
-import ArrestModel from "@Models/Arrest.js";
+import { BookingAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { AggregateResults } from "#Typings/Utilities/Database.js";
+import ArrestModel from "#Models/Arrest.js";
 
 export default async function GetAllBookingNums(
   GuildId: string,

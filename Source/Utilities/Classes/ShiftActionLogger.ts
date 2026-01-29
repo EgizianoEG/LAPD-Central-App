@@ -23,14 +23,16 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 
-import { Shifts } from "@Typings/Utilities/Database.js";
-import { Colors } from "@Config/Shared.js";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { App as DiscordApp } from "@DiscordApp";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import GuildModel from "@Models/Guild.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import { Colors, Thumbs } from "#Config/Shared.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { App as DiscordApp } from "#DiscordApp";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import ProfileModel from "#Models/GuildProfile.js";
+import GuildModel from "#Models/Guild.js";
 import Dedent from "dedent";
 
+const ChannelLink = (Id: string) => `https://discord.com/channels/${Id}`;
 const BluewishText = (Text: string | number, ChannelId: string) => {
   return `[${Text}](${channelLink(ChannelId)})`;
 };
@@ -100,6 +102,57 @@ export default class ShiftActionLogger {
       );
 
     return AbleToSendMsgs === true ? ChannelExists : null;
+  }
+
+  /**
+   * Sends a Direct Message containing the end-of-shift report to a specified user,
+   * provided they have enabled DM shift reports in their preferences.
+   *
+   * @remarks
+   * If sending the DM fails due to error code `50007` (Cannot send messages to this user),
+   * the user's preference for DM reports is automatically disabled in the database to prevent future failures.
+   *
+   * @private
+   * @static
+   * @param DMRecipient - The Discord `User` object representing the recipient of the report.
+   * @param BaseData - An object containing base data regarding the shift, including the original `BaseEmbed` and `CurrNickname`.
+   * @param Guild - The Discord `Guild` object where the shift took place, used for context and fetching guild icons.
+   * @returns A promise that resolves `Message` or `null` if the DM could not be sent.
+   */
+  private static async SendEndOfShiftDMReport(
+    DMRecipient: User,
+    BaseData: Awaited<ReturnType<typeof ShiftActionLogger.GetBaseData>>,
+    Guild: Guild
+  ) {
+    const UPreferences = await ProfileModel.findOne({
+      guild: Guild.id,
+      user: DMRecipient.id,
+    })
+      .select("preferences")
+      .then((Doc) => Doc?.preferences ?? null);
+
+    if (!UPreferences?.dm_shift_reports) {
+      return;
+    }
+
+    const LogClone = EmbedBuilder.from(BaseData.BaseEmbed);
+    LogClone.spliceFields(0, 1);
+    LogClone.setTitle("End-of-Shift Report")
+      .setDescription(`**Officer:** ${inlineCode(BaseData.CurrNickname)}`)
+      .setAuthor({
+        url: ChannelLink(Guild.id),
+        name: Guild.name,
+        iconURL: Guild.iconURL(this.AvatarIconOpts) ?? Thumbs.Transparent,
+      });
+
+    return DMRecipient.send({ embeds: [LogClone] }).catch(async (Err) => {
+      if (Err.code === 50_007) {
+        await ProfileModel.updateOne(
+          { guild: Guild.id, user: DMRecipient.id },
+          { $set: { "preferences.dm_shift_reports": false } }
+        ).catch(() => null);
+      }
+    });
   }
 
   /**
@@ -445,6 +498,7 @@ export default class ShiftActionLogger {
       });
     }
 
+    this.SendEndOfShiftDMReport(TargetUser ?? UserInteract.user, BaseData, UserInteract.guild);
     return BaseData.LoggingChannel?.send({ embeds: [LogEmbed] });
   }
 
@@ -505,6 +559,7 @@ export default class ShiftActionLogger {
         }
       );
 
+    this.SendEndOfShiftDMReport(UserInteract.user, BaseData, UserInteract.guild);
     return BaseData.LoggingChannel?.send({ embeds: [LogEmbed] });
   }
 

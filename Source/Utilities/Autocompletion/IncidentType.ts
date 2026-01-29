@@ -1,5 +1,5 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import { IncidentCategories } from "@Resources/IncidentConstants.js";
+import { IncidentCategories } from "#Resources/IncidentConstants.js";
 
 const IncidentTypesWithCategories = Object.entries(IncidentCategories)
   .flatMap(([Category, Types]) =>

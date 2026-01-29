@@ -1,10 +1,10 @@
-import { BaseUserActivityNoticeLogger } from "@Utilities/Classes/UANEventLogger.js";
-import { CronJobFileDefReturn } from "@Typings/Core/System.js";
-import { UserActivityNotice } from "@Typings/Utilities/Database.js";
+import { BaseUserActivityNoticeLogger } from "#Utilities/Classes/UANEventLogger.js";
+import { CronJobFileDefReturn } from "#Typings/Core/System.js";
+import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { subDays } from "date-fns";
 
-import HandleNoticeRoleAssignment from "@Utilities/Discord/HandleUANUpdate.js";
-import ActivityNoticeModel from "@Models/UserActivityNotice.js";
+import HandleNoticeRoleAssignment from "#Utilities/Discord/HandleUANUpdate.js";
+import ActivityNoticeModel from "#Models/UserActivityNotice.js";
 const BaseUANLogger = new BaseUserActivityNoticeLogger(true);
 
 /**

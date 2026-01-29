@@ -1,7 +1,7 @@
 import { GuildMember } from "discord.js";
-import IncidentModel from "@Models/Incident.js";
-import CitationModel from "@Models/Citation.js";
-import ArrestModel from "@Models/Arrest.js";
+import IncidentModel from "#Models/Incident.js";
+import CitationModel from "#Models/Citation.js";
+import ArrestModel from "#Models/Arrest.js";
 
 export interface StaffFieldActivityReturn {
   arrests_made: number;

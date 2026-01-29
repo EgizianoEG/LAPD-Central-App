@@ -1,4 +1,4 @@
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   ButtonStyle,
   MessageFlags,
@@ -13,15 +13,15 @@ import {
   ErrorContainer,
   InfoContainer,
   WarnContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 import Dedent from "dedent";
-import GetActiveShifts from "@Utilities/Database/GetShiftActive.js";
-import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import HandleShiftRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
-import HandleActionCollectorExceptions from "@Utilities/Discord/HandleCompCollectorExceptions.js";
+import GetActiveShifts from "#Utilities/Database/GetShiftActive.js";
+import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
+import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import HandleShiftRoleAssignment from "#Utilities/Discord/HandleShiftRoleAssignment.js";
+import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:

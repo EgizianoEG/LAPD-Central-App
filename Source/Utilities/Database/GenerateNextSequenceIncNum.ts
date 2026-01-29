@@ -1,6 +1,6 @@
-import { MongoDBCache } from "@Utilities/Helpers/Cache.js";
-import { Guilds } from "@Typings/Utilities/Database.js";
-import GuildModel from "@Models/Guild.js";
+import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
+import { Guilds } from "#Typings/Utilities/Database.js";
+import GuildModel from "#Models/Guild.js";
 
 /**
  * Generates a new sequential incident number for a guild in the format `YY-NNNNNN`.

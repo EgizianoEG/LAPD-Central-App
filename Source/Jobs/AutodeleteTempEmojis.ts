@@ -1,6 +1,6 @@
-import { CronJobFileDefReturn } from "@Typings/Core/System.js";
+import { CronJobFileDefReturn } from "#Typings/Core/System.js";
 import { ApplicationEmoji } from "discord.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 const FileLabel = "Jobs:AutodeleteTempAppEmojis";
 
 async function AutodeleteTempAppEmojis(Now: Date | "init" | "manual", Client: DiscordClient) {

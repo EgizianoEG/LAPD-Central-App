@@ -1,4 +1,4 @@
-import IncidentModel from "@Models/Incident.js";
+import IncidentModel from "#Models/Incident.js";
 import { HandleCommandValidationAndPossiblyGetIncident } from "./UpdateIncidentReport.js";
 import {
   MessageContextMenuCommandInteraction,
@@ -17,7 +17,7 @@ import {
   ErrorContainer,
   InfoContainer,
   WarnContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
 // ---------------------------------------------------------------------------------------
 // Handling:

@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import IncidentModel from "@Models/Incident.js";
-import { AggregateResults } from "@Typings/Utilities/Database.js";
-import { IncidentAutocompletionCache } from "@Utilities/Helpers/Cache.js";
+import IncidentModel from "#Models/Incident.js";
+import { AggregateResults } from "#Typings/Utilities/Database.js";
+import { IncidentAutocompletionCache } from "#Utilities/Helpers/Cache.js";
 
 export default async function GetAllIncidentNums(
   GuildId: string,

@@ -13,9 +13,9 @@ import {
 } from "discord.js";
 
 import { differenceInMilliseconds, milliseconds } from "date-fns";
-import { ErrorMessages, InfoMessages } from "@Resources/AppMessages.js";
+import { ErrorMessages, InfoMessages } from "#Resources/AppMessages.js";
 import { format as FormatString } from "node:util";
-import { Colors, Thumbs } from "@Config/Shared.js";
+import { Colors, Thumbs } from "#Config/Shared.js";
 import AppError from "./AppError.js";
 const TemplateCheckerRegex = /%[scdjifoO%]/;
 

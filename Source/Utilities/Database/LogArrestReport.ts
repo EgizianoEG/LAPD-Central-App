@@ -1,14 +1,14 @@
 import { ButtonInteraction } from "discord.js";
-import { SendGuildMessages } from "@Utilities/Discord/GuildMessages.js";
-import { CmdOptionsType } from "@Cmds/Miscellaneous/Log/Deps/Arrest.js";
-import { FormatDutyActivitiesLogSignature, FormatUsername } from "@Utilities/Strings/Formatters.js";
-import { Shifts } from "@Typings/Utilities/Database.js";
-import { Images } from "@Config/Shared.js";
+import { SendGuildMessages } from "#Utilities/Discord/GuildMessages.js";
+import { CmdOptionsType } from "#Cmds/Miscellaneous/Log/Deps/Arrest.js";
+import { FormatDutyActivitiesLogSignature, FormatUsername } from "#Utilities/Strings/Formatters.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import { Images } from "#Config/Shared.js";
 
-import AppError from "@Utilities/Classes/AppError.js";
-import ArrestModel from "@Models/Arrest.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import IncrementActiveShiftEvent from "@Utilities/Database/IncrementActiveShiftEvent.js";
+import AppError from "#Utilities/Classes/AppError.js";
+import ArrestModel from "#Models/Arrest.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import IncrementActiveShiftEvent from "#Utilities/Database/IncrementActiveShiftEvent.js";
 import GetFormattedArrestReportEmbed from "../Reports/FormatArrestReportEmbed.js";
 
 export type ReportInfoType = {

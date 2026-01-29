@@ -9,13 +9,13 @@ import {
 } from "discord.js";
 
 import * as Chrono from "chrono-node";
-import MentionCmdByName from "@Utilities/Discord/MentionCmd.js";
-import RolePersistenceModel from "@Models/RolePersist.js";
+import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
+import RolePersistenceModel from "#Models/RolePersist.js";
 import { differenceInMilliseconds, isBefore, milliseconds } from "date-fns";
-import { RiskyRolePermissions } from "@Config/Constants.js";
-import { BaseExtraContainer } from "@Utilities/Classes/ExtraContainers.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
-import { Dedent } from "@Utilities/Strings/Formatters.js";
+import { RiskyRolePermissions } from "#Config/Constants.js";
+import { BaseExtraContainer } from "#Utilities/Classes/ExtraContainers.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { Dedent } from "#Utilities/Strings/Formatters.js";
 
 const ExtractRoleId = (RoleMention: string) => {
   const Match = RoleMention.match(/^<@&(\d{15,22})>$/);

@@ -1,16 +1,16 @@
 import type { AutoModerationRule, Guild, GuildMember } from "discord.js";
-import type { AggregateResults, Guilds, Shifts } from "@Typings/Utilities/Database.js";
-import type { BloxlinkUserLimitInfo } from "@Utilities/Roblox/GetRbxIdBloxLink.js";
-import type { UserIdLookupResult } from "@Utilities/Roblox/GetIdByUsername.js";
-import type { ThrottleTracker } from "@Utilities/Discord/CommandExecutionGuards.js";
+import type { AggregateResults, Guilds, Shifts } from "#Typings/Utilities/Database.js";
+import type { BloxlinkUserLimitInfo } from "#Utilities/Roblox/GetRbxIdBloxLink.js";
+import type { UserIdLookupResult } from "#Utilities/Roblox/GetIdByUsername.js";
+import type { ThrottleTracker } from "#Utilities/Discord/CommandExecutionGuards.js";
 import type NobloxJs from "noblox.js";
 
 import { millisecondsInDay } from "date-fns/constants";
 import { hoursToMilliseconds } from "date-fns";
 import { Collection, PartialGuildMember } from "discord.js";
 
-import MongoDBDocCollection from "@Utilities/Classes/MongoDBDocCollection.js";
-import ShiftModel from "@Models/Shift.js";
+import MongoDBDocCollection from "#Utilities/Classes/MongoDBDocCollection.js";
+import ShiftModel from "#Models/Shift.js";
 import TTLCache from "@isaacs/ttlcache";
 
 const GuildMembersGatewayCooldownMs = 30 * 1000;
@@ -106,6 +106,11 @@ export const GuildAutomodRulesCache = new TTLCache<string, Collection<string, Au
 
 export const GeneralAutocompletionCache = new TTLCache<string, unknown>({
   ttl: 15 * 1000,
+  checkAgeOnGet: true,
+});
+
+export const HTTP429OccurrencesTracker = new TTLCache<string, number>({
+  ttl: 1 * 60 * 1000,
   checkAgeOnGet: true,
 });
 

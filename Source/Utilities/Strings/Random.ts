@@ -1,5 +1,5 @@
-import { EscapeRegExp } from "@Utilities/Strings/Formatters.js";
-import DummyTexts from "@Resources/SampleTexts.js";
+import { EscapeRegExp } from "#Utilities/Strings/Formatters.js";
+import DummyTexts from "#Resources/SampleTexts.js";
 
 const Cache: Record<string, string[]> = { ".": [] };
 for (let CharCode = 32; CharCode <= 127; CharCode++) {

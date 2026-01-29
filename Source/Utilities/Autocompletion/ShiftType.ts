@@ -1,5 +1,5 @@
 import type { ApplicationCommandOptionChoiceData } from "discord.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 
 const DefaultSuggestion = {
   name: "[Default Shift Type]",

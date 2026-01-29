@@ -1,5 +1,5 @@
-import { RandomString } from "@Utilities/Strings/Random.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { RandomString } from "#Utilities/Strings/Random.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import {
   MessageComponentInteraction,
   InteractionReplyOptions,
@@ -24,7 +24,7 @@ import {
   StringSelectMenuOptionBuilder,
 } from "discord.js";
 
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 import HandleCollectorFiltering from "./HandleCollectorFilter.js";
 import GetPredefinedNavButtons, { type NavButtonsActionRow } from "./GetNavButtons.js";
 import ShowModalAndAwaitSubmission from "./ShowModalAwaitSubmit.js";

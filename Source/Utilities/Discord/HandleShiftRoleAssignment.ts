@@ -1,8 +1,8 @@
-import type { Guilds } from "@Typings/Utilities/Database.js";
+import type { Guilds } from "#Typings/Utilities/Database.js";
 import { Guild, GuildMember, PermissionFlagsBits, Role } from "discord.js";
-import { RiskyRolePermissions } from "@Config/Constants.js";
-import GetGuildSettings from "@Utilities/Database/GetGuildSettings.js";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
+import { RiskyRolePermissions } from "#Config/Constants.js";
+import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
 
 /**
  * Handles shift role(s) assignment based on the current shift status of the user.

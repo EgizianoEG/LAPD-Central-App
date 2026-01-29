@@ -34,32 +34,32 @@ import {
   SuccessContainer,
   InfoContainer,
   WarnContainer,
-} from "@Utilities/Classes/ExtraContainers.js";
+} from "#Utilities/Classes/ExtraContainers.js";
 
-import { Shifts } from "@Typings/Utilities/Database.js";
-import { ErrorEmbed } from "@Utilities/Classes/ExtraEmbeds.js";
+import { Shifts } from "#Typings/Utilities/Database.js";
+import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { milliseconds } from "date-fns";
-import { RandomString } from "@Utilities/Strings/Random.js";
-import { IsValidShiftId } from "@Utilities/Helpers/Validators.js";
-import { Colors, Emojis } from "@Config/Shared.js";
+import { RandomString } from "#Utilities/Strings/Random.js";
+import { IsValidShiftId } from "#Utilities/Helpers/Validators.js";
+import { Colors, Emojis } from "#Config/Shared.js";
 import { RootFilterQuery } from "mongoose";
-import { ReadableDuration } from "@Utilities/Strings/Formatters.js";
-import { HandleShiftTypeValidation } from "@Utilities/Database/ShiftTypeValidators.js";
+import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
+import { HandleShiftTypeValidation } from "#Utilities/Database/ShiftTypeValidators.js";
 
-import ShiftModel, { ShiftFlags } from "@Models/Shift.js";
-import ShowModalAndAwaitSubmission from "@Utilities/Discord/ShowModalAwaitSubmit.js";
-import HandleCollectorFiltering from "@Utilities/Discord/HandleCollectorFilter.js";
-import DisableMessageComponents from "@Utilities/Discord/DisableMsgComps.js";
-import QueryUserShiftRecords from "@Utilities/Database/QueryUserShiftRecords.js";
-import HandlePagePagination from "@Utilities/Discord/HandlePagePagination.js";
-import HandleRoleAssignment from "@Utilities/Discord/HandleShiftRoleAssignment.js";
-import GetMainShiftsData from "@Utilities/Database/GetShiftsData.js";
-import ShiftActionLogger from "@Utilities/Classes/ShiftActionLogger.js";
-import GetShiftActive from "@Utilities/Database/GetShiftActive.js";
+import ShiftModel, { ShiftFlags } from "#Models/Shift.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
+import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
+import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import QueryUserShiftRecords from "#Utilities/Database/QueryUserShiftRecords.js";
+import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
+import HandleRoleAssignment from "#Utilities/Discord/HandleShiftRoleAssignment.js";
+import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
+import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
+import GetShiftActive from "#Utilities/Database/GetShiftActive.js";
 import ParseDuration from "parse-duration";
-import AppLogger from "@Utilities/Classes/AppLogger.js";
-import AppError from "@Utilities/Classes/AppError.js";
-import Chunks from "@Utilities/Helpers/SliceIntoChunks.js";
+import AppLogger from "#Utilities/Classes/AppLogger.js";
+import AppError from "#Utilities/Classes/AppError.js";
+import Chunks from "#Utilities/Helpers/SliceIntoChunks.js";
 import Dedent from "dedent";
 
 const FileLabel = "Commands:Miscellaneous:Duty:Admin";
