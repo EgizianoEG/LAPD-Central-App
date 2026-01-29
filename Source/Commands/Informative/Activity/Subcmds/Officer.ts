@@ -32,15 +32,23 @@ import * as Chrono from "chrono-node";
  *   - An object containing parsed `since` and `until` dates (or null if not provided).
  *   - `true` if an error occurred during parsing or validation (error response sent to user).
  */
-export async function ParseDateInputs(ReceivedInteract: SlashCommandInteraction<"cached">): Promise<
+export async function ParseDateInputs(
+  ReceivedInteract: SlashCommandInteraction<"cached">,
+  OptsName: {
+    /** @default "since" */
+    from?: string;
+    /** @default "to" */
+    to?: string;
+  } = {}
+): Promise<
   | {
       since: Date | null;
       until: Date | null;
     }
   | true
 > {
-  const InputSince = ReceivedInteract.options.getString("since");
-  const InputUntil = ReceivedInteract.options.getString("to");
+  const InputSince = ReceivedInteract.options.getString(OptsName?.from ?? "since");
+  const InputUntil = ReceivedInteract.options.getString(OptsName?.to ?? "to");
   const ParsedDates: { since: Date | null; until: Date | null } = {
     since: null,
     until: null,

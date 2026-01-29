@@ -38,11 +38,11 @@ import {
 
 import { Shifts } from "#Typings/Utilities/Database.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { QueryFilter } from "mongoose";
 import { milliseconds } from "date-fns";
 import { RandomString } from "#Utilities/Strings/Random.js";
 import { IsValidShiftId } from "#Utilities/Helpers/Validators.js";
 import { Colors, Emojis } from "#Config/Shared.js";
-import { RootFilterQuery } from "mongoose";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { HandleShiftTypeValidation } from "#Utilities/Database/ShiftTypeValidators.js";
 
@@ -564,14 +564,14 @@ async function WipeUserShifts(
   GuildId: string,
   ShiftType?: Nullable<string>
 ): Promise<Mongoose.mongo.DeleteResult & { totalTime: number }> {
-  const QueryFilter: RootFilterQuery<Shifts.ShiftDocument> = {
+  const QueryFilter: QueryFilter<Shifts.ShiftDocument> = {
     guild: GuildId,
     user: TargetUserId,
     type: ShiftType || { $exists: true },
   };
 
   const TData = await ShiftModel.aggregate<{ total_time: number; shift_count: number }>([
-    { $match: QueryFilter },
+    { $match: QueryFilter as any },
     {
       $group: {
         _id: null,

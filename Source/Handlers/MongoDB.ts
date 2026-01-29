@@ -9,7 +9,7 @@ import MongoDBDocumentCollection from "#Utilities/Classes/MongoDBDocCollection.j
 import ChangeStreamManager from "#Utilities/Classes/ChangeStreamManager.js";
 import GuildModel from "#Models/Guild.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
-import Mongoose from "mongoose";
+import Mongoose, { Model } from "mongoose";
 
 const FileLabel = "Handlers:MongoDB";
 const BaseGuildDocument: Guilds.GuildDocument = new GuildModel().toObject();
@@ -21,33 +21,59 @@ const TrackedShiftFlags: readonly ShiftFlags[] = [
 
 Mongoose.Schema.Types.String.checkRequired((v: string | null | undefined) => v != null);
 export default async function MongoDBHandler() {
+  const MaxRetries = 8;
+  const BaseDelay = 2500;
   const DatabaseURI = MongoDB.URI.replace(
     /<username>:<password>/,
     `${MongoDB.Username}:${MongoDB.UserPass}`
   );
 
-  try {
-    await Mongoose.connect(DatabaseURI, {
-      dbName: MongoDB.DBName,
-    });
+  for (let Attempt = 1; Attempt <= MaxRetries; Attempt++) {
+    try {
+      await Mongoose.connect(DatabaseURI, {
+        dbName: MongoDB.DBName,
+        serverSelectionTimeoutMS: 10_000,
+        socketTimeoutMS: 45_000,
+        connectTimeoutMS: 10_000,
+        retryWrites: true,
+        retryReads: true,
+      });
 
-    AppLogger.info({
-      message: "Connection to MongoDB has been established. Managing '%s'.",
-      splat: [MongoDB.DBName],
-      label: FileLabel,
-      username: MongoDB.Username,
-    });
+      AppLogger.info({
+        message: "Connection to MongoDB has been established. Managing '%s'.",
+        splat: [MongoDB.DBName],
+        label: FileLabel,
+        username: MongoDB.Username,
+      });
 
-    await ProcessMongoDBChangeStream();
-  } catch (Err: any) {
-    AppLogger.error({
-      message: "An error occurred while connecting to MongoDB;",
-      label: FileLabel,
-      db_name: MongoDB.DBName,
-      username: MongoDB.Username,
-      stack: Err.stack,
-      error: Err,
-    });
+      await ProcessMongoDBChangeStream();
+      return;
+    } catch (Err: any) {
+      const IsLastAttempt = Attempt === MaxRetries;
+      const RetryDelay = BaseDelay * 2 ** (Attempt - 1);
+      const RetryMessage = IsLastAttempt ? "" : `, retrying in ${RetryDelay}ms`;
+
+      AppLogger.error({
+        message: `MongoDB connection attempt ${Attempt}/${MaxRetries} failed${RetryMessage};`,
+        label: FileLabel,
+        db_name: MongoDB.DBName,
+        username: MongoDB.Username,
+        attempt: Attempt,
+        stack: Err.stack,
+        error: Err,
+      });
+
+      if (IsLastAttempt) {
+        AppLogger.fatal({
+          message:
+            "Failed to connect to MongoDB after all retry attempts. Application will not function correctly.",
+          label: FileLabel,
+        });
+        throw Err;
+      }
+
+      await new Promise((Resolve) => setTimeout(Resolve, RetryDelay));
+    }
   }
 }
 
@@ -98,10 +124,13 @@ async function SetupGuildChangeStream() {
 
 async function SetupActiveShiftsChangeStream() {
   await ReloadActiveShiftsCache();
-  const ActiveShiftsStream = new ChangeStreamManager<Shifts.ShiftDocument>(ShiftModel, {
-    LoggerLabel: `${FileLabel}:ActiveShiftsStream`,
-    MaxReconnectAttempts: 8,
-  });
+  const ActiveShiftsStream = new ChangeStreamManager<Shifts.ShiftDocument>(
+    ShiftModel as unknown as Model<Shifts.ShiftDocument>,
+    {
+      LoggerLabel: `${FileLabel}:ActiveShiftsStream`,
+      MaxReconnectAttempts: 8,
+    }
+  );
 
   ActiveShiftsStream.OnChange(async (Change) => {
     if (Change.operationType === "delete") {
@@ -161,7 +190,7 @@ async function ReloadActiveShiftsCache() {
   MongoDBCache.ActiveShifts = new MongoDBDocumentCollection<
     string,
     Shifts.ShiftDocument,
-    Shifts.HydratedShiftDocument
+    Shifts.BasicHydratedShiftDocument
   >(
     ShiftModel,
     InitialRunShiftDocuments.map((Doc) => [Doc._id, Doc] as [string, Shifts.ShiftDocument])

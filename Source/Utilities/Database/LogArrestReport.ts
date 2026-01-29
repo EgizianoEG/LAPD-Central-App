@@ -109,13 +109,13 @@ export default async function LogArrestReport(
       ),
     },
 
-    reporting_officer: ReportInfo.reporting_officer
-      ? {
-          formatted_name: FormatUsername(ReportInfo.reporting_officer.roblox_user),
-          discord_id: ReportInfo.reporting_officer.discord_id,
-          roblox_id: Number(ReportInfo.reporting_officer.roblox_user.id),
-        }
-      : null,
+    ...(ReportInfo.reporting_officer && {
+      reporting_officer: {
+        formatted_name: FormatUsername(ReportInfo.reporting_officer.roblox_user),
+        discord_id: ReportInfo.reporting_officer.discord_id,
+        roblox_id: Number(ReportInfo.reporting_officer.roblox_user.id),
+      },
+    }),
   });
 
   if (!ArrestRecord) {

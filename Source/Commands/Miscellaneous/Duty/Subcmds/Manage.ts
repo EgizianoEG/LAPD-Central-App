@@ -116,7 +116,7 @@ export function GetShiftManagementButtons(
     end: !!ShiftActive && !ShiftActive.end_timestamp && !ShiftActive.hasBreakActive(),
   });
 
-  const ActiveShiftIdSuffix = ShiftActive?.id ? `:${ShiftActive.id}` : "";
+  const ActiveShiftIdSuffix = ShiftActive?._id ? `:${ShiftActive._id}` : "";
   for (const Comp of ActionRow.components) {
     Comp.setCustomId(
       `${Comp.data.custom_id}:${Interaction.user.id}:${ShiftType}${ActiveShiftIdSuffix}`

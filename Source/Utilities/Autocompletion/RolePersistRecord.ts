@@ -57,14 +57,14 @@ export default async function AutocompleteRolePersistRecord(
 
   if (!Typed || Typed.match(/^\s*$/)) {
     Suggestions = Records.map((Record) => {
-      return { name: Record.autocomplete_text, value: Record.id };
+      return { name: Record.autocomplete_text, value: Record._id.toString() };
     });
   } else {
     Suggestions = Records.filter((Record) => {
       const LowerCaseLabel = Record.autocomplete_text.toLowerCase();
       return LowerCaseLabel.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseLabel);
     }).map((Record) => {
-      return { name: Record.autocomplete_text, value: Record.id };
+      return { name: Record.autocomplete_text, value: Record._id.toString() };
     });
   }
 

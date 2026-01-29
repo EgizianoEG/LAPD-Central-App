@@ -1,21 +1,22 @@
-import { CallbackWithoutResultAndOptionalError, Model, Query, UpdateWriteOpResult } from "mongoose";
+import { CallbackWithoutResultAndOptionalError, Model } from "mongoose";
 import { randomInt as RandomInteger } from "node:crypto";
 import { ShiftFlags } from "../Shift.js";
 import { Shifts } from "#Typings/Utilities/Database.js";
-import ProfileModel from "#Models/GuildProfile.js";
 import AppError from "#Utilities/Classes/AppError.js";
+import ProfileModel from "#Models/GuildProfile.js";
+import type ShiftModel from "../Shift.js";
 
 const ErrorTitle = "Invalid Action";
-type ThisType = Shifts.HydratedShiftDocument;
+type ShiftRecord = NonNullable<Awaited<ReturnType<(typeof ShiftModel)["findOne"]>>>;
 
 async function GetUpdatedDocument<GOIFailed extends boolean = false>(
-  Document: ThisType,
+  Document: ShiftRecord,
   OldFallback: GOIFailed,
   Silent: boolean = true
-): Promise<GOIFailed extends true ? ThisType : ThisType | null> {
+): Promise<GOIFailed extends true ? ShiftRecord : ShiftRecord | null> {
   return (Document.constructor as any)
     .findOne({ _id: Document._id })
-    .then((Latest: Nullable<ThisType>) => {
+    .then((Latest: Nullable<ShiftRecord>) => {
       if (OldFallback) {
         return Latest ?? Document;
       }
@@ -29,7 +30,7 @@ async function GetUpdatedDocument<GOIFailed extends boolean = false>(
     });
 }
 
-function GetUpdateShiftOnDutyDuration(SD: ThisType) {
+function GetUpdateShiftOnDutyDuration(SD: ShiftRecord) {
   const EndTimestamp = SD.end_timestamp?.valueOf() ?? Date.now();
   if (!SD.start_timestamp) return 0;
 
@@ -40,7 +41,7 @@ function GetUpdateShiftOnDutyDuration(SD: ThisType) {
   return Math.max(OnDutyDuration, 0);
 }
 
-function GetUpdateShiftOnBreakDuration(SD: ThisType) {
+function GetUpdateShiftOnBreakDuration(SD: ShiftRecord) {
   const EndTimestamp = SD.end_timestamp?.valueOf() ?? Date.now();
   if (!SD.start_timestamp || SD.events.breaks.length === 0) return 0;
 
@@ -58,30 +59,30 @@ function GetUpdateShiftOnBreakDuration(SD: ThisType) {
  * @param ShiftDocument - The shift document to update.
  * @returns The updated shift document.
  */
-export function UpdateShiftDurations(ShiftDocument: ThisType) {
+export function UpdateShiftDurations(ShiftDocument: ShiftRecord) {
   ShiftDocument.durations.on_duty = GetUpdateShiftOnDutyDuration(ShiftDocument);
   ShiftDocument.durations.on_break = GetUpdateShiftOnBreakDuration(ShiftDocument);
   return ShiftDocument;
 }
 
-export function HasBreakActive(this: ThisType) {
+export function HasBreakActive(this: ShiftRecord) {
   return this.events.breaks.some(([, end]) => end === null);
 }
 
-export function HasBreaks(this: ThisType) {
+export function HasBreaks(this: ShiftRecord) {
   return this.events.breaks.length > 0;
 }
 
-export function ShiftEventAdd(this: ThisType, type: "arrests" | "citations") {
+export function ShiftEventAdd(this: ShiftRecord, type: "arrests" | "citations") {
   this.events[type]++;
   return this.save();
 }
 
 export async function GetLatestVersion<GOIFailed extends boolean = false>(
-  this: ThisType,
+  this: ShiftRecord,
   OldFallback: GOIFailed,
   Silent: boolean = true
-): Promise<GOIFailed extends true ? ThisType : ThisType | null> {
+): Promise<GOIFailed extends true ? ShiftRecord : ShiftRecord | null> {
   return GetUpdatedDocument(this, OldFallback, Silent);
 }
 
@@ -123,7 +124,10 @@ export async function StartNewShift(
   return ActiveShift;
 }
 
-export async function ShiftBreakStart(this: ThisType, timestamp: number = Date.now()) {
+export async function ShiftBreakStart(
+  this: ShiftRecord,
+  timestamp: number = Date.now()
+): Promise<ShiftRecord> {
   const UpdateDocument = await this.$model()
     .findOneAndUpdate(
       {
@@ -180,10 +184,13 @@ export async function ShiftBreakStart(this: ThisType, timestamp: number = Date.n
     });
   }
 
-  return UpdateDocument as ThisType;
+  return UpdateDocument as unknown as ShiftRecord;
 }
 
-export async function ShiftBreakEnd(this: ThisType, timestamp: number = Date.now()) {
+export async function ShiftBreakEnd(
+  this: ShiftRecord,
+  timestamp: number = Date.now()
+): Promise<ShiftRecord> {
   const UpdatedDocument = await this.$model()
     .findOneAndUpdate(
       {
@@ -226,10 +233,13 @@ export async function ShiftBreakEnd(this: ThisType, timestamp: number = Date.now
     });
   }
 
-  return UpdatedDocument as ThisType;
+  return UpdatedDocument as unknown as ShiftRecord;
 }
 
-export async function ShiftEnd(this: ThisType, timestamp: Date | number = new Date()) {
+export async function ShiftEnd(
+  this: ShiftRecord,
+  timestamp: Date | number = new Date()
+): Promise<ShiftRecord> {
   const EndTimestamp = new Date(timestamp);
   const ShiftBreaks = this.events.breaks.map(([Started, Ended]) => [
     Started,
@@ -263,10 +273,13 @@ export async function ShiftEnd(this: ThisType, timestamp: Date | number = new Da
     });
   }
 
-  return UpdatedDocument as ThisType;
+  return UpdatedDocument as unknown as ShiftRecord;
 }
 
-export async function ResetShiftTime(this: ThisType, CurrentTimestamp: number = Date.now()) {
+export async function ResetShiftTime(
+  this: ShiftRecord,
+  CurrentTimestamp: number = Date.now()
+): Promise<ShiftRecord> {
   const DBShiftDoc = await this.getLatestVersion(false, false);
   if (!DBShiftDoc) {
     throw new AppError({ template: "NoShiftFoundWithId", showable: true });
@@ -304,14 +317,14 @@ export async function ResetShiftTime(this: ThisType, CurrentTimestamp: number = 
     });
   }
 
-  return UpdatedDocument as ThisType;
+  return UpdatedDocument as unknown as ShiftRecord;
 }
 
 export async function SetShiftTime(
-  this: ThisType,
+  this: ShiftRecord,
   Duration: number,
   CurrentTimestamp: number = Date.now()
-) {
+): Promise<ShiftRecord> {
   const DBShiftDoc = await this.getLatestVersion(false, false);
   if (!DBShiftDoc) {
     throw new AppError({ template: "NoShiftFoundWithId", showable: true });
@@ -335,10 +348,10 @@ export async function SetShiftTime(
 }
 
 export async function AddSubShiftTime(
-  this: ThisType,
+  this: ShiftRecord,
   Type: "Add" | "Sub" | "Subtract",
   Duration: number
-) {
+): Promise<ShiftRecord> {
   Duration = Math.round(Duration);
   const DBShiftDoc = await this.getLatestVersion(false, false);
   if (!DBShiftDoc) {
@@ -359,9 +372,9 @@ export async function AddSubShiftTime(
 }
 
 export async function PreShiftDocDelete(
-  this: ThisType,
+  this: ShiftRecord,
   next: CallbackWithoutResultAndOptionalError = () => {}
-) {
+): Promise<void> {
   const OnDutyDecrement = -this.durations.on_duty;
   const OnBreakDecrement = -this.durations.on_break;
 
@@ -387,76 +400,6 @@ export async function PreShiftDocDelete(
     .catch((Err) => next(Err));
 }
 
-export async function PreShiftModelDelete(
-  this: Query<
-    { deleteCount: number; acknowledged: boolean },
-    Shifts.ShiftDocument,
-    object,
-    Shifts.ShiftDocument
-  >,
-  type: "many" | "one",
-  next: CallbackWithoutResultAndOptionalError = () => {}
-) {
-  try {
-    const Filter = this.getFilter();
-
-    // Single document deletion handling:
-    if (type === "one") {
-      const ShiftDoc = await this.model.findOne(Filter).exec();
-      if (!ShiftDoc) return next();
-
-      return PreShiftDocDelete.call(ShiftDoc, next);
-    }
-
-    // Multiple document deletion handling:
-    const Shifts = await this.model.find<Shifts.HydratedShiftDocument>(Filter).exec();
-    if (!Shifts.length) return next();
-
-    const MappedDocs = Map.groupBy(Shifts, (Doc) => [Doc.user, Doc.guild]);
-    const UpdatePromises: Promise<UpdateWriteOpResult>[] = [];
-
-    for (const [UserData, ShiftDocs] of MappedDocs.entries()) {
-      const ShiftIds = ShiftDocs.map((Doc) => Doc._id);
-      const OnDutyTimeDecrement = -ShiftDocs.reduce(
-        (Sum, CurrDoc) => Sum + CurrDoc.durations.on_duty,
-        0
-      );
-
-      const OnBreakTimeDecrement = -ShiftDocs.reduce(
-        (Sum, CurrDoc) => Sum + CurrDoc.durations.on_break,
-        0
-      );
-
-      UpdatePromises.push(
-        ProfileModel.updateOne(
-          {
-            user: UserData[0],
-            guild: UserData[1],
-          },
-          [
-            {
-              $set: {
-                "shifts.logs": { $setDifference: ["$shifts.logs", ShiftIds] },
-                "shifts.total_durations.on_duty": {
-                  $max: [{ $add: ["$shifts.total_durations.on_duty", OnDutyTimeDecrement] }, 0],
-                },
-                "shifts.total_durations.on_break": {
-                  $max: [{ $add: ["$shifts.total_durations.on_break", OnBreakTimeDecrement] }, 0],
-                },
-              },
-            },
-          ]
-        ).exec()
-      );
-    }
-
-    await Promise.allSettled(UpdatePromises);
-    return next();
-  } catch (Err: any) {
-    return next(Err);
-  }
-}
-
 export default {
   end: ShiftEnd,
   breakEnd: ShiftBreakEnd,
@@ -470,11 +413,11 @@ export default {
   resetOnDutyTime: ResetShiftTime,
   addSubOnDutyTime: AddSubShiftTime,
 
-  async addOnDutyTime(this: ThisType, Duration: number) {
+  async addOnDutyTime(this: ShiftRecord, Duration: number) {
     return AddSubShiftTime.call(this, "Add", Duration);
   },
 
-  async subOnDutyTime(this: ThisType, Duration: number) {
+  async subOnDutyTime(this: ShiftRecord, Duration: number) {
     return AddSubShiftTime.call(this, "Sub", Duration);
   },
 } as Omit<Shifts.ShiftDocumentOverrides, "durations">;

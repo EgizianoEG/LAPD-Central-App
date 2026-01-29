@@ -51,14 +51,14 @@ export default async function AutocompleteMemRolesSave(
 
   if (!Typed || Typed.match(/^\s*$/)) {
     Suggestions = Saves.map((Save) => {
-      return { name: Save.autocomplete_text, value: Save.id };
+      return { name: Save.autocomplete_text, value: Save._id.toString() };
     });
   } else {
     Suggestions = Saves.filter((Save) => {
       const LowerCaseLabel = Save.autocomplete_text.toLowerCase();
       return LowerCaseLabel.includes(LowerCaseTyped) || LowerCaseTyped.includes(LowerCaseLabel);
     }).map((Save) => {
-      return { name: Save.autocomplete_text, value: Save.id };
+      return { name: Save.autocomplete_text, value: Save._id.toString() };
     });
   }
 

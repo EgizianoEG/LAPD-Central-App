@@ -8,7 +8,7 @@ import GuildProfile from "#Models/GuildProfile.js";
  * @returns A promise resolves to the saved user profile document if succeeded
  */
 export default async function UpdateLinkedRobloxUser(
-  CmdInteraction: SlashCommandInteraction,
+  CmdInteraction: SlashCommandInteraction<"cached">,
   RobloxUserId: string | number | null = 0
 ) {
   RobloxUserId = Number(RobloxUserId) || 0;
