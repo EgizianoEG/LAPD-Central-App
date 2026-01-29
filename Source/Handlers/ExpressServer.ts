@@ -76,6 +76,11 @@ async function HandleMetricsRequest(_: Request, Res: Response, App: Client) {
         client: {
           ready: App.isReady(),
           ratelimited: AppResponse.ratelimited,
+          uptime: DurHumanizer(App.uptime ?? 0, {
+            conjunction: " and ",
+            largest: 4,
+            round: true,
+          }),
           websocket: {
             latency: App.ws.ping,
             status: Status[App.ws.status],
@@ -84,11 +89,6 @@ async function HandleMetricsRequest(_: Request, Res: Response, App: Client) {
             latency: HealthMetrics.discord.latency,
             healthy: HealthMetrics.discord.healthy,
           },
-          uptime: DurHumanizer(App.uptime ?? 0, {
-            conjunction: " and ",
-            largest: 4,
-            round: true,
-          }),
         },
         database: HealthMetrics.database,
         host: OSMetrics,
