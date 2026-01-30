@@ -80,7 +80,7 @@ async function TryImportCommand(
   }
 }
 
-async function ImportWithTimeout(CommandPath: string, TimeoutMs: number = 15_000) {
+async function ImportWithTimeout(CommandPath: string, TimeoutMs: number = 20_000) {
   return Promise.race([
     import(CommandPath),
     new Promise((_, reject) =>
