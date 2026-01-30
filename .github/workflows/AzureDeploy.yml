@@ -1,13 +1,36 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+
+############################################################
+# Manual Azure Build & Deploy
+#
+# Description:
+#   Builds the project and deploys to an Azure Web App using the
+#   `AZURE_WEBAPP_PUBLISH_PROFILE` secret. This workflow is configured
+#   for manual runs via the Actions UI (`workflow_dispatch`).
+#   Docs: https://github.com/Azure/webapps-deploy
+#
+# Inputs / Environment:
+#   - `AZURE_WEBAPP_PUBLISH_PROFILE`: repository secret containing publish profile
+#   - `AZURE_WEBAPP_NAME`: app name (env, overridden by input)
+#   - `NODE_VERSION`: Node version to use (env, overridden by input)
+############################################################
 
 name: Build & Deploy to Azure Web App
 on:
   workflow_dispatch:
+    inputs:
+      webapp-name:
+        description: 'Azure Web App name (overrides env AZURE_WEBAPP_NAME)'
+        required: false
+        default: 'LAPD-Central-App'
+      node-version:
+        description: 'Node.js version to use for setup (overrides env NODE_VERSION)'
+        required: false
+        default: '24.x'
 
 env:
   AZURE_WEBAPP_PACKAGE_PATH: '.'
-  AZURE_WEBAPP_NAME: 'LAPD-Central-App'
-  NODE_VERSION: '24.x'
+  AZURE_WEBAPP_NAME: ${{ github.event.inputs['webapp-name'] }}
+  NODE_VERSION: ${{ github.event.inputs['node-version'] }}
 
 jobs:
   build:
