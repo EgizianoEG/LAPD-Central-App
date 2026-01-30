@@ -54,8 +54,8 @@ export namespace OSMetrics {
       /** The overall CPU utilization, or `null` if unavailable. */
       utilization: number | null;
 
-      /** The model of the CPU. */
-      model: string;
+      /** The model of the CPU, or `null` if unavailable. */
+      model: string | null;
     };
 
     memory: {
