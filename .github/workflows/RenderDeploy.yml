@@ -1,0 +1,90 @@
+
+############################################################
+# Manual Deploy to Render
+#
+#   Manual workflow to deploy the application to Render using
+#   the deploy hook URLs stored in the repository Secrets.
+#   See: https://render.com/docs/deploy-hooks
+#
+############################################################
+
+name: Manual Deploy to Render
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+      run-tests:
+        description: 'Run tests before deploy (true/false)'
+        required: false
+        default: 'true'
+      fast-deploy:
+        description: 'Skip install/build/tests and deploy immediately (true/false)'
+        required: false
+        default: 'false'
+      deploy-hook:
+        description: 'Which deploy hook secret to use (1/primary, 2/secondary, 3/staging)'
+        required: false
+        default: '1'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: render-deploy-${{ github.event.inputs.branch }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Create secrets file
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
+        run: npm run cp:secrets
+
+      - name: Select deploy hook
+        id: select_hook
+        run: |
+          DEPLOY_CHOICE="${{ github.event.inputs['deploy-hook'] }}"
+          case "$DEPLOY_CHOICE" in
+            2|secondary)
+              echo "deploy_url=${{ secrets.RENDER_DEPLOY_HOOK_URL_2 }}" >> $GITHUB_OUTPUT
+              ;;
+            3|staging)
+              echo "deploy_url=${{ secrets.RENDER_DEPLOY_HOOK_URL_3 }}" >> $GITHUB_OUTPUT
+              ;;
+            1|primary|*)
+              echo "deploy_url=${{ secrets.RENDER_DEPLOY_HOOK_URL }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Install dependencies
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
+        run: npm ci
+
+      - name: Build
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
+        run: npm run build
+
+      - name: Run tests
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' && github.event.inputs['run-tests'] == 'true' }}
+        run: npm test -- --testPathIgnorePatterns=Secrets.*.ts
+
+      - name: Deploy to Render
+        env:
+          deploy_url: ${{ steps.select_hook.outputs.deploy_url }}
+        run: |
+          if [ -z "$deploy_url" ]; then
+            echo "No deploy hook configured or selected deploy_url is empty"
+            exit 1
+          fi
+          echo "Triggering Render deploy hook for branch: ${{ github.event.inputs.branch }}"
+          curl -fsS --fail "$deploy_url"
