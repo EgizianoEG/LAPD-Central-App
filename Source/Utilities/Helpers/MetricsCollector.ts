@@ -107,7 +107,7 @@ function GetMemoryDetails<Readable extends boolean = false>(
 async function GetCPUDetails(): Promise<MData["cpu"]> {
   const CPUUsage = await OSUtilsInstance.cpu.usage();
   return {
-    model: OSUtilsInstance?.cpu ? OSUtilsInstance?.cpu?.model() : null,
+    model: typeof OSUtilsInstance?.cpu?.model === "function" ? OSUtilsInstance.cpu.model() : null,
     utilization: CPUUsage.success ? CPUUsage.data : null,
   };
 }
