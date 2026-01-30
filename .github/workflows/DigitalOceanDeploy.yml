@@ -1,0 +1,63 @@
+
+############################################################
+# Manual Deploy to DigitalOcean App Platform
+#
+#   Manually deploys the repository to DigitalOcean App Platform
+#   using the repository secret `DIGITALOCEAN_ACCESS_TOKEN`.
+#
+# Inputs:
+#   - `app-name`: DigitalOcean app name (default: lapd-central-app)
+#   - `fast-deploy`: Skip lint/tests and deploy immediately (true/false, default: false)
+############################################################
+
+name: Deploy to DigitalOcean App Platform
+on:
+  workflow_dispatch:
+    inputs:
+      app-name:
+        description: 'DigitalOcean App Platform app name (overrides default)'
+        required: false
+        default: 'lapd-central-app'
+      fast-deploy:
+        description: 'Skip lint/tests and deploy immediately (true/false)'
+        required: false
+        default: 'false'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
+        run: npm ci
+
+      - name: Check prior commit checks
+        id: check_prior
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const ref = context.sha;
+            const res = await github.rest.checks.listForRef({ owner, repo, ref });
+            const runs = res.data.check_runs || [];
+            const passedLint = runs.some(r => /lint|eslint/i.test(r.name) && r.conclusion === 'success');
+            const passedTests = runs.some(r => /test|jest|mocha/i.test(r.name) && r.conclusion === 'success');
+            return { passedLint, passedTests };
+
+      - name: Lint
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' && (fromJson(steps.check_prior.outputs.result).passedLint != true) }}
+        run: npm run lint
+
+      - name: Run tests
+        if: ${{ github.event.inputs['fast-deploy'] != 'true'  && (fromJson(steps.check_prior.outputs.result).passedTests != true) }}
+        run: npm test -- --testPathIgnorePatterns=Secrets.*.ts
+
+      - name: Deploy to App Platform
+        uses: digitalocean/app_action/deploy@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          app_name: ${{ github.event.inputs['app-name'] }}
