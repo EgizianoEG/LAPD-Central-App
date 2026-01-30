@@ -1,5 +1,6 @@
 import { Client, Options, Collection, GatewayIntentBits, Partials } from "discord.js";
 import { Discord as DiscordSecrets } from "#Config/Secrets.js";
+import { PerformGracefulShutdown } from "#Handlers/ProcessShutdownHandler.js";
 
 import Path from "node:path";
 import Chalk from "chalk";
@@ -66,15 +67,14 @@ App.buttonListeners = new Collection();
       });
     })
     .catch((Err) => {
-      setTimeout(() => {
-        process.exit(1);
-      }, 3000);
-
       AppLogger.fatal({
         message:
-          "Failed to initialize and login to the Discord application. Terminating the current process...",
+          "Failed to initialize and login to the Discord application. Terminating process...",
         label: "Main.ts",
         stack: Err.stack,
+        error: Err,
       });
+
+      PerformGracefulShutdown(App, 1);
     });
 })();

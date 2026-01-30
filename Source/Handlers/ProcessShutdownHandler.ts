@@ -1,4 +1,4 @@
-import { DiscordAPIError, DiscordjsError, DiscordjsErrorCodes } from "discord.js";
+import { Client, DiscordAPIError, DiscordjsError, DiscordjsErrorCodes } from "discord.js";
 import AppLogger, { FlushCloudLogs } from "#Utilities/Classes/AppLogger.js";
 import { AxiosError } from "axios";
 import AppError from "#Utilities/Classes/AppError.js";
@@ -63,7 +63,7 @@ function IsNonFatalError(Err: Error): boolean {
  * @param ExitCode - The exit code to use when terminating the process.
  * @returns A promise that resolves when the shutdown sequence is complete.
  */
-async function PerformGracefulShutdown(App: DiscordClient, ExitCode: number): Promise<void> {
+export async function PerformGracefulShutdown(App: Client, ExitCode: number): Promise<void> {
   if (ShutdownStatus.IsShuttingDown) return;
   ShutdownStatus.IsShuttingDown = true;
 
