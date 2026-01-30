@@ -7,11 +7,15 @@ import { MongoDB } from "#Config/Secrets.js";
 
 import ShiftModel, { ShiftFlags } from "#Models/Shift.js";
 import MongoDBDocumentCollection from "#Utilities/Classes/MongoDBDocCollection.js";
+import Mongoose, { Model } from "mongoose";
 import ChangeStreamManager from "#Utilities/Classes/ChangeStreamManager.js";
 import GuildModel from "#Models/Guild.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
-import Mongoose, { Model } from "mongoose";
+import Dns from "node:dns";
 
+// -------------------------------------------------------------------------------------------
+// Constants & Setup:
+// ------------------
 const FileLabel = "Handlers:MongoDB";
 const BaseGuildDocument: Guilds.GuildDocument = new GuildModel().toObject();
 const TrackedShiftFlags: readonly ShiftFlags[] = [
@@ -21,9 +25,12 @@ const TrackedShiftFlags: readonly ShiftFlags[] = [
 ];
 
 Mongoose.Schema.Types.String.checkRequired((v: string | null | undefined) => v != null);
+// -------------------------------------------------------------------------------------------
+// MongoDB Handler:
+// ----------------
 export default async function MongoDBHandler() {
-  const MaxRetries = 8;
-  const BaseDelay = 2500;
+  const MaxRetries = 3;
+  const BaseDelay = 3000;
   const DatabaseURI = MongoDB.URI.replace(
     /<username>:<password>/,
     `${MongoDB.Username}:${MongoDB.UserPass}`
@@ -54,6 +61,10 @@ export default async function MongoDBHandler() {
       const RetryDelay = BaseDelay * 2 ** (Attempt - 1);
       const RetryMessage = IsLastAttempt ? "" : `, retrying in ${RetryDelay}ms`;
 
+      if (Attempt === 1) {
+        await LogNetworkDiagnostics(MongoDB.URI);
+      }
+
       AppLogger.error({
         message: `MongoDB connection attempt ${Attempt}/${MaxRetries} failed${RetryMessage};`,
         label: FileLabel,
@@ -65,6 +76,7 @@ export default async function MongoDBHandler() {
       });
 
       if (IsLastAttempt) {
+        await LogNetworkDiagnostics(MongoDB.URI);
         AppLogger.fatal({
           message:
             "Failed to connect to MongoDB after all retry attempts. Application will not function correctly.",
@@ -76,6 +88,73 @@ export default async function MongoDBHandler() {
       await new Promise((Resolve) => setTimeout(Resolve, RetryDelay));
     }
   }
+}
+
+// -------------------------------------------------------------------------------------------
+// Helper Functions:
+// -----------------
+/**
+ * Logs network diagnostics related to MongoDB connection failures.
+ *
+ * This function attempts to extract the hostname from the provided MongoDB URI,
+ * then performs DNS resolution and SRV record lookup (if applicable) to gather
+ * diagnostic information. The results, including any errors encountered, are
+ * logged using the application's logger.
+ *
+ * @param MongoURI - The MongoDB connection URI to diagnose.
+ * @returns A promise that resolves when diagnostics have been logged.
+ */
+async function LogNetworkDiagnostics(MongoURI: string): Promise<void> {
+  const Diagnostics: Record<string, unknown> = {
+    timestamp: new Date().toISOString(),
+    dns_resolution: null as string | null,
+    srv_lookup: null as string | null,
+    resolved_hosts: [] as string[],
+    error_details: null as string | null,
+  };
+
+  try {
+    const UriMatch = MongoURI.match(/mongodb(?:\+srv)?:\/\/[^@]+@([^/?]+)/);
+    const Hostname = UriMatch?.[1]?.split(",")[0]?.split(":")[0];
+
+    if (!Hostname) {
+      Diagnostics.error_details = "Could not parse hostname from URI";
+      AppLogger.warn({
+        message: "Network diagnostics:",
+        label: FileLabel,
+        diagnostics: Diagnostics,
+      });
+      return;
+    }
+
+    if (MongoURI.includes("+srv")) {
+      try {
+        const SrvRecords = await Dns.promises.resolveSrv(`_mongodb._tcp.${Hostname}`);
+        Diagnostics.srv_lookup = "success";
+        Diagnostics.resolved_hosts = SrvRecords.map((R) => `${R.name}:${R.port}`);
+      } catch (SrvErr: any) {
+        Diagnostics.srv_lookup = `failed: ${SrvErr.code || SrvErr.message}`;
+      }
+    }
+
+    try {
+      const Addresses = await Dns.promises.resolve4(Hostname);
+      Diagnostics.dns_resolution = "success";
+      if ((Diagnostics.resolved_hosts as string[]).length === 0) {
+        Diagnostics.resolved_hosts = Addresses;
+      }
+    } catch (DnsErr: any) {
+      Diagnostics.dns_resolution = `failed: ${DnsErr.code || DnsErr.message}`;
+    }
+  } catch (Err: any) {
+    Diagnostics.error_details = Err.message;
+  }
+
+  AppLogger.warn({
+    message: "Network diagnostics during MongoDB connection failure:",
+    label: FileLabel,
+    diagnostics: Diagnostics,
+  });
 }
 
 async function ProcessMongoDBChangeStream() {
