@@ -1,16 +1,20 @@
 🛠️ - Source Change:
   - all:
     - changed-files:
-      - any-glob-to-any-file: 'Source/**/*.{ts|js}'
+      - any-glob-to-any-file: 'Source/**/*.{ts,js}'
       - all-globs-to-all-files: '!Source/Typings/**/*'
       - all-globs-to-all-files: '!**/*.test.{js,ts}'
       - all-globs-to-all-files: '!**/*.spec.{js,ts}'
 
 ✨ - Enhancement:
   - head-branch: ['^feature', 'feature/', '^feat', 'feat/']
-
+  - title-matching-any:
+      - '\b(feat|feature|enhancement|add)\b'
+      
 🔧 - Fix:
   - head-branch: ['^bugfix', 'bugfix/', '^fix', 'fix/']
+  - title-matching-any:
+      - '\b(fix|bugfix|bug|hotfix|patch)\b'
 
 📖 - Documentation:
   - changed-files:
