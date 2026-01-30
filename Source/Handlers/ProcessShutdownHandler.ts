@@ -4,6 +4,9 @@ import { AxiosError } from "axios";
 import AppError from "#Utilities/Classes/AppError.js";
 import Mongoose from "mongoose";
 
+// ---------------------------------------------------------------------------------------
+// Constants & Setup:
+// ------------------
 const FileLabel = "Handlers:ErrorHandler";
 const GracefulShutdownTimeoutSecs = 15;
 export const ShutdownStatus = {
@@ -33,26 +36,9 @@ const NetworkErrorPatterns = [
   /ECONNRESET/i,
 ];
 
-function IsNetworkError(Err: Error): boolean {
-  return NetworkErrorPatterns.some(
-    (pattern) => pattern.test(Err.message || "") || pattern.test(Err.stack || "")
-  );
-}
-
-function IsNonFatalError(Err: Error): boolean {
-  return (
-    (Err instanceof DiscordAPIError && !FatalDiscordAPIErrorCodes.has(Err.code)) ||
-    (Err instanceof DiscordjsError && !FatalDiscordJSErrors.has(Err.code)) ||
-    (Err instanceof AppError && Err.code !== 0) ||
-    Err instanceof Mongoose.mongo.MongoServerError ||
-    Err instanceof AxiosError ||
-    Err instanceof RangeError ||
-    Err instanceof ReferenceError ||
-    NonFatalErrorsFromConstructors.has(Err.constructor.name) ||
-    IsNetworkError(Err)
-  );
-}
-
+// ---------------------------------------------------------------------------------------
+// Exports:
+// --------
 /**
  * Performs a graceful shutdown of the application by disconnecting from MongoDB,
  * destroying the Discord client, and flushing cloud logs before exiting the process.
@@ -102,6 +88,45 @@ export async function PerformGracefulShutdown(App: Client, ExitCode: number): Pr
   process.exit(ExitCode);
 }
 
+/**
+ * Sets up global error and signal handlers for the application.
+ *
+ * Registers listeners for process-level events such as uncaught exceptions,
+ * unhandled promise rejections, and termination signals (SIGTERM, SIGINT).
+ * On error events, it delegates error handling to `HandleError`. On termination
+ * signals, it logs the event and initiates a graceful shutdown via `PerformGracefulShutdown`.
+ *
+ * @param App - The Discord client instance to be used for error handling and shutdown procedures.
+ */
+export default function SetupShutdownHandlers(App: DiscordClient): void {
+  process.on("uncaughtException", (Err) => {
+    ProcessErrorHandling(App, Err, "uncaughtException");
+  });
+
+  process.on("unhandledRejection", (Reason) => {
+    const Err = Reason instanceof Error ? Reason : new Error(String(Reason));
+    ProcessErrorHandling(App, Err, "unhandledRejection");
+  });
+
+  process.on("SIGTERM", () => {
+    AppLogger.info({
+      message: "SIGTERM received, initiating graceful shutdown...",
+      label: FileLabel,
+    });
+    PerformGracefulShutdown(App, 0);
+  });
+
+  process.on("SIGINT", () => {
+    AppLogger.info({
+      message: "SIGINT received (Ctrl+C), initiating graceful shutdown...",
+      label: FileLabel,
+    });
+    PerformGracefulShutdown(App, 0);
+  });
+}
+// ---------------------------------------------------------------------------------------
+// Helper Functions:
+// -----------------
 /**
  * Handles exceptions and promise rejections by logging the error and determining whether the process should terminate.
  *
@@ -156,40 +181,22 @@ function ProcessErrorHandling(
   PerformGracefulShutdown(App, 1);
 }
 
-// ---------------------------------------------------------------------------------------
-/**
- * Sets up global error and signal handlers for the application.
- *
- * Registers listeners for process-level events such as uncaught exceptions,
- * unhandled promise rejections, and termination signals (SIGTERM, SIGINT).
- * On error events, it delegates error handling to `HandleError`. On termination
- * signals, it logs the event and initiates a graceful shutdown via `PerformGracefulShutdown`.
- *
- * @param App - The Discord client instance to be used for error handling and shutdown procedures.
- */
-export default function SetupShutdownHandlers(App: DiscordClient): void {
-  process.on("uncaughtException", (Err) => {
-    ProcessErrorHandling(App, Err, "uncaughtException");
-  });
+function IsNetworkError(Err: Error): boolean {
+  return NetworkErrorPatterns.some(
+    (pattern) => pattern.test(Err.message || "") || pattern.test(Err.stack || "")
+  );
+}
 
-  process.on("unhandledRejection", (Reason) => {
-    const Err = Reason instanceof Error ? Reason : new Error(String(Reason));
-    ProcessErrorHandling(App, Err, "unhandledRejection");
-  });
-
-  process.on("SIGTERM", () => {
-    AppLogger.info({
-      message: "SIGTERM received, initiating graceful shutdown...",
-      label: FileLabel,
-    });
-    PerformGracefulShutdown(App, 0);
-  });
-
-  process.on("SIGINT", () => {
-    AppLogger.info({
-      message: "SIGINT received (Ctrl+C), initiating graceful shutdown...",
-      label: FileLabel,
-    });
-    PerformGracefulShutdown(App, 0);
-  });
+function IsNonFatalError(Err: Error): boolean {
+  return (
+    (Err instanceof DiscordAPIError && !FatalDiscordAPIErrorCodes.has(Err.code)) ||
+    (Err instanceof DiscordjsError && !FatalDiscordJSErrors.has(Err.code)) ||
+    (Err instanceof AppError && Err.code !== 0) ||
+    Err instanceof Mongoose.mongo.MongoServerError ||
+    Err instanceof AxiosError ||
+    Err instanceof RangeError ||
+    Err instanceof ReferenceError ||
+    NonFatalErrorsFromConstructors.has(Err.constructor.name) ||
+    IsNetworkError(Err)
+  );
 }
