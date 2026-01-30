@@ -11,7 +11,7 @@ import Mongoose, { Model } from "mongoose";
 import ChangeStreamManager from "#Utilities/Classes/ChangeStreamManager.js";
 import GuildModel from "#Models/Guild.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
-import Dns from "node:dns";
+import DNS from "node:dns";
 
 // -------------------------------------------------------------------------------------------
 // Constants & Setup:
@@ -24,6 +24,8 @@ const TrackedShiftFlags: readonly ShiftFlags[] = [
   ShiftFlags.Modified,
 ];
 
+// eslint-disable-next-line sonarjs/no-hardcoded-ip
+DNS.promises.setServers(["1.1.1.1", "8.8.8.8", "8.8.4.4"]);
 Mongoose.Schema.Types.String.checkRequired((v: string | null | undefined) => v != null);
 // -------------------------------------------------------------------------------------------
 // MongoDB Handler:
@@ -129,7 +131,7 @@ async function LogNetworkDiagnostics(MongoURI: string): Promise<void> {
 
     if (MongoURI.includes("+srv")) {
       try {
-        const SrvRecords = await Dns.promises.resolveSrv(`_mongodb._tcp.${Hostname}`);
+        const SrvRecords = await DNS.promises.resolveSrv(`_mongodb._tcp.${Hostname}`);
         Diagnostics.srv_lookup = "success";
         Diagnostics.resolved_hosts = SrvRecords.map((R) => `${R.name}:${R.port}`);
       } catch (SrvErr: any) {
@@ -138,7 +140,7 @@ async function LogNetworkDiagnostics(MongoURI: string): Promise<void> {
     }
 
     try {
-      const Addresses = await Dns.promises.resolve4(Hostname);
+      const Addresses = await DNS.promises.resolve4(Hostname);
       Diagnostics.dns_resolution = "success";
       if ((Diagnostics.resolved_hosts as string[]).length === 0) {
         Diagnostics.resolved_hosts = Addresses;
