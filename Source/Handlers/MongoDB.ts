@@ -41,12 +41,17 @@ export default async function MongoDBHandler() {
   for (let Attempt = 1; Attempt <= MaxRetries; Attempt++) {
     try {
       await Mongoose.connect(DatabaseURI, {
-        dbName: MongoDB.DBName,
-        serverSelectionTimeoutMS: 10_000,
-        socketTimeoutMS: 45_000,
-        connectTimeoutMS: 10_000,
+        serverSelectionTimeoutMS: 30_000,
+        heartbeatFrequencyMS: 10_000,
+        socketTimeoutMS: 60_000,
+        connectTimeoutMS: 30_000,
+        maxIdleTimeMS: 120_000,
+        maxPoolSize: 30,
+        minPoolSize: 2,
         retryWrites: true,
         retryReads: true,
+        dbName: MongoDB.DBName,
+        appName: "LAPD-Central-App",
       });
 
       AppLogger.info({
