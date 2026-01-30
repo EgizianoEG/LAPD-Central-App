@@ -18,3 +18,12 @@ assignees: ''
 
 ### Additional Context
 <!-- Add mockups, technical constraints, or links to similar features. -->
+
+### User Impact
+<!-- Who benefits and how many users are affected? -->
+
+### Priority
+- Low / Medium / High
+
+### Related Issues / PRs
+<!-- Link any related issues or pull requests -->
