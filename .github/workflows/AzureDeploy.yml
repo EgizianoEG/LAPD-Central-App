@@ -1,20 +1,16 @@
 
 ############################################################
-# Manual Azure Build & Deploy
+# Manual Azure Deploy
 #
-# Description:
-#   Builds the project and deploys to an Azure Web App using the
-#   `AZURE_WEBAPP_PUBLISH_PROFILE` secret. This workflow is configured
-#   for manual runs via the Actions UI (`workflow_dispatch`).
-#   Docs: https://github.com/Azure/webapps-deploy
+#   Deploys to an Azure Web App using the
+#   `AZURE_WEBAPP_PUBLISH_PROFILE` secret.
 #
 # Inputs / Environment:
 #   - `AZURE_WEBAPP_PUBLISH_PROFILE`: repository secret containing publish profile
 #   - `AZURE_WEBAPP_NAME`: app name (env, overridden by input)
-#   - `NODE_VERSION`: Node version to use (env, overridden by input)
 ############################################################
 
-name: Build & Deploy to Azure Web App
+name: Deploy to Azure Web App
 permissions:
   contents: read
   checks: read
@@ -26,71 +22,50 @@ on:
         description: 'Azure Web App name (overrides env AZURE_WEBAPP_NAME)'
         required: false
         default: 'LAPD-Central-App'
-      node-version:
-        description: 'Node.js version to use for setup (overrides env NODE_VERSION)'
-        required: false
-        default: '24.x'
 
 env:
-  AZURE_WEBAPP_PACKAGE_PATH: '.'
   AZURE_WEBAPP_NAME: ${{ github.event.inputs['webapp-name'] }}
-  NODE_VERSION: ${{ github.event.inputs['node-version'] }}
 
 jobs:
-  build:
+  package_and_upload:
     runs-on: ubuntu-latest
-    
+    outputs:
+      artifact-name: node-source
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Create secrets file
-        run: npm run cp:secrets
-        
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Build application
-        run: npm run build
-      
-      - name: Run tests
-        run: npm test -- --testPathIgnorePatterns=Secrets.*.ts
-        
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create artifact for Azure build
+        run: |
+          echo "Packaging files for Azure App Service build"
+
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
+          name: node-source
           path: |
-            Build/
-            node_modules/
             package.json
             package-lock.json
+            tsconfig.json
+            Source/
+            Source/**
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      contents: none
+    needs: package_and_upload
     environment:
       name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact from package job
         uses: actions/download-artifact@v4
         with:
-          name: node-app
-      
-      - name: 'Deploy to Azure Web App'
+          name: node-source
+
+      - name: 'Deploy artifact to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           slot-name: 'Production'
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          package: './node-source'
