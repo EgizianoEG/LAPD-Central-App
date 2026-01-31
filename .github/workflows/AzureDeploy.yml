@@ -15,6 +15,10 @@
 ############################################################
 
 name: Build & Deploy to Azure Web App
+permissions:
+  contents: read
+  checks: read
+
 on:
   workflow_dispatch:
     inputs:

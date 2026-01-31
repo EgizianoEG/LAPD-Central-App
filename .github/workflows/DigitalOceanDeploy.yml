@@ -11,6 +11,10 @@
 ############################################################
 
 name: Deploy to DigitalOcean App Platform
+permissions:
+  contents: read
+  checks: read
+
 on:
   workflow_dispatch:
     inputs:

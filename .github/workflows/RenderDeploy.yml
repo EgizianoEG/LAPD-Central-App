@@ -9,6 +9,10 @@
 ############################################################
 
 name: Manual Deploy to Render
+permissions:
+  contents: read
+  checks: read
+  
 on:
   workflow_dispatch:
     inputs:
