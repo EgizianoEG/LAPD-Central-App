@@ -68,4 +68,4 @@ jobs:
           slot-name: 'Production'
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: './node-source'
+          package: '.'
