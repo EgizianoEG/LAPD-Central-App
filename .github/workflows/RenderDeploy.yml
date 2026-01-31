@@ -54,6 +54,22 @@ jobs:
         if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
         run: npm test -- --testPathIgnorePatterns=Secrets.*.ts
 
+      - name: Select deploy hook
+        id: select_hook
+        run: |
+          DEPLOY_CHOICE="${{ github.event.inputs['deploy-hook'] }}"
+          case "$DEPLOY_CHOICE" in
+            2|secondary)
+              echo "deploy_url=${{ secrets.RENDER_DEPLOY_HOOK_URL_2 }}" >> $GITHUB_OUTPUT
+              ;;
+            3|staging)
+              echo "deploy_url=${{ secrets.RENDER_DEPLOY_HOOK_URL_3 }}" >> $GITHUB_OUTPUT
+              ;;
+            1|primary|*)
+              echo "deploy_url=${{ secrets.RENDER_DEPLOY_HOOK_URL }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
       - name: Deploy to Render
         env:
           deploy_url: ${{ steps.select_hook.outputs.deploy_url }}
