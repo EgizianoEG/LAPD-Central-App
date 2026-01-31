@@ -42,6 +42,10 @@ jobs:
           node-version: '24.x'
           cache: 'npm'
 
+      - name: Install dependencies
+        if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
+        run: npm ci
+
       - name: Lint
         if: ${{ github.event.inputs['fast-deploy'] != 'true' }}
         run: npm run lint
