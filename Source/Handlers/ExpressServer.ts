@@ -1,5 +1,6 @@
 import { connections as MongooseConnection } from "mongoose";
 import { Client, Status } from "discord.js";
+import { rateLimit } from "express-rate-limit";
 import {
   CollectHealthMetrics,
   GetDiscordAPILatency,
@@ -24,12 +25,18 @@ export default function ExpressServerHandler(App: Client) {
   const FileLabel = "Handlers:ExpressServer";
   const ContentTypeHeader = "Content-Type";
 
+  const RateLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+  });
+
   const NotFoundPage = FileSystem.readFileSync(
     Path.join(import.meta.dirname, "..", "Resources", "HTML", "404.html"),
     { encoding: "utf-8" }
   );
 
   ExpressApp.disable("x-powered-by");
+  ExpressApp.use(RateLimiter);
   ExpressApp.use((_, Res: Response, Next: NextFunction) => {
     Res.setHeader(ContentTypeHeader, "application/json");
     Next();
