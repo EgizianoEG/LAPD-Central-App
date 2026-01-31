@@ -109,7 +109,6 @@ function GetMemoryDetails<Readable extends boolean = false>(
  *   - `node_ver`: Node.js version (without the 'v' prefix)
  *   - `package_ver`: Package version from environment variables
  *   - `process_uptime`: Process uptime in seconds or human-readable format
- *   - `cpu`: CPU details from GetCPUDetails()
  *   - `system`: System details from GetSysDetails()
  *   - `memory`: Memory details in MB from GetMemoryDetails()
  */
