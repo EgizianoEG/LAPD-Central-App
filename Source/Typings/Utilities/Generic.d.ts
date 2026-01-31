@@ -50,14 +50,6 @@ export namespace OSMetrics {
       uptime: HR extends true ? string : number;
     };
 
-    cpu: {
-      /** The overall CPU utilization, or `null` if unavailable. */
-      utilization: number | null;
-
-      /** The model of the CPU, or `null` if unavailable. */
-      model: string | null;
-    };
-
     memory: {
       /** The total memory size of the OS, in megabytes or as a human-readable string if `HR` is `true`. */
       total: HR extends true ? string : number;

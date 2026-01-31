@@ -1,7 +1,6 @@
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { OSMetrics } from "#Typings/Utilities/Generic.js";
-import { OSUtils } from "node-os-utils";
 import { Client } from "discord.js";
 
 import AppLogger from "#Utilities/Classes/AppLogger.js";
@@ -13,8 +12,6 @@ import OS from "node:os";
 // Types, Interfaces, & Constants:
 // -------------------------------
 type MData<HR extends boolean = false> = OSMetrics.OSMetricsData<HR>;
-
-const OSUtilsInstance = new OSUtils();
 const DiscordPingTimeout = 4000;
 const DatabasePingTimeout = 5000;
 
@@ -100,26 +97,6 @@ function GetMemoryDetails<Readable extends boolean = false>(
   return MemoryDetails as MData<Readable>["memory"];
 }
 
-/**
- * Basic CPU details.
- * @returns
- */
-async function GetCPUDetails(): Promise<MData["cpu"]> {
-  try {
-    if (!OSUtilsInstance?.cpu) {
-      return { model: null, utilization: null };
-    }
-
-    const CPUUsage = await OSUtilsInstance.cpu.usage();
-    return {
-      model: typeof OSUtilsInstance.cpu.model === "function" ? OSUtilsInstance.cpu.model() : null,
-      utilization: CPUUsage?.success ? CPUUsage.data : null,
-    };
-  } catch {
-    return { model: null, utilization: null };
-  }
-}
-
 // -----------------------------------------------------------------------------
 // Main Functions:
 // ---------------
@@ -144,8 +121,6 @@ export async function GetOSMetrics<Readable extends boolean = false>(
     node_ver: Process.version.slice(1),
     package_ver: process.env.version ?? process.env.npm_package_version ?? "N/A",
     process_uptime: PUptime as any,
-
-    cpu: await GetCPUDetails(),
     system: GetSysDetails(HumanReadable),
     memory: GetMemoryDetails("MB", HumanReadable),
   };
