@@ -111,6 +111,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
         ],
         {
           new: true,
+          updatePipeline: true,
         }
       );
 
@@ -121,6 +122,8 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
         components: [UpdatedContainer],
       });
     } catch (Err: any) {
+      new ErrorContainer().useErrTemplate("DatabaseError").replyToInteract(BtnInteract, true, true);
+
       AppLogger.error({
         message: "An error occurred while updating user preferences;",
         label: "Commands:Utility:UserPreferences",
