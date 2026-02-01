@@ -1,25 +1,51 @@
+/**
+ * PM2 Ecosystem Configuration File
+ * https://pm2.keymetrics.io/docs/usage/application-declaration/
+ *
+ * This is just an example configuration file for PM2 to manage the LAPD Central App.
+ * You can customize the settings as needed for your deployment environment.
+ */
+
 module.exports = {
   apps: [
     {
-      name: "LAPD Central Bot",
+      name: "LAPD Central App",
       script: "./Build/Main.js",
 
-      env_development: {
-        NODE_ENV: "dev",
-        LOG_LEVEL: "debug",
-        PORT: 30_000,
+      watch: false,
+      instances: 1,
+      exec_mode: "fork",
+      wait_ready: true,
+      autorestart: true,
+      kill_timeout: 8_000,
+      listen_timeout: 90_000,
+      exp_backoff_restart_delay: 250,
+
+      /*
+       * Environment variables defined in this file (env, env_production, env_development, etc.)
+       * will override any variables already set in your shell or by your hosting platform
+       * for the process started by PM2. It's only recommended to explicitly define these
+       * env. variables here for local development.
+       *
+       * See: 'Source\Config\Secrets.example.ts' and 'Source\Typings\Core\Config.d.ts'
+       * for more information on setting environment variables.
+       */
+      env_production: {
+        NODE_ENV: "Production",
       },
 
-      env_production: {
-        PORT: 443,
-        NODE_ENV: "PROD",
+      env_development: {
+        NODE_ENV: "Development",
+        PORT: 30_000,
 
+        // General app settings
         BOT_DEVS: "[]",
         BOT_TOKEN: "MTA5Nzg3OTYxMTc0NjAyOTcxMA.G3NsSn.cqsdmmAmnqeUe_PT7ROQAzWzWZA3nzFfN_xHWI",
         LOG_LABELS: true,
         LOG_LEVEL: "info",
 
         // Google API
+        // Used for spreadsheet access and generating activity reports
         ACTIVITY_REPORT_TEMP_SPREADSHEET_ID: "1FVWGct5J4yuAViIs0EorFNVjD9sT-RK01s0qr1H5iLQ",
         GAPI_SERVICE_ACCOUNT_EMAIL: "LAPD-Central@project.iam.gserviceaccount.com",
         GAPI_PRIVATE_KEY:
@@ -39,15 +65,19 @@ module.exports = {
         LOGTAIL_SOURCE_TOKEN: "EsQFV7RVhjHKUdrRzM3uvfbX",
         LOGTAIL_INGESTING_HOST: "https://in.logtail.com",
 
-        // Roblox credentials for accessing ceratin APIs (Currently used for user search only.)
-        // These are not required for the bot to function, but are required for certain features. Cloud key is unused for the moment.
+        // Roblox credentials for accessing certain APIs
         ROBLOX_CLOUD_KEY:
           "FfEA+1IK7kO4puyPvb6Sc2oaoj8VZ4Jcbj2Lm9+yZteCXMqLZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaVlYTmxRWEJwUzJWNUlqb2lSbVpGUVNzeFNVczNhMDgwY0hWNVVIWmlObE5qTW05aGIybzRWbG8wU21OaWFqSk1iVGtyZVZwMFpVTllUWEZNSWl3aWIzZHVaWEpKWkNJNklqSXpOalF6TmpjeU1EWWlMQ0poZFdRaU9pSlNiMkpzYjNoSmJuUmxjbTVoYkNJc0ltbHpjeUk2SWtOc2IzVmtRWFYwYUdWdWRHbGpZWFJwYjI1VFpYSjJhV05sSWl3aVpYaHdJam94TnpRME5EZ3hNREV4TENKcFlYUWlPakUzTkRRME56YzBNVEVzSW01aVppSTZNVGMwTkRRM056UXhNWDAuUnhGSWZWVFpoZjhoZFZtSjR5bm1VdnVleU9rcVFPb1g1LTlxYkZJbVZRNGpLZjNzNGxKeDRfWlpjdkx4cElVY1NnZ3VxRk55aDFsa1VCQzRLa3RlbmhRS1RSREtyYUd0Z0tGUmVsV0NRcU5LQnVNMVdDcFo2bk14aWN6aHNYc0toQ2NaNU95R2pOQ0QyVVNYU0otWGhxN25jdERxWlVEbWN3ZXduQ0QybF9RVzcyeWNSS2tCZzgzOER1MmlUMVYtMWh2b3haTnRudTlaRXFMWmhEWFNlUXRFcmFfdVVNWjV1Q1oxVk1nVGpJX0p4Ylc0Y3hhUXFfZFZWd241T0t0bXBMc3BGNmdwblg5NlFFbHYxdzRBM3ZZRlJSdENlU2hYMnlzVVZMZmVVNE1VTy1DT29mRGUyUkVCUk9LQm11d09pN2hxUmpVcVc3NjZza20yZHkzam5B",
         ROBLOX_COOKIE:
           "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_E1AF31BAF5C56681D1C319598C60EFA668477AD0EAA07E2F03C92A4FAF4D43A1CBA3548F022D69712885621EDD35AD628875B1C0493D051B702E2921641E21A7FE5368E54CDA9BDF5AA8B4F1319FD7675E7BF2C366FA69B16B44BE95E4BAB10F399F26C44C127ED20009F23E49EB0454DAEBBE497BC1035405E6452A2F73704EC3CE791ECC98664C3609772CB8C9ED223CDD0D09A825579F25B0B7EF390CC66DE8D21D281B1DEDA504EF0C68F6FBB2A6814E0E13CEDCAD09EFA44FC66297D23ECAD44043F01A5D2D28FE53A55B3E80852F8C7DC0BDD08FF7A29D09C4E0C930DFEF5B6EFEFD3B31D22264DAAF7AE2C32FF1543AFD94503DBC7250368D6FC6C143FA0C6A19AC15E14A86CD7F7337EABD12778F11F8E7F8B8A7DE019A0A168F109431B90B2B",
 
+        // The 'Test' guild is for development commands and features
+        // The 'Support' one is used for app/bot support and info commands
         TEST_GUILD_ID: "0000",
         SUPPORT_GUILD_ID: "0000",
+
+        // Whitelist settings
+        // Set to 'null' to disable whitelisting, or set IDs in JSON array format to specify allowed servers.
         WL_GUILDS: "[]",
       },
     },

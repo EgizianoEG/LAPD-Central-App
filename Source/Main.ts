@@ -60,6 +60,8 @@ App.buttonListeners = new Collection();
   await App.login(DiscordSecrets.AppToken)
     .then(() => {
       if (!App.user) throw new Error("Unexpected error: 'App.user' is not accessible.");
+      if (process.send && typeof process.send === "function") process.send("ready");
+
       AppLogger.info({
         label: "Main.ts",
         message: "%s application is online.",
