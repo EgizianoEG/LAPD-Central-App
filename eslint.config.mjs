@@ -58,7 +58,6 @@ export default [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/eslint-recommended",
-    // TODO: "eslint-config-love",
     "prettier"
   ),
 

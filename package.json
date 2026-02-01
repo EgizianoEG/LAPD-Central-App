@@ -20,7 +20,7 @@
   "scripts": {
     "watch": "npm run watch:dev",
     "watch:dev": "tsx watch --clear-screen=false --ignore ./Build/**/* --ignore ./Source/Typings/**/* --env-file=.env .",
-    "start:prod": "pm2 start pm2.ecosystem.config.cjs --no-daemon",
+    "start:prod": "pm2 start pm2.ecosystem.config.cjs --env production --no-daemon",
     "start:js": "node ./Build/Main.js",
     "start:ts": "tsx --env-file=.env .",
     "start": "npm run start:ts",
