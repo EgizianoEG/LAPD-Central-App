@@ -35,6 +35,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare necessary files for Azure build
+        run: |
+          mv pm2.ecosystem.config.example.cjs pm2.ecosystem.config.cjs
+
       - name: Create artifact for Azure build
         run: |
           echo "Packaging files for Azure App Service build"
@@ -46,6 +50,7 @@ jobs:
           path: |
             package.json
             package-lock.json
+            pm2.ecosystem.config.cjs
             tsconfig.json
             Source/
             Source/**
