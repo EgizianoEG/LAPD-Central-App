@@ -311,8 +311,7 @@ Below is a categorized list of all commands available through the LAPD Central a
   * **Nicknames Replace&#x20;**<mark style="color:red;">**(\*)**</mark>\
     **Command:** `/nicknames replace <regex:Text> <replacement:Text> [flags:Text] [role-filter:Role]`\
     **Ephemeral:** No\
-    **Description:** Provides the ability to change and modify the nicknames of all matching members at once based on an ECMAScript regular expression and replacement text or expression.\
-
+    **Description:** Provides the ability to change and modify the nicknames of all matching members at once based on an ECMAScript regular expression and replacement text or expression.<br>
 
 
 

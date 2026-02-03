@@ -8,7 +8,7 @@ icon: life-ring
 
 The **LAPD Central** application is designed to offer clear, actionable error messages and informative responses directly within the app. This approach helps users understand and resolve most issues on the spot, ensuring proper use of all available features without needing to consult external documentation in most cases.
 
-However, if you come across something unclear, unresolved, or missing — or if you simply need further clarification — please don’t hesitate to [reach out to us](../legal-section/application-privacy-policy.md#id-6.-contact-information) or contribute directly to the project. For more details on how to contribute, please refer to the [Contributing](contributing.md) page.
+However, if you come across something unclear, unresolved, or missing — or if you simply need further clarification — please don’t hesitate to [reach out to us](../legal-section/privacy-policy.md#id-6.-contact-information) or contribute directly to the project. For more details on how to contribute, please refer to the [Contributing](contributing.md) page.
 
 ***
 

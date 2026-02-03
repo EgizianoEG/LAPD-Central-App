@@ -2,7 +2,7 @@
 icon: ballot-check
 ---
 
-# Application Terms of Service
+# Terms of Service
 
 ## 1. Introduction
 
@@ -70,7 +70,7 @@ Please immediately report any violations to:
 
 ## 5. Data and Privacy
 
-Your data is collected and used according to our [Privacy Policy](application-privacy-policy.md). By using the application, you consent to the collection and handling of your data as described.
+Your data is collected and used according to our [Privacy Policy](privacy-policy.md). By using the application, you consent to the collection and handling of your data as described.
 
 ***
 
@@ -78,7 +78,7 @@ Your data is collected and used according to our [Privacy Policy](application-pr
 
 ### **a. User-Provided Content**
 
-While we implement technical safeguards (as described in [Section 4](application-terms-of-service.md#id-4.-user-conduct)), you acknowledge that:
+While we implement technical safeguards (as described in [Section 4](terms-of-service.md#id-4.-user-conduct)), you acknowledge that:
 
 * The Application may display user-provided images hosted on Discord, but does not independently store, process, or alter them beyond Discord’s native embedding system,&#x20;
 * We cannot prevent all potentially harmful or unwanted content,&#x20;

@@ -16,7 +16,7 @@ layout:
     visible: true
 ---
 
-# App Data Deletion Policy
+# Data Deletion Policy
 
 {% hint style="warning" %}
 ### Compliance Update (Effective Feb 2026)
@@ -81,7 +81,7 @@ Our anonymization process applies only to the data stored in our application's d
    1. **Personal Profile Data:** Request immediate deletion via `/preferences` or by contacting support.
    2. **Operational Data:** Request anonymization if you want your identity removed from guild records.
 
-You can contact us as outlined in the [Privacy Policy](application-privacy-policy.md#id-6.-contact-information) page.
+You can contact us as outlined in the [Privacy Policy](privacy-policy.md#id-6.-contact-information) page.
 
 ***
 

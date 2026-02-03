@@ -2,7 +2,7 @@
 icon: fingerprint
 ---
 
-# Application Privacy Policy
+# Privacy Policy
 
 This Privacy Notice or Privacy Policy for the LAPD Central application, with the unique ID `1097879611746029710`, explains how and why we may access, collect, store, use, process, and/or share your information when you use the application. The most recent update or modification date will always be displayed at the footer of this page.
 
@@ -81,7 +81,7 @@ _Other than these scenarios, we do not share your data with third-party entities
 
 We will only retain your (personal) information for as long as it is necessary to fulfill the purposes outlined in this Privacy Notice, unless a longer retention period is required or permitted by law. No purpose in this notice requires us to keep your data indefinitely.
 
-Learn more on this topic by reading [the application's data deletion policy](app-data-deletion-policy.md).
+Learn more on this topic by reading [the application's data deletion policy](data-deletion-policy.md).
 
 ***
 
@@ -95,7 +95,7 @@ Depending on your region (such as the EEA, UK, Switzerland, or Canada), you may 
 4. The right to data portability (if applicable).
 5. The right not to be subject to automated decision-making.
 
-To exercise any of these rights, you can contact us using the details provided in Section [#id-7.-how-can-you-review-update-or-delete-the-data-we-collect-from-you](application-privacy-policy.md#id-7.-how-can-you-review-update-or-delete-the-data-we-collect-from-you "mention") below.
+To exercise any of these rights, you can contact us using the details provided in Section [#id-7.-how-can-you-review-update-or-delete-the-data-we-collect-from-you](privacy-policy.md#id-7.-how-can-you-review-update-or-delete-the-data-we-collect-from-you "mention") below.
 
 ***
 
@@ -114,7 +114,7 @@ If you have any questions, concerns, or comments about this Privacy Notice or an
 
 You have the right to request access to, review, update, or delete the data we collect from you. In certain situations, you may also withdraw consent for our processing of your data. However, these rights may be subject to limitations based on applicable laws.
 
-To exercise these rights, please submit a data subject access request via any of the contact methods mentioned in section [#id-6.-contact-information](application-privacy-policy.md#id-6.-contact-information "mention") above.
+To exercise these rights, please submit a data subject access request via any of the contact methods mentioned in section [#id-6.-contact-information](privacy-policy.md#id-6.-contact-information "mention") above.
 
 ***
 

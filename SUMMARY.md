@@ -41,9 +41,9 @@
 
 ## Legal Section
 
-* [Application Privacy Policy](legal-section/application-privacy-policy.md)
-* [Application Terms of Service](legal-section/application-terms-of-service.md)
-* [App Data Deletion Policy](legal-section/app-data-deletion-policy.md)
+* [Privacy Policy](legal-section/privacy-policy.md)
+* [Terms of Service](legal-section/terms-of-service.md)
+* [Data Deletion Policy](legal-section/data-deletion-policy.md)
 
 ## Links
 
