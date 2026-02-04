@@ -41,6 +41,72 @@ import AppLogger from "#Utilities/Classes/AppLogger.js";
 // ---------------------------------------------------------------------------------------
 // Helpers:
 // --------
+function GetDataDeletionModal(BtnInteract: ButtonInteraction): ModalBuilder {
+  const Pl = BtnInteract.inCachedGuild() ? "" : "s";
+  const DeletionStrategySelect = new StringSelectMenuBuilder()
+    .setCustomId("deletion_strategy")
+    .setPlaceholder("Choose your deletion strategy...")
+    .setRequired(true)
+    .setMinValues(1)
+    .setMaxValues(1)
+    .addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Profile Only")
+        .setValue("profile_only")
+        .setDescription(`Delete server profile${Pl}, keep all history.`),
+      new StringSelectMenuOptionBuilder()
+        .setLabel("Profile + Anonymize History")
+        .setValue("profile_and_anonymize")
+        .setDescription(`Delete server profile${Pl} and anonymize all server history.`)
+    );
+
+  const ConfirmationInput = new TextInputBuilder()
+    .setCustomId("confirmation")
+    .setPlaceholder("Type 'I UNDERSTAND' to confirm...")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+    .setMaxLength(12)
+    .setMinLength(12);
+
+  return new ModalBuilder()
+    .setTitle("Data Deletion Options")
+    .setCustomId(`data-deletion-modal:${BtnInteract.user.id}:${RandomString(4)}`)
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        Dedent(`
+          ### Deletion Strategy
+          **Option 1:** Delete profile only (keeps operational history)
+          - Removes your profile settings and preferences
+          - Preserves all shift logs, arrests, citations, incidents
+          - Your history remains linked to your Discord ID
+
+          **Option 2:** Delete profile + anonymize all history
+          - Deletes your profile completely
+          - Anonymizes all operational records (shifts, arrests, etc.)
+          - Cannot be reversed - your history becomes anonymous
+
+          **This action is irreversible and your full responsibility. By proceeding, you acknowledge that:**
+          - You have read our [Privacy Policy](${Other.AppDocumentationLink}/legal-section/privacy-policy)
+          - You understand our [Data Deletion Policy](${Other.AppDocumentationLink}/legal-section/data-deletion-policy)
+          - You agree to our [Terms of Service](${Other.AppDocumentationLink}/legal-section/terms-of-service)
+          ${BtnInteract.guildId ? "" : "- You understand this will apply to ***all*** servers you're in."}
+        `)
+      )
+    )
+    .addLabelComponents(
+      new LabelBuilder()
+        .setLabel("Select Deletion Strategy")
+        .setDescription(
+          "Choose your option from the drop-down menu. See the data deletion policy above for more details."
+        )
+        .setStringSelectMenuComponent(DeletionStrategySelect),
+      new LabelBuilder()
+        .setLabel("Confirm Irreversible Action")
+        .setDescription(Dedent("Type 'I UNDERSTAND' below to proceed."))
+        .setTextInputComponent(ConfirmationInput)
+    );
+}
+
 function GetPreferencesContainer(
   UserPrefs?: GuildProfiles.ProfileDocument["preferences"],
   WithinServerContext: boolean = false
@@ -107,70 +173,7 @@ function GetPreferencesContainer(
 }
 
 async function HandleDataDeletionModal(BtnInteract: ButtonInteraction): Promise<any> {
-  const Pl = BtnInteract.inCachedGuild() ? "" : "s";
-  const DeletionStrategySelect = new StringSelectMenuBuilder()
-    .setCustomId("deletion_strategy")
-    .setPlaceholder("Choose your deletion strategy...")
-    .setRequired(true)
-    .setMinValues(1)
-    .setMaxValues(1)
-    .addOptions(
-      new StringSelectMenuOptionBuilder()
-        .setLabel("Profile Only")
-        .setValue("profile_only")
-        .setDescription(`Delete server profile${Pl}, keep all history.`),
-      new StringSelectMenuOptionBuilder()
-        .setLabel("Profile + Anonymize History")
-        .setValue("profile_and_anonymize")
-        .setDescription(`Delete server profile${Pl} and anonymize all server history.`)
-    );
-
-  const ConfirmationInput = new TextInputBuilder()
-    .setCustomId("confirmation")
-    .setPlaceholder("Type 'I UNDERSTAND' to confirm...")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-    .setMaxLength(12)
-    .setMinLength(12);
-
-  const DeletionModal = new ModalBuilder()
-    .setTitle("Data Deletion Options")
-    .setCustomId(`data-deletion-modal:${BtnInteract.user.id}:${RandomString(4)}`)
-    .addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        Dedent(`
-          ### Deletion Strategy
-          **Option 1:** Delete profile only (keeps operational history)
-          - Removes your profile settings and preferences
-          - Preserves all shift logs, arrests, citations, incidents
-          - Your history remains linked to your Discord ID
-
-          **Option 2:** Delete profile + anonymize all history
-          - Deletes your profile completely
-          - Anonymizes all operational records (shifts, arrests, etc.)
-          - Cannot be reversed - your history becomes anonymous
-
-          **This action is irreversible and your full responsibility. By proceeding, you acknowledge that:**
-          - You have read our [Privacy Policy](${Other.AppDocumentationLink}/legal-section/privacy-policy)
-          - You understand our [Data Deletion Policy](${Other.AppDocumentationLink}/legal-section/data-deletion-policy)
-          - You agree to our [Terms of Service](${Other.AppDocumentationLink}/legal-section/terms-of-service)
-          ${BtnInteract.guildId ? "" : "- You understand this will apply to ***all*** servers you're in."}
-        `)
-      )
-    )
-    .addLabelComponents(
-      new LabelBuilder()
-        .setLabel("Select Deletion Strategy")
-        .setDescription(
-          "Choose your option from the drop-down menu. See the data deletion policy above for more details."
-        )
-        .setStringSelectMenuComponent(DeletionStrategySelect),
-      new LabelBuilder()
-        .setLabel("Confirm Irreversible Action")
-        .setDescription(Dedent("Type 'I UNDERSTAND' below to proceed."))
-        .setTextInputComponent(ConfirmationInput)
-    );
-
+  const DeletionModal = GetDataDeletionModal(BtnInteract);
   const Submission = await ShowModalAndAwaitSubmission(BtnInteract, DeletionModal, 8 * 60 * 1000);
   if (!Submission) return;
 
@@ -242,7 +245,7 @@ async function HandleDataDeletionModal(BtnInteract: ButtonInteraction): Promise<
     return await new SuccessContainer()
       .setTitle("Data Anonymization Complete")
       .setDescription(
-        `Your profile${Pl} and ${AffectedRecordsCount} associated history records ` +
+        `Your profile${BtnInteract.inCachedGuild() ? "" : "s"} and ${AffectedRecordsCount} associated history records ` +
           "(Shifts, Arrests, Reports, etc.) have been successfully anonymized and scrubbed.\n\n" +
           GhostInfo
       )
