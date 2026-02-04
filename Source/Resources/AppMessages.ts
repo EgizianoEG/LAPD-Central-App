@@ -1,7 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { ServiceUnitTypes } from "./LAPDCallsigns.js";
 import { Emojis, Colors } from "#Config/Shared.js";
-import { Other } from "#Source/Config/Secrets.js";
+import { Other } from "#Config/Secrets.js";
 import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
 import Dedent from "dedent";
 
