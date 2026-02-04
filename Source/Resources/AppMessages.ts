@@ -1490,6 +1490,6 @@ export const InfoMessages = {
   UDDeletionAndAnonymizationInProgress: {
     Thumb: null,
     Title: `${Emojis.LoadingGold}\u{2000}Anonymizing Records...`,
-    Description: "Please wait, this process might take a few momens to complete.",
+    Description: "Please wait, this process might take a few moments to complete.",
   },
 };
