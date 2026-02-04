@@ -27,7 +27,7 @@ export default async function UnscheduleUserDataDeletionOnMemberRejoin(
   } catch (Err: any) {
     AppLogger.error({
       message: "Failed to unschedule user data deletion upon rejoin;",
-      label: "Events:GuildMemberRemove:UnscheduleUDD",
+      label: "Events:GuildMemberAdd:UnscheduleUDD",
       stack: Err.stack,
       error: Err,
     });
