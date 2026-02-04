@@ -37,7 +37,7 @@ async function CleanupLeftUserProfiles(Now: Date | "init" | "manual", Client: Di
 }
 
 export default {
-  cron_exp: "*/12 * * * *",
+  cron_exp: "*/30 * * * *",
   cron_func: CleanupLeftUserProfiles,
   cron_opts: {
     errorHandlingMechanism: "silent/log",
