@@ -226,7 +226,7 @@ export default async function DeleteAndAnonymizeUser(
     // -------------------------------------------------------------------------
     // 5. ANONYMIZE: Arrests (Operational Data + Multiple User Fields)
     // -------------------------------------------------------------------------
-    // 4a. Arresting Officer
+    // 5a. Arresting Officer
     const ArrestArrestingUpdate = await ArrestModel.updateMany(
       {
         ...BaseFilter,
@@ -243,7 +243,7 @@ export default async function DeleteAndAnonymizeUser(
       { session: Session }
     );
 
-    // 4b. Reporting/Filing Officer
+    // 5b. Reporting/Filing Officer
     const ArrestReportingUpdate = await ArrestModel.updateMany(
       {
         ...BaseFilter,
@@ -271,7 +271,7 @@ export default async function DeleteAndAnonymizeUser(
       }
     );
 
-    // 4c. Assisting Officers Array
+    // 5c. Assisting Officers Array
     const ArrestAssistingUpdate = await ArrestModel.updateMany(
       {
         ...BaseFilter,
@@ -328,7 +328,7 @@ export default async function DeleteAndAnonymizeUser(
     // -------------------------------------------------------------------------
     // 7. ANONYMIZE: Incidents (Operational Data + Reporter/Editor Fields)
     // -------------------------------------------------------------------------
-    // 6a. Reporter (Filed By)
+    // 7a. Reporter (Filed By)
     const IncidentReporterUpdate = await IncidentModel.updateMany(
       {
         ...BaseFilter,
@@ -347,7 +347,7 @@ export default async function DeleteAndAnonymizeUser(
       { session: Session }
     );
 
-    // 6b. Last Editor
+    // 7b. Last Editor
     const IncidentEditorUpdate = await IncidentModel.updateMany(
       {
         ...BaseFilter,
@@ -369,7 +369,7 @@ export default async function DeleteAndAnonymizeUser(
     // -------------------------------------------------------------------------
     // 8. ANONYMIZE: Callsigns (Operational Data + Reviewer Field)
     // -------------------------------------------------------------------------
-    // 7a. Requester (Include Expiry Updates)
+    // 8a. Requester (Include Expiry Updates)
     // Anonymized users should not retain active callsign assignments.
     // Set expiry date to now for all approved callsigns assigned to this user,
     // whether they have no expiry set or a future expiry date.
@@ -421,7 +421,7 @@ export default async function DeleteAndAnonymizeUser(
       }
     );
 
-    // 7b. Reviewer
+    // 8b. Reviewer
     const CallsignReviewerUpdate = await CallsignModel.updateMany(
       {
         ...BaseFilter,
@@ -442,7 +442,7 @@ export default async function DeleteAndAnonymizeUser(
     // -------------------------------------------------------------------------
     // 9. ANONYMIZE: Member Roles (Audit Trail with PII Scrubbing)
     // -------------------------------------------------------------------------
-    // 8a. Member
+    // 9a. Member
     const MemberRolesMemberUpdate = await MemberRoleModel.updateMany(
       {
         ...BaseFilter,
@@ -458,7 +458,7 @@ export default async function DeleteAndAnonymizeUser(
       { session: Session }
     );
 
-    // 8b. Saved By (Admin who created the snapshot)
+    // 9b. Saved By (Admin who created the snapshot)
     const MemberRolesSavedByUpdate = await MemberRoleModel.updateMany(
       {
         ...BaseFilter,
