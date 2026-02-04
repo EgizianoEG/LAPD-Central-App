@@ -21,7 +21,7 @@ By using the application, we reserve the right to collect basic and necessary Di
 For those familiar with code, specifically JavaScript and TypeScript, more details on the data we collect and process can be found in the application's GitHub repository code.
 {% endhint %}
 
-### Server-Specific Data
+### A. Server-Specific Data
 
 When the LAPD Central application is invited to a new Discord server (guild), the following information is automatically collected and stored in our database:
 
@@ -33,21 +33,21 @@ When the LAPD Central application is invited to a new Discord server (guild), th
 * **Voluntary Server-Specific Logs:**\
   Server members may voluntarily provide logs, which include shift records, leave of absence notices, role-playing duty reports, and other operational logs.
 
-### User-Specific Data
+### B. User-Specific Data
 
 * **Discord User ID:**\
   We store the unique identifier (ID) of users who interact with the application's commands, with certain exceptions, to ensure proper functionality and operation of the services.
-* **Roblox Account ID** (voluntarily provided)**:**\
-  This ID is collected to facilitate the logging or reporting of role-playing activities and to verify data integrity. Some commands may require users to link their Roblox account for proper execution.
-* **Voluntarily Provided Records or Data:**\
-  This includes records such as leave of absence notices and shift records as well as their associated information.
+* **Roblox Account ID** (voluntarily provided, linked accounts)**:**\
+  Collected voluntarily to facilitate role-play logging and verify identity. Some commands may require users to link their Roblox account for proper execution. _Note_: Roblox IDs appearing in roleplay logs (e.g., arrest reports) are treated as Game Content. Refer to the [Data Deletion Policy](data-deletion-policy.md#c.-roblox-player-data-fictional-roleplay-records) for details.
+* **Operational & Activity Records:**\
+  This includes community-essential data such as shift logs, citations, leave of absence notices, and activity reports. These records are retained to maintain guild statistics and history (see [Section 4](privacy-policy.md#id-4-data-retention-period)).
 
-### Other Data
+### C. Other Data
 
 Additional data stored by the application may include:
 
-* **Command Usage and Output Errors:**\
-  This can include the command name, the user ID of the person who executed the command, the guild ID where the command was executed, the date and time, and any provided inputs. This information is stored temporarily to monitor the application's performance and ensure proper operation.
+* **Command Usage and Output Errors**\
+  This can include the command name, the user ID of the person who executed the command, the guild ID where the command was executed, the date and time, and any provided inputs. This information is stored temporarily for up to 30 days to monitor the application performance, debugging errors, and security auditing.
 
 ***
 
@@ -66,10 +66,10 @@ We process your information, including voluntarily provided data, for several pu
 
 We respect your privacy and do not share your data with any third parties, except in the following cases:
 
-*   **Discord (the company)**:
+*   **Discord (the company)**
 
     Data may be shared with Discord for service integration and application functionality.
-*   **Legal Compliance**:
+*   **Legal Compliance**
 
     We may share data if required by law or in response to lawful requests from authorities.
 
@@ -77,11 +77,14 @@ _Other than these scenarios, we do not share your data with third-party entities
 
 ***
 
-## 4. Data Retention Period
+## 4. Data Retention Period <a href="#id-4-data-retention-period" id="id-4-data-retention-period"></a>
 
-We will only retain your (personal) information for as long as it is necessary to fulfill the purposes outlined in this Privacy Notice, unless a longer retention period is required or permitted by law. No purpose in this notice requires us to keep your data indefinitely.
+We retain Personal Profile Data only for as long as necessary to facilitate your use of the application and to fulfill the purposes described in this Privacy Notice, unless a longer retention period is required or permitted by law. No purpose in this notice requires us to keep your data indefinitely.
 
-Learn more on this topic by reading [the application's data deletion policy](data-deletion-policy.md).
+* **Personal Data:** Deleted automatically after a grace period when you leave a guild.
+* **Operational Data:** Retained for guild history and operational continuity; it can be anonymized upon request.
+
+For specific timelines (including the grace period) and instructions on how to request deletion or use the `/preferences` command for self-deletion, please read our full [Data Deletion Policy](data-deletion-policy.md).
 
 ***
 
