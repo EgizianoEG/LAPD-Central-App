@@ -707,38 +707,70 @@ export namespace GuildProfiles {
     ) => Promise<HydratedDocument<ProfileDocument>>;
   }
 
+  /**
+   * Represents a user's profile document within a Discord guild, including linked account information,
+   * preferences, activity records, and shift data (unused).
+   */
   interface ProfileDocument {
-    /** The Discord user's unique identifier. */
+    /**
+     * The unique identifier of the Discord user.
+     */
     user: string;
 
-    /** The Discord guild's unique identifier for thi specific profile. */
+    /**
+     * The unique identifier of the Discord guild associated with this profile.
+     */
     guild: string;
 
-    // /** Profile state. Mainly used for determining if the profile can be deleted or not. */
-    // state: "active" | "inactive";
-
-    // /** The profile's creation date. */
-    // created_at: Date;
-
-    /** Roblox linked account information. */
+    /**
+     * Information about the linked Roblox account for this user.
+     */
     linked_account: {
+      /**
+       * The unique identifier of the Roblox user linked to this profile.
+       * This is set to `0` if no Roblox account is linked.
+       */
       roblox_user_id: number;
     };
 
     /**
-     * User preferences and settings.
+     * User-specific preferences and settings.
      */
     preferences: {
-      /** Whether to send DM shift end reports. */
+      /**
+       * Indicates whether the user prefers to receive direct messages with shift end reports.
+       */
       dm_shift_reports: boolean;
     };
 
-    /** User activity notice records. */
+    /**
+     * A list of activity notice records associated with the user.
+     */
     activity_notices: string[];
 
+    /**
+     * The date and time when the user most recently left the guild.
+     * If the user has not left and still a member of it, this will be `null`.
+     */
+    left_at: Date | null;
+
+    /**
+     * Data related to the user's shifts, including total durations, average periods, and logs.
+     */
     shifts: {
+      /**
+       * The total durations of the user's shifts, categorized by different time periods.
+       */
       total_durations: TotalDurationsData;
+
+      /**
+       * The average durations of the user's shifts, categorized by different time periods.
+       */
       average_periods: TotalDurationsData;
+
+      /**
+       * A list of logs associated with the user's shifts.
+       */
       logs: string[];
     };
   }

@@ -47,6 +47,13 @@ const ProfileSchema = new Schema<
     },
   },
 
+  left_at: {
+    type: Date,
+    index: true,
+    default: null,
+    required: true,
+  },
+
   activity_notices: {
     required: true,
     default: [],

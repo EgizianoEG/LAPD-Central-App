@@ -630,6 +630,16 @@ export class WarnContainer extends BaseExtraContainer {
   }
 
   /**
+   * Uses the specified informative template and arguments to set the title and description.
+   * @param templateName - The name of the info template to use.
+   * @param args - Additional arguments to be used in formatting the info description.
+   * @returns The modified instance of the info container.
+   */
+  useInfoTemplate(templateName: keyof typeof InfoMessages, ...args: any[]) {
+    return ApplyContainerTemplate.call(this, "Info", templateName, ...args);
+  }
+
+  /**
    * Uses the specified warning template and arguments to set the title and description.
    * @param templateName - The name of the warning template to use.
    * @param args - Additional arguments to be used in formatting the warning description.

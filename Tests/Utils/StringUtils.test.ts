@@ -1,6 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 // ---------------------------------------------------------------------------------------
 import { UpperFirst, TitleCase, CamelCase, PascalToNormal } from "#Utilities/Strings/Converters.js";
+import { GenerateGhostUsername, GenerateGhostDiscordId } from "#Utilities/Strings/OtherUtils.js";
 import { DummyText, RandomString } from "#Utilities/Strings/Random.js";
 import { faker as Faker } from "@faker-js/faker";
 import {
@@ -676,6 +677,203 @@ describe("String Formatting Utilities", () => {
           expect(Charge).toMatch(new RegExp(`^${Org[i]}\\n\\s*Statute:`))
         );
       });
+    });
+  });
+});
+
+describe("GenerateGhostUsername", () => {
+  describe("Output format", () => {
+    it("Should return a lowercase string starting with 'anon_'", () => {
+      const Result = GenerateGhostUsername("testuser", 1000000000000);
+      expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+      expect(Result).toBe(Result.toLowerCase());
+    });
+
+    it("Should have exactly 10 characters (anon_ + 5 hex digits)", () => {
+      expect(GenerateGhostUsername("user", 1609459200000)).toHaveLength(10);
+      expect(GenerateGhostUsername("VeryLongUsernameHere", 1640995200000)).toHaveLength(10);
+      expect(GenerateGhostUsername("a", 1672531200000)).toHaveLength(10);
+    });
+
+    it("Should always contain only valid hex characters after 'anon_'", () => {
+      const Result = GenerateGhostUsername("testuser", 1000000000000);
+      const HashPart = Result.slice(5);
+      expect(/^[a-f0-9]{5}$/.test(HashPart)).toBeTruthy();
+    });
+  });
+
+  describe("Determinism", () => {
+    it("Should generate the same ghost username for identical inputs", () => {
+      const Username = "john_doe";
+      const Timestamp = 1000000000000;
+
+      const Result1 = GenerateGhostUsername(Username, Timestamp);
+      const Result2 = GenerateGhostUsername(Username, Timestamp);
+
+      expect(Result1).toBe(Result2);
+    });
+
+    it("Should be consistent across multiple calls with same parameters", () => {
+      const Username = "admin_user";
+      const Timestamp = 1609459200000;
+      const Expected = GenerateGhostUsername(Username, Timestamp);
+
+      for (let i = 0; i < 5; i++) {
+        expect(GenerateGhostUsername(Username, Timestamp)).toBe(Expected);
+      }
+    });
+  });
+
+  describe("Uniqueness", () => {
+    it("Should generate different ghost usernames for different original usernames", () => {
+      const Timestamp = 1000000000000;
+
+      const Ghost1 = GenerateGhostUsername("user1", Timestamp);
+      const Ghost2 = GenerateGhostUsername("user2", Timestamp);
+      const Ghost3 = GenerateGhostUsername("user3", Timestamp);
+
+      expect(Ghost1).not.toBe(Ghost2);
+      expect(Ghost2).not.toBe(Ghost3);
+      expect(Ghost1).not.toBe(Ghost3);
+    });
+
+    it("Should generate different ghost usernames for different timestamps", () => {
+      const Username = "testuser";
+
+      const Ghost1 = GenerateGhostUsername(Username, 1000000000000);
+      const Ghost2 = GenerateGhostUsername(Username, 1000000000001);
+      const Ghost3 = GenerateGhostUsername(Username, 2000000000000);
+
+      expect(Ghost1).not.toBe(Ghost2);
+      expect(Ghost2).not.toBe(Ghost3);
+      expect(Ghost1).not.toBe(Ghost3);
+    });
+
+    it("Should allow same user to have different ghosts on re-anonymization", () => {
+      const Username = "user";
+
+      const Ghost1 = GenerateGhostUsername(Username, 1609459200000);
+      const Ghost2 = GenerateGhostUsername(Username, 1640995200000);
+
+      expect(Ghost1).not.toBe(Ghost2);
+    });
+  });
+
+  describe("Edge cases", () => {
+    it("Should handle empty string usernames", () => {
+      const Result = GenerateGhostUsername("", 1000000000000);
+      expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+    });
+
+    it("Should handle very long usernames", () => {
+      const LongUsername = "a".repeat(1000);
+      const Result = GenerateGhostUsername(LongUsername, 1000000000000);
+      expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+      expect(Result).toHaveLength(10);
+    });
+
+    it("Should handle usernames with special characters", () => {
+      const SpecialUsernames = [
+        "user@example",
+        "user#123",
+        "user_with-dashes",
+        "user.with.dots",
+        "user with spaces",
+        "UPPERCASE_USER",
+        "MixedCaseUser",
+      ];
+
+      SpecialUsernames.forEach((Username) => {
+        const Result = GenerateGhostUsername(Username, 1000000000000);
+        expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+      });
+    });
+
+    it("Should handle unicode characters in usernames", () => {
+      const UnicodeUsernames = ["user_😀", "用户", "пользователь", "مستخدم"];
+
+      UnicodeUsernames.forEach((Username) => {
+        const Result = GenerateGhostUsername(Username, 1000000000000);
+        expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+      });
+    });
+
+    it("Should handle timestamps of 0", () => {
+      const Result = GenerateGhostUsername("user", 0);
+      expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+    });
+
+    it("Should handle very large timestamps", () => {
+      const LargeTimestamp = Number.MAX_SAFE_INTEGER;
+      const Result = GenerateGhostUsername("user", LargeTimestamp);
+      expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+    });
+
+    it("Should handle negative timestamps (edge case)", () => {
+      const Result = GenerateGhostUsername("user", -1000000000000);
+      expect(Result).toMatch(/^anon_[a-f0-9]{5}$/);
+    });
+  });
+
+  describe("Practical usage scenarios", () => {
+    it("Should generate valid ghost usernames for common Discord usernames", () => {
+      const CommonUsernames = [
+        "admin",
+        "john_doe",
+        "user123",
+        "Builderman",
+        "bot_user",
+        "moderator",
+      ];
+
+      CommonUsernames.forEach((Username) => {
+        const Ghost = GenerateGhostUsername(Username, Date.now());
+        expect(Ghost).toMatch(/^anon_[a-f0-9]{5}$/);
+        expect(Ghost).not.toBe(Username);
+        expect(Ghost.length).toBe(10);
+      });
+    });
+
+    it("Should produce different ghosts for different anonymization events", () => {
+      const Username = "user";
+      const Event1Timestamp = Date.now();
+      const Event2Timestamp = Date.now() + 86400000; // 1 day later
+
+      const Ghost1 = GenerateGhostUsername(Username, Event1Timestamp);
+      const Ghost2 = GenerateGhostUsername(Username, Event2Timestamp);
+
+      expect(Ghost1).not.toBe(Ghost2);
+    });
+  });
+
+  describe("Integration with IsGhostDiscordId", () => {
+    it("Should generate usernames with valid format for use with ghost IDs", () => {
+      const Username = "testuser";
+      const Timestamp = 1609459200000;
+
+      const GhostUsername = GenerateGhostUsername(Username, Timestamp);
+      const GhostId = GenerateGhostDiscordId("123456789", Timestamp);
+
+      // Both should be generated successfully
+      expect(GhostUsername).toMatch(/^anon_[a-f0-9]{5}$/);
+      expect(GhostId).toBeTruthy();
+
+      // They should be distinct
+      expect(GhostUsername).not.toBe(GhostId);
+    });
+
+    it("Should generate unique pair of ghost identifiers for same user", () => {
+      const Timestamp = 1609459200000;
+
+      const Ghost1Username = GenerateGhostUsername("user1", Timestamp);
+      const Ghost1Id = GenerateGhostDiscordId("user1_id", Timestamp);
+
+      const Ghost2Username = GenerateGhostUsername("user1", Timestamp + 1000);
+      const Ghost2Id = GenerateGhostDiscordId("user1_id", Timestamp + 1000);
+
+      // Re-anonymization should produce different ghosted versions
+      expect(Ghost1Username).not.toBe(Ghost2Username);
+      expect(Ghost1Id).not.toBe(Ghost2Id);
     });
   });
 });

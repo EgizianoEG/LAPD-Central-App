@@ -92,6 +92,9 @@ export namespace Secrets {
     /* Automatically set based on the Environment property. */
     IsProdEnv: boolean;
 
+    /** The webpage of the app documentation. */
+    AppDocumentationLink: string;
+
     /** ImgBB API key to upload images */
     ImgBB_API_Key: string;
 

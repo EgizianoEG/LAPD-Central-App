@@ -1,6 +1,7 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { ServiceUnitTypes } from "./LAPDCallsigns.js";
 import { Emojis, Colors } from "#Config/Shared.js";
+import { Other } from "#Config/Secrets.js";
 import MentionCmdByName from "#Utilities/Discord/MentionCmd.js";
 import Dedent from "dedent";
 
@@ -251,11 +252,11 @@ export const ErrorMessages = {
    * Roblox account not linked (general usage)
    */
   RobloxUserNotLinked: {
-    Title: "Hold On!",
+    Title: "Let's Get You Connected!",
     get Description() {
       return (
-        `You must link your Roblox account before using this command. Use the ${MentionCmdByName("log-in")} command to get started.\n` +
-        "For guidance, please refer to [the documentation page](https://lapd-central-app.gitbook.io/documentation/guides-and-how-to/other-guides/linking-roblox-account)."
+        `This server requires you to link your Roblox account to use this command. Please use the ${MentionCmdByName("log-in")} command to get started. ` +
+        `For instructions, visit [our documentation](${Other.AppDocumentationLink}/guides-and-how-to/other-guides/linking-roblox-account).`
       );
     },
   },
@@ -1200,6 +1201,12 @@ export const ErrorMessages = {
     Description:
       "Cannot proceed with this change as the following Roblox-dependent feature(s) are currently enabled: %s. Please disable these features before disabling %s.",
   },
+
+  UserPrefsChangeRequiresServerContext: {
+    Title: "Server Context Required",
+    Description:
+      "This preference can only be modified when running the command in the target or wanted server.",
+  },
 };
 
 export const InfoMessages = {
@@ -1448,5 +1455,41 @@ export const InfoMessages = {
   NoCallsignRecordsWithSpecifiedStatus: {
     Title: "No Records",
     Description: "There are currently no %s records with the specified status to display.",
+  },
+
+  UPNoConfirmDeletionCancelled: {
+    Title: "Deletion Cancelled",
+    Description:
+      "Data deletion has been cancelled as confirmation text did not match. No changes were made.",
+  },
+
+  UPServerProfileDeletedOnly: {
+    Title: "Profile Deleted",
+    Description:
+      "Your server profile has been successfully deleted from the database; " +
+      "associated operational records and history remain intact.",
+  },
+
+  UPProfilesDeletedOnly: {
+    Title: "Profiles Deleted",
+    Description:
+      "Your server profiles have been successfully deleted from the database; " +
+      "associated operational records and history remain intact.",
+  },
+
+  UPNoProfilesFoundToDelete: {
+    Title: "No Profiles Found",
+    Description: "No profiles found to delete. You may not have any data or profiles anywhere.",
+  },
+
+  UPNoServerProfileFoundToDelete: {
+    Title: "No Profile Found",
+    Description: "No profile found to delete. You may not have any data or profile in this server.",
+  },
+
+  UDDeletionAndAnonymizationInProgress: {
+    Thumb: null,
+    Title: `${Emojis.LoadingGold}\u{2000}Anonymizing Records...`,
+    Description: "Please wait, this process might take a few moments to complete.",
   },
 };

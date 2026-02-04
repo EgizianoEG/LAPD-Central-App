@@ -1,4 +1,5 @@
 import { Colors } from "#Config/Shared.js";
+import { Other } from "#Config/Secrets.js";
 import {
   InteractionContextType,
   SlashCommandBuilder,
@@ -12,7 +13,7 @@ async function Callback(Interaction: SlashCommandInteraction) {
     .setColor(Colors.Info)
     .setTitle("Help and Information")
     .setDescription(
-      "For more information and assistance with LAPD Central, please visit our [documentation site](https://lapd-central-app.gitbook.io/documentation)."
+      `For more information and assistance with LAPD Central, please visit our [documentation site](${Other.AppDocumentationLink}).`
     );
 
   return Interaction.reply({

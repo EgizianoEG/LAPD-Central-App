@@ -16,14 +16,27 @@ import ShiftModel from "#Models/Shift.js";
 export default async function DeleteAssociatedGuildData(GuildIDs: string | string[]) {
   GuildIDs = Array.isArray(GuildIDs) ? GuildIDs : [GuildIDs];
   const QueryFilter = { guild: { $in: GuildIDs } };
-  return Promise.all([
-    UserActivityNoticeModel.deleteMany(QueryFilter),
-    GuildProfileModel.deleteMany(QueryFilter),
-    MemberRolesModel.deleteMany(QueryFilter),
-    ShiftModel.deleteMany(QueryFilter),
-    ArrestModel.deleteMany(QueryFilter),
-    CitationModel.deleteMany(QueryFilter),
-    IncidentModel.deleteMany(QueryFilter),
-    CallsignModel.deleteMany(QueryFilter),
-  ]);
+  const Session = await UserActivityNoticeModel.startSession();
+  Session.startTransaction();
+
+  try {
+    const Results = await Promise.all([
+      UserActivityNoticeModel.deleteMany(QueryFilter, { session: Session }),
+      GuildProfileModel.deleteMany(QueryFilter, { session: Session }),
+      MemberRolesModel.deleteMany(QueryFilter, { session: Session }),
+      ShiftModel.deleteMany(QueryFilter, { session: Session }),
+      ArrestModel.deleteMany(QueryFilter, { session: Session }),
+      CitationModel.deleteMany(QueryFilter, { session: Session }),
+      IncidentModel.deleteMany(QueryFilter, { session: Session }),
+      CallsignModel.deleteMany(QueryFilter, { session: Session }),
+    ]);
+
+    await Session.commitTransaction();
+    return Results;
+  } catch (Err) {
+    await Session.abortTransaction();
+    throw Err;
+  } finally {
+    await Session.endSession();
+  }
 }
