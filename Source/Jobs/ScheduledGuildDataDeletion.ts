@@ -26,7 +26,7 @@ async function CleanupUnavailableGuilds(Now: Date | "init" | "manual", Client: D
     .then((DeleteResult) => {
       AppLogger.debug({
         splat: [DeleteResult.deletedCount, PendingDeletionGuildIds.length],
-        label: "Jobs:ScheduledDataDeletion",
+        label: "Jobs:ScheduledGuildDataDeletion",
         message:
           "%i out of %i guilds was successfully deleted from the database due to their deletion schedule. Continuing to delete associated profiles and data...",
       });
@@ -37,7 +37,7 @@ async function CleanupUnavailableGuilds(Now: Date | "init" | "manual", Client: D
 
 export default {
   cron_exp: "*/10 * * * *",
-  cron_func: CleanupUnavailableGuilds as any,
+  cron_func: CleanupUnavailableGuilds,
   cron_opts: {
     errorHandlingMechanism: "silent/log",
     timezone: "America/Los_Angeles",
