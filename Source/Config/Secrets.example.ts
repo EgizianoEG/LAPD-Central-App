@@ -45,7 +45,7 @@ export const GoogleAPI: Secrets.GoogleAPI = {
 };
 
 export const Other: Secrets.Other = {
-  AppDocumentationLink: Env.DOCS_URL ?? "https://lapd-central-app.gitbook.io/",
+  AppDocumentationLink: Env.DOCS_URL ?? "https://lapd-central-app.gitbook.io",
   ImgBB_API_Key: Env.IMGBB_API_KEY ?? "33cf14c3eb75cb58b36b7fca231da47f",
   LogTailSourceToken: Env.LOGTAIL_SOURCE_TOKEN ?? "EsQFV7RVhjHKUdrRzM3uvfbX",
   LogTailIngestingHost: Env.LOGTAIL_INGESTING_HOST ?? "https://in.logs.betterstack.com",

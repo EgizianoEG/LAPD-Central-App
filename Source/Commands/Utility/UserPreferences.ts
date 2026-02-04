@@ -186,10 +186,15 @@ async function HandleDataDeletionModal(BtnInteract: ButtonInteraction): Promise<
   try {
     if (DeletionStrategy === "profile_only") {
       await Submission.deferReply({ flags: MessageFlags.Ephemeral });
-      const DeleteResult = await GuildProfile.deleteOne({
-        guild: BtnInteract.guildId || { $exists: true },
-        user: BtnInteract.user.id,
-      });
+      const DeleteResult = BtnInteract.guildId
+        ? await GuildProfile.deleteOne({
+            guild: BtnInteract.guildId,
+            user: BtnInteract.user.id,
+          })
+        : await GuildProfile.deleteMany({
+            user: BtnInteract.user.id,
+            guild: { $exists: true },
+          });
 
       if (DeleteResult.deletedCount > 0) {
         return await new InfoContainer()

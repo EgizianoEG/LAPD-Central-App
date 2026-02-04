@@ -5,9 +5,9 @@ import { GuildMember, PartialGuildMember } from "discord.js";
 /**
  * Un/De-schedules the deletion of user data relating to the guild they are in.
  * @param _ - Unused parameter.
- * @param Member - The guild member who left the server.
+ * @param Member - The guild member who rejoined the server.
  */
-export default async function ScheduleUserDataDeletionOnMemberLeave(
+export default async function UnscheduleUserDataDeletionOnMemberRejoin(
   _: DiscordClient,
   Member: GuildMember | PartialGuildMember
 ) {
@@ -27,7 +27,7 @@ export default async function ScheduleUserDataDeletionOnMemberLeave(
   } catch (Err: any) {
     AppLogger.error({
       message: "Failed to unschedule user data deletion upon rejoin;",
-      label: "Events:GuildMemberRemove:UnscheduleUDD",
+      label: "Events:GuildMemberAdd:UnscheduleUDD",
       stack: Err.stack,
       error: Err,
     });
