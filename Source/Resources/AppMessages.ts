@@ -1473,7 +1473,7 @@ export const InfoMessages = {
   UPProfilesDeletedOnly: {
     Title: "Profiles Deleted",
     Description:
-      "Your server profiles has been successfully deleted from the database; " +
+      "Your server profiles have been successfully deleted from the database; " +
       "associated operational records and history remain intact.",
   },
 
