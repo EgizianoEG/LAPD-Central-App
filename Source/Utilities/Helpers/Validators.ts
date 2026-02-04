@@ -233,3 +233,45 @@ export function IsValidDiscordAttachmentLink(
 
   return true;
 }
+
+/**
+ * Checks if a Discord snowflake ID is a ghost ID (anonymized user).
+ *
+ * @remarks
+ * Validates through multiple layers:
+ * 1. Format check (numeric only)
+ * 2. Range check (valid 64-bit unsigned integer)
+ * 3. MSB check (bit 63 must be 1)
+ * 4. Timestamp check (decodes to date in the future, real Ids are 2015-now)
+ *
+ * @param DiscordId - The Discord snowflake Id to check (as string)
+ * @returns `true` if the Id is a ghost Id, `false` otherwise
+ *
+ * @example
+ * ```typescript
+ * IsGhostDiscordId("123456789012345678"); // false (real ID)
+ * IsGhostDiscordId("9223372036854775808"); // true (ghost ID)
+ * ```
+ */
+export function IsGhostDiscordId(DiscordId: string): boolean {
+  if (!/^\d+$/.test(DiscordId)) {
+    return false;
+  }
+
+  try {
+    const IdBigInt = BigInt(DiscordId);
+
+    if (IdBigInt < 0n || IdBigInt > 18446744073709551615n) {
+      return false;
+    }
+
+    if (IdBigInt < 9223372036854775808n) {
+      return false;
+    }
+
+    const ExtractedTimestamp = SnowflakeUtil.timestampFrom(IdBigInt);
+    return ExtractedTimestamp > Date.now();
+  } catch {
+    return false;
+  }
+}
