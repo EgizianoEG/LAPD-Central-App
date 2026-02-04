@@ -45,11 +45,12 @@ export const GoogleAPI: Secrets.GoogleAPI = {
 };
 
 export const Other: Secrets.Other = {
-  Environment: (process.env.NODE_ENV as Secrets.Other["Environment"]) ?? "PROD",
+  AppDocumentationLink: Env.DOCS_URL ?? "https://lapd-central-app.gitbook.io/",
   ImgBB_API_Key: Env.IMGBB_API_KEY ?? "33cf14c3eb75cb58b36b7fca231da47f",
   LogTailSourceToken: Env.LOGTAIL_SOURCE_TOKEN ?? "EsQFV7RVhjHKUdrRzM3uvfbX",
   LogTailIngestingHost: Env.LOGTAIL_INGESTING_HOST ?? "https://in.logs.betterstack.com",
   BloxlinkAPIKey: Env.BLOXLINK_API_KEY ?? "a3a7c9b3-5f8c-4e7b-ba7d-9b9f7f7f7f7f",
+  Environment: (process.env.NODE_ENV as Secrets.Other["Environment"]) ?? "PROD",
   IsProdEnv: !!(process.env.NODE_ENV || "DEV").trim().match(/^Prod(?:uction)?$/i),
 };
 

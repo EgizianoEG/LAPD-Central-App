@@ -36,6 +36,7 @@ module.exports = {
 
       env_development: {
         NODE_ENV: "Development",
+        DOCS_URL: "https://lapd-central-app.gitbook.io",
         PORT: 30_000,
 
         // General app settings
