@@ -5,6 +5,7 @@ import {
   IsValidShiftId,
   IsValidDiscordId,
   IsValidCmdObject,
+  IsGhostDiscordId,
   IsValidUserPermsObj,
   IsValidLicensePlate,
   IsValidPersonHeight,
@@ -245,5 +246,102 @@ describe("IsValidLicensePlate", () => {
     expect(IsValidLicensePlate("DEF-456")).toBeTruthy();
     expect(IsValidLicensePlate("GHI-JKL")).toBeTruthy();
     expect(IsValidLicensePlate("123-XYZ")).toBeTruthy();
+  });
+});
+
+describe("IsGhostDiscordId", () => {
+  describe("Format validation", () => {
+    it("Should return false for empty strings", () => {
+      expect(IsGhostDiscordId("")).toBeFalsy();
+    });
+
+    it("Should return false for non-numeric strings", () => {
+      expect(IsGhostDiscordId("abcdefghijklmnop")).toBeFalsy();
+      expect(IsGhostDiscordId("123abc456def789")).toBeFalsy();
+      expect(IsGhostDiscordId("ghost-id-12345")).toBeFalsy();
+      expect(IsGhostDiscordId("               ")).toBeFalsy();
+      expect(IsGhostDiscordId("$#&^$#&^$#&^$#'")).toBeFalsy();
+    });
+
+    it("Should return false for negative numbers", () => {
+      expect(IsGhostDiscordId("-9223372036854775808")).toBeFalsy();
+      expect(IsGhostDiscordId("-1")).toBeFalsy();
+    });
+  });
+
+  describe("Range validation", () => {
+    it("Should return false for numbers exceeding 64-bit unsigned integer max", () => {
+      // 2^64 = 18446744073709551616 (one more than max)
+      expect(IsGhostDiscordId("18446744073709551616")).toBeFalsy();
+      expect(IsGhostDiscordId("99999999999999999999999")).toBeFalsy();
+    });
+  });
+
+  describe("MSB check (bit 63)", () => {
+    it("Should return false for IDs with MSB = 0 (regular Discord IDs)", () => {
+      // Real Discord IDs have MSB = 0 (values < 2^63)
+      expect(IsGhostDiscordId("123456789012345678")).toBeFalsy();
+      expect(IsGhostDiscordId("987654321098765432")).toBeFalsy();
+      expect(IsGhostDiscordId("1202001151969742939")).toBeFalsy();
+      expect(IsGhostDiscordId("1186171894911733841")).toBeFalsy();
+    });
+
+    it("Should return false for IDs just below MSB threshold", () => {
+      // 2^63 - 1 = 9223372036854775807 (largest value with MSB = 0)
+      expect(IsGhostDiscordId("9223372036854775807")).toBeFalsy();
+      expect(IsGhostDiscordId("9223372036854775800")).toBeFalsy();
+    });
+
+    it("Should process IDs at exactly MSB threshold", () => {
+      // 2^63 = 9223372036854775808 (smallest value with MSB = 1)
+      // This will pass MSB check but must also pass timestamp check
+      const result = IsGhostDiscordId("9223372036854775808");
+      // Result depends on timestamp extraction - MSB is set but timestamp may not be future
+      expect(typeof result).toBe("boolean");
+    });
+  });
+
+  describe("Timestamp validation", () => {
+    it("Should return true for IDs at MSB threshold that decode to future timestamps", () => {
+      // 2^63 = 9223372036854775808 decodes to a far future timestamp (year ~2262+)
+      // because the Discord epoch is 2015 and the timestamp bits are huge
+      expect(IsGhostDiscordId("9223372036854775808")).toBeTruthy();
+    });
+
+    it("Should return true for valid ghost IDs with future timestamps", () => {
+      // Ghost IDs are generated with MSB=1 and decode to far future (>2262)
+      // A properly generated ghost ID should always return true
+      // Example: 2^63 + large offset that decodes to future
+      // 18446744073709551615 is max uint64, which decodes to far future
+      expect(IsGhostDiscordId("18446744073709551615")).toBeTruthy();
+
+      // Mid-range ghost ID (still has MSB=1 and future timestamp)
+      expect(IsGhostDiscordId("15000000000000000000")).toBeTruthy();
+      expect(IsGhostDiscordId("12000000000000000000")).toBeTruthy();
+    });
+  });
+
+  describe("Edge cases", () => {
+    it("Should return false for zero", () => {
+      expect(IsGhostDiscordId("0")).toBeFalsy();
+    });
+
+    it("Should return false for very small numbers", () => {
+      expect(IsGhostDiscordId("1")).toBeFalsy();
+      expect(IsGhostDiscordId("12345")).toBeFalsy();
+    });
+
+    it("Should handle boundary values correctly", () => {
+      // Max valid uint64
+      expect(IsGhostDiscordId("18446744073709551615")).toBeTruthy();
+
+      // Just above max uint64 (invalid)
+      expect(IsGhostDiscordId("18446744073709551616")).toBeFalsy();
+    });
+
+    it("Should return false for strings with leading zeros that are valid Discord IDs", () => {
+      // Leading zeros should still be numeric but represent small values
+      expect(IsGhostDiscordId("0123456789012345678")).toBeFalsy();
+    });
   });
 });
