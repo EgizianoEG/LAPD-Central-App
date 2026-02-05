@@ -113,7 +113,7 @@ export function GetShiftManagementButtons(
   ActionRow.updateButtons({
     start: !ShiftActive || !!ShiftActive.end_timestamp,
     break: !!ShiftActive && !ShiftActive.end_timestamp,
-    end: !!ShiftActive && !ShiftActive.end_timestamp && !ShiftActive.hasBreakActive(),
+    end: !!ShiftActive && !ShiftActive.end_timestamp,
   });
 
   const ActiveShiftIdSuffix = ShiftActive?._id ? `:${ShiftActive._id}` : "";
