@@ -7,6 +7,6 @@
     "pkief.material-icon-theme",
     "mongodb.mongodb-vscode",
     "ms-vscode.vscode-typescript-next",
-    "github.copilot"
+    "GitHub.copilot-chat"
   ]
 }
