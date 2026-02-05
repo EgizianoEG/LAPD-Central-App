@@ -319,6 +319,29 @@ The application includes an Express server configured in [`Source/Handlers/Expre
 - `*.env` files
 - PM2 config files (except those suffixed with `.example.cjs`)
 
+### Commit & Pull Request Conventions
+
+**Use Conventional Commits for PR titles and Commit messages.**
+
+- **Format:** `<type>[+<type>...](<scope>): <description>`
+- **Scope:** Optional, e.g., `(rubocop)`, `(auth)`, `(shift-handler)`.
+- **Description:** Short and imperative (start with lower case).
+
+**Allowed Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `style`: Formatting, missing semi-colons, etc (no code change)
+- `refactor`: Refactoring production code
+- `perf`: Performance improvements
+- `test`: Adding missing tests
+- `chore`: Maintenance tasks
+
+**Examples:**
+- `feat(ctx-menu): add user report context command`
+- `fix(shift-model): prevent break end on null timestamp`
+- `chore: update dependencies`
+
 ## Common Development Workflows
 
 ### Making Code Changes
