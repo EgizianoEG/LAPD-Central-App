@@ -384,7 +384,7 @@ async function OnChargesAndDetailsModalSubmission(
     booking_num: BookingNumber,
     user_gender: CmdOptions.Gender,
     booking_date: CmdInteract.createdAt,
-    division: ReporterDivisionBeat ? DivisionBeats[ReporterDivisionBeat]?.name : null,
+    division: ReporterDivisionBeat ? DivisionBeats[ReporterDivisionBeat - 1]?.name : null,
   });
 
   if (!PrimaryIsReporter) {
