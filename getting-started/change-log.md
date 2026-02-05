@@ -7,7 +7,7 @@ icon: newspaper
 
 # Change Log
 
-## [Version 1.11.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.11.0) – January 22, 2026 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup> <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.11.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.11.0) – January 22, 2026 <sup><sub>_<mark style="color:info;">(Latest)</mark>_<sub></sup>
 
 ### Release Notes
 
@@ -87,7 +87,7 @@ Feature release focused on user experience and data accuracy for duty/activity r
 
 ---
 
-## [Version 1.10.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.10.1) – December 4, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.10.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.10.1) – December 4, 2025
 
 ### Release Notes
 
@@ -144,7 +144,7 @@ Patch release focusing on stability and UX around logging, duty import, Roblox i
 
 ---
 
-## [Version 1.10.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.10.0) – November 26, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.10.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.10.0) – November 26, 2025
 
 ### Release Notes
 
@@ -263,7 +263,7 @@ Quite major update focusing on config flexibility, better module traceability, r
 
 ---
 
-## [Version 1.9.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.9.2) – October 30, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.9.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.9.2) – October 30, 2025
 
 ### Release Notes
 
@@ -335,7 +335,7 @@ Patch release improving shift reliability, interaction responsiveness, and admin
 
 ---
 
-## [Version 1.9.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.9.1) – October 17, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.9.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.9.1) – October 17, 2025
 
 ### Release Notes
 
@@ -373,7 +373,7 @@ Minor patch focusing on data integrity for shift durations and improved type saf
 
 ---
 
-## [Version 1.9.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.9.0) – October 17, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.9.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.9.0) – October 17, 2025
 
 ### Release Notes
 
@@ -503,7 +503,7 @@ Significant update adding bulk call sign data management, optional auto-release 
 
 ---
 
-## [Version 1.8.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.8.1) – October 13, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.8.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.8.1) – October 13, 2025
 
 ### Release Notes
 
@@ -533,7 +533,7 @@ Minor patch release with improved monitoring and resolved nickname prefix confli
 
 ---
 
-## [Version 1.8.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.8.0) – October 10, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.8.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.8.0) – October 10, 2025
 
 ### Release Notes
 
@@ -593,7 +593,7 @@ A substantial update introducing fully functional call sign restrictions configu
 
 ---
 
-## [Version 1.7.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.2) – October 7, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.7.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.2) – October 7, 2025
 
 ### Release Notes
 
@@ -629,7 +629,7 @@ Minor patch release focusing on bug fixes, improved error handling, and consiste
 
 ---
 
-## [Version 1.7.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.1) – October 5, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.7.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.1) – October 5, 2025
 
 ### Release Notes
 
@@ -655,7 +655,7 @@ Minor patch release addressing call sign module stability, interaction timeout h
 
 ---
 
-## [Version 1.7.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.0) – October 5, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.7.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.7.0) – October 5, 2025
 
 ### Release Notes
 
@@ -822,7 +822,7 @@ Major update introducing a comprehensive callsigns management system, enhanced R
 
 ---
 
-## [Version 1.6.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.6.1) – August 27, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.6.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.6.1) – August 27, 2025
 
 ### Release Notes
 
@@ -848,7 +848,7 @@ Minor update that fixes most recent and known bugs.
 
 ---
 
-## [Version 1.6.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.6.0) – August 22, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.6.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.6.0) – August 22, 2025
 
 ### Release Notes
 
@@ -921,7 +921,7 @@ Major update with expanded report fields, improved reliability in role/incident 
 
 ---
 
-## [Version 1.5.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.5.0) – August 8, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.5.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.5.0) – August 8, 2025
 
 ### Release Notes
 
@@ -1047,7 +1047,7 @@ Significant update introducing flexible signature formats, enhanced config UI, d
 
 ---
 
-## [Version 1.4.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.4.0) – July 21, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.4.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.4.0) – July 21, 2025
 
 ### Added
 
@@ -1081,7 +1081,7 @@ Significant update introducing flexible signature formats, enhanced config UI, d
 
 ---
 
-## [Version 1.3.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.2) – July 6, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.3.2](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.2) – July 6, 2025
 
 - Warns about Manage Server permission for fetching/retrieving/enforcing automoderation rules and handles permission errors.
 - Minor enhancements and text reformatting for arrest charges text
@@ -1090,7 +1090,7 @@ Significant update introducing flexible signature formats, enhanced config UI, d
 
 ---
 
-## [Version 1.3.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.1) – June 27, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.3.1](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.1) – June 27, 2025
 
 - Fixes issue template typo and permissions record.
 - Revise fallback and error handling for activity report generation.
@@ -1100,7 +1100,7 @@ Significant update introducing flexible signature formats, enhanced config UI, d
 
 ---
 
-## [Version 1.3.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.0) – June 22, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.3.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.3.0) – June 22, 2025
 
 ### What's Changed
 
@@ -1110,7 +1110,7 @@ Significant update introducing flexible signature formats, enhanced config UI, d
 
 ---
 
-## [Version 1.2.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.2.0) – June 6, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.2.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.2.0) – June 6, 2025
 
 ### What's Changed
 
@@ -1122,7 +1122,7 @@ Significant update introducing flexible signature formats, enhanced config UI, d
 
 ---
 
-## [Version 1.1.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.1.0) – May 28, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.1.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.1.0) – May 28, 2025
 
 Introduces bug fixes and consistent styling for `duty admin` and `member-roles` commands.
 
@@ -1130,7 +1130,7 @@ Introduces bug fixes and consistent styling for `duty admin` and `member-roles` 
 
 ---
 
-## [Version 1.0.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.0.0) – May 26, 2025 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.0.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.0.0) – May 26, 2025
 
 ### First Release of LAPD Central
 
