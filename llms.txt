@@ -1,0 +1,51 @@
+# LAPD Central Discord App
+
+> Discord bot for ER:LC LAPD roleplay communities
+> Node.js 24 • TypeScript • discord.js v14 • MongoDB • Express
+
+## Documentation
+
+**Read first:** `.github/copilot-instructions.md` - Comprehensive development guide with setup, architecture, conventions, and workflows.
+
+## Critical First Steps
+
+1. **`npm run cp:secrets`** - Creates `Source/Config/Secrets.ts` (REQUIRED before anything else)
+2. `npm ci` - Install dependencies
+3. `npm start` - Run development server
+
+## Key Conventions
+
+- **PascalCase** for functions/variables (NOT camelCase)
+- **CRLF** line endings (Windows)
+- **Conventional Commits** for PR titles: `type(scope): description`
+- Path aliases (`#Source/*`, `#Utilities/*`) resolve at runtime via Node.js
+
+## Quick Commands
+
+```bash
+npm run build       # Compile TypeScript + copy resources
+npm run lint        # TypeScript + ESLint + Prettier (~60-120s)
+npm test            # Run all tests
+```
+
+## Project Structure
+
+```
+Source/
+├── Commands/       # Discord commands (~73 files)
+├── Events/         # Event handlers (~18 files)
+├── Models/         # Database schemas (~16 files)
+├── Utilities/      # Helpers (104 files, largest section)
+├── Resources/      # Static assets
+└── Main.ts         # Entry point
+```
+
+## Additional Resources
+
+- `.github/PULL_REQUEST_TEMPLATE.md` - PR guidelines
+- `CONTRIBUTING.md` - Contributing guide
+- `package.json` - Scripts and path alias mappings
+
+---
+
+For all details, see `.github/copilot-instructions.md`
