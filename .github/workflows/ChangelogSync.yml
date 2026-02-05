@@ -1,0 +1,55 @@
+name: Sync Changelog to Documentation Branch
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["CHANGELOG.md"]
+
+jobs:
+  update-gitbook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Transform Changelog
+        run: |
+          # 1. Define the GitBook Frontmatter
+          FRONTMATTER="---
+          description: >-
+            Track LAPD Central's evolution with detailed release notes, feature additions,
+            and bug fixes.
+          icon: newspaper
+          ---
+          "
+          
+          # 2. Read the current Changelog
+          CONTENT=$(cat CHANGELOG.md)
+          
+          # 3. Inject the Frontmatter + "Latest" badge styling
+          # Adds a badge to the first/latest version header
+          FORMATTED_CONTENT=$(echo "$CONTENT" | sed -E 's/^(## \[Version [0-9]+\.[0-9]+\.[0-9]+\].*$)/\1 <sup><sub>_<mark style="color:$info;">(Latest)<\/mark>_<sub><\/sup>/')
+          
+          # 4. Combine them
+          echo "$FRONTMATTER" > temp_changelog.md
+          echo "$FORMATTED_CONTENT" >> temp_changelog.md
+
+      - name: Checkout 'app-documentation' Branch
+        uses: actions/checkout@v4
+        with:
+          ref: app-documentation
+          path: ./temp-docs
+
+      - name: Update the Docs' Changelog File
+        run: |
+          mkdir -p ./temp-docs/getting-started
+          mv temp_changelog.md ./temp-docs/getting-started/change-log.md
+
+      - name: Commit and Push Changes
+        run: |
+          cd ./temp-docs
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add getting-started/change-log.md
+          git commit -m "docs: auto-sync changelog from main" || echo "No changes to commit"
+          git push
