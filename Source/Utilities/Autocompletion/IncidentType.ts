@@ -1,9 +1,10 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
 import { IncidentCategories } from "#Resources/IncidentConstants.js";
+import { PascalToNormal } from "../Strings/Converters.js";
 
 const IncidentTypesWithCategories = Object.entries(IncidentCategories)
   .flatMap(([Category, Types]) =>
-    Types.map((Type: string) => ({ name: `${Category} – ${Type}`, value: Type }))
+    Types.map((Type: string) => ({ name: `${PascalToNormal(Category)} – ${Type}`, value: Type }))
   )
   .sort((a, b) => a.name.localeCompare(b.name));
 
