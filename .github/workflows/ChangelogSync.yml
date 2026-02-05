@@ -27,8 +27,8 @@ jobs:
           CONTENT=$(cat CHANGELOG.md)
           
           # 3. Inject the Frontmatter + "Latest" badge styling
-          # Adds a badge to the first/latest version header
-          FORMATTED_CONTENT=$(echo "$CONTENT" | sed -E 's/^(## \[Version [0-9]+\.[0-9]+\.[0-9]+\].*$)/\1 <sup><sub>_<mark style="color:$info;">(Latest)<\/mark>_<sub><\/sup>/')
+          # Adds a badge to the first/latest version header only
+          FORMATTED_CONTENT=$(echo "$CONTENT" | sed -E '0,/^(## \[Version [0-9]+\.[0-9]+\.[0-9]+\].*)$/s//\1 <sup><sub>_<mark style="color:info;">(Latest)<\/mark>_<sub><\/sup>/')
           
           # 4. Combine them
           echo "$FRONTMATTER" > temp_changelog.md

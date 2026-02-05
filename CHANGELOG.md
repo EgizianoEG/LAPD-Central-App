@@ -1,6 +1,6 @@
 # Change Log
 
-## [Version 1.11.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.11.0) – January 22, 2026 <sup><sub>_<mark style="color:$info;">(Latest)</mark>_<sub></sup>
+## [Version 1.11.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.11.0) – January 22, 2026
 
 ### Release Notes
 
