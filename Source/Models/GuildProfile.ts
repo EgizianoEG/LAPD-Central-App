@@ -51,7 +51,7 @@ const ProfileSchema = new Schema<
     type: Date,
     index: true,
     default: null,
-    required: true,
+    required: false,
   },
 
   activity_notices: {
