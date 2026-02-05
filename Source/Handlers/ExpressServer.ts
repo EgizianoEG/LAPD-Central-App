@@ -1,4 +1,5 @@
 import { connections as MongooseConnection } from "mongoose";
+import { ShutdownStatus } from "./ProcessShutdownHandler.js";
 import { Client, Status } from "discord.js";
 import { rateLimit } from "express-rate-limit";
 import {
@@ -19,11 +20,27 @@ import Path from "node:path";
 // -------------------------------------------------------------------------------------------
 // Express Server Handler:
 // -----------------------
+const AppServer = Object.seal({
+  App: null as ReturnType<typeof Express> | null,
+  Server: null as ReturnType<ReturnType<typeof Express>["listen"]> | null,
+});
+
+export const GetExpressServerApp = (): ReturnType<typeof Express> | null => {
+  return AppServer.App;
+};
+
+export const GetExpressServerInstance = (): ReturnType<
+  ReturnType<typeof Express>["listen"]
+> | null => {
+  return AppServer.Server;
+};
+
 export default function ExpressServerHandler(App: Client) {
   const EAppPort = process.env.PORT ?? 10_000;
-  const ExpressApp = Express();
   const FileLabel = "Handlers:ExpressServer";
   const ContentTypeHeader = "Content-Type";
+  const ExpressApp = Express();
+  AppServer.App = ExpressApp;
 
   const RateLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -37,6 +54,16 @@ export default function ExpressServerHandler(App: Client) {
 
   ExpressApp.disable("x-powered-by");
   ExpressApp.use(RateLimiter);
+  ExpressApp.use((_, Res, Next) => {
+    if (ShutdownStatus.IsShuttingDown) {
+      Res.setHeader("Connection", "close");
+      Res.status(503).end("Server is in the process of shutting down.");
+      return;
+    }
+
+    Next();
+  });
+
   ExpressApp.use((_, Res: Response, Next: NextFunction) => {
     Res.setHeader(ContentTypeHeader, "application/json");
     Next();
@@ -52,7 +79,7 @@ export default function ExpressServerHandler(App: Client) {
   );
 
   ExpressApp.use((Req, Res) => HandleNotFoundRequest(Req, Res, NotFoundPage, ContentTypeHeader));
-  ExpressApp.listen(EAppPort, () => {
+  AppServer.Server = ExpressApp.listen(EAppPort, () => {
     AppLogger.info({
       message: "Express app listening on port %o.",
       label: FileLabel,

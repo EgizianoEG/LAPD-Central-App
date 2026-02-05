@@ -1,5 +1,6 @@
 import { Client, DiscordAPIError, DiscordjsError, DiscordjsErrorCodes } from "discord.js";
 import AppLogger, { FlushCloudLogs } from "#Utilities/Classes/AppLogger.js";
+import { GetExpressServerInstance } from "./ExpressServer.js";
 import { AxiosError } from "axios";
 import AppError from "#Utilities/Classes/AppError.js";
 import Mongoose from "mongoose";
@@ -53,6 +54,7 @@ export async function PerformGracefulShutdown(App: Client, ExitCode: number): Pr
   if (ShutdownStatus.IsShuttingDown) return;
   ShutdownStatus.IsShuttingDown = true;
 
+  const ExpressServer = GetExpressServerInstance();
   const CleanupPromises = Promise.allSettled([
     Mongoose.disconnect().catch((Err) => {
       AppLogger.debug({
@@ -70,6 +72,11 @@ export async function PerformGracefulShutdown(App: Client, ExitCode: number): Pr
         stack: Err?.stack,
       });
     }),
+    ExpressServer
+      ? new Promise<void>((Resolve) => {
+          ExpressServer.close(() => Resolve());
+        })
+      : Promise.resolve(),
   ]);
 
   const TimeoutPromise = new Promise<void>((Resolve) =>
