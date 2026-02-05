@@ -38,6 +38,7 @@ import LogArrestReport, {
 import { RandomString } from "#Utilities/Strings/Random.js";
 import { ReporterInfo } from "../Log.js";
 import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
+import { DASignatureFormats } from "#Config/Constants.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
 import { DivisionBeats } from "#Source/Resources/LAPDCallsigns.js";
@@ -152,9 +153,61 @@ function GetArrestPendingSubmissionComponents() {
 }
 
 /**
+ * Validates officer Roblox account linkage requirements based on guild settings.
+ * Fetches guild settings internally and handles validation errors immediately by responding to the interaction.
+ * @param Interaction - The interaction to respond to if validation fails (SlashCommandInteraction or ButtonInteraction)
+ * @param PrimaryOfficerId - The Discord ID of the primary/arresting officer
+ * @param ReporterId - The Discord ID of the reporter (command executor)
+ * @param ReporterRobloxId - The Roblox ID of the reporter if already known, or null
+ * @param GuildId - The guild ID for checking login status and fetching settings
+ * @returns True if validation handled (failed and responded), false if validation passed
+ */
+async function ValidateOfficersRobloxLinkage(
+  Interaction: SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">,
+  PrimaryOfficerId: string,
+  ReporterId: string,
+  ReporterRobloxId: number | null,
+  GuildId: string
+): Promise<boolean> {
+  const ReplyType = Interaction.isButton() ? "editReply" : undefined;
+  const GuildSettings = await GetGuildSettings(GuildId);
+  const PrimaryIsReporter = PrimaryOfficerId === ReporterId;
+  const RequiresRobloxAccount =
+    GuildSettings.require_authorization === true ||
+    !!(GuildSettings.duty_activities.signature_format & DASignatureFormats.RobloxDisplayName) ||
+    !!(GuildSettings.duty_activities.signature_format & DASignatureFormats.RobloxUsername);
+
+  if (!RequiresRobloxAccount) {
+    return false;
+  }
+
+  if (!PrimaryIsReporter) {
+    const PrimaryOfficerRobloxId = await IsLoggedIn({
+      user: { id: PrimaryOfficerId },
+      guildId: GuildId,
+    });
+
+    if (!PrimaryOfficerRobloxId) {
+      await new ErrorEmbed()
+        .useErrTemplate("PrimaryOfficerNotLoggedIn", PrimaryOfficerId, "authorization")
+        .replyToInteract(Interaction, true, true, ReplyType);
+      return true;
+    }
+  } else if (!ReporterRobloxId) {
+    await new ErrorEmbed()
+      .useErrTemplate("PrimaryOfficerNotLoggedIn", ReporterId, "authorization")
+      .replyToInteract(Interaction, true, true, ReplyType);
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Handles the validation of the slash command inputs.
  * @param Interaction
  * @param CmdOptions
+ * @param Reporter
  * @returns A boolean indicating whether the interaction was handled and responded to (true) or not (false).
  */
 async function HandleCmdOptsValidation(
@@ -203,18 +256,24 @@ async function HandleCmdOptsValidation(
       .then(() => true);
   }
 
-  return false;
+  return ValidateOfficersRobloxLinkage(
+    Interaction,
+    CmdOptions.PrimaryOfficer.user.id,
+    Interaction.user.id,
+    Reporter.RobloxUserId,
+    Interaction.guildId
+  );
 }
 
 /**
- * Filters out assistant officers from a collection of users based on their permissions and the ID of the reporter.
- * @param {string} ReporterId - A string that represents the ID of the user who reported the arrest or is making the request.
+ * Filters out assistant officers from a collection of users based on their permissions and the ID of the arresting officer.
+ * @param {string} ArrestingOfficerId - The Discord ID of the arresting officer who should not be in the assisting officers list.
  * @param {string} GuildId - A string that represents the ID of the guild.
  * @param UsersCollection - A collection of users (assistant officers).
  * @returns
  */
 async function FilterAsstOfficers(
-  ReporterId: string,
+  ArrestingOfficerId: string,
   GuildId: string,
   UsersCollection: Collection<string, User>
 ) {
@@ -226,7 +285,7 @@ async function FilterAsstOfficers(
     $or: true,
   });
 
-  UsersCollection.delete(ReporterId);
+  UsersCollection.delete(ArrestingOfficerId);
   UsersCollection.sweep((User) => User.bot || !Perms[User.id]);
   return UsersCollection;
 }
@@ -360,16 +419,21 @@ async function OnChargesAndDetailsModalSubmission(
   );
 
   const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
-  const ArrestingOfficerRobloxId = PrimaryIsReporter
-    ? null
-    : await IsLoggedIn({
-        user: { id: CmdOptions.PrimaryOfficer.user.id },
-        guildId: CmdInteract.guildId,
-      });
+  let ArrestingOfficerRobloxId: number | null = null;
+  let ArrestingOfficerRobloxInfo: Awaited<ReturnType<typeof GetUserInfo>> | null = null;
 
-  const ArrestingOfficerRobloxInfo = ArrestingOfficerRobloxId
-    ? await GetUserInfo(ArrestingOfficerRobloxId)
-    : null;
+  if (PrimaryIsReporter) {
+    ArrestingOfficerRobloxId = ReporterMainInfo.RobloxUserId || null;
+  } else {
+    ArrestingOfficerRobloxId = await IsLoggedIn({
+      user: { id: CmdOptions.PrimaryOfficer.user.id },
+      guildId: CmdInteract.guildId,
+    });
+  }
+
+  if (ArrestingOfficerRobloxId) {
+    ArrestingOfficerRobloxInfo = await GetUserInfo(ArrestingOfficerRobloxId);
+  }
 
   const ReporterDivisionBeat =
     (await GetActiveCallsign(CmdInteract.guildId, CmdInteract.user.id))?.designation.division ??
@@ -386,10 +450,6 @@ async function OnChargesAndDetailsModalSubmission(
     booking_date: CmdInteract.createdAt,
     division: ReporterDivisionBeat ? DivisionBeats[ReporterDivisionBeat - 1]?.name : null,
   });
-
-  if (!PrimaryIsReporter) {
-    AsstOfficersDisIds.push(CmdInteract.user.id);
-  }
 
   const ConfirmationEmbed = new EmbedBuilder()
     .setTitle("Arrest Report - Confirmation")
@@ -482,16 +542,12 @@ async function OnChargesAndDetailsModalSubmission(
     if (ReceivedInteract.isUserSelectMenu() && ReceivedInteract.customId === "assisting-officers") {
       await ReceivedInteract.deferUpdate();
       const Filtered = await FilterAsstOfficers(
-        CmdInteract.user.id,
+        CmdOptions.PrimaryOfficer.user.id,
         CmdInteract.guildId,
         ReceivedInteract.users
       );
 
-      AsstOfficersDisIds = [
-        ...(PrimaryIsReporter ? [] : [CmdInteract.user.id]),
-        ...Filtered.keys(),
-      ];
-
+      AsstOfficersDisIds = [...Filtered.keys()];
       AsstOfficersMenu.components[0].setDefaultUsers(AsstOfficersDisIds);
       const FormattedMentions =
         ListFormatter.format(AsstOfficersDisIds.map((Id) => userMention(Id))) || "N/A";
@@ -504,9 +560,26 @@ async function OnChargesAndDetailsModalSubmission(
           ),
         ],
       }).catch(() => null);
-    } else if (ReceivedInteract.isButton()) {
+
+      return;
+    }
+
+    if (ReceivedInteract.isButton()) {
       if (ReceivedInteract.customId === "confirm-report") {
         await ReceivedInteract.deferUpdate();
+        const ValidationHandled = await ValidateOfficersRobloxLinkage(
+          ReceivedInteract,
+          CmdOptions.PrimaryOfficer.user.id,
+          CmdInteract.user.id,
+          ReporterMainInfo.RobloxUserId,
+          CmdInteract.guildId
+        );
+
+        if (ValidationHandled) {
+          ComponentCollector.stop("Validation Failed");
+          return;
+        }
+
         ComponentCollector.stop("Report Confirmation");
       } else if (ReceivedInteract.customId === "cancel-report") {
         await ReceivedInteract.deferUpdate();
@@ -553,8 +626,12 @@ async function OnChargesAndDetailsModalSubmission(
 
     try {
       if (!LastInteraction?.isButton()) return;
+      if (EndReason === "Validation Failed") return;
       if (EndReason === "Report Confirmation") {
-        const ReporterRobloxUserInfo = await GetUserInfo(ReporterMainInfo.RobloxUserId);
+        const ReporterRobloxUserInfo = ReporterMainInfo.RobloxUserId
+          ? await GetUserInfo(ReporterMainInfo.RobloxUserId)
+          : null;
+
         const ReportInfo: ReportInfoType = {
           shift_active: ReporterMainInfo.ActiveShift,
           report_date: CmdInteract.createdAt,
@@ -568,21 +645,24 @@ async function OnChargesAndDetailsModalSubmission(
             ? null
             : {
                 discord_id: CmdInteract.user.id,
-                roblox_user: {
-                  display_name: ReporterRobloxUserInfo.displayName,
-                  name: ReporterRobloxUserInfo.name,
-                  id: ReporterRobloxUserInfo.id,
-                },
+                roblox_user: ReporterRobloxUserInfo
+                  ? {
+                      display_name: ReporterRobloxUserInfo.displayName,
+                      name: ReporterRobloxUserInfo.name,
+                      id: ReporterRobloxUserInfo.id,
+                    }
+                  : null,
               },
 
           arresting_officer: {
             discord_id: CmdOptions.PrimaryOfficer.user.id,
-            roblox_user: {
-              display_name:
-                ArrestingOfficerRobloxInfo?.displayName ?? ReporterRobloxUserInfo.displayName,
-              name: ArrestingOfficerRobloxInfo?.name ?? ReporterRobloxUserInfo.name,
-              id: ArrestingOfficerRobloxInfo?.id ?? ReporterRobloxUserInfo.id,
-            },
+            roblox_user: ArrestingOfficerRobloxInfo
+              ? {
+                  display_name: ArrestingOfficerRobloxInfo.displayName,
+                  name: ArrestingOfficerRobloxInfo.name,
+                  id: ArrestingOfficerRobloxInfo.id,
+                }
+              : null,
           },
         };
 

@@ -32,6 +32,12 @@ export default async function GetFormattedArrestReportEmbed(
     Booking number: \`${ArrestInfo.booking_num.toString().padStart(4, "0")}\`
   `).trim();
 
+  const SignatureText =
+    ArrestInfo.reporting_officer &&
+    ArrestInfo.reporting_officer.discord_id !== ArrestInfo.arresting_officer.discord_id
+      ? `Report signed by ${ArrestInfo.reporting_officer.signature || ArrestInfo.reporting_officer.formatted_name}, ${ArrestInfo.arresting_officer.signature || ArrestInfo.arresting_officer.formatted_name}`
+      : `Report signed by ${ArrestInfo.arresting_officer.signature || ArrestInfo.arresting_officer.formatted_name}`;
+
   const AREmbed = new EmbedBuilder()
     .setTitle("LAPD — Arrest Report")
     .setDescription(ReportDescription)
@@ -40,7 +46,7 @@ export default async function GetFormattedArrestReportEmbed(
     .setColor(Colors.DarkBlue)
     .setFooter({
       iconURL: Icons.Signature,
-      text: `Report signed by ${ArrestInfo.arresting_officer.signature || ArrestInfo.arresting_officer.formatted_name}`,
+      text: SignatureText,
     })
     .setFields([
       {

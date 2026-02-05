@@ -1,7 +1,7 @@
+import { FormatDutyActivitiesLogSignature, FormatUsername } from "#Utilities/Strings/Formatters.js";
 import { ButtonInteraction } from "discord.js";
 import { SendGuildMessages } from "#Utilities/Discord/GuildMessages.js";
 import { CmdOptionsType } from "#Cmds/Miscellaneous/Log/Deps/Arrest.js";
-import { FormatDutyActivitiesLogSignature, FormatUsername } from "#Utilities/Strings/Formatters.js";
 import { Shifts } from "#Typings/Utilities/Database.js";
 import { Images } from "#Config/Shared.js";
 
@@ -25,7 +25,7 @@ export type ReportInfoType = {
       display_name: string;
       name: string;
       id: string | number;
-    };
+    } | null;
   };
 
   reporting_officer?: null | {
@@ -34,7 +34,7 @@ export type ReportInfoType = {
       display_name: string;
       name: string;
       id: string | number;
-    };
+    } | null;
   };
 
   /** Discord Ids and Roblox usernames of the arrest assisting officers if applicable. */
@@ -99,21 +99,50 @@ export default async function LogArrestReport(
     },
 
     arresting_officer: {
-      formatted_name: FormatUsername(ReportInfo.arresting_officer.roblox_user),
       discord_id: ReportInfo.arresting_officer.discord_id,
-      roblox_id: Number(ReportInfo.arresting_officer.roblox_user.id),
-      signature: FormatDutyActivitiesLogSignature(
-        ArrOfficerMember,
-        ReportInfo.arresting_officer.roblox_user,
-        GuildSettings.duty_activities.signature_format
-      ),
+
+      formatted_name: ReportInfo.arresting_officer.roblox_user
+        ? FormatUsername(ReportInfo.arresting_officer.roblox_user)
+        : undefined,
+
+      roblox_id: ReportInfo.arresting_officer.roblox_user
+        ? Number(ReportInfo.arresting_officer.roblox_user.id)
+        : undefined,
+
+      signature: ReportInfo.arresting_officer.roblox_user
+        ? FormatDutyActivitiesLogSignature(
+            ArrOfficerMember,
+            ReportInfo.arresting_officer.roblox_user,
+            GuildSettings.duty_activities.signature_format
+          )
+        : ArrOfficerMember.displayName || ArrOfficerMember.user.username,
     },
 
     ...(ReportInfo.reporting_officer && {
       reporting_officer: {
-        formatted_name: FormatUsername(ReportInfo.reporting_officer.roblox_user),
         discord_id: ReportInfo.reporting_officer.discord_id,
-        roblox_id: Number(ReportInfo.reporting_officer.roblox_user.id),
+
+        formatted_name: ReportInfo.reporting_officer.roblox_user
+          ? FormatUsername(ReportInfo.reporting_officer.roblox_user)
+          : undefined,
+
+        roblox_id: ReportInfo.reporting_officer.roblox_user
+          ? Number(ReportInfo.reporting_officer.roblox_user.id)
+          : undefined,
+
+        signature: await (async () => {
+          const RepOfficerMember = await CachedInteract.guild.members.fetch(
+            ReportInfo.reporting_officer!.discord_id
+          );
+
+          return ReportInfo.reporting_officer!.roblox_user
+            ? FormatDutyActivitiesLogSignature(
+                RepOfficerMember,
+                ReportInfo.reporting_officer!.roblox_user,
+                GuildSettings.duty_activities.signature_format
+              )
+            : RepOfficerMember.displayName || RepOfficerMember.user.username;
+        })(),
       },
     }),
   });

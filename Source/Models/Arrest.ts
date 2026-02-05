@@ -4,6 +4,7 @@ import { model, Model, Schema } from "mongoose";
 
 type ArrestPlainDoc = GuildArrests.ArrestRecord;
 type ArrestModelType = Model<ArrestPlainDoc, unknown>;
+const PlaceholderOFName = "000 (@000)";
 
 const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
   booking_num: {
@@ -143,8 +144,8 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
 
       formatted_name: {
         type: String,
-        default: null,
-        required: false,
+        default: PlaceholderOFName,
+        required: true,
       },
 
       signature: {
@@ -177,8 +178,18 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
 
       formatted_name: {
         type: String,
-        default: null,
-        required: false,
+        default: PlaceholderOFName,
+        required: true,
+      },
+
+      signature: {
+        type: String,
+        required: true,
+        minLength: 1,
+        maxLength: 100,
+        default(this: ArrestPlainDoc) {
+          return this.reporting_officer?.formatted_name ?? PlaceholderOFName;
+        },
       },
 
       discord_id: {

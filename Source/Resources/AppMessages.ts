@@ -323,6 +323,20 @@ export const ErrorMessages = {
       "It looks like you're trying to file an arrest report on yourself. Please provide a valid suspect name and try again.",
   },
 
+  /**
+   * @template {string} PrimaryOfficerId The Discord Id of the primary officer that was attempted to be validated.
+   * @template {string} Reason The specific setting or requirement for the server.
+   */
+  PrimaryOfficerNotLoggedIn: {
+    Title: "Primary Officer Not Logged In",
+    get Description() {
+      return (
+        "The selected primary officer (<@%s>) does not have a linked Roblox account.\n\n" +
+        `This server requires %s, so reporting and arresting officers must have their Roblox accounts linked using the ${MentionCmdByName("log-in")} command.`
+      );
+    },
+  },
+
   SelfCitationAttempt: {
     Title: "Hang On!",
     Description:
