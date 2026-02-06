@@ -581,6 +581,16 @@ export const ErrorMessages = {
   },
 
   /**
+   * @template {string} OWType The type of the person added as an other worker (e.g., "witness", "victim", "involved party", etc.).
+   * @template {number} CurrentOWCount The current number of other workers of that type added to the report.
+   */
+  IncidentReportMaxOWExceeded: {
+    Title: "Max People Exceeded",
+    Description:
+      "You can only have a maximum of 10 people as %s to an incident report. Currently you have %s.",
+  },
+
+  /**
    * For nickname searches and replaces
    */
   InvalidRegexSyntax: {

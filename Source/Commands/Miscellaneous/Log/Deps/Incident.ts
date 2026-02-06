@@ -1,4 +1,6 @@
 import {
+  User,
+  Guild,
   Colors,
   Message,
   Collection,
@@ -10,7 +12,6 @@ import {
   MessageFlags,
   LabelBuilder,
   ButtonBuilder,
-  ComponentType,
   TextInputStyle,
   ActionRowBuilder,
   TextInputBuilder,
@@ -18,7 +19,9 @@ import {
   ButtonInteraction,
   time as FormatTime,
   PermissionFlagsBits,
+  UserSelectMenuBuilder,
   ModalSubmitInteraction,
+  UserSelectMenuInteraction,
   ThreadAutoArchiveDuration,
   SlashCommandSubcommandBuilder,
 } from "discord.js";
@@ -27,8 +30,8 @@ import {
   IncidentTypes,
   IncidentTypesType,
   IncidentNotesLength,
-  IncidentStatusesFlattened,
   IncidentDescriptionLength,
+  IncidentStatusesFlattened,
 } from "#Resources/IncidentConstants.js";
 
 import {
@@ -40,17 +43,20 @@ import { Types } from "mongoose";
 import { TitleCase } from "#Utilities/Strings/Converters.js";
 import { ReporterInfo } from "../Log.js";
 import { milliseconds } from "date-fns";
-import { ArraysAreEqual } from "#Utilities/Helpers/ArraysAreEqual.js";
 import { ListSplitRegex } from "#Resources/RegularExpressions.js";
+import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
 import { SendGuildMessages } from "#Utilities/Discord/GuildMessages.js";
 import { GuildIncidents, Guilds } from "#Typings/Utilities/Database.js";
 import { GetDiscordAttachmentExtension } from "#Utilities/Strings/OtherUtils.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { FilterUserInput, FilterUserInputOptions } from "#Utilities/Strings/Redactor.js";
+import { IsValidRobloxUsername, IsValidDiscordId } from "#Utilities/Helpers/Validators.js";
 
 import GenerateNextSequentialIncidentNumber from "#Utilities/Database/GenerateNextSequenceIncNum.js";
+import ShowModalAndAwaitSubmission from "#Source/Utilities/Discord/ShowModalAwaitSubmit.js";
 import IncrementActiveShiftEvent from "#Utilities/Database/IncrementActiveShiftEvent.js";
 import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
+import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
 import GetIncidentReportEmbeds from "#Utilities/Reports/GetIncidentReportEmbeds.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 import IncidentModel from "#Models/Incident.js";
@@ -60,8 +66,14 @@ import AppLogger from "#Utilities/Classes/AppLogger.js";
 import AppError from "#Utilities/Classes/AppError.js";
 import Dedent from "dedent";
 
+// ---------------------------------------------------------------------------------------
+// Constants & Types:
+// ------------------
 const CmdFileLabel = "Commands:Miscellaneous:Log:Incident";
 const ListFormatter = new Intl.ListFormat("en");
+const MaxInvOfficers = 10;
+const MaxWitnesses = 10;
+
 type CmdProvidedDetailsType = Omit<Partial<GuildIncidents.IncidentRecord>, "attachments"> &
   Pick<GuildIncidents.IncidentRecord, "type" | "location" | "status"> & {
     attachments: string[];
@@ -129,10 +141,26 @@ function GetIncidentInformationModal(
     );
 }
 
+/**
+ * Builds a modal to collect comma-separated usernames for officers or witnesses.
+ *
+ * @remarks
+ * - This modal is a fallback when users cannot be selected via the Discord
+ *   multi-user select (for example, when referring to external names or
+ *   non-discord identities). The field is prefilled with any existing
+ *   usernames to make incremental edits easier.
+ * - The max length is intentionally limited to keep modal submissions
+ *   performant and to make downstream parsing predictable.
+ *
+ * @param Interact - The originating interaction that triggers the modal.
+ * @param InputType - Whether the modal is collecting `Officers` or `Witnesses`.
+ * @param CurrentUsernames - Existing usernames used to prefill the input.
+ * @returns A configured `ModalBuilder` instance.
+ */
 function GetWitnessesInvolvedOfficersInputModal(
   Interact: SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">,
   InputType: "Officers" | "Witnesses",
-  IncidentReport: GuildIncidents.IncidentRecord
+  CurrentUsernames: string[]
 ): ModalBuilder {
   const UsernamesInputField = new TextInputBuilder()
     .setCustomId(InputType.toLowerCase())
@@ -142,7 +170,7 @@ function GetWitnessesInvolvedOfficersInputModal(
     .setRequired(false);
 
   const Modal = new ModalBuilder()
-    .setTitle(`Add ${InputType} to Incident Report`)
+    .setTitle(`Add ${InputType} (Names)`)
     .setCustomId(
       `incident-add-${InputType.toLowerCase()}:${Interact.user.id}:${Interact.createdTimestamp}`
     )
@@ -150,19 +178,77 @@ function GetWitnessesInvolvedOfficersInputModal(
       new LabelBuilder()
         .setLabel(InputType === "Officers" ? "Involved Officers" : "Witnesses")
         .setDescription(
-          `The names or Discord IDs of the ${InputType.toLowerCase()} involved, separated by commas.`
+          `The names or Discord user IDs of the ${InputType.toLowerCase()} involved, separated by commas.`
         )
         .setTextInputComponent(UsernamesInputField)
     );
 
-  const PrefilledInput =
-    IncidentReport[InputType.toLowerCase() as "officers" | "witnesses"].join(", ");
-
+  const PrefilledInput = CurrentUsernames.join(", ");
   if (PrefilledInput.length >= 3) {
     UsernamesInputField.setValue(PrefilledInput);
   }
 
   return Modal;
+}
+
+function GetInvolvedOfficersSelectMenu(): ActionRowBuilder<UserSelectMenuBuilder> {
+  return new ActionRowBuilder<UserSelectMenuBuilder>().setComponents(
+    new UserSelectMenuBuilder()
+      .setPlaceholder("Select officers involved in this incident...")
+      .setCustomId("incident-io-select")
+      .setMinValues(0)
+      .setMaxValues(MaxInvOfficers)
+  );
+}
+
+function GetWitnessesSelectMenu(): ActionRowBuilder<UserSelectMenuBuilder> {
+  return new ActionRowBuilder<UserSelectMenuBuilder>().setComponents(
+    new UserSelectMenuBuilder()
+      .setPlaceholder("Select witnesses to this incident...")
+      .setCustomId("incident-wit-select")
+      .setMinValues(0)
+      .setMaxValues(MaxWitnesses)
+  );
+}
+
+/**
+ * Filters selected users for incident reports based on permissions and exclusions.
+ *
+ * @remarks
+ * - Bots are removed immediately because they cannot meaningfully be
+ *   recorded as involved personnel.
+ * - `ExcludedIds` is used to avoid duplicates when the same person may be
+ *   present in both the officers and witnesses selections; this simplifies
+ *   overlap prevention logic in the UI flow.
+ * - When `RequirePerms` is true the function consults `UserHasPermsV2` to
+ *   ensure only staff/management can be recorded as officers. This mirrors
+ *   the existing permission model used throughout the app and prevents
+ *   misclassification of regular users as officers.
+ *
+ * @param GuildId - The guild ID for permission checks.
+ * @param UsersCollection - Collection of selected users.
+ * @param ExcludedIds - User Ids to exclude (e.g., already in the other list).
+ * @param RequirePerms - Whether to check for staff/management permissions (for officers).
+ * @returns Filtered collection of valid users.
+ */
+async function FilterIncidentPersonnel(
+  GuildId: string,
+  UsersCollection: Collection<string, User>,
+  ExcludedIds: string[] = [],
+  RequirePerms: boolean = true
+): Promise<Collection<string, User>> {
+  if (!UsersCollection.size) return UsersCollection;
+  UsersCollection.sweep((User) => User.bot || ExcludedIds.includes(User.id));
+  if (!UsersCollection.size || !RequirePerms) return UsersCollection;
+
+  const Perms = await UserHasPermsV2([...UsersCollection.keys()], GuildId, {
+    management: true,
+    staff: true,
+    $or: true,
+  });
+
+  UsersCollection.sweep((User) => !Perms[User.id]);
+  return UsersCollection;
 }
 
 function GetIOAndWitnessesButtons(
@@ -171,11 +257,11 @@ function GetIOAndWitnessesButtons(
   return new ActionRowBuilder<ButtonBuilder>().setComponents(
     new ButtonBuilder()
       .setCustomId(`incident-add-io:${CmdInteract.user.id}:${CmdInteract.createdTimestamp}`)
-      .setLabel("Set Involved Officers")
+      .setLabel("Set Officers (Names)")
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
       .setCustomId(`incident-add-wit:${CmdInteract.user.id}:${CmdInteract.createdTimestamp}`)
-      .setLabel("Set Incident Witnesses")
+      .setLabel("Set Witnesses (Names)")
       .setStyle(ButtonStyle.Secondary)
   );
 }
@@ -217,7 +303,7 @@ function UpdateEmbedFieldDescription(
 
 /**
  * Retrieves and processes details provided by a slash command interaction.
- * @param CmdInteract - The slash command interaction object with a "cached" type.
+ * @param CmdInteract - The slash command interaction.
  * @returns A promise that resolves to an object containing the provided details
  *          (type, location, status, and filtered attachments) or `null` if invalid
  *          attachments are detected and an error response is sent.
@@ -277,27 +363,6 @@ async function GetCmdProvidedDetails(
 }
 
 /**
- * Awaits the submission of an incident details modal.
- * @param CmdInteract - The slash command interaction object.
- * @param IncidentType - The type of incident for which details are being collected. Used for modal title.
- * @returns A promise that resolves to the modal submission or `null` if the submission times out (10 minutes) or errors.
- */
-async function AwaitIncidentDetailsModalSubmission(
-  CmdInteract: SlashCommandInteraction<"cached">,
-  IncidentType: string
-) {
-  const IncidentInfoModal = GetIncidentInformationModal(CmdInteract, IncidentType);
-  return CmdInteract.showModal(IncidentInfoModal).then(() =>
-    CmdInteract.awaitModalSubmit({
-      time: milliseconds({ minutes: 12.5 }),
-      filter: (Modal) =>
-        Modal.user.id === CmdInteract.user.id &&
-        Modal.customId === IncidentInfoModal.data.custom_id!,
-    }).catch(() => null)
-  );
-}
-
-/**
  * Prepares incident data for logging based on provided command interaction, API details, and modal submission.
  * @param CmdInteract - The slash command interaction object.
  * @param CmdProvidedDetails - Partial incident record details provided by the command, including mandatory fields: type, location, and status.
@@ -306,7 +371,7 @@ async function AwaitIncidentDetailsModalSubmission(
  * @param ReportingOfficer - Information about the officer reporting the incident.
  * @returns A promise that resolves to the prepared incident data object or `null` if attachment validation fails.
  */
-async function PrepareIncidentData(
+async function InitializeIncidentData(
   CmdInteract: SlashCommandInteraction<"cached">,
   CmdProvidedDetails: CmdProvidedDetailsType,
   ModalSubmission: ModalSubmitInteraction<"cached">,
@@ -336,6 +401,22 @@ async function PrepareIncidentData(
     UTIFOpts
   );
 
+  const UniqueSuspects = new Set<string>(
+    ModalSubmission.fields
+      .getTextInputValue("suspects")
+      .split(ListSplitRegex)
+      .map((Name) => Name.trim())
+      .filter(Boolean)
+  );
+
+  const UniqueVictims = new Set<string>(
+    ModalSubmission.fields
+      .getTextInputValue("victims")
+      .split(ListSplitRegex)
+      .map((Name) => Name.trim())
+      .filter(Boolean)
+  );
+
   const IncidentRecordInst: GuildIncidents.IncidentRecord = {
     ...CmdProvidedDetails,
 
@@ -350,18 +431,8 @@ async function PrepareIncidentData(
 
     officers: [],
     witnesses: [],
-
-    suspects: ModalSubmission.fields
-      .getTextInputValue("suspects")
-      .split(ListSplitRegex)
-      .map((Name) => Name.trim())
-      .filter(Boolean),
-
-    victims: ModalSubmission.fields
-      .getTextInputValue("victims")
-      .split(ListSplitRegex)
-      .map((Name) => Name.trim())
-      .filter(Boolean),
+    suspects: Array.from(UniqueSuspects),
+    victims: Array.from(UniqueVictims),
 
     reported_on: ModalSubmission.createdAt,
     reporter: {
@@ -421,7 +492,7 @@ async function InsertIncidentRecord(
 // ----------------------
 async function OnReportConfirmation(
   BtnInteract: ButtonInteraction<"cached">,
-  ConfirmationMsgComponents: ActionRowBuilder<ButtonBuilder>[],
+  ConfirmationMsgComponents: ActionRowBuilder<ButtonBuilder | UserSelectMenuBuilder>[],
   IncidentReport: GuildIncidents.IncidentRecord,
   IRChannelIds?: null | string | string[]
 ) {
@@ -499,7 +570,9 @@ async function OnReportConfirmation(
       .catch((Err) =>
         AppLogger.error({
           message: "Failed to update the incident record with the log message.",
+          label: CmdFileLabel,
           stack: Err.stack,
+          error: Err,
         })
       );
   }
@@ -523,48 +596,145 @@ async function OnReportCancellation(BtnInteract: ButtonInteraction<"cached">) {
   });
 }
 
-async function OnReportInvolvedOfficersOrWitnessesAddition(
+/**
+ * Handles username-based modal input for officers or witnesses as a fallback.
+ *
+ * @remarks
+ * - This modal path exists because not all involved parties are always
+ *   resolvable to Discord users (for example, external witnesses or
+ *   community members recorded by name). The modal allows free-text comma
+ *   separated names which are then validated and normalized.
+ * - The function intentionally only returns Roblox-valid usernames after
+ *   parsing; the caller is responsible for deduplicating against already
+ *   selected Discord users (both categories) and enforcing combined maximums.
+ * - Duplicate names within the modal submission are removed (case-insensitive)
+ *   to ensure the same username cannot appear twice from a single interaction.
+ * - The caller must also filter results to prevent: (1) cross-category overlap
+ *   (officers vs. witnesses), (2) Discord Ids already selected in the same
+ *   category, and (3) usernames already selected via the Discord menu.
+ * - The modal is awaited for up to 10 minutes to allow slow workflows but
+ *   shorter than the component collector to reduce resource lock time.
+ *
+ * @param BtnInteract - The button interaction that triggered this.
+ * @param CurrentNames - Current list of usernames for pre-filling.
+ * @param AdditionFor - Whether adding officers or witnesses.
+ * @returns Object containing deduplicated usernames and the modal submission, or empty if canceled.
+ */
+async function HandleNamesModalInput(
   BtnInteract: ButtonInteraction<"cached">,
-  ReportData: GuildIncidents.IncidentRecord,
-  IREmbeds: EmbedBuilder[],
+  CurrentNames: string[],
   AdditionFor: "Officers" | "Witnesses"
-) {
-  let CopiedTargetField = [...ReportData[AdditionFor.toLowerCase() as "officers" | "witnesses"]];
-  const InputModal = GetWitnessesInvolvedOfficersInputModal(BtnInteract, AdditionFor, ReportData);
-  const ModalSubmission = await BtnInteract.showModal(InputModal).then(() =>
-    BtnInteract.awaitModalSubmit({
-      time: milliseconds({ minutes: 10 }),
-      filter: (Modal) =>
-        Modal.user.id === BtnInteract.user.id && Modal.customId === InputModal.data.custom_id!,
-    }).catch(() => null)
+): Promise<{ ModalSubmission?: ModalSubmitInteraction<"cached">; Names?: string[] }> {
+  const InputModal = GetWitnessesInvolvedOfficersInputModal(BtnInteract, AdditionFor, CurrentNames);
+  const ModalSubmission = await ShowModalAndAwaitSubmission(
+    BtnInteract,
+    InputModal,
+    milliseconds({ minutes: 8 })
   );
 
-  if (!ModalSubmission) return;
-  let InputText = ModalSubmission.fields.getTextInputValue(AdditionFor.toLowerCase());
+  if (!ModalSubmission) return {};
+  const InputText = ModalSubmission.fields.getTextInputValue(AdditionFor.toLowerCase());
+  const RawNames = InputText.split(ListSplitRegex)
+    .map((Name) => Name.trim())
+    .filter(Boolean);
 
-  if (!InputText?.trim()) InputText = "N/A";
-  CopiedTargetField = FormatSortRDInputNames(InputText.split(ListSplitRegex), false);
+  const Normalized = RawNames.map((Id) => Id.replace(/^<@!?(\d+)>$/, "$1").trim());
+  const ValidNames = Normalized.filter(
+    (Name) => IsValidRobloxUsername(Name) || IsValidDiscordId(Name)
+  );
 
-  if (!ArraysAreEqual(CopiedTargetField, ReportData[AdditionFor.toLowerCase()])) {
-    ReportData[AdditionFor.toLowerCase()] = CopiedTargetField;
-    if (AdditionFor === "Officers") {
-      IREmbeds[0].setDescription(
-        Dedent(`
-          Incident Number: ${inlineCode(ReportData.num)}
-          Incident Reported By: ${userMention(ModalSubmission.user.id)} on ${FormatTime(ReportData.reported_on, "f")}
-          Involved Officers: ${ListFormatter.format(FormatSortRDInputNames(ReportData.officers, true))}
-        `)
-      );
-    } else {
-      UpdateEmbedFieldDescription(
-        IREmbeds[0],
-        "Witnesses",
-        ListFormatter.format(ReportData.witnesses)
-      );
+  const Names = Array.from(new Map(ValidNames.map((n) => [n.toLowerCase(), n])).values());
+  return { ModalSubmission, Names };
+}
+
+/**
+ * Filters modal-submitted names to prevent duplicates across all sources.
+ *
+ * @remarks
+ * - Removes names that match the opposite category (officers vs witnesses).
+ * - Removes names that match the same category's existing usernames.
+ * - Removes Discord Ids already selected via menu in either category.
+ * - All comparisons are case-insensitive for usernames.
+ *
+ * @param InputNames - Names from modal submission to filter.
+ * @param SameCategoryNames - Existing usernames in the same category.
+ * @param SameCategoryDiscordIds - Discord Ids selected via menu in same category.
+ * @param OppositeCategoryNames - Usernames in the opposite category.
+ * @param OppositeCategoryDiscordIds - Discord Ids in the opposite category.
+ * @returns Filtered array containing only unique, non-conflicting names.
+ */
+function FilterModalSubmittedNames(
+  TGuild: Guild,
+  InputNames: string[],
+  SameCategoryNames: string[],
+  SameCategoryDiscordIds: string[],
+  OppositeCategoryNames: string[],
+  OppositeCategoryDiscordIds: string[]
+): string[] {
+  return InputNames.filter((Name) => {
+    const LowerName = Name.toLowerCase();
+
+    if (OppositeCategoryNames.some((UName) => UName.toLowerCase() === LowerName)) {
+      return false;
     }
-  }
 
-  return Promise.all([ModalSubmission.deferUpdate(), BtnInteract.editReply({ embeds: IREmbeds })]);
+    if (OppositeCategoryDiscordIds.some((Id) => Id === Name || Id.toLowerCase() === LowerName)) {
+      return false;
+    }
+
+    if (SameCategoryNames.some((UName) => UName.toLowerCase() === LowerName)) {
+      return false;
+    }
+
+    if (IsValidDiscordId(Name)) {
+      if (SameCategoryDiscordIds.includes(Name)) return false;
+      const User = TGuild.client.users.cache.get(Name);
+      return !User?.bot;
+    }
+
+    return true;
+  });
+}
+
+/**
+ * Updates the embed display for officers and witnesses.
+ *
+ * @remarks
+ * - The embed shows combined lists of Discord mentions and raw usernames
+ *   in a consistent, human-readable order. We pass `true` for mention
+ *   resolution when appropriate to ensure Discord users are displayed as
+ *   mentions while plain usernames are left as text.
+ * - This function centralizes formatting to keep the confirmation UI and
+ *   eventual log output consistent.
+ */
+function UpdateOfficersWitnessesEmbed(
+  Embed: EmbedBuilder,
+  ReportData: GuildIncidents.IncidentRecord,
+  OfficersDiscordIds: string[],
+  OfficersUsernames: string[],
+  WitnessesDiscordIds: string[],
+  WitnessesUsernames: string[]
+): void {
+  const CombinedOfficers = FormatSortRDInputNames(
+    [...OfficersDiscordIds, ...OfficersUsernames],
+    true
+  );
+
+  const CombinedWitnesses = FormatSortRDInputNames(
+    [...WitnessesDiscordIds, ...WitnessesUsernames],
+    true,
+    false
+  );
+
+  Embed.setDescription(
+    Dedent(`
+      Incident Number: ${inlineCode(ReportData.num)}
+      Incident Reported By: ${userMention(ReportData.reporter.discord_id)} on ${FormatTime(ReportData.reported_on, "f")}
+      Involved Officers: ${ListFormatter.format(CombinedOfficers) || "N/A"}
+    `)
+  );
+
+  UpdateEmbedFieldDescription(Embed, "Witnesses", ListFormatter.format(CombinedWitnesses) || "N/A");
 }
 
 async function HandleIncThreadCreation(
@@ -608,85 +778,299 @@ async function HandleIRAdditionalDetailsAndConfirmation(
     guild_id: CmdInteract.guildId,
   });
 
+  const OfficersSelectMenu = GetInvolvedOfficersSelectMenu();
+  const WitnessesSelectMenu = GetWitnessesSelectMenu();
+  const IOAndWitnessesButtons = GetIOAndWitnessesButtons(CmdInteract);
+  const ConfirmationButtons = GetConfirmationButtons(CmdInteract);
+
   const ConfirmationMsgComponents = [
-    GetIOAndWitnessesButtons(CmdInteract),
-    GetConfirmationButtons(CmdInteract),
+    OfficersSelectMenu,
+    WitnessesSelectMenu,
+    IOAndWitnessesButtons,
+    ConfirmationButtons,
   ];
 
   IncidentReportEmbeds[0].setColor(Colors.Gold).setTitle("Incident Report Confirmation");
   const ConfirmationMessage = await ModalSubmission.editReply({
-    content: `${userMention(CmdInteract.user.id)} - Are you sure you want to submit this incident?\nRevise the incident details and add involved officers or witnesses if necessary.`,
     allowedMentions: { users: [CmdInteract.user.id] },
     components: ConfirmationMsgComponents,
     embeds: IncidentReportEmbeds,
+    content:
+      `${userMention(CmdInteract.user.id)} - Are you sure you want to submit this incident?\n` +
+      "Revise the incident details and add involved officers or witnesses if necessary.",
   });
 
-  ProcessReceivedIRBtnInteractions(
+  ProcessReceivedIRComponentInteractions(
     CmdInteract,
     ConfirmationMessage,
     CmdModalProvidedData,
     IncidentReportEmbeds,
-    ConfirmationMsgComponents,
+    {
+      OfficersSelectMenu,
+      WitnessesSelectMenu,
+      IOAndWitnessesButtons,
+      ConfirmationButtons,
+    },
     DAGuildSettings
   );
 }
 
-function ProcessReceivedIRBtnInteractions(
+/**
+ * Tracks and processes component interactions for incident report confirmation.
+ *
+ * @remarks
+ * - This is the central interactive loop for the confirmation UI. It accepts
+ *   both Discord multi-user select inputs and manual username modal submissions
+ *   and merges them into the `CmdModalProvidedData` record.
+ * - Overlap prevention across sources: modal-submitted usernames are filtered
+ *   to remove duplicates with (1) the opposite category's usernames and Discord
+ *   Ids, (2) the same category's existing usernames, and (3) numeric Discord
+ *   Ids already selected via the menu in the same category. This ensures a
+ *   person cannot be listed twice (once from Discord menu, once from modal).
+ * - Overlap prevention within select menus: when a Discord user is added to
+ *   officers they are immediately removed from witnesses (and vice versa).
+ * - Combined maximums are enforced here (select + text). The function counts
+ *   both sources before accepting additional entries to preserve the global
+ *   limit expectation for reviewers and downstream processing.
+ * - Permission checks for officer selections are delegated to
+ *   `FilterIncidentPersonnel` so that only staff/management can be recorded
+ *   as officers; non-permitted selections are removed silently from the
+ *   collection and the user is shown an updated panel.
+ * - This function mutates `CmdModalProvidedData.officers` and
+ *   `CmdModalProvidedData.witnesses` as the user updates selections; the
+ *   final save happens when the user confirms the report.
+ * - Before assigning to `CmdModalProvidedData`, combined lists from both
+ *   Discord selections and modal-provided usernames are deduplicated so
+ *   the stored record contains distinct involved parties.
+ */
+function ProcessReceivedIRComponentInteractions(
   CmdInteract: SlashCommandInteraction<"cached">,
   ConfirmationMessage: Message<true>,
   CmdModalProvidedData: GuildIncidents.IncidentRecord,
   ConfirmationMsgEmbeds: EmbedBuilder[],
-  ConfirmationMsgComps: ActionRowBuilder<ButtonBuilder>[],
+  Components: {
+    OfficersSelectMenu: ActionRowBuilder<UserSelectMenuBuilder>;
+    WitnessesSelectMenu: ActionRowBuilder<UserSelectMenuBuilder>;
+    IOAndWitnessesButtons: ActionRowBuilder<ButtonBuilder>;
+    ConfirmationButtons: ActionRowBuilder<ButtonBuilder>;
+  },
   DAGuildSettings: Guilds.GuildSettings["duty_activities"]
 ) {
+  let OfficersDiscordIds: string[] = [];
+  let WitnessesDiscordIds: string[] = [];
+  let OfficerNames: string[] = [];
+  let WitnessNames: string[] = [];
+
+  const GetAllComponents = () => [
+    Components.OfficersSelectMenu,
+    Components.WitnessesSelectMenu,
+    Components.IOAndWitnessesButtons,
+    Components.ConfirmationButtons,
+  ];
+
+  const UpdateMessageComponents = async (
+    Interaction: ButtonInteraction<"cached"> | UserSelectMenuInteraction<"cached">
+  ) => {
+    UpdateOfficersWitnessesEmbed(
+      ConfirmationMsgEmbeds[0],
+      CmdModalProvidedData,
+      OfficersDiscordIds,
+      OfficerNames,
+      WitnessesDiscordIds,
+      WitnessNames
+    );
+
+    const CombinedOfficers = [...OfficersDiscordIds, ...OfficerNames];
+    const CombinedWitnesses = [...WitnessesDiscordIds, ...WitnessNames];
+    CmdModalProvidedData.officers = Array.from(new Set(CombinedOfficers));
+    CmdModalProvidedData.witnesses = Array.from(new Set(CombinedWitnesses));
+
+    await Interaction.editReply({
+      components: GetAllComponents(),
+      embeds: ConfirmationMsgEmbeds,
+    }).catch(() => null);
+  };
+
   const ComponentCollector = ConfirmationMessage.createMessageComponentCollector({
-    filter: (Interaction) => Interaction.user.id === CmdInteract.user.id,
-    componentType: ComponentType.Button,
+    filter: (Interact) => HandleCollectorFiltering(CmdInteract, Interact),
     time: milliseconds({ minutes: 10 }),
   });
 
-  ComponentCollector.on("collect", async (BtnInteract) => {
-    const BtnId = BtnInteract.customId;
+  ComponentCollector.on("collect", async (ReceivedInteract) => {
     try {
-      if (BtnId.includes("confirm")) {
-        await OnReportConfirmation(
-          BtnInteract,
-          ConfirmationMsgComps,
-          CmdModalProvidedData,
-          DAGuildSettings.log_channels.incidents
+      if (
+        ReceivedInteract.isUserSelectMenu() &&
+        ReceivedInteract.customId === "incident-io-select"
+      ) {
+        await ReceivedInteract.deferUpdate();
+        const Filtered = await FilterIncidentPersonnel(
+          CmdInteract.guildId,
+          ReceivedInteract.users,
+          WitnessesDiscordIds,
+          true
         );
-        ComponentCollector.stop("Confirmed");
-      } else if (BtnId.includes("cancel")) {
-        await OnReportCancellation(BtnInteract);
-        ComponentCollector.stop("Cancelled");
-      } else if (BtnId.includes("add-io")) {
-        await OnReportInvolvedOfficersOrWitnessesAddition(
-          BtnInteract,
-          CmdModalProvidedData,
-          ConfirmationMsgEmbeds,
-          "Officers"
+
+        const NewOfficerIds = [...Filtered.keys()];
+        const CombinedTotal = NewOfficerIds.length + OfficerNames.length;
+
+        if (CombinedTotal > MaxInvOfficers) {
+          return new ErrorEmbed()
+            .useErrTemplate("IncidentReportMaxOWExceeded", "involved officers", CombinedTotal)
+            .replyToInteract(ReceivedInteract, true, true, "followUp");
+        }
+
+        OfficersDiscordIds = NewOfficerIds;
+        OfficerNames = OfficerNames.filter((Name) => !NewOfficerIds.includes(Name));
+        WitnessesDiscordIds = WitnessesDiscordIds.filter((Id) => !OfficersDiscordIds.includes(Id));
+        Components.OfficersSelectMenu.components[0].setDefaultUsers(OfficersDiscordIds);
+        Components.WitnessesSelectMenu.components[0].setDefaultUsers(WitnessesDiscordIds);
+
+        await UpdateMessageComponents(ReceivedInteract);
+        return;
+      }
+
+      if (
+        ReceivedInteract.isUserSelectMenu() &&
+        ReceivedInteract.customId === "incident-wit-select"
+      ) {
+        await ReceivedInteract.deferUpdate();
+        const Filtered = await FilterIncidentPersonnel(
+          CmdInteract.guildId,
+          ReceivedInteract.users,
+          OfficersDiscordIds,
+          false
         );
-      } else if (BtnId.includes("add-wit")) {
-        await OnReportInvolvedOfficersOrWitnessesAddition(
-          BtnInteract,
-          CmdModalProvidedData,
-          ConfirmationMsgEmbeds,
-          "Witnesses"
-        );
+
+        const NewWitnessIds = [...Filtered.keys()];
+        const CombinedTotal = NewWitnessIds.length + WitnessNames.length;
+
+        if (CombinedTotal > MaxWitnesses) {
+          return new ErrorEmbed()
+            .useErrTemplate("IncidentReportMaxOWExceeded", "witnesses", CombinedTotal)
+            .replyToInteract(ReceivedInteract, true, true, "followUp");
+        }
+
+        WitnessesDiscordIds = NewWitnessIds;
+        WitnessNames = WitnessNames.filter((Name) => !NewWitnessIds.includes(Name));
+        OfficersDiscordIds = OfficersDiscordIds.filter((Id) => !WitnessesDiscordIds.includes(Id));
+        Components.OfficersSelectMenu.components[0].setDefaultUsers(OfficersDiscordIds);
+        Components.WitnessesSelectMenu.components[0].setDefaultUsers(WitnessesDiscordIds);
+
+        await UpdateMessageComponents(ReceivedInteract);
+        return;
+      }
+
+      if (ReceivedInteract.isButton()) {
+        const BtnId = ReceivedInteract.customId;
+
+        if (BtnId.includes("confirm")) {
+          await ReceivedInteract.deferUpdate();
+
+          CmdModalProvidedData.officers = FormatSortRDInputNames(
+            [...OfficersDiscordIds, ...OfficerNames],
+            false
+          );
+
+          CmdModalProvidedData.witnesses = FormatSortRDInputNames(
+            [...WitnessesDiscordIds, ...WitnessNames],
+            false,
+            false
+          );
+
+          await OnReportConfirmation(
+            ReceivedInteract,
+            GetAllComponents() as ActionRowBuilder<ButtonBuilder>[],
+            CmdModalProvidedData,
+            DAGuildSettings.log_channels.incidents
+          );
+
+          ComponentCollector.stop("Confirmed");
+          return;
+        }
+
+        if (BtnId.includes("cancel")) {
+          await OnReportCancellation(ReceivedInteract);
+          ComponentCollector.stop("Cancelled");
+          return;
+        }
+
+        if (BtnId.includes("add-io")) {
+          const { ModalSubmission, Names: IOfficers } = await HandleNamesModalInput(
+            ReceivedInteract,
+            OfficerNames,
+            "Officers"
+          );
+
+          if (!ModalSubmission || !IOfficers) return;
+          await ModalSubmission.deferUpdate();
+
+          const FilteredIO = FilterModalSubmittedNames(
+            ModalSubmission.guild,
+            IOfficers,
+            [],
+            OfficersDiscordIds,
+            [],
+            WitnessesDiscordIds
+          );
+
+          const CombinedTotal = OfficersDiscordIds.length + FilteredIO.length;
+          if (CombinedTotal > MaxInvOfficers) {
+            return new ErrorEmbed()
+              .useErrTemplate("IncidentReportMaxOWExceeded", "involved officers", CombinedTotal)
+              .replyToInteract(ReceivedInteract, true, true, "followUp");
+          }
+
+          OfficerNames = FilteredIO;
+          await UpdateMessageComponents(ReceivedInteract);
+          return;
+        }
+
+        if (BtnId.includes("add-wit")) {
+          const { ModalSubmission, Names: Witnesses } = await HandleNamesModalInput(
+            ReceivedInteract,
+            WitnessNames,
+            "Witnesses"
+          );
+
+          if (!ModalSubmission || !Witnesses) return;
+          await ModalSubmission.deferUpdate();
+
+          const FilteredWitnesses = FilterModalSubmittedNames(
+            ModalSubmission.guild,
+            Witnesses,
+            [],
+            WitnessesDiscordIds,
+            [],
+            OfficersDiscordIds
+          );
+
+          const CombinedTotal = WitnessesDiscordIds.length + FilteredWitnesses.length;
+          if (CombinedTotal > MaxWitnesses) {
+            return new ErrorEmbed()
+              .useErrTemplate("IncidentReportMaxOWExceeded", "witnesses", CombinedTotal)
+              .replyToInteract(ReceivedInteract, true, true, "followUp");
+          }
+
+          WitnessNames = FilteredWitnesses;
+          await UpdateMessageComponents(ReceivedInteract);
+          return;
+        }
       }
     } catch (Err: any) {
       AppLogger.error({
         label: CmdFileLabel,
-        message: "An error happened while handling incident report buttons.",
+        message: "An error happened while handling incident report components.",
         stack: Err.stack,
       });
 
       if (Err instanceof AppError && Err.is_showable) {
-        return new ErrorEmbed().useErrClass(Err).replyToInteract(BtnInteract, true, true, "reply");
+        return new ErrorEmbed()
+          .useErrClass(Err)
+          .replyToInteract(ReceivedInteract, true, true, "reply");
       } else {
         return new ErrorEmbed()
           .useErrTemplate("UnknownError")
-          .replyToInteract(BtnInteract, true, true, "reply");
+          .replyToInteract(ReceivedInteract, true, true, "reply");
       }
     }
   });
@@ -700,11 +1084,16 @@ function ProcessReceivedIRBtnInteractions(
     }
 
     const LastInteract = Interacts.last() || CmdInteract;
-    for (const ActionRow of ConfirmationMsgComps)
-      for (const Btn of ActionRow.components) Btn.setDisabled(true);
+    const AllComponents = GetAllComponents();
+
+    for (const ActionRow of AllComponents) {
+      for (const Component of ActionRow.components) {
+        Component.setDisabled(true);
+      }
+    }
 
     await LastInteract.editReply({
-      components: ConfirmationMsgComps,
+      components: AllComponents,
     }).catch(() => {});
   });
 }
@@ -724,9 +1113,11 @@ async function IncidentLogCallback(
   const CmdProvidedDetails = await GetCmdProvidedDetails(CmdInteract);
   if (!CmdProvidedDetails) return;
 
-  const IDModalSubmission = await AwaitIncidentDetailsModalSubmission(
+  const IncidentInfoModal = GetIncidentInformationModal(CmdInteract, CmdProvidedDetails.type);
+  const IDModalSubmission = await ShowModalAndAwaitSubmission(
     CmdInteract,
-    CmdProvidedDetails.type
+    IncidentInfoModal,
+    milliseconds({ minutes: 12.5 })
   );
 
   if (!IDModalSubmission) return;
@@ -739,7 +1130,7 @@ async function IncidentLogCallback(
       .replyToInteract(IDModalSubmission, true, true, "editReply");
   }
 
-  const CmdModalProvidedData = await PrepareIncidentData(
+  const CmdModalProvidedData = await InitializeIncidentData(
     CmdInteract,
     CmdProvidedDetails,
     IDModalSubmission,
