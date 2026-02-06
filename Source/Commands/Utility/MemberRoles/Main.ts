@@ -12,6 +12,7 @@ import {
 const Subcommands = [
   (await import("./Subcmds/Backup.js")).default,
   (await import("./Subcmds/Delete.js")).default,
+  (await import("./Subcmds/Wipe.js")).default,
   (await import("./Subcmds/View.js")).default,
   (await import("./Subcmds/Load.js")).default,
   (await import("./Subcmds/List.js")).default,

@@ -485,6 +485,24 @@ export const ErrorMessages = {
   },
 
   /**
+   * Invalid user identifier format for member roles wipe command
+   */
+  InvalidMemberRolesWipeUserId: {
+    Title: "Invalid Identifier",
+    Description:
+      "Please provide a single user mention (`<@user_id>`) or a numeric ID to wipe their role backups.",
+  },
+
+  /**
+   * Database failure when wiping all member roles saves
+   */
+  DBFailedToWipeMemberRolesSaves: {
+    Title: "Failed To Wipe Role Backups",
+    Description:
+      "The deletion request was not acknowledged by the database. Please try again later or contact support.",
+  },
+
+  /**
    * No active shift for modification
    */
   NoActiveShiftFM: {
@@ -1276,6 +1294,14 @@ export const InfoMessages = {
   RoleSavesNotFoundFSM: {
     Title: "Saves Not Found",
     Description: "There were no saves or backups found for the selected person.",
+  },
+
+  /**
+   * No role backups found for a member in the wipe command
+   */
+  NoMemberRoleSavesForWipe: {
+    Title: "No Role Backups Found",
+    Description: "There are no saved role backups for the provided person in this server.",
   },
 
   /**
