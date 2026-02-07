@@ -92,15 +92,28 @@ function GetIncidentInformationModal(
     .setLabelComponents(
       new LabelBuilder()
         .setLabel("Incident Description")
+        .setDescription(
+          "Narrative incident in detail, including the sequence of events, injuries, damage, and actions taken."
+        )
         .setTextInputComponent(
           new TextInputBuilder()
             .setCustomId("incident-desc")
-            .setPlaceholder(
-              "Narrative incident in detail, including the sequence of events, injuries, damage, and actions taken."
-            )
             .setStyle(TextInputStyle.Paragraph)
             .setMinLength(IncidentDescriptionLength.Min)
             .setMaxLength(IncidentDescriptionLength.Max)
+            .setPlaceholder("Provide a detailed narrative of the incident here.")
+            .setValue(
+              Dedent(`
+              This is a recommended template for the incident description, but feel free to format it as needed.
+              
+              A. Date/Time of Incident: [When did the incident occur?]\n
+              B. Source of Activity: [How did you become involved or aware of the incident?]\n
+              C. Investigation/Observations: [What did you observe or find during your involvement? Include any investigative steps taken and their outcomes.]\n
+              D. Crime Scene Processing: [Was the crime scene processed? If so, describe the actions taken and any evidence collected.]\n
+              E. Canvassing: [Was a canvass conducted? If so, describe the area covered, people contacted, and any information gathered.]\n
+              F. Injuries/Damage: [Were there any injuries or property damage? Describe the extent and nature.]
+            `)
+            )
             .setRequired(true)
         ),
       new LabelBuilder()
@@ -131,7 +144,7 @@ function GetIncidentInformationModal(
           new TextInputBuilder()
             .setCustomId("notes")
             .setPlaceholder(
-              "Anything else you would like to add or mention about the incident like its updates."
+              "Anything to add or mention about the incident such as its updates or missing details."
             )
             .setStyle(TextInputStyle.Paragraph)
             .setMinLength(IncidentNotesLength.Min)

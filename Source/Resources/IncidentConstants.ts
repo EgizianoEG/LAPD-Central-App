@@ -2,13 +2,13 @@
 // -----------------------------------------------------------
 
 export const IncidentDescriptionLength = {
-  Min: 20,
-  Max: 850,
+  Min: 28,
+  Max: 4000,
 };
 
 export const IncidentNotesLength = {
   Min: 8,
-  Max: 228,
+  Max: 284,
 };
 
 export enum IncidentStatuses {
