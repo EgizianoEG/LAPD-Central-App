@@ -319,6 +319,115 @@ The application includes an Express server configured in [`Source/Handlers/Expre
 - `*.env` files
 - PM2 config files (except those suffixed with `.example.cjs`)
 
+### Command File Structure
+
+All command files follow a consistent ordering and sectioning pattern:
+
+1. **Imports and Dependencies** - All required imports (discord.js, utilities, models, etc.)
+2. **Constants and Type Definitions** - File-level constants, enums, and type definitions
+3. **Helper Functions** - Private helper functions used by the command (if any)
+4. **Handling Functions and Command Callback** - The main command callback and major interaction handlers
+5. **Command Structure Definition** - The command data builder (SlashCommandBuilder, etc.)
+6. **Export** - Single `export default` statement at the end
+
+**Section Separators:**
+Each section is separated by comment blocks:
+
+```typescript
+// ---------------------------------------------------------------------------------------
+// Section Name:
+// -------------
+```
+
+**Example structure:**
+
+```typescript
+// Imports
+import { SlashCommandBuilder } from "discord.js";
+import SomeUtility from "#Utilities/SomeUtility.js";
+
+// ---------------------------------------------------------------------------------------
+// Constants:
+// ----------
+const MAX_RETRIES = 3;
+
+// ---------------------------------------------------------------------------------------
+// Helper Functions:
+// -----------------
+function HelperFunction() {
+  // ...
+}
+
+// ---------------------------------------------------------------------------------------
+// Command Handling:
+// -----------------
+async function Callback(Interaction: SlashCommandInteraction<"cached">) {
+  // ...
+}
+
+// ---------------------------------------------------------------------------------------
+// Command Structure:
+// ------------------
+const CommandObject = {
+  callback: Callback,
+  data: new SlashCommandBuilder().setName("example").setDescription("Example command."),
+};
+
+// ---------------------------------------------------------------------------------------
+export default CommandObject;
+```
+
+### Command Organization Hierarchy
+
+The codebase organizes commands into three levels:
+
+1. **Main Commands** - Standalone commands with no subcommands
+   - Located directly in their category folder
+   - Example: [`Source/Commands/Informative/Help.ts`](Source/Commands/Informative/Help.ts)
+   - Usage: `/help`
+
+2. **Commands with Subcommands** - Commands that have subcommands but no groups
+   - Main command handler: `Main.ts` in the command's folder
+   - Subcommands: `Subcmds/` directory containing individual subcommand files
+   - Example structure:
+     ```
+     Commands/Informative/Activity/
+     ├── Main.ts           # Main command orchestrator
+     └── Subcmds/
+         ├── Officer.ts    # /activity officer
+         └── Report.ts     # /activity report
+     ```
+   - Usage: `/activity officer`, `/activity report`
+
+3. **Commands with Subcommand Groups** - Commands that have grouped subcommands
+   - Main command handler: `Main.ts` in the command's folder
+   - Subcommand group: Separate folder with its own `Main.ts`
+   - Group's subcommands: `Subcmds/` within the group folder
+   - Example structure:
+     ```
+     Commands/Miscellaneous/Duty/
+     ├── Main.ts                    # Main command orchestrator
+     ├── Subcmds/
+     │   ├── Manage.ts              # /duty manage
+     │   └── Active.ts              # /duty active
+     └── Duty Types/
+         ├── Main.ts                # Subcommand group handler
+         └── Subcmds/
+             ├── Create.ts          # /duty types create
+             ├── Delete.ts          # /duty types delete
+             └── View.ts            # /duty types view
+     ```
+   - Usage: `/duty manage`, `/duty types create`
+
+**Main Command Handler Pattern:**
+
+The `Main.ts` file serves as the orchestrator that:
+
+- Imports all subcommands and/or subcommand groups
+- Contains the main command callback that routes to appropriate subcommand handlers
+- Defines the top-level command builder
+- Adds subcommands/groups to the command data
+
 ### Commit & Pull Request Conventions
 
 **Use Conventional Commits for PR titles and Commit messages.**
@@ -328,6 +437,7 @@ The application includes an Express server configured in [`Source/Handlers/Expre
 - **Description:** Short and imperative (start with lower case).
 
 **Allowed Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation only
@@ -338,6 +448,7 @@ The application includes an Express server configured in [`Source/Handlers/Expre
 - `chore`: Maintenance tasks
 
 **Examples:**
+
 - `feat(ctx-menu): add user report context command`
 - `fix(shift-model): prevent break end on null timestamp`
 - `chore: update dependencies`
