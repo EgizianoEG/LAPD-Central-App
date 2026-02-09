@@ -84,7 +84,8 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
       roblox_id: {
         type: Number,
         min: 0,
-        required: true,
+        default: 0,
+        required: false,
       },
 
       mugshot_url: {
@@ -139,7 +140,9 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     type: {
       roblox_id: {
         type: Number,
-        required: true,
+        min: 0,
+        default: 0,
+        required: false,
       },
 
       formatted_name: {
@@ -173,7 +176,9 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     type: {
       roblox_id: {
         type: Number,
-        required: true,
+        min: 0,
+        default: 0,
+        required: false,
       },
 
       formatted_name: {
