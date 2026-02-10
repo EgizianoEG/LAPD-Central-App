@@ -7,7 +7,129 @@ icon: newspaper
 
 # Change Log
 
-## [Version 1.11.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.11.0) – January 22, 2026 <sup><sub>_<mark style="color:info;">(Latest)</mark>_<sub></sup>
+## [Version 1.12.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.12.0) – February 10, 2026 <sup><sub>_<mark style="color:info;">(Latest)</mark>_<sub></sup>
+
+### Release Notes
+
+Feature + reliability release focused on configuration modularization, user data privacy controls, and improved incident/arrest reporting. Also strengthens deploy/hosting stability with a dedicated Express handler (health + metrics), rate limiting, graceful shutdown, and more resilient MongoDB connection behavior.
+
+### Added
+
+- **Modular `/config` Command Architecture & Roblox Validation**
+  - Replaced the monolithic config command with a modular architecture.
+  - Improved Roblox-related validation logic to better respect guild settings.
+    [`a47b853`](https://github.com/EgizianoEG/LAPD-Central-App/commit/a47b853f16afc46f28932370238dd124edfa50af)
+
+- **Express Server Hardening (Health/Metrics + Rate Limiting)**
+  - Moved the Express server into a dedicated handler with comprehensive health checks.
+  - Added rate limiting middleware for public endpoints.
+  - Expanded health/metrics output for more detailed system and service visibility.
+  - Enhanced AppWatchdog with rate-limited status tracking.
+    [`4dd8e45`](https://github.com/EgizianoEG/LAPD-Central-App/commit/4dd8e4532825e2b09470e2c3d324b3096b097ad7), [`744a0f9`](https://github.com/EgizianoEG/LAPD-Central-App/commit/744a0f94269687a2dcc92a31fa60309b0d3d697f), [`cdeadad`](https://github.com/EgizianoEG/LAPD-Central-App/commit/cdeadadd379fa6a98ea15a5d7594a958f3458084), [`6ac2f26`](https://github.com/EgizianoEG/LAPD-Central-App/commit/6ac2f2619c688652d9c1c1b065f034802830d74a)
+
+- **Graceful Shutdown & Startup Resilience**
+  - Added a centralized process shutdown handler and exposed the server instance for consistent teardown.
+  - Ensures graceful shutdown is used even when Discord initialization fails.
+    [`cc6f761`](https://github.com/EgizianoEG/LAPD-Central-App/commit/cc6f76185e4594bbd9435cd8f3b77bbe69d00848), [`ab9f0db`](https://github.com/EgizianoEG/LAPD-Central-App/commit/ab9f0db82897e62a0104d8a3857a3aa4d3eb1b2b), [`1113fb4`](https://github.com/EgizianoEG/LAPD-Central-App/commit/1113fb48221a72a0e20d915c63f0a0257c84003b)
+
+- **User Data Deletion & Anonymization (`/preferences`)**
+  - Added user data deletion and anonymization support.
+  - Added scheduling/unscheduling hooks tied to member leave/join to improve reliability.
+    [`a9a2141`](https://github.com/EgizianoEG/LAPD-Central-App/commit/a9a21419657de41000761ab11a1f454ddcae2b2e)
+
+- **Member Roles: Wipe Subcommand**
+  - Added a wipe subcommand to delete all stored user role backups.
+    [`f64197c`](https://github.com/EgizianoEG/LAPD-Central-App/commit/f64197c476e3e5d4fbefbb29733e98f13f68eba2)
+
+- **Changelog Automation**
+  - Introduced a centralized `CHANGELOG.md` and automated documentation sync workflow.
+    [`475363f`](https://github.com/EgizianoEG/LAPD-Central-App/commit/475363ffd71ccf94505fb52ab2782105ce2388f8)
+
+- **Documentation Enhancements**
+  - Added `llms.txt` project overview and setup instructions for AI assistants.
+  - Added pull request template with guidelines and checklist.
+  - Updated Copilot instructions with commit/PR conventions and command file structure guidelines.
+    [`ce824c9`](https://github.com/EgizianoEG/LAPD-Central-App/commit/ce824c99e5d1c5f5b3e1a6a7e8f9a0b1c2d3e4f5), [`4ca2cc8`](https://github.com/EgizianoEG/LAPD-Central-App/commit/4ca2cc8be4e5d6f7a8b9c0d1e2f3a4b5c6d7e8f9), [`4e16570`](https://github.com/EgizianoEG/LAPD-Central-App/commit/4e165701dc3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a)
+
+### Changed
+
+- **Incident Reports: More Detailed Content & Safer Selection UX**
+  - Increased supported report length and detail.
+  - Added Discord user select menus and enforced max limits for officers/witnesses.
+    [`2e53dec`](https://github.com/EgizianoEG/LAPD-Central-App/commit/2e53decb78d9f8e7e3b61a063cfab8976f65782f), [`6cbfec1`](https://github.com/EgizianoEG/LAPD-Central-App/commit/6cbfec199ba0700e517984b316650431c9f99d0f)
+
+- **Arrest Reporting: Roblox Enforcement & Signature Handling**
+  - Enforced Roblox login for reporting officers when enabled by guild settings.
+  - Improved signature behavior for reporting officers.
+    [`8d65386`](https://github.com/EgizianoEG/LAPD-Central-App/commit/8d65386355519dd751fa1af3444c70c0e9868d27)
+
+- **Duty Manage: End Shift While On Break**
+  - Allows ending a shift even when the break state is active, improving user workflows.
+    [`d48b4e1`](https://github.com/EgizianoEG/LAPD-Central-App/commit/d48b4e1971f8696ff76d359c7c9c48e24799f953)
+
+- **MongoDB Connectivity Reliability**
+  - Optimized connection options and pooling.
+  - Added retry/backoff improvements and diagnostics for network/DNS failures.
+    [`6e8ed63`](https://github.com/EgizianoEG/LAPD-Central-App/commit/6e8ed634006ed38ff69473ebb7c92c871eaa0105), [`68a61de`](https://github.com/EgizianoEG/LAPD-Central-App/commit/68a61de4618da60e31d03b4d548c6c5fe3bbcae2), [`e9f7a79`](https://github.com/EgizianoEG/LAPD-Central-App/commit/e9f7a79e653936005f93f4092779ab5a74e3e626)
+
+- **Versioning**
+  - Bumped version to `1.12.0` in `package.json` and `package-lock.json`.
+    [`f318056`](https://github.com/EgizianoEG/LAPD-Central-App/commit/f3180566398a876d36e279507c4338c91f4e5532)
+
+### Fixed
+
+- **Changelog & Workflow Permissions**
+  - Corrected latest-version badge styling in changelog header.
+  - Set necessary permissions for changelog sync workflow.
+    [`2781ad2`](https://github.com/EgizianoEG/LAPD-Central-App/commit/2781ad2d3e7b4c5d6e7f8a9b0c1d2e3f4a5b6c7d), [`d85be8e`](https://github.com/EgizianoEG/LAPD-Central-App/commit/d85be8e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4)
+
+- **Arrest Model Robustness**
+  - Made Roblox ID fields optional with safe defaults to avoid report failures on missing data.
+    [`3ed8da9`](https://github.com/EgizianoEG/LAPD-Central-App/commit/3ed8da95635d85bf111227e828ae6fb9ea4760d2)
+
+- **Incident Division Calculation**
+  - Adjusted division calculation logic in arrest submission to handle edge cases correctly.
+    [`7b43d21`](https://github.com/EgizianoEG/LAPD-Central-App/commit/7b43d21098b49562da4542dbd9bc432e9249295b)
+
+- **Autocomplete Formatting for Incident Types**
+  - Uses `PascalToNormal` for category names in autocomplete suggestions.
+    [`a3c1a72`](https://github.com/EgizianoEG/LAPD-Central-App/commit/a3c1a72a413f25468c0f75bb15d8125f62ff9b45)
+
+- **Metrics Collector CPU Safety**
+  - Removed `node-os-utils` dependency and related CPU metric code to prevent runtime errors on unsupported platforms.
+    [`d866ba9`](https://github.com/EgizianoEG/LAPD-Central-App/commit/d866ba9f9327f946dfd033c9f0a7f4e4abf83a4a), [`50d3a85`](https://github.com/EgizianoEG/LAPD-Central-App/commit/50d3a8563e9b970be29f3c1283d462b7cbeb0578)
+
+- **GuildProfile Schema**
+  - Made `left_at` field optional to prevent validation failures.
+    [`3623214`](https://github.com/EgizianoEG/LAPD-Central-App/commit/36232140cb0e3115f4eb90f569f8d9d129ddc32a)
+
+- **User Preferences Update**
+  - Added `updatePipeline` option and improved error handling in preferences update flow.
+    [`9e93694`](https://github.com/EgizianoEG/LAPD-Central-App/commit/9e93694dd1e141ed2823287d112d005d293287ea)
+
+- **Active Duty Timeframe Display**
+  - Only display timeframe information when present for active shifts with unspecified types.
+    [`9ce9a3d`](https://github.com/EgizianoEG/LAPD-Central-App/commit/9ce9a3dd38c287aa42374d5d16dfc0b8ca6db9ac)
+
+- **Logging Security**
+  - Ensured sensitive request headers are redacted in logging details.
+    [`ebead45`](https://github.com/EgizianoEG/LAPD-Central-App/commit/ebead45078a033ca4ab06f8ee4da08c774b83aee)
+
+### Dependencies
+
+- **noblox.js**
+  - Updated `noblox.js` from `6.2.0/1` to `7.3.1`.
+    [`302d501`](https://github.com/EgizianoEG/LAPD-Central-App/commit/302d501b095eb1577e0d4e2faafee4439a9674f3)
+
+- **mongoose**
+  - Bumped `mongoose` from `8.19.1` to `9.1.5` (Dependabot).
+    [`b2dcc29`](https://github.com/EgizianoEG/LAPD-Central-App/commit/b2dcc29b415d70828eb24d6bbe0e7b9e6291ac14)
+
+### Full Changelog
+
+[v1.11.0...v1.12.0](https://github.com/EgizianoEG/LAPD-Central-App/compare/v1.11.0...v1.12.0)
+
+## [Version 1.11.0](https://github.com/EgizianoEG/LAPD-Central-App/releases/tag/v1.11.0) – January 22, 2026
 
 ### Release Notes
 
