@@ -170,7 +170,7 @@ function CreateActiveShiftsEmbed(
     .setTitle(PageTitle)
     .setColor(Colors.Info)
     .setFields(Fields)
-    .setDescription(Description)
+    .setDescription(Description.length > 0 ? Description : null)
     .setFooter(HasBreakAnnotation ? { text: ActiveBreakNotification } : null);
 }
 
