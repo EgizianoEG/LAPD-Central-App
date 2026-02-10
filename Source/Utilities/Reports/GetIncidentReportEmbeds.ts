@@ -14,8 +14,78 @@ import { IsValidDiscordAttachmentLink } from "../Helpers/Validators.js";
 import { FormatSortRDInputNames } from "#Utilities/Strings/Formatters.js";
 import { GuildIncidents } from "#Typings/Utilities/Database.js";
 import Dedent from "dedent";
-const ListFormatter = new Intl.ListFormat("en");
 
+const ListFormatter = new Intl.ListFormat("en");
+const MaxFieldLength = 1024;
+
+// ---------------------------------------------------------------------------------------
+/**
+ * Splits a long narrative text into multiple embed field objects that fit within Discord's field value limit.
+ * Attempts to split at natural boundaries (newlines, sentences, or word boundaries) to maintain readability.
+ * @param NarrativeText - The full narrative text to split.
+ * @param FieldName - The name for the first field (subsequent fields will have no name).
+ * @returns An array of field objects ready to be added to an embed.
+ */
+function SplitNarrativeIntoFields(
+  NarrativeText: string,
+  FieldName: string
+): Array<{ inline: false; name: string; value: string }> {
+  const Fields: Array<{ inline: false; name: string; value: string }> = [];
+
+  if (NarrativeText.length <= MaxFieldLength) {
+    return [
+      {
+        inline: false,
+        name: FieldName,
+        value: NarrativeText,
+      },
+    ];
+  }
+
+  let RemainingText = NarrativeText;
+  let IsFirstChunk = true;
+
+  while (RemainingText.length > 0) {
+    let Chunk = RemainingText.slice(0, MaxFieldLength);
+    let SplitIndex = MaxFieldLength;
+
+    if (RemainingText.length > MaxFieldLength) {
+      const LastNewline = Chunk.lastIndexOf("\n");
+      if (LastNewline > MaxFieldLength * 0.5) {
+        SplitIndex = LastNewline + 1;
+      } else {
+        const LastSentence = Math.max(
+          Chunk.lastIndexOf(". "),
+          Chunk.lastIndexOf("! "),
+          Chunk.lastIndexOf("? ")
+        );
+        if (LastSentence > MaxFieldLength * 0.5) {
+          SplitIndex = LastSentence + 2;
+        } else {
+          const LastSpace = Chunk.lastIndexOf(" ");
+          if (LastSpace > MaxFieldLength * 0.5) {
+            SplitIndex = LastSpace + 1;
+          }
+        }
+      }
+
+      Chunk = RemainingText.slice(0, SplitIndex).trimEnd();
+    }
+
+    Fields.push({
+      inline: false,
+      name: IsFirstChunk ? FieldName : "\u200B",
+      value: Chunk,
+    });
+
+    RemainingText = RemainingText.slice(SplitIndex).trimStart();
+    IsFirstChunk = false;
+  }
+
+  return Fields;
+}
+
+// ---------------------------------------------------------------------------------------
 /**
  * Generates an array of embeds to display an incident report.
  * @param IncidentRecord - The incident record to generate the embed for.
@@ -117,13 +187,14 @@ export default function GetIncidentReportEmbeds(
         name: "Witnesses",
         value: IWitnessesFormatted,
       },
-      {
-        inline: false,
-        name: "Incident Description",
-        value: IncidentRecord.description,
-      },
     ]);
 
+  const NarrativeFields = SplitNarrativeIntoFields(
+    IncidentRecord.description,
+    "Incident Narrative"
+  );
+
+  IncidentReportEmbed.addFields(...NarrativeFields);
   if (IncidentRecord.notes) {
     IncidentReportEmbed.addFields({
       inline: false,
