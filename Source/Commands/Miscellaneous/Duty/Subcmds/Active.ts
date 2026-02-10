@@ -52,7 +52,7 @@ function GetDescriptionText(
     )}.${DescriptionSuffix}`;
   }
 
-  return `The server's ${IsHistoricalView ? "" : "currently "}active shifts, categorized by type.${DescriptionSuffix}`;
+  return DescriptionSuffix;
 }
 
 /**
