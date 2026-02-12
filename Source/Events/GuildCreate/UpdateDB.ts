@@ -19,17 +19,23 @@ export default async function UpdateDatabase(_: DiscordClient, GuildInst: Guild)
     return;
   }
 
-  const GuildExists = await GuildModel.exists({ _id: GuildInst.id }).exec();
-  if (GuildExists) {
-    await GuildModel.updateOne(
-      { _id: GuildInst.id, deletion_scheduled_on: { $ne: null } },
-      { $set: { deletion_scheduled_on: null } }
-    );
-  } else {
-    await GuildModel.create({
-      _id: GuildInst.id,
+  const Result = await GuildModel.findOneAndUpdate(
+    { _id: GuildInst.id },
+    { $set: { deletion_scheduled_on: null } },
+    { upsert: true, new: true }
+  )
+    .exec()
+    .catch((Err: any) => {
+      AppLogger.error({
+        message: "Failed to update the guild record in the database;",
+        label: "Events:GuildCreate:UpdateDB",
+        guild_id: GuildInst.id,
+        stack: Err.stack,
+        error: Err,
+      });
     });
 
+  if (Result && !Result.isNew) {
     AppLogger.debug({
       message: "A new guild record was added to the database. Id: %o",
       label: "Events:GuildCreate:UpdateDB",
