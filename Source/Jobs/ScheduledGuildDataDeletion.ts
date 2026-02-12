@@ -1,3 +1,4 @@
+import { Collection } from "discord.js";
 import { CronJobFileDefReturn } from "#Typings/Core/System.js";
 import DeleteAllAssociatedGuildData from "#Utilities/Database/DeleteAssociatedGuildData.js";
 import GuildModel from "#Models/Guild.js";
@@ -14,24 +15,40 @@ async function CleanupUnavailableGuilds(Now: Date | "init" | "manual", Client: D
   ).exec();
 
   if (ScheduledGuilds.length === 0) return;
-  const GuildIds = ScheduledGuilds.map((Guild) => Guild._id);
-  const PendingDeletionGuildIds = GuildIds.filter((GuildId) => !Client.guilds.cache.has(GuildId));
+  const GuildIds = new Collection(ScheduledGuilds.map((Guild) => [Guild._id, Guild._id]));
+  const [PendingDeletionGuildIds, GuildIdsToRevokePending] = GuildIds.partition(
+    (GuildId) => !Client.guilds.cache.has(GuildId)
+  );
 
-  if (PendingDeletionGuildIds.length === 0) return;
+  if (GuildIdsToRevokePending.size > 0) {
+    const UpdateResult = await GuildModel.updateMany(
+      { _id: { $in: GuildIdsToRevokePending.values().toArray() } },
+      { $set: { deletion_scheduled_on: null } }
+    ).exec();
+
+    AppLogger.debug({
+      splat: [UpdateResult.matchedCount],
+      label: "Jobs:ScheduledGuildDataDeletion",
+      message:
+        "%i guilds were found to be available again and had their pending deletion schedule revoked.",
+    });
+  }
+
+  if (PendingDeletionGuildIds.size === 0) return;
   return GuildModel.deleteMany({
-    _id: { $in: PendingDeletionGuildIds },
+    _id: { $in: PendingDeletionGuildIds.values().toArray() },
     deletion_scheduled_on: { $lte: CurrentDate },
   })
     .exec()
     .then((DeleteResult) => {
       AppLogger.debug({
-        splat: [DeleteResult.deletedCount, PendingDeletionGuildIds.length],
+        splat: [DeleteResult.deletedCount, PendingDeletionGuildIds.size],
         label: "Jobs:ScheduledGuildDataDeletion",
         message:
           "%i out of %i guilds was successfully deleted from the database due to their deletion schedule. Continuing to delete associated profiles and data...",
       });
 
-      return DeleteAllAssociatedGuildData(PendingDeletionGuildIds);
+      return DeleteAllAssociatedGuildData(PendingDeletionGuildIds.values().toArray());
     });
 }
 
