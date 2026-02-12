@@ -110,6 +110,8 @@ async function HandleMetricsRequest(_: Request, Res: Response, App: Client) {
         client: {
           ready: App.isReady(),
           ratelimited: AppResponse.ratelimited,
+          guilds: App.guilds.cache.size,
+          users: App.guilds.cache.reduce((Acc, Guild) => Acc + Guild.memberCount, 0),
           uptime: DurHumanizer(App.uptime ?? 0, {
             conjunction: " and ",
             largest: 4,
