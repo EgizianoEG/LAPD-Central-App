@@ -499,10 +499,14 @@ async function ValidateCallsignVacancy(
       ? ` (expires ${FormatTime(CurrentHolder.expiry, "D")})`
       : "";
 
-    const ResolvedUsername = (await Interaction.guild.members.fetch(CurrentHolder.requester)).user
-      .username;
+    const ResolvedUser = await Interaction.client.users
+      .fetch(CurrentHolder.requester)
+      .catch(() => null);
 
-    const ResolvedUsernameText = ResolvedUsername ? `to @${ResolvedUsername}` : "";
+    const ResolvedUsernameText = ResolvedUser?.username
+      ? `to @${ResolvedUser.username}`
+      : "[Unknown-User]";
+
     const AutoDenialReason = `Call sign is already assigned ${ResolvedUsernameText}${ExpiryInfo}.`;
     const ReplyEmbed = new ErrorContainer()
       .setTitle("Call sign Request Auto-Denied")
