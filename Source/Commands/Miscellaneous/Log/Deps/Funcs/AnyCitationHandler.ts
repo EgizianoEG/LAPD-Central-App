@@ -469,20 +469,15 @@ async function OnModalSubmission(
   CitingOfficer: ReporterInfo,
   ModalSubmission: ModalSubmitInteraction<"cached">
 ) {
-  if (ModalSubmission.isFromMessage()) {
-    await ModalSubmission.update({
-      content: null,
-      embeds: [new InfoEmbed().useInfoTemplate("ProcessingCitationDetails")],
-      components: [],
-    });
-  } else {
-    await ModalSubmission.deferUpdate();
-    await ModalSubmission.editReply({
-      content: null,
-      embeds: [new InfoEmbed().useInfoTemplate("ProcessingCitationDetails")],
-      components: [],
-    });
+  if (!ModalSubmission.deferred && !ModalSubmission.replied) {
+    await ModalSubmission.deferUpdate().catch(() => null);
   }
+
+  await ModalSubmission.editReply({
+    content: null,
+    embeds: [new InfoEmbed().useInfoTemplate("ProcessingCitationDetails")],
+    components: [],
+  }).catch(() => null);
 
   let ConfirmationBtnResponse: ButtonInteraction<"cached"> | null = null;
   try {
