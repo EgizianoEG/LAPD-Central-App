@@ -1220,6 +1220,46 @@ export async function HandleCallsignsModuleConfigPageInteracts(
 // Helper Functions:
 // -----------------
 /**
+ * Safely converts any value to a proper MongoDB ObjectId instance.
+ * Handles ObjectId instances, strings, and plain objects that were ObjectIds before cloning.
+ * @param Value - The value to convert (ObjectId, string, or plain object)
+ * @returns A proper ObjectId instance
+ * @throws Error if the value cannot be converted to a valid ObjectId
+ */
+function ToObjectId(Value: any): Types.ObjectId {
+  if (Value instanceof Types.ObjectId) {
+    return Value;
+  }
+
+  if (typeof Value === "string") {
+    return new Types.ObjectId(Value);
+  }
+
+  if (Value && typeof Value === "object") {
+    if (Value.id) {
+      if (Buffer.isBuffer(Value.id)) {
+        return new Types.ObjectId(Value.id);
+      }
+      if (typeof Value.id === "string") {
+        return new Types.ObjectId(Value.id);
+      }
+    }
+
+    if (Value._bsontype === "ObjectId" && Value.id) {
+      return new Types.ObjectId(Value.id);
+    }
+
+    try {
+      return new Types.ObjectId(Value);
+    } catch {
+      throw new Error(`Cannot convert to ObjectId: ${JSON.stringify(Value)}`);
+    }
+  }
+
+  throw new Error(`Invalid ObjectId value: ${Value}`);
+}
+
+/**
  * Normalizes callsigns module configuration by converting ObjectId instances to strings.
  * This ensures compatibility with clone operations that strip ObjectId prototypes.
  *
@@ -1237,11 +1277,11 @@ function NormalizeCallsignsConfigObjectIds(Config: GuildSettings["callsigns_modu
     ...Config,
     beat_restrictions: Config.beat_restrictions.map((R) => ({
       ...R,
-      _id: R._id.toString(),
+      _id: ToObjectId(R._id).toString(),
     })),
     unit_type_restrictions: Config.unit_type_restrictions.map((R) => ({
       ...R,
-      _id: R._id.toString(),
+      _id: ToObjectId(R._id).toString(),
     })),
   };
 }
@@ -1254,7 +1294,16 @@ export async function HandleCallsignsModuleDBSave(
   MState: ModuleState<GuildSettings["callsigns_module"]>
 ): Promise<string | null> {
   const MPath = "settings.callsigns_module";
-  const NormalizedConfig = NormalizeCallsignsConfigObjectIds(MState.ModuleConfig);
+  const BeatRestrictionsForDB = MState.ModuleConfig.beat_restrictions.map((R) => ({
+    ...R,
+    _id: ToObjectId(R._id),
+  }));
+
+  const UnitTypeRestrictionsForDB = MState.ModuleConfig.unit_type_restrictions.map((R) => ({
+    ...R,
+    _id: ToObjectId(R._id),
+  }));
+
   const UpdatedSettings = await GuildModel.findByIdAndUpdate(
     Interaction.guildId,
     {
@@ -1268,8 +1317,8 @@ export async function HandleCallsignsModuleDBSave(
         [`${MPath}.alert_on_request`]: MState.ModuleConfig.alert_on_request,
         [`${MPath}.unit_type_whitelist`]: MState.ModuleConfig.unit_type_whitelist,
         [`${MPath}.release_on_inactivity`]: MState.ModuleConfig.release_on_inactivity,
-        [`${MPath}.beat_restrictions`]: NormalizedConfig.beat_restrictions,
-        [`${MPath}.unit_type_restrictions`]: NormalizedConfig.unit_type_restrictions,
+        [`${MPath}.beat_restrictions`]: BeatRestrictionsForDB,
+        [`${MPath}.unit_type_restrictions`]: UnitTypeRestrictionsForDB,
       },
     },
     {
