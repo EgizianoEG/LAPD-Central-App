@@ -382,7 +382,7 @@ async function ValidateAndParseCallsignDesignation(
       .then(() => false);
   }
 
-  UnitType = /^Air$/i.test(UnitType) ? "Air" : UnitType;
+  UnitType = /^Air$/i.test(UnitType) ? "Air" : UnitType.toUpperCase();
   const BeatNumStr = BeatNum.toString().padStart(2, "0");
   const ValidationData = await GetCallsignValidationData(
     RecInteract.guildId,

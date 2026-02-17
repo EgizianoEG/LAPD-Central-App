@@ -13,32 +13,29 @@ import ShiftModel from "#Models/Shift.js";
  * @WARNING **This action cannot be undone.**
  * @param GuildIds - The snowflake Ids of the guilds to delete associated data for.
  * @param Session - An optional ClientSession to use for transaction management. If not provided, a new session will be created for this operation.
- * @returns
+ * @returns A promise that resolves when the operation is complete.
  */
 export default async function DeleteAssociatedGuildData(
   GuildIds: string | string[],
   Session?: ClientSession
-) {
+): Promise<void> {
   GuildIds = Array.isArray(GuildIds) ? GuildIds : [GuildIds];
   const QueryFilter = { guild: { $in: GuildIds } };
 
   Session ??= await UserActivityNoticeModel.startSession();
-  Session.startTransaction();
+  if (!Session.inTransaction()) Session.startTransaction();
 
   try {
-    const Results = await Promise.all([
-      UserActivityNoticeModel.deleteMany(QueryFilter, { session: Session }).exec(),
-      GuildProfileModel.deleteMany(QueryFilter, { session: Session }).exec(),
-      MemberRolesModel.deleteMany(QueryFilter, { session: Session }).exec(),
-      ShiftModel.deleteMany(QueryFilter, { session: Session }).exec(),
-      ArrestModel.deleteMany(QueryFilter, { session: Session }).exec(),
-      CitationModel.deleteMany(QueryFilter, { session: Session }).exec(),
-      IncidentModel.deleteMany(QueryFilter, { session: Session }).exec(),
-      CallsignModel.deleteMany(QueryFilter, { session: Session }).exec(),
-    ]);
+    await GuildProfileModel.deleteMany(QueryFilter, { session: Session }).exec();
+    await UserActivityNoticeModel.deleteMany(QueryFilter, { session: Session }).exec();
+    await ShiftModel.deleteMany(QueryFilter, { session: Session }).exec();
+    await ArrestModel.deleteMany(QueryFilter, { session: Session }).exec();
+    await CitationModel.deleteMany(QueryFilter, { session: Session }).exec();
+    await IncidentModel.deleteMany(QueryFilter, { session: Session }).exec();
+    await CallsignModel.deleteMany(QueryFilter, { session: Session }).exec();
+    await MemberRolesModel.deleteMany(QueryFilter, { session: Session }).exec();
 
     await Session.commitTransaction();
-    return Results;
   } catch (Err) {
     await Session.abortTransaction();
     throw Err;
