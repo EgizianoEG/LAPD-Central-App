@@ -488,6 +488,7 @@ async function ValidateCallsignVacancy(
   // Check for any approved callsign with same designation that is still active
   // This includes: 1) No expiry (permanent), 2) Expiry date in the future (not yet expired)
   const CurrentHolder = await CallsignModel.findOne({
+    guild: RequestDocument.guild,
     designation: RequestDocument.designation,
     request_status: GenericRequestStatuses.Approved,
     $or: [{ expiry: null }, { expiry: { $gt: CurrentDate } }],
@@ -507,7 +508,7 @@ async function ValidateCallsignVacancy(
       ? `to @${ResolvedUser.username}`
       : "[Unknown-User]";
 
-    const AutoDenialReason = `Call sign is already assigned ${ResolvedUsernameText}${ExpiryInfo}.`;
+    const AutoDenialReason = `[SYSTEM] Call sign is already assigned ${ResolvedUsernameText}${ExpiryInfo}.`;
     const ReplyEmbed = new ErrorContainer()
       .setTitle("Call sign Request Auto-Denied")
       .setDescription(
