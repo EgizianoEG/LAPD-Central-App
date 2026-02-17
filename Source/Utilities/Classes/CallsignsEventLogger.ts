@@ -100,9 +100,14 @@ export default class CallsignsEventLogger {
       ? [
           PermissionFlagsBits.ViewChannel,
           PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
           ...(Array.isArray(AdditionalPerms) ? AdditionalPerms : [AdditionalPerms]),
         ]
-      : [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages];
+      : [
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessages,
+          PermissionFlagsBits.EmbedLinks,
+        ];
 
     const HasPermissions = await this.LoggingChannelHasPerms(Guild, TargetChannel, RequiredPerms);
     return HasPermissions ? TargetChannel : null;
