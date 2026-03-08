@@ -402,9 +402,18 @@ export async function FilterUserInput<T extends string | readonly string[]>(
 
       // Filter inputs based on set Rust regex patterns in the automoderation rule:
       if (!Rule.triggerMetadata.regexPatterns.length || !FFIFuncs?.rust_regex_replace) continue;
-      const ForLoopOutput: { last_error: null | Error; error_count: number } = {
+      const ForLoopOutput: {
+        last_error: null | Error;
+        error_count: number;
+        failed_patterns: Set<string>;
+        errno_codes: Set<number>;
+        max_input_length: number;
+      } = {
         last_error: null,
         error_count: 0,
+        failed_patterns: new Set(),
+        errno_codes: new Set(),
+        max_input_length: 0,
       };
 
       for (const Pattern of Rule.triggerMetadata.regexPatterns) {
@@ -432,6 +441,9 @@ export async function FilterUserInput<T extends string | readonly string[]>(
             }
 
             ForLoopOutput.error_count++;
+            ForLoopOutput.failed_patterns.add(Pattern);
+            ForLoopOutput.errno_codes.add(Received.errnoCode);
+            ForLoopOutput.max_input_length = Math.max(ForLoopOutput.max_input_length, Input.length);
             ForLoopOutput.last_error = new Error(Received.errnoMessage, {
               cause: Received.errnoCode,
             });
@@ -439,6 +451,8 @@ export async function FilterUserInput<T extends string | readonly string[]>(
             return Input;
           } catch (Err: any) {
             ForLoopOutput.error_count++;
+            ForLoopOutput.failed_patterns.add(Pattern);
+            ForLoopOutput.max_input_length = Math.max(ForLoopOutput.max_input_length, Input.length);
             ForLoopOutput.last_error = Err;
             return Input;
           }
@@ -448,10 +462,19 @@ export async function FilterUserInput<T extends string | readonly string[]>(
       if (ForLoopOutput.error_count) {
         AppLogger.error({
           message:
-            "Failed to apply auto-moderation rule '%s' for guild '%s'. Errors outputted: %i; last error stack:",
+            "Failed to apply auto-moderation rule '%s' for guild '%s'. Errors: %i; errno codes: [%s]; failed patterns (%i/%i): %s; max input length: %i; last error stack:",
           label: FileLabel,
           stack: ForLoopOutput.last_error?.stack,
-          splat: [Rule.id, Options.guild_instance.id, ForLoopOutput.error_count],
+          splat: [
+            Rule.id,
+            Options.guild_instance.id,
+            ForLoopOutput.error_count,
+            [...ForLoopOutput.errno_codes].join(", "),
+            ForLoopOutput.failed_patterns.size,
+            Rule.triggerMetadata.regexPatterns.length,
+            [...ForLoopOutput.failed_patterns].map((P) => `"${P}"`).join(", "),
+            ForLoopOutput.max_input_length,
+          ],
         });
       }
     }
