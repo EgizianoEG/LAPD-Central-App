@@ -1,11 +1,15 @@
-import { BaseUserActivityNoticeLogger } from "#Utilities/Classes/UANEventLogger.js";
 import { CronJobFileDefReturn } from "#Typings/Core/System.js";
 import { UserActivityNotice } from "#Typings/Utilities/Database.js";
 import { subDays } from "date-fns";
+import {
+  LeaveOfAbsenceEventLogger,
+  ReducedActivityEventLogger,
+} from "#Utilities/Classes/UANEventLogger.js";
 
 import HandleNoticeRoleAssignment from "#Utilities/Discord/HandleUANUpdate.js";
 import ActivityNoticeModel from "#Models/UserActivityNotice.js";
-const BaseUANLogger = new BaseUserActivityNoticeLogger(true);
+const LOAEventLogger = new LeaveOfAbsenceEventLogger();
+const RAEventLogger = new ReducedActivityEventLogger();
 
 /**
  * Handle activity notices expiration and role assignment if the `end_processed` property is still `false`.
@@ -79,7 +83,12 @@ async function HandleExpiredUserActivityNotices(
     for (const Notice of CategorizedByGuild[GuildId]) {
       NoticesHandled.push(Notice._id as unknown as string);
       HandleNoticeRoleAssignment(Notice.user, GuildInst, Notice.type, false).catch(() => null);
-      BaseUANLogger.LogActivityNoticeEnd(Client, ActivityNoticeModel.hydrate(Notice));
+
+      if (Notice.type === "LeaveOfAbsence") {
+        LOAEventLogger.LogActivityNoticeEnd(Client, ActivityNoticeModel.hydrate(Notice));
+      } else {
+        RAEventLogger.LogActivityNoticeEnd(Client, ActivityNoticeModel.hydrate(Notice));
+      }
     }
   }
 
