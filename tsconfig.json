@@ -32,12 +32,7 @@
     "resolveJsonModule": false,
     "types": ["node"],
 
-    "typeRoots": [
-      "./Source/Types/**",
-      "./Source/Typings/**",
-      "./node_modules/@types",
-      "./node_modules/@types/**"
-    ],
+    "typeRoots": ["./Source/Typings", "./node_modules/@types"],
 
     "paths": {
       "#Source/*": ["./Source/*"],
