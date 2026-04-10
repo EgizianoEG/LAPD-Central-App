@@ -14,7 +14,7 @@ const ShiftDurations = new Schema({
     min: 0,
 
     get(this: Shifts.HydratedShiftDocument["durations"]) {
-      const ShiftDoc = this.ownerDocument() as Shifts.HydratedShiftDocument;
+      const ShiftDoc = this.ownerDocument() as unknown as Shifts.HydratedShiftDocument;
       const EndTimestamp = ShiftDoc.end_timestamp?.valueOf() ?? Date.now();
       if (!ShiftDoc.start_timestamp) return 0;
 
@@ -33,7 +33,7 @@ const ShiftDurations = new Schema({
     min: 0,
 
     get(this: Shifts.HydratedShiftDocument["durations"]) {
-      const ShiftDoc = this.ownerDocument() as Shifts.HydratedShiftDocument;
+      const ShiftDoc = this.ownerDocument() as unknown as Shifts.HydratedShiftDocument;
       const EndTimestamp = ShiftDoc.end_timestamp?.valueOf() ?? Date.now();
       if (!ShiftDoc.start_timestamp || ShiftDoc.events.breaks.length === 0) return 0;
 

@@ -620,7 +620,6 @@ async function OnModalSubmission(
     }).catch((Err) => HandleActionCollectorExceptions(Err, DisablePrompt));
 
     if (!ButtonResponse) return;
-    // eslint-disable-next-line sonarjs/no-dead-store
     ConfirmationBtnResponse = ButtonResponse;
 
     if (ButtonResponse.customId === "confirm-citation") {
