@@ -11,8 +11,11 @@ export declare module "utility-types" {
 }
 
 export declare module "discord.js" {
-  export interface InteractionCollector<Interaction extends CollectedInteraction>
-    extends Collector<Snowflake, Interaction, [Collection<Snowflake, Interaction>]> {
+  export interface InteractionCollector<Interaction extends CollectedInteraction> extends Collector<
+    Snowflake,
+    Interaction,
+    [Collection<Snowflake, Interaction>]
+  > {
     on(
       event: "end",
       listener: (collected: Collection<Snowflake, Interaction>, reason: string) => Awaitable<any>

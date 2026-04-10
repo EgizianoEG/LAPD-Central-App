@@ -400,8 +400,10 @@ export namespace Shifts {
           | HydratedDocument<ShiftDocument<true, any>, ShiftDocumentOverrides>
       : HydratedDocument<ShiftDocument<true, IsActive>, ShiftDocumentOverrides>;
 
-  interface BasicHydratedShiftDocument
-    extends HydratedDocument<ShiftDocument, ShiftDocumentOverrides> {
+  interface BasicHydratedShiftDocument extends HydratedDocument<
+    ShiftDocument,
+    ShiftDocumentOverrides
+  > {
     id: string;
   }
 
@@ -428,7 +430,8 @@ export namespace Shifts {
   }
 
   interface ShiftModel
-    extends Model<
+    extends
+      Model<
         Shifts.ShiftDocument,
         unknown,
         Shifts.ShiftDocumentOverrides,
