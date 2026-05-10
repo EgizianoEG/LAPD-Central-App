@@ -7,30 +7,23 @@ export interface CronJobFileDefReturn {
   cron_exp: string;
 
   /**
-   * The function to be executed on each scheduled occurrence of the cron job.
-   * This property is optional, and if not provided, the con job scheduling will be skipped (not registered and will not be executed at any time).
-   * Specifically setting this to `null` will not register the cron job neither log a warning unlike `undefined`.
+   * The callback function executed at each scheduled occurrence of the cron job.
+   * When omitted or undefined, the cron job will not be registered or executed.
+   * Setting this to `null` explicitly disables the cron job without logging warnings.
    *
-   * @param {Date | "manual" | "init"} [arg0] - The first argument representing the time or trigger type.
-   * @param {DiscordClient} [arg1] - The second argument representing the Discord client instance.
+   * @param arg0 - The trigger context:
+   *   - `Date`: The exact time the cron job was triggered.
+   *   - `"manual"`: The function was manually invoked outside the schedule.
+   *   - `"init"`: The function ran during application initialization (e.g., `runOnInit` setting).
    *
-   * - `arg0?: Date | "manual" | "init"`: The first argument is either a `Date` object representing
-   *   the exact time when the cron job was triggered, or a string (`"manual"` or `"init"`) that
-   *   indicates if the function was invoked manually or on the initial run after the application
-   *   starts.
-   *   - `Date`: The actual date and time when the cron job is triggered.
-   *   - `"manual"`: Indicates the function was manually triggered outside of the scheduled time.
-   *   - `"init"`: Indicates that the cron job was executed upon initialization, usually due to a
-   *     configuration setting like `runOnInit`.
+   * @param arg1 - The `DiscordClient` instance, enabling interaction with Discord
+   *   (sending messages, updating statuses, etc.).
    *
-   * - `arg1?: DiscordClient`: The second argument is the `DiscordClient` instance, allowing the cron
-   *   job to interact with Discord, send messages, update statuses, or perform other operations
-   *   within the Discord client.
-   *
-   * @returns The function can return either a value of any type or a promise that resolves to any value,
-   * allowing it to perform asynchronous operations as needed.
+   * @returns Any value or a Promise, supporting both synchronous and asynchronous operations.
    */
-  cron_func?: (arg0?: Date | "manual" | "init", arg1?: DiscordClient) => any | Promise<any> | null;
+  cron_func?:
+    | ((arg0?: Date | "manual" | "init", arg1?: DiscordClient) => any | Promise<any> | null)
+    | null;
 
   cron_opts?: ScheduleOptions & {
     /**
