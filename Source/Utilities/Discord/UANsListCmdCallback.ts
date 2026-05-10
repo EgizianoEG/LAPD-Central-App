@@ -1,4 +1,5 @@
 import { UserActivityNotice } from "#Typings/Utilities/Database.js";
+import { QueryFilter } from "mongoose";
 import { InfoEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { Colors } from "#Config/Shared.js";
 import {
@@ -25,18 +26,24 @@ export default async function UANListCmdCallback(
 ) {
   const RecordTypeText =
     RecordsType === "ReducedActivity" ? "reduced activity" : "leave of absence";
-  const QueryFilter = { guild: Interaction.guildId, type: RecordsType, status: "Pending" };
+
+  const QFilter: QueryFilter<UserActivityNotice.UserActivityNoticeDocument> = {
+    guild: Interaction.guildId,
+    type: RecordsType,
+    status: "Pending",
+  };
+
   const DesiredStatus = (Interaction.options.getString("status", false) ?? "Active") as
     | "Active"
     | "Pending";
 
   if (DesiredStatus === "Active") {
-    QueryFilter.status = "Approved";
-    Object.assign(QueryFilter, { end_date: { $gt: Interaction.createdAt }, early_end_date: null });
+    QFilter.status = "Approved";
+    Object.assign(QFilter, { end_date: { $gt: Interaction.createdAt }, early_end_date: null });
   }
 
   const NoticeRecords = await UANModel.find(
-    QueryFilter,
+    QFilter,
     {
       user: 1,
       end_date: 1,
