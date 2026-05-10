@@ -333,13 +333,15 @@ async function HandleShiftOffAction(
 
       return Promise.allSettled([
         new ErrorEmbed().useErrClass(Err).replyToInteract(Interaction, true, true, "followUp"),
-        UpdateManagementPrompt(
-          Interaction,
-          ActiveShift.type,
-          PromptMsgId,
-          ShiftRecord ?? ActiveShift,
-          ShiftRecord?.end_timestamp == null ? undefined : RecentShiftAction.End
-        ),
+        ShiftRecord?.end_timestamp == null
+          ? undefined
+          : UpdateManagementPrompt(
+              Interaction,
+              ActiveShift.type,
+              PromptMsgId,
+              ShiftRecord ?? ActiveShift,
+              RecentShiftAction.End
+            ),
       ]);
     }
 
