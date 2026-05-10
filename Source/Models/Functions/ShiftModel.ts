@@ -271,6 +271,11 @@ export async function ShiftEnd(
         "This shift may have already ended, or it might have been recently voided or deleted.",
       showable: true,
     });
+  } else if (UpdatedDocument.end_timestamp === null) {
+    throw new AppError({
+      template: "UnknownError",
+      showable: true,
+    });
   }
 
   return UpdatedDocument as unknown as ShiftRecord;

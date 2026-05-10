@@ -328,21 +328,24 @@ async function HandleShiftOffAction(
     }
   } catch (Err: any) {
     if (Err instanceof AppError && Err.is_showable) {
-      const ShiftExists = await ShiftModel.exists({ _id: ActiveShift._id });
+      const ShiftRecord = await ShiftModel.findById(ActiveShift._id);
       await Interaction.deferUpdate().catch(() => null);
+
       return Promise.allSettled([
         new ErrorEmbed().useErrClass(Err).replyToInteract(Interaction, true, true, "followUp"),
-        UpdateManagementPrompt(
-          Interaction,
-          ActiveShift.type,
-          PromptMsgId,
-          ActiveShift,
-          ShiftExists ? RecentShiftAction.End : undefined
-        ),
+        ShiftRecord?.end_timestamp == null
+          ? undefined
+          : UpdateManagementPrompt(
+              Interaction,
+              ActiveShift.type,
+              PromptMsgId,
+              ShiftRecord ?? ActiveShift,
+              RecentShiftAction.End
+            ),
       ]);
-    } else {
-      throw Err;
     }
+
+    throw Err;
   }
 }
 
@@ -443,7 +446,7 @@ async function HandleInvalidShiftAction(
 
   if (
     [ShiftMgmtActions.ShiftOff, ShiftMgmtActions.ShiftBreakToggle].includes(ShiftAction) &&
-    (!TargetShift || TargetShift.end_timestamp !== null)
+    TargetShift?.end_timestamp !== null
   ) {
     if (TargetShift) {
       await UpdateManagementPrompt(
