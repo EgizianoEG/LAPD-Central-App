@@ -1440,6 +1440,15 @@ export const InfoMessages = {
 
   /**
    * @template {string} RobloxUsername
+   * @template {number} DiscordId
+   */
+  AdminRobloxAccountConnected: {
+    Title: "Successfully Linked",
+    Description: "Roblox account `%s` has been successfully linked to <@%i>.",
+  },
+
+  /**
+   * @template {string} RobloxUsername
    */
   RobloxAccountLoginManualSuccess: {
     Title: "Successfully Linked",
