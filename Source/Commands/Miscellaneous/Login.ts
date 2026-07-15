@@ -29,7 +29,7 @@ import { IsValidRobloxUsername } from "#Utilities/Helpers/Validators.js";
 
 import GetRobloxIdFromDiscordBloxlink from "#Utilities/Roblox/GetRbxIdBloxLink.js";
 import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
-import UpdateLinkedRobloxUser from "#Utilities/Database/UpdateLinkedUser.js";
+import SetLinkedRobloxAccount from "#Source/Utilities/Database/LinkRobloxAccount.js";
 import AutocompleteUsername from "#Utilities/Autocompletion/Username.js";
 import GetIdByUsername from "#Utilities/Roblox/GetIdByUsername.js";
 import IsUserLoggedIn from "#Utilities/Database/IsUserLoggedIn.js";
@@ -40,11 +40,11 @@ import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 // -----------------
 /**
  * Validates the entered Roblox username before continuing
- * @param Interaction - The interaction object.
+ * @param Interaction - The interaction object to reply to in case of error responses.
  * @param InputUsername - The Roblox username to be validated.
  * @returns The interaction reply (an error reply) if validation failed; otherwise `undefined`
  */
-async function HandleInvalidUsername(
+export async function HandleInvalidUsername(
   Interaction: SlashCommandInteraction,
   InputUsername: string
 ): Promise<boolean> {
@@ -105,7 +105,7 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
   const FoundBloxlinkRobloxId = await GetRobloxIdFromDiscordBloxlink(CmdInteract.user.id);
 
   if (FoundBloxlinkRobloxId === AccountRobloxId) {
-    await UpdateLinkedRobloxUser(CmdInteract, AccountRobloxId);
+    await SetLinkedRobloxAccount(CmdInteract, AccountRobloxId);
     const RobloxAccountInfo = await GetUserInfo(AccountRobloxId);
 
     return CmdInteract.editReply({
@@ -201,7 +201,7 @@ async function HandleManualVerification(
           : CurrentAccountInfo.about;
 
       if (AboutText?.includes(SampleText)) {
-        await UpdateLinkedRobloxUser(CmdInteract, AccountRobloxId);
+        await SetLinkedRobloxAccount(CmdInteract, AccountRobloxId);
         ComponentCollector.stop("Confirmed");
 
         return ButtonInteract.editReply({
@@ -259,7 +259,7 @@ async function HandleManualVerification(
  * @param Interaction
  * @returns
  */
-async function Autocomplete(Interaction: AutocompleteInteraction): Promise<void> {
+export async function Autocomplete(Interaction: AutocompleteInteraction): Promise<void> {
   const { name, value } = Interaction.options.getFocused(true);
   let Suggestions: ApplicationCommandOptionChoiceData[];
 

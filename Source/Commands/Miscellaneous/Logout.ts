@@ -21,7 +21,7 @@ import {
 } from "#Utilities/Classes/ExtraContainers.js";
 
 import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
-import UpdateLinkedRobloxUser from "#Utilities/Database/UpdateLinkedUser.js";
+import SetLinkedRobloxAccount from "#Source/Utilities/Database/LinkRobloxAccount.js";
 import IsUserLoggedIn from "#Utilities/Database/IsUserLoggedIn.js";
 import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 
@@ -104,7 +104,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     .then(async (ButtonAction) => {
       await ButtonAction.deferUpdate();
       if (ButtonAction.customId === "confirm-logout") {
-        await UpdateLinkedRobloxUser(Interaction);
+        await SetLinkedRobloxAccount(Interaction, null);
         return ButtonAction.editReply({
           flags: MsgFlags,
           components: [
