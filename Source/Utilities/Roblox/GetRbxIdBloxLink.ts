@@ -29,7 +29,7 @@ export default async function GetRobloxIdFromDiscordBloxlink(
 ): Promise<number | null> {
   const CurrentTime = new Date();
 
-  if (!Other.BloxlinkAPIKey) return null;
+  if (!Other.Bloxlink_API_Key) return null;
   if (!isSameDay(CurrentTime, LastResetDate)) {
     GlobalRequestCount = 0;
     LastResetDate = startOfToday();
@@ -64,7 +64,7 @@ export default async function GetRobloxIdFromDiscordBloxlink(
     const Resp = await Axios.get<GlobalAPI.DiscordToRobloxIdResponse>(
       `https://api.blox.link/v4/public/discord-to-roblox/${DiscordUserId}`,
       {
-        headers: { Authorization: Other.BloxlinkAPIKey },
+        headers: { Authorization: Other.Bloxlink_API_Key },
       }
     );
 
@@ -86,7 +86,7 @@ export default async function GetRobloxIdFromDiscordBloxlink(
           stack: Err.stack,
           data: Err.response.data,
           status: Err.response.status,
-          api_key: RedactTextByOptions(Other.BloxlinkAPIKey, { from_pattern: /\b\w+$/ }),
+          api_key: RedactTextByOptions(Other.Bloxlink_API_Key, { from_pattern: /\b\w+$/ }),
         });
       } else {
         AppLogger.warn({
@@ -110,7 +110,7 @@ export default async function GetRobloxIdFromDiscordBloxlink(
         stack: Err.stack,
         data: Err.response.data,
         status: Err.response.status,
-        api_key: RedactTextByOptions(Other.BloxlinkAPIKey, { from_pattern: /\b\w+$/ }),
+        api_key: RedactTextByOptions(Other.Bloxlink_API_Key, { from_pattern: /\b\w+$/ }),
       });
     } else {
       AppLogger.error({
