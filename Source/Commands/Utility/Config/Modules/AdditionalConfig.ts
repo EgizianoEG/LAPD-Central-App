@@ -225,10 +225,10 @@ export async function HandleAdditionalConfigDBSave(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
       projection: {
         settings: 1,
       },

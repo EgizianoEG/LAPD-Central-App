@@ -22,7 +22,7 @@ export default async function UpdateDatabase(_: DiscordClient, GuildInst: Guild)
   const Result = await GuildModel.findOneAndUpdate(
     { _id: GuildInst.id },
     { $set: { deletion_scheduled_on: null } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: "after" }
   )
     .exec()
     .catch((Err: any) => {

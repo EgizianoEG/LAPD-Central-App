@@ -109,7 +109,11 @@ export async function StartNewShift(
         end_timestamp: null,
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    {
+      upsert: true,
+      setDefaultsOnInsert: true,
+      returnDocument: "after",
+    }
   ).exec();
 
   if (ActiveShift._id !== ShiftUniqueId && ActiveShift.end_timestamp === null) {
@@ -172,7 +176,9 @@ export async function ShiftBreakStart(
           "durations.on_break": GetUpdateShiftOnBreakDuration(this),
         },
       },
-      { new: true }
+      {
+        returnDocument: "after",
+      }
     )
     .exec();
 
@@ -219,7 +225,7 @@ export async function ShiftBreakEnd(
       },
       {
         arrayFilters: [{ "elem.1": null }], // Update the first active break found
-        new: true,
+        returnDocument: "after",
       }
     )
     .exec();
@@ -260,7 +266,9 @@ export async function ShiftEnd(
           "durations.on_break": GetUpdateShiftOnBreakDuration(this),
         },
       },
-      { new: true }
+      {
+        returnDocument: "after",
+      }
     )
     .exec();
 
@@ -309,7 +317,9 @@ export async function ResetShiftTime(
           "durations.on_duty_mod": OnDutyModTime,
         },
       },
-      { new: true }
+      {
+        returnDocument: "after",
+      }
     )
     .exec();
 

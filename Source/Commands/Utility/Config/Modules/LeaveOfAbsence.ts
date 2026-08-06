@@ -437,10 +437,10 @@ export async function HandleLeaveModuleDBSave(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
       projection: {
         "settings.leave_notices": 1,
       },

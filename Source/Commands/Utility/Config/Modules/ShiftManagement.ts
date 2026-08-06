@@ -409,10 +409,10 @@ export async function HandleShiftModuleDBSave(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
       projection: {
         "settings.shift_management": 1,
       },

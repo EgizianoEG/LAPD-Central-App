@@ -19,7 +19,11 @@ export default async function ScheduleGuildDataDeletion(_: Client<true>, GuildIn
         deletion_scheduled_on: addDays(new Date(), 7),
       },
     },
-    { new: true, lean: true, projection: { _id: 1 } }
+    {
+      returnDocument: "after",
+      lean: true,
+      projection: { _id: 1 },
+    }
   ).exec();
 
   if (UpdatedGuildDocument) {

@@ -698,10 +698,10 @@ async function HandleIncidentRecordUpdateConfirm(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
     }
   );
 

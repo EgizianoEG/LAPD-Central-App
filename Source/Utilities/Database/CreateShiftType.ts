@@ -59,8 +59,8 @@ export default async function CreateShiftType(Data: Guilds.CreateShiftTypeConfig
     };
 
     return GuildModel.findOneAndUpdate({ _id: Data.guild_id }, UpdateOps, {
-      new: true,
       upsert: true,
+      returnDocument: "after",
       setDefaultsOnInsert: true,
     }).then(() => NewShiftType);
   }

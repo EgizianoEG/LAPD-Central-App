@@ -1322,10 +1322,10 @@ export async function HandleCallsignsModuleDBSave(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
       projection: {
         "settings.callsigns_module": 1,
       },

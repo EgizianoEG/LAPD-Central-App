@@ -621,7 +621,7 @@ async function HandleCallsignRelease(BtnInteract: ButtonInteraction<"cached">): 
       expiry_notified: true,
     },
     {
-      new: true,
+      returnDocument: "after",
     }
   );
 

@@ -260,10 +260,10 @@ export async function HandleBasicConfigDBSave(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
       projection: {
         settings: 1,
       },

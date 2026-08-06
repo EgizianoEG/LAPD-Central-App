@@ -761,10 +761,10 @@ export async function HandleDutyActivitiesModuleDBSave(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
       projection: {
         settings: 1,
       },

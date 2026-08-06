@@ -359,10 +359,10 @@ export async function HandleReducedActivityModuleDBSave(
       },
     },
     {
-      new: true,
       lean: true,
       strict: true,
       runValidators: true,
+      returnDocument: "after",
       projection: {
         "settings.reduced_activity": 1,
       },

@@ -278,8 +278,8 @@ async function Callback(CmdInteract: SlashCommandInteraction) {
         {},
         {
           setDefaultsOnInsert: true,
+          returnDocument: "after",
           upsert: true,
-          new: true,
         }
       )
     : null;
@@ -333,10 +333,10 @@ async function Callback(CmdInteract: SlashCommandInteraction) {
             },
           ],
           {
-            new: true,
             upsert: true,
             updatePipeline: true,
             setDefaultsOnInsert: true,
+            returnDocument: "after",
           }
         );
 
