@@ -51,7 +51,7 @@
     "dedent": "^1.7.0",
     "default-composer": "^0.6.0",
     "didyoumean2": "^7.0.4",
-    "discord.js": "^14.26.4",
+    "discord.js": "^14.27.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "fuse.js": "^7.3.0",
