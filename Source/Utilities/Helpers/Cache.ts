@@ -47,7 +47,7 @@ export const MongoDBCache = {
     string,
     Shifts.ShiftDocument,
     Shifts.BasicHydratedShiftDocument
-  >(ShiftModel),
+  >(ShiftModel as any),
 };
 
 export const BloxlinkDiscordToRobloxUsageCache = new TTLCache<string, BloxlinkUserLimitInfo>({

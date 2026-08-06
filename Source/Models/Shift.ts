@@ -132,7 +132,7 @@ const ShiftSchema = new Schema<
 
 ShiftSchema.set("_id", false);
 ShiftSchema.set("optimisticConcurrency", true);
-ShiftSchema.statics.startNewShift = StartNewShift;
+ShiftSchema.static("startNewShift", StartNewShift);
 
 ShiftSchema.virtual("on_duty_time").get(function () {
   return ReadableDuration(this.durations.on_duty, { largest: 4 });

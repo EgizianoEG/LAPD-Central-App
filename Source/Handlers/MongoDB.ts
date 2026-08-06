@@ -281,7 +281,7 @@ async function ReloadActiveShiftsCache() {
     Shifts.ShiftDocument,
     Shifts.BasicHydratedShiftDocument
   >(
-    ShiftModel,
+    ShiftModel as any,
     InitialRunShiftDocuments.map((Doc) => [Doc._id, Doc] as [string, Shifts.ShiftDocument])
   );
 

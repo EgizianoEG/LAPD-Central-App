@@ -433,9 +433,9 @@ export namespace Shifts {
     extends
       Model<
         Shifts.ShiftDocument,
-        unknown,
+        {},
         Shifts.ShiftDocumentOverrides,
-        unknown,
+        {},
         BasicHydratedShiftDocument
       >,
       ShiftModelStatics {}
@@ -521,7 +521,7 @@ export namespace Shifts {
     getLatestVersion<GOIFailed extends boolean = false>(
       old_fallback?: GOIFailed,
       silent?: boolean = true
-    ): Promise<GOIFailed extends true ? this : this | null>;
+    ): Promise<GOIFailed extends true ? HydratedShiftDocument : HydratedShiftDocument | null>;
 
     /**
      * Adds on-duty time to the shift.
@@ -529,7 +529,7 @@ export namespace Shifts {
      * @throws {AppError} User showable error if the shift wasn't found on the databse.
      * @returns The saved shift document after the modification.
      */
-    addOnDutyTime(duration: number): Promise<this>;
+    addOnDutyTime(duration: number): Promise<HydratedShiftDocument>;
 
     /**
      * Subtracts on-duty time from the shift.
@@ -537,7 +537,7 @@ export namespace Shifts {
      * @throws {AppError} User showable error if the shift wasn't found on the databse.
      * @returns The saved shift document after the modification.
      */
-    subOnDutyTime(duration: number): Promise<this>;
+    subOnDutyTime(duration: number): Promise<HydratedShiftDocument>;
 
     /**
      * {@link addOnDutyTime} and {@link subOnDutyTime} both compined in one method.
@@ -546,7 +546,10 @@ export namespace Shifts {
      * @throws {AppError} User showable error if the shift wasn't found on the databse.
      * @returns The saved shift document after the modification.
      */
-    addSubOnDutyTime(type: "Add" | "Sub" | "Subtract", duration: number): Promise<this>;
+    addSubOnDutyTime(
+      type: "Add" | "Sub" | "Subtract",
+      duration: number
+    ): Promise<HydratedShiftDocument>;
 
     /**
      * Adjusts the on-duty time of the shift.
@@ -557,7 +560,10 @@ export namespace Shifts {
      * @throws {AppError} User showable error if the shift wasn't found on the databse.
      * @returns The saved shift document after the modification.
      */
-    setOnDutyTime(duration: number, current_timestamp?: number = Date.now()): Promise<this>;
+    setOnDutyTime(
+      duration: number,
+      current_timestamp?: number = Date.now()
+    ): Promise<HydratedShiftDocument>;
 
     /**
      * Resets the shift time based on the current timestamp
@@ -568,7 +574,7 @@ export namespace Shifts {
      * if the shift's time already been reset (on-duty time is `0`).
      * @returns The saved shift document after the modification.
      */
-    resetOnDutyTime(current_timestamp?: number = Date.now()): Promise<this>;
+    resetOnDutyTime(current_timestamp?: number = Date.now()): Promise<HydratedShiftDocument>;
 
     /**
      * Starts and creates a new break if there is no one currently active.
@@ -576,7 +582,7 @@ export namespace Shifts {
      * @throws AppError if there is already an active break.
      * @returns A promise that resolves to the saved shift.
      */
-    breakStart(timestamp?: number): Promise<this>;
+    breakStart(timestamp?: number): Promise<HydratedShiftDocument>;
 
     /**
      * Ends a currently active break if there is one.
@@ -584,7 +590,7 @@ export namespace Shifts {
      * @throws AppError if there is no active break.
      * @returns A promise that resolves to the saved shift.
      */
-    breakEnd(timestamp?: number): Promise<Overwrite<this, { events: ShiftEvents<false> }>>;
+    breakEnd(timestamp?: number): Promise<HydratedShiftDocument>;
 
     /**
      * Ends the shift if it is still active.
@@ -592,7 +598,7 @@ export namespace Shifts {
      * @throws AppError if the shift is not active.
      * @returns A promise resolves to the saved shift
      */
-    end(timestamp?: number | Date): Promise<this>;
+    end(timestamp?: number | Date): Promise<HydratedShiftDocument>;
   }
 
   interface ShiftEvents<BPA extends boolean = true> {

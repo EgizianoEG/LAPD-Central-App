@@ -1,7 +1,8 @@
-import { CallbackWithoutResultAndOptionalError, Model } from "mongoose";
+import { CallbackWithoutResultAndOptionalError } from "mongoose";
 import { randomInt as RandomInteger } from "node:crypto";
 import { ShiftFlags } from "../Shift.js";
 import { Shifts } from "#Typings/Utilities/Database.js";
+
 import AppError from "#Utilities/Classes/AppError.js";
 import ProfileModel from "#Models/GuildProfile.js";
 import type ShiftModel from "../Shift.js";
@@ -87,7 +88,7 @@ export async function GetLatestVersion<GOIFailed extends boolean = false>(
 }
 
 export async function StartNewShift(
-  this: Model<Shifts.ShiftDocument, unknown, Shifts.ShiftDocumentOverrides>,
+  this: Shifts.ShiftModel,
   opts: Omit<
     Required<Pick<Shifts.ShiftDocument, "user" | "guild">> & Partial<Shifts.ShiftDocument>,
     "end_timestamp"
