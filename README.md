@@ -24,6 +24,8 @@ Created to address several community needs, including:
 
 [See the GitBook documentation page](https://lapd-central-app.gitbook.io/documentation).
 
+For a technical overview of the project structure, startup flow, command pipeline, and data model, see [ARCHITECTURE.md](https://github.com/EgizianoEG/LAPD-Central-App/blob/main/ARCHITECTURE.md).
+
 ## Contributing
 
 Refer to the [Contribution Guide](https://github.com/EgizianoEG/LAPD-Central-App/blob/main/CONTRIBUTING.md) for further details.
