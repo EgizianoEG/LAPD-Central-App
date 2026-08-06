@@ -1,4 +1,4 @@
-import { BookingAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { AutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { AggregateResults } from "#Typings/Utilities/Database.js";
 import ArrestModel from "#Models/Arrest.js";
 
@@ -7,7 +7,7 @@ export default async function GetAllBookingNums(
   UseCache: boolean = false
 ): Promise<AggregateResults.GetBookingNumbers[]> {
   if (UseCache) {
-    const Cached = BookingAutocompletionCache.get(GuildId);
+    const Cached = AutocompletionCache.Bookings.get(GuildId);
     if (Cached) return Cached;
   }
 
@@ -50,7 +50,7 @@ export default async function GetAllBookingNums(
   ])
     .exec()
     .then((Bookings) => {
-      BookingAutocompletionCache.set(GuildId, Bookings);
+      AutocompletionCache.Bookings.set(GuildId, Bookings);
       return Bookings;
     });
 }

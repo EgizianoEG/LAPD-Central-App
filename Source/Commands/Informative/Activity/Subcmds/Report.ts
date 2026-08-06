@@ -11,7 +11,7 @@ import {
 
 import { differenceInMilliseconds, milliseconds } from "date-fns";
 import { Dedent, ListFormatter, ReadableDuration } from "#Utilities/Strings/Formatters.js";
-import { GetGuildMembersSnapshot } from "#Utilities/Helpers/Cache.js";
+import { GetGuildMembersSnapshot } from "#Utilities/Helpers/CachedGuildMembers.js";
 import { ShiftTypeExists } from "#Utilities/Database/ShiftTypeValidators.js";
 import { ParseDateInputs } from "./Officer.js";
 import { InfoContainer } from "#Utilities/Classes/ExtraContainers.js";

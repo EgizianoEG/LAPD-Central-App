@@ -1,14 +1,14 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import IncidentModel from "#Models/Incident.js";
 import { AggregateResults } from "#Typings/Utilities/Database.js";
-import { IncidentAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { AutocompletionCache } from "#Utilities/Helpers/Cache.js";
 
 export default async function GetAllIncidentNums(
   GuildId: string,
   UseCache: boolean = false
 ): Promise<AggregateResults.GetIncidentNumbers[]> {
   if (UseCache) {
-    const Cached = IncidentAutocompletionCache.get(GuildId);
+    const Cached = AutocompletionCache.Incidents.get(GuildId);
     if (Cached) return Cached;
   }
 
@@ -46,7 +46,7 @@ export default async function GetAllIncidentNums(
   ])
     .exec()
     .then((Incidents) => {
-      IncidentAutocompletionCache.set(GuildId, Incidents);
+      AutocompletionCache.Incidents.set(GuildId, Incidents);
       return Incidents;
     });
 }

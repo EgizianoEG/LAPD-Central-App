@@ -20,7 +20,7 @@ import {
 
 import { Shifts } from "#Typings/Utilities/Database.js";
 import { GetErrorId } from "#Utilities/Strings/Random.js";
-import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
+import { LiveMongoDBCache } from "#Utilities/Helpers/Cache.js";
 import { secondsInDay } from "date-fns/constants";
 import { ErrorMessages } from "#Resources/AppMessages.js";
 import { Colors, Emojis } from "#Config/Shared.js";
@@ -111,10 +111,10 @@ async function ShiftManagementHandler(
   let TargetShift: Shifts.HydratedShiftDocument | null = null;
 
   if (
-    MongoDBCache.StreamChangeConnected.ActiveShifts &&
-    MongoDBCache.ActiveShifts.has(TargetShiftId)
+    LiveMongoDBCache.StreamChangeConnected.ActiveShifts &&
+    LiveMongoDBCache.ActiveShifts.has(TargetShiftId)
   ) {
-    TargetShift = MongoDBCache.ActiveShifts.getHydrated(TargetShiftId)!;
+    TargetShift = LiveMongoDBCache.ActiveShifts.getHydrated(TargetShiftId)!;
   } else if (TargetShiftId) {
     TargetShift = await ShiftModel.findById(TargetShiftId).exec();
   }

@@ -1,7 +1,7 @@
 import type { ApplicationCommandOptionChoiceData, GuildMember } from "discord.js";
 import { ServiceUnitTypes, DivisionBeats } from "#Resources/LAPDCallsigns.js";
-import { GeneralAutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { GenericRequestStatuses } from "#Config/Constants.js";
+import { AutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { Callsigns, Guilds } from "#Typings/Utilities/Database.js";
 import { QueryFilter } from "mongoose";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
@@ -319,7 +319,7 @@ async function GetTakenBeatNums(
   Division: string | null = null
 ): Promise<string[]> {
   const CacheKey = `beats-in-use:${GuildId}:${Division ?? "any"}`;
-  const CacheHit = GeneralAutocompletionCache.get<string[]>(CacheKey);
+  const CacheHit = AutocompletionCache.General.get<string[]>(CacheKey);
   if (CacheHit) return CacheHit;
 
   const InUseFilter: QueryFilter<Callsigns.CallsignDocument> = {
@@ -335,7 +335,7 @@ async function GetTakenBeatNums(
   const InUseCallsigns = await CallsignModel.find(InUseFilter, { designation: 1 }).lean();
   const TakenBeatNums = InUseCallsigns.map((c) => c.designation.beat_num);
 
-  GeneralAutocompletionCache.set(CacheKey, TakenBeatNums, { ttl: 600 });
+  AutocompletionCache.General.set(CacheKey, TakenBeatNums, { ttl: 600 });
   return TakenBeatNums;
 }
 

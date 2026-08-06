@@ -1,7 +1,7 @@
 import { defaultComposer } from "default-composer";
 import { Guilds, Shifts } from "#Typings/Utilities/Database.js";
 import { ShutdownStatus } from "./ProcessShutdownHandler.js";
-import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
+import { LiveMongoDBCache } from "#Utilities/Helpers/Cache.js";
 import { Collection } from "discord.js";
 import { MongoDB } from "#Config/Secrets.js";
 
@@ -181,12 +181,12 @@ async function SetupGuildChangeStream() {
 
   GuildStream.OnChange(async (Change) => {
     if (Change.operationType === "delete") {
-      MongoDBCache.Guilds.delete(Change.documentKey._id);
+      LiveMongoDBCache.Guilds.delete(Change.documentKey._id);
       return;
     }
 
     if ("fullDocument" in Change && Change.fullDocument !== undefined) {
-      MongoDBCache.Guilds.set(
+      LiveMongoDBCache.Guilds.set(
         Change.fullDocument._id,
         defaultComposer<Guilds.GuildDocument>(BaseGuildDocument, Change.fullDocument)
       );
@@ -198,11 +198,11 @@ async function SetupGuildChangeStream() {
       await ReloadGuildCache();
     }
 
-    MongoDBCache.StreamChangeConnected.Guilds = true;
+    LiveMongoDBCache.StreamChangeConnected.Guilds = true;
   });
 
   GuildStream.OnDisconnected(() => {
-    MongoDBCache.StreamChangeConnected.Guilds = false;
+    LiveMongoDBCache.StreamChangeConnected.Guilds = false;
     if (ShutdownStatus.IsShuttingDown) return GuildStream.Stop();
   });
 
@@ -222,16 +222,16 @@ async function SetupActiveShiftsChangeStream() {
 
   ActiveShiftsStream.OnChange(async (Change) => {
     if (Change.operationType === "delete") {
-      MongoDBCache.ActiveShifts.delete(Change.documentKey._id);
+      LiveMongoDBCache.ActiveShifts.delete(Change.documentKey._id);
       return;
     }
 
     if ("fullDocument" in Change && Change.fullDocument !== undefined) {
       if (!TrackedShiftFlags.includes(Change.fullDocument.flag as ShiftFlags)) return;
       if (Change.fullDocument.end_timestamp === null) {
-        MongoDBCache.ActiveShifts.set(Change.fullDocument._id, Change.fullDocument);
+        LiveMongoDBCache.ActiveShifts.set(Change.fullDocument._id, Change.fullDocument);
       } else {
-        MongoDBCache.ActiveShifts.delete(Change.fullDocument._id);
+        LiveMongoDBCache.ActiveShifts.delete(Change.fullDocument._id);
       }
     }
   });
@@ -241,11 +241,11 @@ async function SetupActiveShiftsChangeStream() {
       await ReloadActiveShiftsCache();
     }
 
-    MongoDBCache.StreamChangeConnected.ActiveShifts = true;
+    LiveMongoDBCache.StreamChangeConnected.ActiveShifts = true;
   });
 
   ActiveShiftsStream.OnDisconnected(() => {
-    MongoDBCache.StreamChangeConnected.ActiveShifts = false;
+    LiveMongoDBCache.StreamChangeConnected.ActiveShifts = false;
     if (ShutdownStatus.IsShuttingDown) return ActiveShiftsStream.Stop();
   });
 
@@ -255,7 +255,7 @@ async function SetupActiveShiftsChangeStream() {
 
 async function ReloadGuildCache() {
   const InitialRunGuildDocuments = await GuildModel.find().lean().exec();
-  MongoDBCache.Guilds = new Collection<string, Guilds.GuildDocument>(
+  LiveMongoDBCache.Guilds = new Collection<string, Guilds.GuildDocument>(
     InitialRunGuildDocuments.map((Doc) => [
       Doc._id,
       defaultComposer<Guilds.GuildDocument>(BaseGuildDocument, Doc as Guilds.GuildDocument),
@@ -276,7 +276,7 @@ async function ReloadActiveShiftsCache() {
     .lean()
     .exec();
 
-  MongoDBCache.ActiveShifts = new MongoDBDocumentCollection<
+  LiveMongoDBCache.ActiveShifts = new MongoDBDocumentCollection<
     string,
     Shifts.ShiftDocument,
     Shifts.BasicHydratedShiftDocument

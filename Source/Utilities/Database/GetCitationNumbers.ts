@@ -1,4 +1,4 @@
-import { CitationAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { AutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { AggregateResults } from "#Typings/Utilities/Database.js";
 import CitationModel from "#Models/Citation.js";
 
@@ -7,7 +7,7 @@ export default async function GetAllCitationNums(
   UseCache: boolean = false
 ): Promise<AggregateResults.GetCitationNumbers[]> {
   if (UseCache) {
-    const Cached = CitationAutocompletionCache.get(GuildId);
+    const Cached = AutocompletionCache.Citations.get(GuildId);
     if (Cached) return Cached;
   }
 
@@ -47,7 +47,7 @@ export default async function GetAllCitationNums(
   ])
     .exec()
     .then((Cits) => {
-      CitationAutocompletionCache.set(GuildId, Cits);
+      AutocompletionCache.Citations.set(GuildId, Cits);
       return Cits;
     });
 }

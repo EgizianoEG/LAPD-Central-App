@@ -1,5 +1,5 @@
 import { ApplicationCommandOptionChoiceData } from "discord.js";
-import { GeneralAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { AutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { IsValidDiscordId } from "#Utilities/Helpers/Validators.js";
 import { type RolePersist } from "#Typings/Utilities/Database.js";
 import RolePersistenceModel from "#Models/RolePersist.js";
@@ -34,7 +34,8 @@ export default async function AutocompleteRolePersistRecord(
 
   const LowerCaseTyped = Typed.trim().toLowerCase();
   const CacheKey = `role-persist:${GuildId}:${UserId}`;
-  let Records = GeneralAutocompletionCache.get<RolePersist.HydratedRolePersistDocument[]>(CacheKey);
+  let Records =
+    AutocompletionCache.General.get<RolePersist.HydratedRolePersistDocument[]>(CacheKey);
 
   if (!Records) {
     Records = (await RolePersistenceModel.find({
@@ -48,7 +49,7 @@ export default async function AutocompleteRolePersistRecord(
       ])
       .exec()) as unknown as RolePersist.HydratedRolePersistDocument[];
 
-    GeneralAutocompletionCache.set(CacheKey, Records);
+    AutocompletionCache.General.set(CacheKey, Records);
   }
 
   if (!Records?.length) {

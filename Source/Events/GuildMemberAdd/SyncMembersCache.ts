@@ -1,4 +1,4 @@
-import { UpsertGuildMemberCacheEntry } from "#Utilities/Helpers/Cache.js";
+import { UpsertGuildMemberCacheEntry } from "#Utilities/Helpers/CachedGuildMembers.js";
 import { GuildMember } from "discord.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 const FileLabel = "Events:GuildMemberAdd:SyncMembersCache";

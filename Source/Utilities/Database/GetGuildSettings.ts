@@ -1,4 +1,4 @@
-import { MongoDBCache } from "#Utilities/Helpers/Cache.js";
+import { LiveMongoDBCache } from "#Utilities/Helpers/Cache.js";
 import { Guilds } from "#Typings/Utilities/Database.js";
 import GuildModel from "#Models/Guild.js";
 import AppError from "../Classes/AppError.js";
@@ -10,10 +10,10 @@ import AppError from "../Classes/AppError.js";
  * @remarks This function will attempt to create a new guild document if it doesn't exist in the database, and it will cache the settings for future use.
  */
 export default async function GetGuildSettings(GuildId: string): Promise<Guilds.GuildSettings> {
-  const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
+  const GuildDocumentCacheRef = LiveMongoDBCache.Guilds.get(GuildId);
   let GuildDocument: InstanceType<typeof GuildModel> | null;
 
-  if (MongoDBCache.StreamChangeConnected.Guilds === true) {
+  if (LiveMongoDBCache.StreamChangeConnected.Guilds === true) {
     GuildDocument = GuildDocumentCacheRef ? new GuildModel(GuildDocumentCacheRef) : null;
   } else {
     GuildDocument = (await GuildModel.findById(GuildId).lean().exec()) as InstanceType<
@@ -49,7 +49,7 @@ export default async function GetGuildSettings(GuildId: string): Promise<Guilds.
  * @returns The guild settings if found in the cache, otherwise `null`.
  */
 export function GetGuildSettingsSync(GuildId: string): Guilds.GuildSettings | null {
-  const GuildDocumentCacheRef = MongoDBCache.Guilds.get(GuildId);
+  const GuildDocumentCacheRef = LiveMongoDBCache.Guilds.get(GuildId);
   return GuildDocumentCacheRef
     ? (new GuildModel(GuildDocumentCacheRef).toObject({
         versionKey: false,

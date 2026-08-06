@@ -10,7 +10,7 @@ import SafeRegex from "safe-regex";
 import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
 import { ErrorContainer, InfoContainer } from "#Utilities/Classes/ExtraContainers.js";
 import { UserInputAllowedRegexFlags } from "#Source/Config/Constants.js";
-import { GetGuildMembersSnapshot } from "#Utilities/Helpers/Cache.js";
+import { GetGuildMembersSnapshot } from "#Utilities/Helpers/CachedGuildMembers.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { GetErrorId } from "#Utilities/Strings/Random.js";
 

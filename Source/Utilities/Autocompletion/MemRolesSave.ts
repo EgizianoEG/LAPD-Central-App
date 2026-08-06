@@ -1,5 +1,5 @@
 import { ApplicationCommandOptionChoiceData } from "discord.js";
-import { GeneralAutocompletionCache } from "#Utilities/Helpers/Cache.js";
+import { AutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { IsValidDiscordId } from "#Utilities/Helpers/Validators.js";
 import { MemberSavedRoles } from "#Typings/Utilities/Database.js";
 import MRolesModel from "#Models/MemberRoles.js";
@@ -35,14 +35,14 @@ export default async function AutocompleteMemRolesSave(
   const LowerCaseTyped = Typed.trim().toLowerCase();
   const CacheKey = `member-saved-roles:${GuildId}:${UserId}`;
   let Saves =
-    GeneralAutocompletionCache.get<MemberSavedRoles.HydratedMemberRolesDocument[]>(CacheKey);
+    AutocompletionCache.General.get<MemberSavedRoles.HydratedMemberRolesDocument[]>(CacheKey);
 
   if (!Saves) {
     Saves = (await MRolesModel.find({ guild: GuildId, member: UserId })
       .sort({ saved_on: -1 })
       .exec()) as unknown as MemberSavedRoles.HydratedMemberRolesDocument[];
 
-    GeneralAutocompletionCache.set(CacheKey, Saves);
+    AutocompletionCache.General.set(CacheKey, Saves);
   }
 
   if (!Saves?.length) {

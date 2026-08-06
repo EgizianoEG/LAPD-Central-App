@@ -17,12 +17,12 @@ export default async function QueryUsername(
   Limit: 10 | 25 | 50 | 100 = 10
 ): Promise<UserSearchResult[]> {
   if (!IsValidRobloxUsername(Typed)) return [];
-  const CachedResults = RobloxAPICache.QueryUsernameResultsCache.get(`${Typed}:${Limit}`);
+  const CachedResults = RobloxAPICache.QueryUsernameResults.get(`${Typed}:${Limit}`);
 
   if (CachedResults) return CachedResults;
   return OmniSearchUsers(Typed, Limit).catch(() =>
     NobloxJs.searchUsers(Typed, Limit, undefined as any).then((Res) => {
-      RobloxAPICache.QueryUsernameResultsCache.set(`${Typed}:${Limit}`, Res);
+      RobloxAPICache.QueryUsernameResults.set(`${Typed}:${Limit}`, Res);
       return Res;
     })
   );
@@ -36,7 +36,7 @@ async function OmniSearchUsers(
 ): Promise<UserSearchResult[]> {
   if (!IsValidRobloxUsername(Typed)) return [];
   const CacheKey = `${Typed}:${Limit}` as const;
-  const CachedResults = RobloxAPICache.QueryUsernameResultsCache.get(CacheKey);
+  const CachedResults = RobloxAPICache.QueryUsernameResults.get(CacheKey);
   if (CachedResults) return CachedResults;
 
   const SessionId = crypto.randomUUID();
@@ -65,7 +65,7 @@ async function OmniSearchUsers(
   const AllResults = AccumulatedResults.concat(NewResults);
   if (AllResults.length >= Limit || !Response.data.nextPageToken?.length) {
     const FinalResults = AllResults.slice(0, Limit);
-    RobloxAPICache.QueryUsernameResultsCache.set(CacheKey, FinalResults);
+    RobloxAPICache.QueryUsernameResults.set(CacheKey, FinalResults);
     return FinalResults;
   } else {
     return OmniSearchUsers(Typed, Limit, Response.data.nextPageToken, AllResults);
