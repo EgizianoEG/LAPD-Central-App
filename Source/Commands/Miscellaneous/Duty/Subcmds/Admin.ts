@@ -91,9 +91,8 @@ enum ShiftModActions {
 function GetShiftAdminButtonsRows(
   ShiftActive: Shifts.HydratedShiftDocument | boolean | null,
   Interaction: SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">,
-  TargetUser: User
+  IsTargetInGuild: boolean
 ) {
-  const IsMemberInGuild = Interaction.guild.members.cache.has(TargetUser.id);
   const ActionRowOne = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("da-list")
@@ -119,7 +118,7 @@ function GetShiftAdminButtonsRows(
       .setLabel("Create Shift")
       .setEmoji(Emojis.WhitePlus)
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!IsMemberInGuild),
+      .setDisabled(!IsTargetInGuild),
     new ButtonBuilder()
       .setCustomId("da-end")
       .setLabel("End")
@@ -750,7 +749,12 @@ async function GetActiveShiftAndShiftDataContainer(
     `**Average Time:** ${UserShiftsData.avg_onduty}`;
 
   const FooterShiftType = CmdShiftType ? inlineCode(CmdShiftType) : "all types";
-  const ButtonActionRows = GetShiftAdminButtonsRows(ActiveShift, Interaction, TargetUser);
+  const IsMemberInGuild = await Interaction.guild.members
+    .fetch(TargetUser.id)
+    .then(() => true)
+    .catch(() => false);
+
+  const ButtonActionRows = GetShiftAdminButtonsRows(ActiveShift, Interaction, IsMemberInGuild);
   const RespContainer = new ContainerBuilder()
     .setAccentColor(resolveColor(ContainerAccentColor))
     .addTextDisplayComponents(
@@ -988,7 +992,11 @@ async function HandleShiftCreation(
   TargetUser: User,
   ShiftType: Nullable<string>
 ) {
-  const IsMemberInGuild = BInteract.guild.members.cache.has(TargetUser.id);
+  const IsMemberInGuild = await BInteract.guild.members
+    .fetch(TargetUser.id)
+    .then(() => true)
+    .catch(() => false);
+
   if (!IsMemberInGuild) {
     return new ErrorEmbed()
       .useErrTemplate("ActionRequiresMemberPresence", TargetUser.id)

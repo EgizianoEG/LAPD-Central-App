@@ -20,7 +20,12 @@ async function CleanupLeftUserProfiles(Now: Date | "init" | "manual", Client: Di
 
   for (const Profile of ScheduledProfiles) {
     const Guild = Client.guilds.cache.get(Profile.guild);
-    if (Guild?.members.cache.has(Profile.user)) {
+    const IsMemberInGuild = await Guild?.members
+      .fetch(Profile.user)
+      .then(() => true)
+      .catch(() => false);
+
+    if (IsMemberInGuild) {
       continue;
     }
 

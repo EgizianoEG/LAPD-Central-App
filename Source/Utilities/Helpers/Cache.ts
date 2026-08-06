@@ -13,7 +13,7 @@ import MongoDBDocCollection from "#Utilities/Classes/MongoDBDocCollection.js";
 import ShiftModel from "#Models/Shift.js";
 import TTLCache from "@isaacs/ttlcache";
 
-const GuildMembersGatewayCooldownMs = 30 * 1000;
+const GuildMembersGatewayCooldownMs = 30 * 1000; // 30 seconds Guild Members request rate limit
 const GuildMembersFetchInFlight = new Map<string, Promise<Collection<string, GuildMember>>>();
 const GuildMembersFetchCooldownTracker = new TTLCache<string, number>({
   ttl: GuildMembersGatewayCooldownMs,
@@ -80,7 +80,27 @@ export const BookingAutocompletionCache = new TTLCache<
 });
 
 export const GuildMembersCache = new TTLCache<string, Collection<string, GuildMember>>({
-  ttl: GuildMembersGatewayCooldownMs * 4,
+  ttl: GuildMembersGatewayCooldownMs * 3, // 90 seconds
+  checkAgeOnGet: true,
+  noUpdateTTL: true,
+});
+
+/**
+ * A lightweight sliding-window tracker for recently active users.
+ *
+ * @purpose
+ * Acts as an "activity whitelist" for the Client cache sweepers.
+ * Instead of the sweepers blindly deleting all users every 15-30 minutes,
+ * this tracker ensures that anyone who has triggered an event or interaction
+ * within the last 30 minutes is kept in the main RAM cache.
+ *
+ * @prevents
+ * 1. Cache-misses during multi-step interactions (e.g., chained buttons or modals).
+ * 2. Unnecessary database I/O caused by the `guildMemberUpdate` event generating
+ *    partial members for users who were actually just active.
+ */
+export const ActiveUsersTracker = new TTLCache<string, boolean>({
+  ttl: 30 * 60 * 1000,
   checkAgeOnGet: true,
 });
 
