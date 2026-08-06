@@ -115,7 +115,7 @@ async function HandlePendingRequestCancellation(
   }
 
   const PendingCSDocument = await CallsignModel.findById(PendingCSId).exec();
-  if (!PendingCSDocument || PendingCSDocument.request_status !== GenericRequestStatuses.Pending) {
+  if (PendingCSDocument?.request_status !== GenericRequestStatuses.Pending) {
     return PromiseAllSettledThenTrue([
       CmdCallback(ConfirmationResp, BtnInteract.message.id),
       new ErrorContainer()

@@ -33,10 +33,14 @@ export default async function OnMemberUpdateCallsignReleaseScheduler(
     return;
   }
 
-  const RelevantRoles = [...GuildSettings.role_perms.staff, ...GuildSettings.role_perms.management];
+  const RelevantRoles = new Set([
+    ...GuildSettings.role_perms.staff,
+    ...GuildSettings.role_perms.management,
+  ]);
+
   const IsRoleRelatedToStaffOrManagement =
-    UpdatedRoles.some((Role) => RelevantRoles.includes(Role.id)) ||
-    OutdatedRoles.some((Role) => RelevantRoles.includes(Role.id));
+    UpdatedRoles.some((Role) => RelevantRoles.has(Role.id)) ||
+    OutdatedRoles.some((Role) => RelevantRoles.has(Role.id));
 
   if (!IsRoleRelatedToStaffOrManagement) return;
   const HadStaffPerm =
