@@ -50,7 +50,7 @@ export const MongoDBCache = {
   >(ShiftModel),
 };
 
-export const BloxlinkDiscordToRobloxUsageChache = new TTLCache<string, BloxlinkUserLimitInfo>({
+export const BloxlinkDiscordToRobloxUsageCache = new TTLCache<string, BloxlinkUserLimitInfo>({
   ttl: millisecondsInDay,
   checkAgeOnGet: true,
 });

@@ -1,5 +1,5 @@
 import { differenceInDays, isSameDay, startOfToday } from "date-fns";
-import { BloxlinkDiscordToRobloxUsageChache } from "#Utilities/Helpers/Cache.js";
+import { BloxlinkDiscordToRobloxUsageCache } from "#Utilities/Helpers/Cache.js";
 import { RedactTextByOptions } from "#Utilities/Strings/Redactor.js";
 import { GlobalAPI } from "#Typings/External/Bloxlink.js";
 import { Other } from "#Config/Secrets.js";
@@ -39,25 +39,25 @@ export default async function GetRobloxIdFromDiscordBloxlink(
     return null;
   }
 
-  const UserLimitInfo = BloxlinkDiscordToRobloxUsageChache.get(DiscordUserId);
+  const UserLimitInfo = BloxlinkDiscordToRobloxUsageCache.get(DiscordUserId);
   if (UserLimitInfo) {
     if (differenceInDays(CurrentTime, UserLimitInfo.last_request) < 1) {
       if (UserLimitInfo.count >= MaxUserRequestsPerDay) {
         return null;
       } else {
-        BloxlinkDiscordToRobloxUsageChache.set(DiscordUserId, {
+        BloxlinkDiscordToRobloxUsageCache.set(DiscordUserId, {
           count: UserLimitInfo.count + 1,
           last_request: CurrentTime,
         });
       }
     } else {
-      BloxlinkDiscordToRobloxUsageChache.set(DiscordUserId, {
+      BloxlinkDiscordToRobloxUsageCache.set(DiscordUserId, {
         count: 1,
         last_request: CurrentTime,
       });
     }
   } else {
-    BloxlinkDiscordToRobloxUsageChache.set(DiscordUserId, { count: 1, last_request: CurrentTime });
+    BloxlinkDiscordToRobloxUsageCache.set(DiscordUserId, { count: 1, last_request: CurrentTime });
   }
 
   try {
