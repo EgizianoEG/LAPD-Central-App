@@ -208,7 +208,7 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
     .addStringOption((Option) =>
       Option.setName("shift-type")
         .setDescription(
-          "The shift type(s) to be reported on. If not specified, the report will encompass all types of shifts."
+          "Shift type(s) to report on, comma separated. If unspecified, the report includes all shift types."
         )
         .setMinLength(3)
         .setMaxLength(54)
