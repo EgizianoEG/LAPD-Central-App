@@ -260,7 +260,7 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
       },
       signature: {
         type: String,
-        requited: true,
+        required: true,
         minLength: 1,
         maxLength: 100,
         default(this: CitationPlainDoc) {
