@@ -849,7 +849,41 @@ export function ConcatenateLines(...Lines: (string | undefined | null)[]): strin
  * console.log(escapeRegExp("123.456"));  // Output: 123\.456
  */
 export function EscapeRegExp(Str: string): string {
-  return Str.replaceAll(/[-[\]{}()*+!<=:?./\\^$|]/g, "\\$&");
+  return Str.replaceAll(/[-[\]{}()*+!<=:?./\\^$|]/g, String.raw`\$&`);
+}
+
+/**
+ * Escapes Discord Markdown that breaks inline field/text presentation.
+ *
+ * @param {string} Text - The raw user input (e.g., arrest notes, charge descriptions).
+ * @param {boolean} [EscapeAll=false] - If `true`, escapes ALL markdown (*, _, ~, |, etc.). Defaults to `false`.
+ * @returns {string} - Safe plaintext for injection into embeds, containers, or message fields.
+ */
+export function EscapeMarkdown(Text: string, EscapeAll: boolean = false): string {
+  if (!Text || typeof Text !== "string") return Text || "";
+
+  // 1. Escape backticks (Inline & Code Blocks)
+  // Must escape triple-backticks first to prevent them from closing later replacements.
+  let safe = Text.replace(/```/g, "\\`\\`\\`");
+  safe = safe.replace(/(?<!\\)`/g, "\\`");
+
+  // 2. Neutralize block-level formatting (Line-starting)
+  // Block Quotes: "> " or ">text"
+  safe = safe.replace(/^> /gm, String.raw`\> `);
+  safe = safe.replace(/^>/gm, String.raw`\>`);
+
+  // 2.1 Headers and lists
+  safe = safe.replace(/^(#{1,6}) /gm, (_, hashes) => `\\${hashes} `);
+  safe = safe.replace(/^([-*+]) /gm, String.raw`\$1 `);
+  safe = safe.replace(/^(\d+)\. /gm, String.raw`$1\. `);
+
+  // 3. Escape other markdown characters if requested
+  if (EscapeAll) {
+    // Escapes: * _ ~ | [ ] ( )
+    return safe.replace(/([|_~*[\]()])/g, String.raw`\$1`);
+  }
+
+  return safe;
 }
 
 /**
