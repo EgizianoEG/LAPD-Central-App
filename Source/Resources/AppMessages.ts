@@ -1444,7 +1444,7 @@ export const InfoMessages = {
    */
   AdminRobloxAccountConnected: {
     Title: "Successfully Linked",
-    Description: "Roblox account `%s` has been successfully linked to <@%i>.",
+    Description: "Roblox account %s has been successfully linked to <@%i>.",
   },
 
   /**
