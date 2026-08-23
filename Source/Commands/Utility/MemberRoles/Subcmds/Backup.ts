@@ -11,6 +11,7 @@ import {
 } from "discord.js";
 
 import { BaseExtraContainer } from "#Utilities/Classes/ExtraContainers.js";
+import { EscapeMarkdown } from "#Utilities/Strings/Formatters.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import MSRolesModel from "#Models/MemberRoles.js";
 import Dedent from "dedent";
@@ -43,7 +44,7 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     guild: CmdInteraction.guildId,
     roles: CurrRoles,
     member: SelectedMember.user.id,
-    reason: BackupReason,
+    reason: BackupReason ? EscapeMarkdown(BackupReason, false) : null,
     nickname: SelectedMember.nickname ?? SelectedMember.user.displayName,
     username: IsBot ? SelectedMember.user.tag : SelectedMember.user.username,
     saved_by: CmdInteraction.user.id,
@@ -80,7 +81,7 @@ const CommandObject = {
     )
     .addStringOption((Option) =>
       Option.setName("reason")
-        .setDescription("The reason for creating the backup. (Optional)")
+        .setDescription("(Optional) The reason for creating the backup.")
         .setMinLength(6)
         .setMaxLength(256)
         .setRequired(false)
