@@ -38,7 +38,7 @@ export function GetSaveDetailsContainer(
       - **Username:** \`${Save.username}\`
       - **Saved By:** <@${Save.saved_by}>
       - **Saved On:** ${time(Save.saved_on, "f")}
-      - **Save Reason:** \`${Save.reason ?? "N/A"}\`
+      - **Save Reason:** ${Save.reason ?? "N/A"}
       - **Backed Up Roles ([${Save.roles.length}](${channelLink(CachedInteract.channelId)})):** 
         ${RolesValidated.join(", ")}
   `);
