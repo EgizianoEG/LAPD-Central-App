@@ -40,20 +40,31 @@ export namespace Guilds {
 
   interface GuildLogs {
     arrests: {
-      /** Booking numbers that have been used in the guild during the current year. */
-      used_bookings: string[];
       logged: string[];
     };
     citations: {
-      /** Citation numbers that have been used in the guild during the current year. */
-      used_nums: string[];
       logged: string[];
     };
     incidents: {
-      /** The most recent incident number for the guild. Used to prevent duplicate incident number creation. */
-      most_recent_num: string;
       logged: string[];
     };
+    settings: {
+      changes: string[];
+    };
+  }
+
+  interface LogCounter {
+    /** The year of the last issued record. */
+    year: number;
+
+    /** The current and last sequence used. */
+    value: number;
+  }
+
+  interface GuildCounters {
+    arrests: LogCounter;
+    citations: LogCounter;
+    incidents: LogCounter;
   }
 
   interface GuildSettings {
@@ -373,9 +384,10 @@ export namespace Guilds {
   interface GuildDocument {
     /** The Discord snowflake Id of the guild/server. */
     _id: string;
-
-    /** The guild's logs. */
     logs: GuildLogs;
+
+    /** The guild's counters for arrests, citations, and incidents. */
+    counters: GuildCounters;
 
     /** The guild's configuration. */
     settings: GuildSettings;

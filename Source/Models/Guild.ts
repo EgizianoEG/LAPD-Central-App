@@ -1,5 +1,6 @@
 import { isAfter } from "date-fns";
 import { Schema, model, Model } from "mongoose";
+import LogCounterSchema from "./Schemas/LogCounter.js";
 import GSettingsSchema from "./Schemas/GuildSettings.js";
 import type { Guilds } from "#Typings/Utilities/Database.js";
 
@@ -8,6 +9,37 @@ const GuildSchema = new Schema<Guilds.GuildDocument>({
     type: String,
     required: true,
     match: /^\d{15,22}$/,
+  },
+
+  counters: {
+    _id: false,
+    default: {},
+    required: true,
+    type: {
+      arrests: {
+        type: LogCounterSchema,
+        required: true,
+        default: {},
+      },
+
+      citations: {
+        type: LogCounterSchema,
+        required: true,
+        default: {},
+      },
+
+      incidents: {
+        type: LogCounterSchema,
+        required: true,
+        default: {},
+      },
+    },
+  },
+
+  settings: {
+    _id: false,
+    default: {},
+    type: GSettingsSchema,
   },
 
   logs: {
@@ -20,14 +52,6 @@ const GuildSchema = new Schema<Guilds.GuildDocument>({
         default: {},
         required: true,
         type: {
-          used_bookings: [
-            {
-              _id: false,
-              type: String,
-              minLength: 1,
-            },
-          ],
-
           logged: [
             {
               type: String,
@@ -42,14 +66,6 @@ const GuildSchema = new Schema<Guilds.GuildDocument>({
         default: {},
         required: true,
         type: {
-          used_nums: [
-            {
-              _id: false,
-              type: String,
-              minLength: 1,
-            },
-          ],
-
           logged: [
             {
               type: String,
@@ -64,14 +80,6 @@ const GuildSchema = new Schema<Guilds.GuildDocument>({
         default: {},
         required: true,
         type: {
-          most_recent_num: {
-            _id: false,
-            type: String,
-            default: "00-00000",
-            minLength: 1,
-            maxLength: 10,
-          },
-
           logged: [
             {
               type: String,
@@ -80,13 +88,21 @@ const GuildSchema = new Schema<Guilds.GuildDocument>({
           ],
         },
       },
-    },
-  },
 
-  settings: {
-    _id: false,
-    default: {},
-    type: GSettingsSchema,
+      settings: {
+        _id: false,
+        default: {},
+        required: true,
+        type: {
+          changes: [
+            {
+              type: String,
+              ref: "SettingChange",
+            },
+          ],
+        },
+      },
+    },
   },
 
   last_logs_cleanup: {
