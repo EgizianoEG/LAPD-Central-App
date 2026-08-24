@@ -1,5 +1,4 @@
 import { model, Model, Schema } from "mongoose";
-import { IsValidIncidentNum } from "#Utilities/Helpers/Validators.js";
 import { GuildIncidents } from "#Typings/Utilities/Database.js";
 import {
   IncidentTypes,
@@ -21,13 +20,10 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
   },
 
   num: {
-    type: String,
-    index: true,
+    type: Number,
     required: true,
-    validate: {
-      validator: IsValidIncidentNum,
-      message: "The incident number must be in the format 'YY-XXXXX[X]'.",
-    },
+    min: 1_000_000,
+    max: 9_999_999,
   },
 
   type: {
@@ -209,5 +205,7 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
 });
 
 IncidentReportSchema.set("optimisticConcurrency", true);
+IncidentReportSchema.index({ guild: 1, num: 1 }, { unique: true });
+
 const IncidentModel = model<IncidentPlainDoc, IncidentModelType>("Incident", IncidentReportSchema);
 export default IncidentModel;

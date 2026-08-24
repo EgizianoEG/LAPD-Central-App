@@ -1061,9 +1061,13 @@ export namespace GuildCitations {
   type TrafficCondition = `${TrafficConditions}`;
   type TravelDirection = `${TravelDirections}`;
   type RoadSurfaceCondition = `${RoadSurfaceConditions}`;
+  type CitationViolation = string | Violations;
 
   interface WarningCitationData {
-    /** Citation number. */
+    /**
+     * Citation number.
+     * Format: `YYNNNNN` where `YY` is the last two digits of the year and `NNNNN` is a 5-digit sequential number.
+     */
     num: number;
 
     /** The type of the Notice to Appear (NTA) issued. Defaults to "Traffic". */
@@ -1099,8 +1103,10 @@ export namespace GuildCitations {
     /**
      * A list of violations. A violation text shall have the following format: "XXX(A) CVC - XXX".
      * Where it contains the violation vehicle/penal code and it's description.
+     *
+     * @note Old records can contain the legacy string representation, while newer records use the structured representation.
      */
-    violations: (string | Violation)[];
+    violations: CitationViolation[];
     case_details: CaseDetails;
     comments: Comments;
     violator: ViolatorInfo;
@@ -1250,7 +1256,12 @@ export namespace GuildArrests {
     /** The guild where the arrest was made. */
     guild: string;
 
-    /** The booking number. */
+    /**
+     * The booking number.
+     * Format: `YYNNNNN`
+     * Where `YY` is the last two digits of the year and `NNNNN` is a five-digit sequential number assigned to each booking.
+     * Example: `2500001`
+     */
     booking_num: number;
 
     /** The location where the arrest took place. */
@@ -1355,12 +1366,12 @@ export namespace GuildIncidents {
     _id: Types.ObjectId;
 
     /**
-     * The incident number.
-     * Format: `YY-NNNNN`
-     * Where `YY` is the last two digits of the year and `NNNNN` is a (five/six)-digit sequential number assigned to each report.
-     * Example: `25-00001`
+     * The incident number. Unique within the guild and is automatically generated when a new incident report is drafted.
+     * Format: `YYNNNNN`
+     * Where `YY` is the last two digits of the year and `NNNNN` is a five-digit sequential number assigned to each report.
+     * Example: `2500001`
      */
-    num: string;
+    num: number;
 
     guild: string;
     type: GuildIncidents.IncidentType;

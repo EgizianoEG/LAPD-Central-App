@@ -54,10 +54,10 @@ enum DaysOfWeek {
 
 const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
   num: {
-    min: 0,
     type: Number,
-    index: true,
     required: true,
+    min: 10_000_000,
+    max: 9_999_999,
   },
 
   guild: {
@@ -132,11 +132,11 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
 
   fine_amount: {
     type: Number,
-    required: false,
-    max: [1000, "A maximum of $1000 fine amount can be used."],
+    default: null,
     min: [20, "A minimum of $20 fine amount can be used."],
-    default(this: CitationPlainDoc) {
-      return this.cit_type === CitationTypes.Fine ? 0 : null;
+    max: [1000, "A maximum of $1000 fine amount can be used."],
+    required(this: CitationPlainDoc) {
+      return this.cit_type === CitationTypes.Fine;
     },
   },
 
@@ -412,6 +412,7 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
 });
 
 CitationSchema.set("optimisticConcurrency", true);
+CitationSchema.index({ guild: 1, num: 1 }, { unique: true });
 const CitationModel = model<CitationPlainDoc, CitationModelType>("Citation", CitationSchema);
 
 export default CitationModel;

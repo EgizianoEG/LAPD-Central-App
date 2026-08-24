@@ -9,10 +9,9 @@ const PlaceholderOFName = "000 (@000)";
 const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
   booking_num: {
     type: Number,
-    min: 100,
-    max: 9999999,
-    index: true,
     required: true,
+    min: 10_000_000,
+    max: 9_999_999,
   },
 
   guild: {
@@ -207,5 +206,7 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
 });
 
 ArrestSchema.set("optimisticConcurrency", true);
+ArrestSchema.index({ guild: 1, booking_num: 1 }, { unique: true });
+
 const ArrestModel = model<ArrestPlainDoc, ArrestModelType>("Arrest", ArrestSchema);
 export default ArrestModel;
