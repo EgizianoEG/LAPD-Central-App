@@ -54,10 +54,10 @@ export namespace Guilds {
   }
 
   interface LogCounter {
-    /** The year of the last issued record. */
+    /** The year suffix of the last issued record. */
     year: number;
 
-    /** The current and last sequence used. */
+    /** The last sequence used. */
     value: number;
   }
 
