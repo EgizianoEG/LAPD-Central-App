@@ -42,69 +42,6 @@ const GuildSchema = new Schema<Guilds.GuildDocument>({
     type: GSettingsSchema,
   },
 
-  logs: {
-    _id: false,
-    default: {},
-    required: true,
-    type: {
-      arrests: {
-        _id: false,
-        default: {},
-        required: true,
-        type: {
-          logged: [
-            {
-              type: String,
-              ref: "Arrests",
-            },
-          ],
-        },
-      },
-
-      citations: {
-        _id: false,
-        default: {},
-        required: true,
-        type: {
-          logged: [
-            {
-              type: String,
-              ref: "Citation",
-            },
-          ],
-        },
-      },
-
-      incidents: {
-        _id: false,
-        default: {},
-        required: true,
-        type: {
-          logged: [
-            {
-              type: String,
-              ref: "Incident",
-            },
-          ],
-        },
-      },
-
-      settings: {
-        _id: false,
-        default: {},
-        required: true,
-        type: {
-          changes: [
-            {
-              type: String,
-              ref: "SettingChange",
-            },
-          ],
-        },
-      },
-    },
-  },
-
   last_logs_cleanup: {
     type: Date,
     default: null,

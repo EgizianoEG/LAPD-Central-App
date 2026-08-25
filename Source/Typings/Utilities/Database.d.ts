@@ -384,7 +384,6 @@ export namespace Guilds {
   interface GuildDocument {
     /** The Discord snowflake Id of the guild/server. */
     _id: string;
-    logs: GuildLogs;
 
     /** The guild's counters for arrests, citations, and incidents. */
     counters: GuildCounters;
