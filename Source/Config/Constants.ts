@@ -52,3 +52,20 @@ export const RobloxOpenCloudAPIBaseURL = "https://apis.roblox.com";
 export const RobloxOpenCloudV2Routes = {
   GetUser: (UserId: number | string) => `${RobloxOpenCloudAPIBaseURL}/cloud/v2/users/${UserId}`,
 };
+
+export const SequenceLimits = {
+  arrest: {
+    initial_min: 5_000,
+    initial_max: 18_000,
+  },
+
+  citation: {
+    initial_min: 10_000,
+    initial_max: 36_000,
+  },
+
+  incident: {
+    initial_min: 2_000,
+    initial_max: 34_000,
+  },
+} as const;
