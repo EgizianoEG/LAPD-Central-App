@@ -10,7 +10,7 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
   booking_num: {
     type: Number,
     required: true,
-    min: 10_000_000,
+    min: 100,
     max: 9_999_999,
   },
 

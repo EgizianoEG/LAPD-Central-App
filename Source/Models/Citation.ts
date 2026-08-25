@@ -56,7 +56,7 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
   num: {
     type: Number,
     required: true,
-    min: 10_000_000,
+    min: 0,
     max: 9_999_999,
   },
 
