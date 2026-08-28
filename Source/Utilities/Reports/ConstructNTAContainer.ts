@@ -1,5 +1,6 @@
 import { APIResponses, OpenCloud } from "#Typings/External/Roblox.js";
 import { Dedent, FormatUsername } from "#Utilities/Strings/Formatters.js";
+import { DashFormatIdentifier } from "#Utilities/Helpers/Identifiers.js";
 import { GuildCitations } from "#Typings/Utilities/Database.js";
 import { UpperFirst } from "#Utilities/Strings/Converters.js";
 import {
@@ -21,14 +22,13 @@ export default function ConstructNTAContainer(
     | string,
   CitationImgURL: string
 ) {
-  const IssuedOnYearSuffix = new Date(CitationData.issued_on).getFullYear().toString().slice(-2);
-  const NTAFullNumber = `${IssuedOnYearSuffix}-${CitationData.num}`;
+  const NTAFullNumber = DashFormatIdentifier(CitationData.num, "citation");
   const CitationDescription = Dedent(`
-      **Citation issued by:** ${userMention(CitationData.citing_officer.discord_id)}
-      **Issued on:** ${time(CitationData.issued_on, "f")}
-      **Violator:** ${typeof AdditionalViolatorInfo === "string" ? AdditionalViolatorInfo : FormatUsername(AdditionalViolatorInfo, false, true)}
-      **Number:** \`${NTAFullNumber}\`
-    `);
+    **Citation issued by:** ${userMention(CitationData.citing_officer.discord_id)}
+    **Issued on:** ${time(CitationData.issued_on, "f")}
+    **Violator:** ${typeof AdditionalViolatorInfo === "string" ? AdditionalViolatorInfo : FormatUsername(AdditionalViolatorInfo, false, true)}
+    **Number:** \`${NTAFullNumber}\`
+  `);
 
   return new ContainerBuilder()
     .setAccentColor(Colors.DarkBlue)

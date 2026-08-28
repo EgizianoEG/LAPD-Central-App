@@ -564,7 +564,7 @@ async function OnModalSubmission(
     const CitationDocument = new CitationModel(CitationFullData);
     const CitationImgBuffer = await RenderFilledNTAForm(CitationDocument);
     const CitImageAttachment = new AttachmentBuilder(CitationImgBuffer, {
-      name: `citation_${CmdInteract.createdAt.getFullYear().toString().slice(-2)}_${CitationFullData.num}.jpg`,
+      name: `citation_${CitationFullData.num}.jpg`,
     });
 
     const ConfirmationButtonAR = new ActionRowBuilder<ButtonBuilder>().setComponents(

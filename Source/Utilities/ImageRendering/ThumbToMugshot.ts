@@ -76,7 +76,7 @@ export default async function GetBookingMugshot<AsURL extends boolean | undefine
   Options: GetBookingMugshotOptions
 ): Promise<AsURL extends true ? string : AsURL extends false ? Buffer : Buffer | string> {
   Options.thumb_is_bust = typeof Options.thumb_is_bust === "boolean" ? Options.thumb_is_bust : true;
-  const BkgNumPadded = Options.booking_num.toString().padStart(3, "0");
+  const BookingNumber = Options.booking_num.toString();
   const LAPDDivision = Options.division?.length ? Options.division.toUpperCase() : "WILSHIRE";
   const ImgCanvas = createCanvas(ImgWidth, ImgHeight);
   const ImgCTX = ImgCanvas.getContext("2d");
@@ -138,14 +138,14 @@ export default async function GetBookingMugshot<AsURL extends boolean | undefine
   ImgCTX.font = RelFont(3);
   ImgCTX.textAlign = "right";
   ImgCTX.fillText(
-    `BOOKING #${BkgNumPadded}`,
+    `BOOKING #${BookingNumber}`,
     InfoBoxX + InfoBoxWidth - RelX(1),
     InfoBoxY + RelY(8)
   );
 
   const ImgBuffer = ImgCanvas.toBuffer("image/jpeg", 100);
   if (Options.return_url) {
-    const UploadedImgURL = await UploadToImgBB(ImgBuffer, `booking_mugshot_#${BkgNumPadded}`);
+    const UploadedImgURL = await UploadToImgBB(ImgBuffer, `booking_mugshot_#${BookingNumber}`);
     return (UploadedImgURL ?? Thumbs.UnknownImage) as any;
   } else {
     return ImgBuffer as any;

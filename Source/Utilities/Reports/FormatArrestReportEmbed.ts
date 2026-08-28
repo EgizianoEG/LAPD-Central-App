@@ -1,4 +1,9 @@
-import { FormatSortRDInputNames, FormatUsername } from "#Utilities/Strings/Formatters.js";
+import {
+  FormatUsername,
+  DashFormatIdentifier,
+  FormatSortRDInputNames,
+} from "#Utilities/Strings/Formatters.js";
+
 import { Colors, EmbedBuilder, userMention } from "discord.js";
 import { GuildArrests } from "#Typings/Utilities/Database.js";
 import { Icons } from "#Config/Shared.js";
@@ -29,7 +34,7 @@ export default async function GetFormattedArrestReportEmbed(
   const ReportDescription = Dedent(`
     ${ReportSubmittingAndArresstingOfficerText}
     Assisting officers: ${FAsstOfficers}
-    Booking number: \`${ArrestInfo.booking_num.toString().padStart(4, "0")}\`
+    Booking number: \`${DashFormatIdentifier(ArrestInfo.booking_num, "arrest")}\`
   `).trim();
 
   const SignatureText =

@@ -8,6 +8,7 @@ import JSBarcode from "jsbarcode";
 import FileSystem from "node:fs/promises";
 import UploadToImgBB from "../External/ImgBBUpload.js";
 import GetPlaceholderImgURL from "../Helpers/GetPlaceholderImg.js";
+import { SequenceWidths } from "../Helpers/Identifiers.js";
 
 const DB_CIT_NUM_MIGRATION_DATE = new Date("2026-08-28T06:49:43Z");
 const NTAFineTemplateImgBuffer = await FileSystem.readFile(
@@ -203,15 +204,15 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   const YIssuanceSuffix = CitData.issued_on.getFullYear().toString().slice(-2);
   const PaddedCitSequence =
     CitData.issued_on < DB_CIT_NUM_MIGRATION_DATE
-      ? CitData.num.toString().padStart(5, "0") // `NNNNN` for citations issued before the database migration date. (to maintain backwards compatibility with the old citation number format)
-      : CitData.num.toString().slice(2).padStart(5, "0"); // `YYNNNNN` for citations issued after the database migration date.
+      ? CitData.num.toString().padStart(SequenceWidths.citation, "0") // `NNNNN` for citations issued before the database migration date. (to maintain backwards compatibility with the old citation number format)
+      : CitData.num.toString().slice(2).padStart(SequenceWidths.citation, "0"); // `YYNNNNN` for citations issued after the database migration date.
 
   CTX.font = "4em Bahnschrift";
   CTX.textAlign = "left";
   CTX.letterSpacing = "0.2em";
   CTX.fillStyle = "rgba(0, 0, 0, 0.7)";
   CTX.fillText(
-    PaddedCitSequence,
+    `${YIssuanceSuffix} ${PaddedCitSequence}`,
     RCoords.nta_num.x * TWidth,
     RCoords.nta_num.y * THeight,
     0.238 * TWidth
@@ -602,7 +603,7 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   if (ReturnAsURL) {
     return ((await UploadToImgBB(
       FilledNTAFormBuffer,
-      `nta_${CitData.nta_type.toLowerCase()}_#${YIssuanceSuffix}-${CitData.num}`
+      `nta_${CitData.nta_type.toLowerCase()}_#${YIssuanceSuffix}-${PaddedCitSequence}`
     )) ?? GetPlaceholderImgURL(`${TWidth}x${THeight}`, "?")) as any;
   } else {
     return FilledNTAFormBuffer as any;

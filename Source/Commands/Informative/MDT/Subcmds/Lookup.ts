@@ -10,8 +10,8 @@ import {
 } from "discord.js";
 
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
-import { FormatUsername } from "#Utilities/Strings/Formatters.js";
 import { IsValidRobloxUsername } from "#Utilities/Helpers/Validators.js";
+import { DashFormatIdentifier, FormatUsername } from "#Utilities/Strings/Formatters.js";
 
 import GetUserThumbnail from "#Utilities/Roblox/GetUserThumb.js";
 import GetIdByUsername from "#Utilities/Roblox/GetIdByUsername.js";
@@ -108,7 +108,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       inline: true,
       name: "Recent Arrest",
       value: Dedent(`
-        - **Booking:** [\`${RecentArrest.booking_num.toString().padStart(4, "0")}\`](${ReportMsgLink})
+        - **Booking:** [\`${DashFormatIdentifier(RecentArrest.booking_num, "arrest")}\`](${ReportMsgLink})
         - **Reported:** ${time(RecentArrest.made_on, "R")}
         - **Arresting Officer:** ${userMention(RecentArrest.arresting_officer.discord_id)}
         - **Arrest Notes:** ${ArrestNotes}
@@ -142,7 +142,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
       inline: true,
       name: "Recent Citation",
       value: Dedent(`
-        - **Num:** [\`${RecentCit.num.toString().padStart(5, "0")}\`](${RecentCit.img_url ?? channelLink(Interaction.channelId)})
+        - **Num:** [\`${DashFormatIdentifier(RecentCit.num, "citation")}\`](${RecentCit.img_url ?? channelLink(Interaction.channelId)})
         - **Type:** ${RecentCit.nta_type} ${RecentCit.cit_type}
         - **Issued:** ${time(RecentCit.issued_on, "R")}
         - **Issuing Officer:** ${userMention(RecentCit.citing_officer.discord_id)}
