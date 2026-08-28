@@ -8,8 +8,8 @@ import JSBarcode from "jsbarcode";
 import FileSystem from "node:fs/promises";
 import UploadToImgBB from "../External/ImgBBUpload.js";
 import GetPlaceholderImgURL from "../Helpers/GetPlaceholderImg.js";
-import { ParseIdentifier } from "../Helpers/Identifiers.js";
 
+const DB_CIT_NUM_MIGRATION_DATE = new Date("2026-08-28T06:49:43Z");
 const NTAFineTemplateImgBuffer = await FileSystem.readFile(
   Path.join(import.meta.dirname, "..", "..", "Resources", "Imgs", "NTA-TR130-F.png")
 );
@@ -200,9 +200,11 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   // -------------------------------
   // NTA/Citation number in the format of YY NNNNN
   // where YY is the last two digits of the year of issuance and NNNNN is the citation number from the database padded with leading zeros.
-  const FullSequence = ParseIdentifier(CitData.num);
-  const YIssuanceSuffix = FullSequence.year.toString();
-  const PaddedCitSequence = FullSequence.sequence.toString().padStart(5, "0");
+  const YIssuanceSuffix = CitData.issued_on.getFullYear().toString().slice(-2);
+  const PaddedCitSequence =
+    CitData.issued_on < DB_CIT_NUM_MIGRATION_DATE
+      ? CitData.num.toString().padStart(5, "0") // `NNNNN` for citations issued before the database migration date. (to maintain backwards compatibility with the old citation number format)
+      : CitData.num.toString().slice(2).padStart(5, "0"); // `YYNNNNN` for citations issued after the database migration date.
 
   CTX.font = "4em Bahnschrift";
   CTX.textAlign = "left";
