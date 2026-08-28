@@ -41,6 +41,7 @@ import {
 import { Types } from "mongoose";
 import { Emojis } from "#Config/Shared.js";
 import { isDeepEqual } from "remeda";
+import { GetIncident } from "#Utilities/Database/Incident.js";
 import { GuildIncidents } from "#Typings/Utilities/Database.js";
 import { ArraysAreEqual } from "#Utilities/Helpers/ArraysAreEqual.js";
 import { FilterUserInput } from "#Utilities/Strings/Redactor.js";
@@ -63,11 +64,11 @@ import AppLogger from "#Utilities/Classes/AppLogger.js";
 import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 import UserHasPerms from "#Utilities/Database/UserHasPermissions.js";
 import IncidentModel from "#Models/Incident.js";
-import GetIncidentRecord from "#Utilities/Database/GetIncidentRecord.js";
 import GetRobloxUserLinked from "#Utilities/Database/IsUserLoggedIn.js";
 import GetIncidentReportEmbeds from "#Utilities/Reports/GetIncidentReportEmbeds.js";
 import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
 import GetGuildSettings, { GetGuildSettingsSync } from "#Utilities/Database/GetGuildSettings.js";
+import { ComposeIdentifier, ParseIdentifier } from "#Source/Utilities/Helpers/Identifiers.js";
 
 const ListFormatter = new Intl.ListFormat("en");
 const NoneProvidedPlaceholder = "`[None Provided]`";
@@ -408,7 +409,7 @@ export async function HandleCommandValidationAndPossiblyGetIncident(
     IncidentReport = await IncidentModel.findById(ReportNumber).lean();
   } else if (ReportNumber && ReportedOnTS) {
     IncidentReport = await IncidentModel.findOne({
-      num: ReportNumber,
+      num: ComposeIdentifier(ParseIdentifier(ReportNumber), "incident"),
       guild: RecInteract.guildId,
       reported_on: {
         $gt: ReportedOnTS - 1000,
@@ -523,8 +524,7 @@ async function HandleIncidentRecordEditWithHandler<
 
   ComponentCollector.stop("PromptUpdated");
   DatabaseIncRecord =
-    (await GetIncidentRecord(RecInteract.guildId, DatabaseIncRecord._id, true)) ??
-    DatabaseIncRecord;
+    (await GetIncident(RecInteract.guildId, DatabaseIncRecord._id)) ?? DatabaseIncRecord;
 
   return HandlePromptUpdateBasedOnModifiedRecord(
     PromptMessage,

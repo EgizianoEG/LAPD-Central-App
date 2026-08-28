@@ -23,11 +23,6 @@ import {
 } from "discord.js";
 
 import {
-  GetCallsignAdminData,
-  GetCallsignValidationData,
-} from "#Utilities/Database/CallsignData.js";
-
-import {
   BaseExtraContainer,
   SuccessContainer,
   ErrorContainer,
@@ -41,11 +36,11 @@ import {
 import { RandomString } from "#Utilities/Strings/Random.js";
 import { Colors, Emojis } from "#Config/Shared.js";
 import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
-
 import { GenericRequestStatuses } from "#Config/Constants.js";
 import { ValidateCallsignFormat } from "./Request.js";
 import { AggregationResults, Callsigns } from "#Typings/Utilities/Database.js";
 import { ConcatenateLines, FormatCallsignDesignation } from "#Utilities/Strings/Formatters.js";
+import { GetCallsignAdminData, GetCallsignValidationData } from "#Utilities/Database/Callsign.js";
 
 import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
 import HandleCallsignStatusUpdates from "#Utilities/Discord/HandleCallsignStatusUpdates.js";
@@ -527,7 +522,7 @@ async function HandleCallsignApprovalOrDenial(
   const TCallsignId = BtnInteract.customId.split(":")[2];
   let ReqCallsign = await CallsignModel.findById(TCallsignId).exec();
 
-  if (!ReqCallsign || ReqCallsign.request_status !== GenericRequestStatuses.Pending) {
+  if (ReqCallsign?.request_status !== GenericRequestStatuses.Pending) {
     await new ErrorContainer()
       .useErrTemplate("CallsignRequestModified")
       .replyToInteract(BtnInteract, true);

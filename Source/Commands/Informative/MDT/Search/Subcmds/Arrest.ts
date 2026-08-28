@@ -1,17 +1,18 @@
 // Dependencies:
 // -------------
 
+import { GetArrest } from "#Utilities/Database/Arrest.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { MessageFlags, SlashCommandSubcommandBuilder } from "discord.js";
 import GetFormattedArrestReportEmbed from "#Utilities/Reports/FormatArrestReportEmbed.js";
-import GetArrestRecord from "#Utilities/Database/GetArrestRecord.js";
 
 // ---------------------------------------------------------------------------------------
 // Functions:
 // ----------
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const BookingNum = CmdInteraction.options.getInteger("booking-num", true);
-  const ArrestRecord = await GetArrestRecord(CmdInteraction.guildId, BookingNum);
+  const ArrestRecord = await GetArrest(CmdInteraction.guildId, BookingNum);
+
   if (!ArrestRecord) {
     return new ErrorEmbed()
       .useErrTemplate("ArrestRecordNotFound")

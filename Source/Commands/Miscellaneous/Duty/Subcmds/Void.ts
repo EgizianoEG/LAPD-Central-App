@@ -16,7 +16,7 @@ import {
 } from "#Utilities/Classes/ExtraContainers.js";
 
 import Dedent from "dedent";
-import GetActiveShifts from "#Utilities/Database/GetShiftActive.js";
+import { GetActiveShifts } from "#Utilities/Database/Shift.js";
 import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
 import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
 import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
@@ -27,7 +27,7 @@ import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollec
 // Functions:
 // ----------
 async function Callback(Interaction: SlashCommandInteraction<"cached">) {
-  const ActiveShift = await GetActiveShifts({ Interaction, UserOnly: true });
+  const ActiveShift = await GetActiveShifts({ Interaction, CurrentUserOnly: true });
   if (!ActiveShift) {
     return new ErrorEmbed()
       .useErrTemplate("ShiftMustBeActive")
@@ -76,7 +76,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
   })
     .then(async (ButtonInteract) => {
       await ButtonInteract.deferUpdate();
-      const ActiveShiftLatestVer = await GetActiveShifts({ Interaction, UserOnly: true });
+      const ActiveShiftLatestVer = await GetActiveShifts({ Interaction, CurrentUserOnly: true });
       if (!ActiveShiftLatestVer) {
         return new ErrorContainer()
           .useErrTemplate("ShiftMustBeActive")

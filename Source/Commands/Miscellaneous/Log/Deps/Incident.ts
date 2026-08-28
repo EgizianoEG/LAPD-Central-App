@@ -35,6 +35,7 @@ import {
 } from "#Resources/IncidentConstants.js";
 
 import {
+  DashFormatIdentifier,
   FormatSortRDInputNames,
   FormatDutyActivitiesLogSignature,
 } from "#Utilities/Strings/Formatters.js";
@@ -45,23 +46,23 @@ import { ReporterInfo } from "../Log.js";
 import { milliseconds } from "date-fns";
 import { ListSplitRegex } from "#Resources/RegularExpressions.js";
 import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
+import { ComposeIdentifier } from "#Utilities/Helpers/Identifiers.js";
 import { SendGuildMessages } from "#Utilities/Discord/GuildMessages.js";
+import { IncrementShiftEvent } from "#Source/Utilities/Database/Shift.js";
 import { GuildIncidents, Guilds } from "#Typings/Utilities/Database.js";
 import { GetDiscordAttachmentExtension } from "#Utilities/Strings/OtherUtils.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { FilterUserInput, FilterUserInputOptions } from "#Utilities/Strings/Redactor.js";
 import { IsValidRobloxUsername, IsValidDiscordId } from "#Utilities/Helpers/Validators.js";
 
-import GenerateNextSequentialIncidentNumber from "#Utilities/Database/GenerateNextSequenceIncNum.js";
-import ShowModalAndAwaitSubmission from "#Source/Utilities/Discord/ShowModalAwaitSubmit.js";
-import IncrementActiveShiftEvent from "#Utilities/Database/IncrementActiveShiftEvent.js";
+import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
 import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
 import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
 import GetIncidentReportEmbeds from "#Utilities/Reports/GetIncidentReportEmbeds.js";
+import AllocateSequenceNumber from "#Utilities/Database/AllocateSequence.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 import IncidentModel from "#Models/Incident.js";
 import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
-import GuildModel from "#Models/Guild.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import AppError from "#Utilities/Classes/AppError.js";
 import Dedent from "dedent";
@@ -402,7 +403,7 @@ async function InitializeIncidentData(
   const InputNotes =
     ModalSubmission.fields.getTextInputValue("notes").replaceAll(/\s+/g, " ") || null;
   const ReporterRobloxInfo = await GetUserInfo(ReportingOfficer.RobloxUserId);
-  const IncidentNumber = await GenerateNextSequentialIncidentNumber(CmdInteract.guild.id);
+  const Sequence = await AllocateSequenceNumber(CmdInteract.guild.id, "incident");
 
   const IncidentNotes = InputNotes ? await FilterUserInput(InputNotes, UTIFOpts) : null;
   const IncidentLoc = await FilterUserInput(CmdProvidedDetails.location, UTIFOpts);
@@ -434,7 +435,7 @@ async function InitializeIncidentData(
     ...CmdProvidedDetails,
 
     _id: new Types.ObjectId(),
-    num: IncidentNumber,
+    num: ComposeIdentifier(Sequence, "incident"),
     guild: CmdInteract.guildId,
     notes: IncidentNotes,
     location: IncidentLoc,
@@ -465,41 +466,6 @@ async function InitializeIncidentData(
   return IncidentRecordInst;
 }
 
-async function InsertIncidentRecord(
-  Interact: ButtonInteraction<"cached"> | SlashCommandInteraction<"cached">,
-  IncidentRecord: GuildIncidents.IncidentRecord
-): Promise<GuildIncidents.IncidentRecord | null> {
-  IncidentRecord = {
-    ...IncidentRecord,
-    num: await GenerateNextSequentialIncidentNumber(Interact.guild.id),
-  };
-
-  const Session = await IncidentModel.startSession();
-  let InsertedDocument: GuildIncidents.IncidentRecord | null = null;
-
-  try {
-    await Session.withTransaction(async () => {
-      const CreatedDocuments = await IncidentModel.create([IncidentRecord], { session: Session });
-      if (CreatedDocuments?.[0]) {
-        InsertedDocument = CreatedDocuments[0];
-        await GuildModel.updateOne(
-          { _id: Interact.guildId },
-          {
-            $set: {
-              "logs.incidents.most_recent_num": InsertedDocument.num,
-            },
-          },
-          { session: Session }
-        );
-      }
-    });
-  } finally {
-    await Session.endSession();
-  }
-
-  return InsertedDocument;
-}
-
 // ---------------------------------------------------------------------------------------
 // Confirmation Handling:
 // ----------------------
@@ -515,10 +481,8 @@ async function OnReportConfirmation(
   }).catch(() => null);
 
   try {
-    InsertedRecord = await InsertIncidentRecord(BtnInteract, IncidentReport).then((Res) => {
-      IncrementActiveShiftEvent("incidents", BtnInteract.user.id, BtnInteract.guildId).catch(
-        () => null
-      );
+    InsertedRecord = await IncidentModel.create(IncidentReport).then((Res) => {
+      IncrementShiftEvent(BtnInteract.guildId, BtnInteract.user.id, "incidents").catch(() => null);
       return Res;
     });
   } catch (Err: any) {
@@ -741,7 +705,7 @@ function UpdateOfficersWitnessesEmbed(
 
   Embed.setDescription(
     Dedent(`
-      Incident Number: ${inlineCode(ReportData.num)}
+      Incident Number: ${inlineCode(DashFormatIdentifier(ReportData.num, "incident"))}
       Incident Reported By: ${userMention(ReportData.reporter.discord_id)} on ${FormatTime(ReportData.reported_on, "f")}
       Involved Officers: ${ListFormatter.format(CombinedOfficers) || "N/A"}
     `)

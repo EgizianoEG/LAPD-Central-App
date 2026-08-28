@@ -31,6 +31,12 @@ import {
 } from "discord.js";
 
 import {
+  GetUserShiftStatistics,
+  GetUserShiftRecords,
+  GetActiveShifts,
+} from "#Utilities/Database/Shift.js";
+
+import {
   SuccessContainer,
   InfoContainer,
   WarnContainer,
@@ -50,12 +56,9 @@ import ShiftModel, { ShiftFlags } from "#Models/Shift.js";
 import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
 import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
 import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
-import QueryUserShiftRecords from "#Utilities/Database/QueryUserShiftRecords.js";
 import HandlePagePagination from "#Utilities/Discord/HandlePagePagination.js";
 import HandleRoleAssignment from "#Utilities/Discord/HandleShiftRoleAssignment.js";
-import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
 import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
-import GetShiftActive from "#Utilities/Database/GetShiftActive.js";
 import ParseDuration from "parse-duration";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import AppError from "#Utilities/Classes/AppError.js";
@@ -613,7 +616,7 @@ async function RetrieveShiftRecordsAsContainers(
   ShiftType: Nullable<string>,
   CurrentDate: Date = new Date()
 ) {
-  const ShiftData = await QueryUserShiftRecords(TargetUser, GuildId, ShiftType, CurrentDate);
+  const ShiftData = await GetUserShiftRecords(TargetUser, GuildId, ShiftType, CurrentDate);
   return Chunks(ShiftData, 2).map((Chunk) => {
     const Descriptions = Chunk.map((Record) => {
       const Started = FormatTime(Math.round(Record.started / 1000), "f");
@@ -721,7 +724,7 @@ async function GetActiveShiftAndShiftDataContainer(
         type: CmdShiftType || { $exists: true },
       });
 
-  const UserShiftsData = await GetMainShiftsData(
+  const UserShiftsData = await GetUserShiftStatistics(
     {
       guild: Interaction.guildId,
       user: TargetUser.id,
@@ -875,9 +878,9 @@ async function HandleShiftModifications(
   }
 
   const ShiftSelectEndReason = "ShiftSelected";
-  const IsShiftActive = !!(await GetShiftActive({
+  const IsShiftActive = !!(await GetActiveShifts({
     ShiftType,
-    UserOnly: true,
+    CurrentUserOnly: true,
     Interaction: {
       guildId: AdminInteract.guildId,
       user: { id: TargetUser.id },
@@ -910,9 +913,9 @@ async function HandleShiftModifications(
   CompCollector.on("collect", async (ButtonInteract) => {
     if (ButtonInteract.customId.includes("current")) {
       await ButtonInteract.deferUpdate();
-      const ActiveShift = await GetShiftActive({
+      const ActiveShift = await GetActiveShifts({
         ShiftType,
-        UserOnly: true,
+        CurrentUserOnly: true,
         Interaction: {
           guildId: AdminInteract.guildId,
           user: { id: TargetUser.id },

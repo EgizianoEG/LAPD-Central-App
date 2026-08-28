@@ -21,10 +21,9 @@ import { Colors, Emojis } from "#Config/Shared.js";
 import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { ErrorEmbed, UnauthorizedEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { GetUserShiftStatistics, GetActiveShifts } from "#Utilities/Database/Shift.js";
 
-import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
-import GetShiftActive from "#Utilities/Database/GetShiftActive.js";
 import Dedent from "dedent";
 
 export enum RecentShiftAction {
@@ -391,13 +390,13 @@ async function Callback(CmdInteract: SlashCommandInteraction<"cached">) {
 
   const TargetShiftType = VerificationDetails.target_shift_type;
   const CmdShiftType = CmdInteract.options.getString("type", false);
-  const ShiftActive = await GetShiftActive({
+  const ShiftActive = await GetActiveShifts({
     ShiftType: CmdShiftType ? TargetShiftType : undefined,
     Interaction: CmdInteract,
-    UserOnly: true,
+    CurrentUserOnly: true,
   });
 
-  const MemberShiftsData = await GetMainShiftsData(
+  const MemberShiftsData = await GetUserShiftStatistics(
     {
       user: CmdInteract.user.id,
       guild: CmdInteract.guildId,

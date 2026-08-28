@@ -1,5 +1,5 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import GetAllBookingNums from "#Utilities/Database/GetBookingNums.js";
+import { GetBookingAutocompleteEntries } from "../Database/Arrest.js";
 
 /**
  * Autocompletes an input booking number.
@@ -12,7 +12,7 @@ export default async function AutocompleteBookingNum(
   GuildId: string
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
   const LowerCaseTyped = Typed.toLowerCase();
-  const Bookings = await GetAllBookingNums(GuildId, true);
+  const Bookings = await GetBookingAutocompleteEntries(GuildId, true);
   let Suggestions: typeof Bookings;
 
   if (Typed.match(/^\s*$/)) {

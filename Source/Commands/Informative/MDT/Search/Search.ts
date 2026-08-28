@@ -19,9 +19,9 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
     if (Subcommand.data.name === SubcommandName) {
       if (typeof Subcommand.callback === "function") {
         return Subcommand.callback(Interaction);
-      } else {
-        break;
       }
+
+      break;
     }
   }
 }

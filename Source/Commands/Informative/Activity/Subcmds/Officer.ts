@@ -11,11 +11,11 @@ import {
 
 import { format, formatDistance, isAfter, isBefore } from "date-fns";
 import { FormatUsername, ConcatenateLines } from "#Utilities/Strings/Formatters.js";
+import { GetUserShiftStatistics } from "#Utilities/Database/Shift.js";
 import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
 import GetStaffFieldActivity from "#Utilities/Database/GetFieldActivity.js";
-import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
 import GetUserThumbnail from "#Utilities/Roblox/GetUserThumb.js";
 import GeneratePortrait from "#Utilities/ImageRendering/ThumbToPortrait.js";
 import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
@@ -144,7 +144,7 @@ async function Callback(Interaction: SlashCommandInteraction<"cached">) {
         return_url: false,
       });
     }),
-    GetMainShiftsData({
+    GetUserShiftStatistics({
       user: OfficerSelected.id,
       guild: Interaction.guildId,
       type: ShiftTypeFilter || { $exists: true },
@@ -249,7 +249,7 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
     )
     .addStringOption((Option) =>
       Option.setName("shift-type")
-        .setDescription("A specific shift type to filter by.")
+        .setDescription("Specific shift type(s) to filter by. Multiple can be separated by commas.")
         .setMinLength(3)
         .setMaxLength(20)
         .setRequired(false)

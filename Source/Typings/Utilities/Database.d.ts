@@ -1683,14 +1683,14 @@ export namespace MemberSavedRoles {
 }
 
 export namespace AggregateResults {
-  interface GetCitationNumbers {
+  interface CitationAutocompleteEntries {
     _id: string;
     num: number;
     autocomplete_label: string;
   }
   [];
 
-  interface GetIncidentNumbers {
+  interface IncidentAutocompleteEntries {
     _id: string;
     num: string;
     reported_on: Date;
@@ -1698,7 +1698,7 @@ export namespace AggregateResults {
   }
   [];
 
-  interface GetBookingNumbers {
+  interface BookingAutocompleteEntries {
     _id: string;
     num: number;
     autocomplete_label: string;

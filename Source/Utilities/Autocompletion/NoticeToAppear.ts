@@ -1,5 +1,5 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import GetAllCitationNums from "#Utilities/Database/GetCitationNumbers.js";
+import { GetCitationAutocompleteEntries } from "../Database/Citation.js";
 
 /**
  * Autocompletes an input citation number.
@@ -12,7 +12,7 @@ export default async function AutocompleteCitationNum(
   GuildId: string
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
   const LowerCaseTyped = Typed.toLowerCase();
-  const Cits = await GetAllCitationNums(GuildId, true);
+  const Cits = await GetCitationAutocompleteEntries(GuildId, true);
   let Suggestions: typeof Cits;
 
   if (Typed.match(/^\s*$/)) {

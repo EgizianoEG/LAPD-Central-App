@@ -20,7 +20,7 @@ import { GetAdminOrMgmtPanelContainer, PromiseAllSettledThenTrue } from "./Admin
 import { FormatCallsignDesignation as FormatDesignation } from "#Utilities/Strings/Formatters.js";
 import { AggregationResults, Callsigns } from "#Typings/Utilities/Database.js";
 import { GenericRequestStatuses } from "#Config/Constants.js";
-import { GetCallsignAdminData } from "#Utilities/Database/CallsignData.js";
+import { GetCallsignAdminData } from "#Utilities/Database/Callsign.js";
 import { Emojis } from "#Config/Shared.js";
 
 import AppLogger from "#Utilities/Classes/AppLogger.js";

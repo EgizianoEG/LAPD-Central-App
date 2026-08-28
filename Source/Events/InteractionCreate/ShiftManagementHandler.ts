@@ -30,13 +30,12 @@ import { differenceInSeconds } from "date-fns";
 import { ErrorEmbed, UnauthorizedEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { DutyManagementBtnCustomIdRegex } from "#Resources/RegularExpressions.js";
 import { IsValidDiscordId, IsValidShiftTypeName } from "#Utilities/Helpers/Validators.js";
+import { GetActiveShifts, GetUserShiftStatistics } from "#Utilities/Database/Shift.js";
 
 import DisableMessageComponents from "#Utilities/Discord/DisableMsgComps.js";
 import HandleRoleAssignment from "#Utilities/Discord/HandleShiftRoleAssignment.js";
-import GetMainShiftsData from "#Utilities/Database/GetShiftsData.js";
 import ShiftActionLogger from "#Utilities/Classes/ShiftActionLogger.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
-import GetActiveShift from "#Utilities/Database/GetShiftActive.js";
 import ShiftModel from "#Models/Shift.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import AppError from "#Utilities/Classes/AppError.js";
@@ -122,8 +121,8 @@ async function ShiftManagementHandler(
   const ActiveShift =
     TargetShift?.end_timestamp === null
       ? TargetShift
-      : await GetActiveShift({
-          UserOnly: true,
+      : await GetActiveShifts({
+          CurrentUserOnly: true,
           Interaction,
         });
 
@@ -180,8 +179,8 @@ async function HandleShiftOnAction(
     const ErrorId = GetErrorId();
     if (Err instanceof AppError && Err.is_showable) {
       if (Err.title === ErrorMessages.ShiftAlreadyActive.Title) {
-        const ActiveShift = await GetActiveShift({
-          UserOnly: true,
+        const ActiveShift = await GetActiveShifts({
+          CurrentUserOnly: true,
           Interaction,
         });
 
@@ -265,8 +264,8 @@ async function HandleShiftBreakToggleAction(
     }
   } catch (Err: any) {
     if (Err instanceof AppError && Err.is_showable) {
-      const CurrentActiveShift = await GetActiveShift({
-        UserOnly: true,
+      const CurrentActiveShift = await GetActiveShifts({
+        CurrentUserOnly: true,
         Interaction,
       });
 
@@ -493,12 +492,12 @@ async function UpdateManagementPrompt(
     await Interaction.deferUpdate().catch(() => null);
   }
 
-  ActiveShift = ActiveShift || (await GetActiveShift({ UserOnly: true, Interaction }));
+  ActiveShift = ActiveShift || (await GetActiveShifts({ CurrentUserOnly: true, Interaction }));
   if (ActiveShift?.end_timestamp !== null) ActiveShift = null;
 
   const ShiftType = ActiveShift?.type ?? TShiftType;
   const ManagementComponents = GetShiftManagementButtons(Interaction, ShiftType, ActiveShift);
-  const MemberShiftsData = await GetMainShiftsData(
+  const MemberShiftsData = await GetUserShiftStatistics(
     {
       user: Interaction.user.id,
       guild: Interaction.guildId,

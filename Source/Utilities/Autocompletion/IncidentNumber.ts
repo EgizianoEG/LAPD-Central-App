@@ -1,5 +1,5 @@
 import { type ApplicationCommandOptionChoiceData } from "discord.js";
-import GetAllIncidentNums from "#Utilities/Database/GetIncidentNumbers.js";
+import { GetIncidentAutocompleteEntries } from "../Database/Incident.js";
 
 /**
  * Autocompletes an input incident number.
@@ -11,7 +11,7 @@ export default async function AutocompleteIncidentNum(
   Typed: string,
   GuildId: string
 ): Promise<Array<ApplicationCommandOptionChoiceData>> {
-  const Incidents = await GetAllIncidentNums(GuildId, true);
+  const Incidents = await GetIncidentAutocompleteEntries(GuildId, true);
   const LowerCaseTyped = Typed.toLowerCase();
   let Suggestions: typeof Incidents;
 

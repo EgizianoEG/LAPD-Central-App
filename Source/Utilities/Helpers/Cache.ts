@@ -94,7 +94,7 @@ export const AutocompletionCache = {
    * @keyedBy Guild Id
    * @ttl     20 seconds; absorbs repeated keystrokes during typing.
    */
-  Incidents: new TTLCache<string, AggregateResults.GetIncidentNumbers[]>({
+  Incidents: new TTLCache<string, AggregateResults.IncidentAutocompleteEntries[]>({
     ttl: 20 * 1000,
     checkAgeOnGet: true,
   }),
@@ -104,7 +104,7 @@ export const AutocompletionCache = {
    * @keyedBy Guild Id
    * @ttl     20 seconds; absorbs repeated keystrokes during typing.
    */
-  Citations: new TTLCache<string, AggregateResults.GetCitationNumbers[]>({
+  Citations: new TTLCache<string, AggregateResults.CitationAutocompleteEntries[]>({
     ttl: 20 * 1000,
     checkAgeOnGet: true,
   }),
@@ -114,7 +114,7 @@ export const AutocompletionCache = {
    * @keyedBy Guild Id
    * @ttl     20 seconds; absorbs repeated keystrokes during typing.
    */
-  Bookings: new TTLCache<string, AggregateResults.GetBookingNumbers[]>({
+  Bookings: new TTLCache<string, AggregateResults.BookingAutocompleteEntries[]>({
     ttl: 20 * 1000,
     checkAgeOnGet: true,
   }),

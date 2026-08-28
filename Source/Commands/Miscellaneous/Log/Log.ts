@@ -1,5 +1,6 @@
 import { Shifts } from "#Typings/Utilities/Database.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
+import { GetActiveShifts } from "#Utilities/Database/Shift.js";
 import { DASignatureFormats } from "#Config/Constants.js";
 import {
   SlashCommandBuilder,
@@ -16,7 +17,6 @@ import AutocompleteHeight from "#Utilities/Autocompletion/Height.js";
 import AutocompleteWeight from "#Utilities/Autocompletion/Weight.js";
 import AutocompleteColor from "#Utilities/Autocompletion/Color.js";
 import IsModuleEnabled from "#Utilities/Database/IsModuleEnabled.js";
-import GetShiftActive from "#Utilities/Database/GetShiftActive.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 import GetRobloxUserLinked from "#Utilities/Database/IsUserLoggedIn.js";
 
@@ -63,7 +63,7 @@ async function HandleInteractValidation(Interaction: SlashCommandInteraction<"ca
     }
   }
 
-  const ActiveShift = await GetShiftActive({ Interaction, UserOnly: true });
+  const ActiveShift = await GetActiveShifts({ Interaction, CurrentUserOnly: true });
   return IsHandled
     ? null
     : {

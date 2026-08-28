@@ -1,14 +1,17 @@
 import { FormatDutyActivitiesLogSignature, FormatUsername } from "#Utilities/Strings/Formatters.js";
+import { AggregateResults, Shifts } from "#Typings/Utilities/Database.js";
+import { IncrementShiftEvent } from "#Utilities/Database/Shift.js";
+import { AutocompletionCache } from "#Utilities/Helpers/Cache.js";
 import { ButtonInteraction } from "discord.js";
 import { SendGuildMessages } from "#Utilities/Discord/GuildMessages.js";
 import { CmdOptionsType } from "#Cmds/Miscellaneous/Log/Deps/Arrest.js";
-import { Shifts } from "#Typings/Utilities/Database.js";
+import { GuildArrests } from "#Source/Typings/Utilities/Database.js";
 import { Images } from "#Config/Shared.js";
+import { Types } from "mongoose";
 
 import AppError from "#Utilities/Classes/AppError.js";
 import ArrestModel from "#Models/Arrest.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
-import IncrementActiveShiftEvent from "#Utilities/Database/IncrementActiveShiftEvent.js";
 import GetFormattedArrestReportEmbed from "../Reports/FormatArrestReportEmbed.js";
 
 export type ReportInfoType = {
@@ -59,7 +62,87 @@ export type ArresteeInfoType = Omit<
   };
 };
 
-export default async function LogArrestReport(
+/**
+ * Retrieves an arrest record from the database based on the provided parameters.
+ * @param GuildId - The identifier of the guild to which the arrest record belongs.
+ * @param Identifier - The booking number, Id, or ObjectId of the arrest record to retrieve.
+ *                          If a number is provided, it is treated as a booking number.
+ *                          If a string or ObjectId is provided, it is treated as the record's Id.
+ * @returns A promise that resolves to the arrest record if found, or `null` if no record matches the provided inputs.
+ */
+export async function GetArrest(
+  GuildId: string,
+  Identifier: number | string | Types.ObjectId
+): Promise<GuildArrests.ArrestRecord | null> {
+  const IsValidObjectId = !!Types.ObjectId.isValid(Identifier.toString());
+  const SearchField = IsValidObjectId ? "_id" : "num";
+
+  return ArrestModel.findOne({
+    guild: GuildId,
+    [SearchField]: Identifier,
+  }).lean(true);
+}
+
+/**
+ * Fetches all booking numbers for a specific guild, optionally using a cache for performance.
+ * @param GuildId - Specific guild Id to limit results to.
+ * @param Cache - Whether to use the cache for results. If `true`, will return cached results if available.
+ * @returns
+ */
+export async function GetBookingAutocompleteEntries(
+  GuildId: string,
+  Cache: boolean = false
+): Promise<AggregateResults.BookingAutocompleteEntries[]> {
+  if (Cache) {
+    const Cached = AutocompletionCache.Bookings.get(GuildId);
+    if (Cached) return Cached;
+  }
+
+  return ArrestModel.aggregate<AggregateResults.BookingAutocompleteEntries>([
+    {
+      $match: {
+        guild: GuildId,
+      },
+    },
+    {
+      $project: {
+        booking_num: 1,
+        arrestee: 1,
+        doa: {
+          $dateToString: {
+            date: "$made_on",
+            format: "%B %d, %G at %H:%M",
+            timezone: "America/Los_Angeles",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        num: "$booking_num",
+        autocomplete_label: {
+          $concat: [
+            "#",
+            {
+              $toString: "$booking_num",
+            },
+            " – ",
+            "$arrestee.formatted_name",
+            " – ",
+            "$doa",
+          ],
+        },
+      },
+    },
+  ])
+    .exec()
+    .then((Bookings) => {
+      AutocompletionCache.Bookings.set(GuildId, Bookings);
+      return Bookings;
+    });
+}
+
+export async function LogArrestReport(
   CachedInteract: SlashCommandInteraction<"cached"> | ButtonInteraction<"cached">,
   ArresteeInfo: ArresteeInfoType,
   ReportInfo: ReportInfoType
@@ -151,11 +234,9 @@ export default async function LogArrestReport(
     throw new AppError({ template: "DatabaseError", showable: true });
   }
 
-  IncrementActiveShiftEvent("arrests", CachedInteract.user.id, CachedInteract.guildId).catch(
-    () => null
-  );
-
+  IncrementShiftEvent(CachedInteract.guildId, CachedInteract.user.id, "arrests").catch(() => null);
   const FormattedReport = await GetFormattedArrestReportEmbed(ArrestRecord, false);
+
   if (GuildSettings.duty_activities.arrest_reports.show_header_img) {
     FormattedReport.setImage(Images.LAPD_Header);
   }

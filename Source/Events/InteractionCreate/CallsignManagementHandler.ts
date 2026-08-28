@@ -31,7 +31,7 @@ import { ErrorMessages } from "#Resources/AppMessages.js";
 import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
 import { GenericRequestStatuses } from "#Config/Constants.js";
 import { RandomString, GetErrorId } from "#Utilities/Strings/Random.js";
-import { GetCallsignValidationData } from "#Utilities/Database/CallsignData.js";
+import { GetCallsignValidationData } from "#Utilities/Database/Callsign.js";
 import { CallsignMgmtCustomIdRegex } from "#Resources/RegularExpressions.js";
 import { DivisionBeats, ServiceUnitTypes } from "#Resources/LAPDCallsigns.js";
 

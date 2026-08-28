@@ -8,6 +8,7 @@ import JSBarcode from "jsbarcode";
 import FileSystem from "node:fs/promises";
 import UploadToImgBB from "../External/ImgBBUpload.js";
 import GetPlaceholderImgURL from "../Helpers/GetPlaceholderImg.js";
+import { ParseIdentifier } from "../Helpers/Identifiers.js";
 
 const NTAFineTemplateImgBuffer = await FileSystem.readFile(
   Path.join(import.meta.dirname, "..", "..", "Resources", "Imgs", "NTA-TR130-F.png")
@@ -198,16 +199,17 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   // First Third of The Citation/NTA
   // -------------------------------
   // NTA/Citation number in the format of YY NNNNN
-  // where YY is the last two digits of the current year and NNNNN is the citation number from the database padded with leading zeros.
-  const CurrYearSuffix = CitData.issued_on.getFullYear().toString().slice(-2);
-  const FormattedCitNum = `${CurrYearSuffix} ${CitData.num.toString().padStart(5, "0")}`;
+  // where YY is the last two digits of the year of issuance and NNNNN is the citation number from the database padded with leading zeros.
+  const FullSequence = ParseIdentifier(CitData.num);
+  const YIssuanceSuffix = FullSequence.year.toString();
+  const PaddedCitSequence = FullSequence.sequence.toString().padStart(5, "0");
 
   CTX.font = "4em Bahnschrift";
   CTX.textAlign = "left";
   CTX.letterSpacing = "0.2em";
   CTX.fillStyle = "rgba(0, 0, 0, 0.7)";
   CTX.fillText(
-    FormattedCitNum,
+    PaddedCitSequence,
     RCoords.nta_num.x * TWidth,
     RCoords.nta_num.y * THeight,
     0.238 * TWidth
@@ -587,7 +589,7 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   );
 
   // Draw the NTA barcode
-  const BarcodeCanvas = GenerateNTABarcodeCanvas(TWidth, THeight, FormattedCitNum);
+  const BarcodeCanvas = GenerateNTABarcodeCanvas(TWidth, THeight, PaddedCitSequence);
   CTX.drawImage(
     BarcodeCanvas,
     RCoords.barcode.x * TWidth - BarcodeCanvas.width / 2,
@@ -598,7 +600,7 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   if (ReturnAsURL) {
     return ((await UploadToImgBB(
       FilledNTAFormBuffer,
-      `nta_${CitData.nta_type.toLowerCase()}_#${CurrYearSuffix}-${CitData.num}`
+      `nta_${CitData.nta_type.toLowerCase()}_#${YIssuanceSuffix}-${CitData.num}`
     )) ?? GetPlaceholderImgURL(`${TWidth}x${THeight}`, "?")) as any;
   } else {
     return FilledNTAFormBuffer as any;

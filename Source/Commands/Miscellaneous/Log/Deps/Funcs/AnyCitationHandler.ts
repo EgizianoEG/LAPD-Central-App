@@ -36,6 +36,8 @@ import { FilterUserInput, FilterUserInputOptions } from "#Utilities/Strings/Reda
 import { AllVehicleModelNames, AllVehicleModels } from "#Resources/ERLC-Data/ERLCVehicles.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import { RenderFilledNTAForm } from "#Utilities/ImageRendering/GetFilledNTAForm.js";
+import { LogTrafficCitation } from "#Utilities/Database/Citation.js";
+import { ComposeIdentifier } from "#Source/Utilities/Helpers/Identifiers.js";
 import { GuildCitations } from "#Typings/Utilities/Database.js";
 import { ReporterInfo } from "../../Log.js";
 import { RandomString } from "#Utilities/Strings/Random.js";
@@ -43,7 +45,6 @@ import { TitleCase } from "#Utilities/Strings/Converters.js";
 import { Colors } from "#Config/Shared.js";
 
 import HandleActionCollectorExceptions from "#Utilities/Discord/HandleCompCollectorExceptions.js";
-import LogTrafficCitation from "#Utilities/Database/LogCitation.js";
 import FindClosestMatch from "didyoumean2";
 import GetIdByUsername from "#Utilities/Roblox/GetIdByUsername.js";
 import BrickColors from "#Resources/BrickColors.js";
@@ -53,7 +54,7 @@ import Dedent from "dedent";
 import AppError from "#Utilities/Classes/AppError.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
-import GetAllCitationNums from "#Utilities/Database/GetCitationNumbers.js";
+import AllocateSequenceNumber from "#Source/Utilities/Database/AllocateSequence.js";
 import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
 import CitationModel, { NTATypes } from "#Models/Citation.js";
 
@@ -189,22 +190,6 @@ export default async function AnyCitationCallback(
 // ---------------------------------------------------------------------------------------
 // Local Utility Functions:
 // ------------------------
-/**
- * Generates a random string of 5 characters, consisting of digits, based on a list of recorded citation numbers.
- * @param GuildId - The ID of the guild to get citation numbers from.
- * @returns a randomly generated string of length `5`, consisting of digits, based on the input parameter.
- */
-async function GenerateCitationNumber(GuildId): Promise<number> {
-  const AllCitNums = await GetAllCitationNums(GuildId);
-  return Number.parseInt(
-    RandomString(
-      5,
-      /\d/,
-      AllCitNums.map((Cit) => Cit.num.toString())
-    )
-  );
-}
-
 /**
  * Takes a string representing a weekday and returns a corresponding number.
  * @param {string} WeekDay - A string that represents a day of the week. A full name.
@@ -492,7 +477,8 @@ async function OnModalSubmission(
       utif_setting_enabled: GuildSettings.utif_enabled,
     };
 
-    const CitationNumber = await GenerateCitationNumber(ModalSubmission.guildId);
+    const CitationSequence = await AllocateSequenceNumber(ModalSubmission.guildId, "citation");
+    const CitationSeqId = ComposeIdentifier(CitationSequence, "citation");
     const DateInfo = CmdInteract.createdAt
       .toLocaleDateString("en-US", {
         timeZone: "America/Los_Angeles",
@@ -527,7 +513,7 @@ async function OnModalSubmission(
 
       dow: WeekDayToNum(DateInfo!.groups!.dow),
       ampm: TimeInfo!.groups!.day_period as "AM" | "PM",
-      num: CitationNumber,
+      num: CitationSeqId,
       vehicle: PCitationData.vehicle,
       fine_amount: PCitationData.fine_amount,
 

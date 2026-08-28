@@ -30,10 +30,11 @@ import {
   FormatAge,
 } from "#Utilities/Strings/Formatters.js";
 
-import LogArrestReport, {
+import {
+  LogArrestReport,
   type ArresteeInfoType,
   type ReportInfoType,
-} from "#Utilities/Database/LogArrestReport.js";
+} from "#Utilities/Database/Arrest.js";
 
 import { RandomString } from "#Utilities/Strings/Random.js";
 import { ReporterInfo } from "../Log.js";
@@ -41,17 +42,18 @@ import { UserHasPermsV2 } from "#Utilities/Database/UserHasPermissions.js";
 import { DASignatureFormats } from "#Config/Constants.js";
 import { ErrorEmbed, InfoEmbed, SuccessEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
-import { DivisionBeats } from "#Source/Resources/LAPDCallsigns.js";
+import { DivisionBeats } from "#Resources/LAPDCallsigns.js";
 import { ArraysAreEqual } from "#Utilities/Helpers/ArraysAreEqual.js";
 import { ListSplitRegex } from "#Resources/RegularExpressions.js";
+import { ComposeIdentifier } from "#Utilities/Helpers/Identifiers.js";
 import { FilterUserInput, FilterUserInputOptions } from "#Utilities/Strings/Redactor.js";
 import { IsValidPersonHeight, IsValidRobloxUsername } from "#Utilities/Helpers/Validators.js";
 
 import ShowModalAndAwaitSubmission from "#Utilities/Discord/ShowModalAwaitSubmit.js";
 import HandleCollectorFiltering from "#Utilities/Discord/HandleCollectorFilter.js";
-import GetActiveCallsign from "#Source/Utilities/Database/GetActiveCallsign.js";
+import AllocateSequenceNumber from "#Utilities/Database/AllocateSequence.js";
+import GetActiveCallsign from "#Utilities/Database/GetActiveCallsign.js";
 import GetBookingMugshot from "#Utilities/ImageRendering/ThumbToMugshot.js";
-import GetAllBookingNums from "#Utilities/Database/GetBookingNums.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
 import GetUserThumbnail from "#Utilities/Roblox/GetUserThumb.js";
 import GetIdByUsername from "#Utilities/Roblox/GetIdByUsername.js";
@@ -374,8 +376,10 @@ async function OnChargesAndDetailsModalSubmission(
 ) {
   await ModalInteraction.deferReply({ flags: MessageFlags.Ephemeral });
   const [ArresteeId] = await GetIdByUsername(CmdOptions.Arrestee, true);
-  const [ArresteeUserInfo, ArresteeThumbURL, ExistingBookingNums, GSettings] = await Promise.all([
+  const [ArresteeUserInfo, GSettings, ArrestSequence, ArresteeThumbURL] = await Promise.all([
     GetUserInfo(ArresteeId),
+    GetGuildSettings(CmdInteract.guildId),
+    AllocateSequenceNumber(CmdInteract.guildId, "arrest"),
     GetUserThumbnail({
       UserIds: ArresteeId,
       Size: "420x420",
@@ -383,8 +387,6 @@ async function OnChargesAndDetailsModalSubmission(
       CropType: "bust",
       IsManCharacter: CmdOptions.Gender === "Male",
     }),
-    GetAllBookingNums(CmdInteract.guildId).then((Nums) => Nums.map((Num) => Num.num)),
-    GetGuildSettings(CmdInteract.guildId),
   ]);
 
   let AsstOfficersDisIds: string[] = [];
@@ -413,16 +415,13 @@ async function OnChargesAndDetailsModalSubmission(
   CmdOptions.DetailArresting = FilteredDetailArresting.length ? FilteredDetailArresting : null;
 
   const FCharges = FormatCharges(InputCharges, GSettings.duty_activities.auto_annotate_ca_codes);
-  const YearSuffix = new Date().getFullYear().toString().slice(-2);
-  const BookingNumber = Number.parseInt(
-    `${YearSuffix}${RandomString(4, /\d/, ExistingBookingNums)}`
-  );
+  const BookingNumber = ComposeIdentifier(ArrestSequence, "arrest");
+  const PrimaryOfficerIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
 
-  const PrimaryIsReporter = CmdOptions.PrimaryOfficer.user.id === CmdInteract.user.id;
   let ArrestingOfficerRobloxId: number | null = null;
   let ArrestingOfficerRobloxInfo: Awaited<ReturnType<typeof GetUserInfo>> | null = null;
 
-  if (PrimaryIsReporter) {
+  if (PrimaryOfficerIsReporter) {
     ArrestingOfficerRobloxId = ReporterMainInfo.RobloxUserId || null;
   } else {
     ArrestingOfficerRobloxId = await IsLoggedIn({
@@ -641,7 +640,7 @@ async function OnChargesAndDetailsModalSubmission(
           arrest_loc: CmdOptions.ArrestLocation,
           evidence: EvidenceText.length ? EvidenceText : null,
 
-          reporting_officer: PrimaryIsReporter
+          reporting_officer: PrimaryOfficerIsReporter
             ? null
             : {
                 discord_id: CmdInteract.user.id,

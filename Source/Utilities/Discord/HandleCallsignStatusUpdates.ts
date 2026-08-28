@@ -176,11 +176,7 @@ function GenerateCallsignPrefixRegex(NicknameFormat: string): RegExp | null {
     .replaceAll(/\\?\{unit_type\\?\}/gi, String.raw`(?:[A-Z]{1,3}\d*|\d*[A-Z]{1,3})`)
     .replaceAll(/\\?\{(?:beat_num|identifier)\\?\}/gi, String.raw`\d{1,3}`);
 
-  Pattern = Pattern.replaceAll(/\\[-−–—‒⁃‑]/g, String.raw`[-−–—‒⁃‑]?`).replaceAll(
-    /\\\s/g,
-    String.raw`\s*`
-  );
-
+  Pattern = Pattern.replaceAll(/\\[-−–—‒⁃‑]/g, "[-−–—‒⁃‑]?").replaceAll(/\\\s/g, String.raw`\s*`);
   Pattern = String.raw`^${Pattern}\s*`;
 
   try {

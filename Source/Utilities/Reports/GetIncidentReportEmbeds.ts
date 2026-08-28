@@ -10,8 +10,8 @@ import {
   time as FormatTime,
 } from "discord.js";
 
+import { DashFormatIdentifier, FormatSortRDInputNames } from "#Utilities/Strings/Formatters.js";
 import { IsValidDiscordAttachmentLink } from "../Helpers/Validators.js";
-import { FormatSortRDInputNames } from "#Utilities/Strings/Formatters.js";
 import { GuildIncidents } from "#Typings/Utilities/Database.js";
 import Dedent from "dedent";
 
@@ -142,8 +142,8 @@ export default function GetIncidentReportEmbeds(
       : null;
 
   const IncidentNumber = LogMessageURL
-    ? `[${inlineCode(IncidentRecord.num)}](${LogMessageURL})`
-    : inlineCode(IncidentRecord.num);
+    ? `[${inlineCode(DashFormatIdentifier(IncidentRecord.num, "incident"))}](${LogMessageURL})`
+    : inlineCode(DashFormatIdentifier(IncidentRecord.num, "incident"));
 
   const IncidentReportEmbed = new EmbedBuilder()
     .setTitle("LAPD — Incident Report")

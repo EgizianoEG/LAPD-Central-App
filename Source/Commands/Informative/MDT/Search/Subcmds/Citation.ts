@@ -1,9 +1,9 @@
 import { SlashCommandSubcommandBuilder, MessageFlags } from "discord.js";
 import { RenderFilledNTAForm } from "#Utilities/ImageRendering/GetFilledNTAForm.js";
+import { GetCitation } from "#Utilities/Database/Citation.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 
 import ConstructNTAContainer from "#Utilities/Reports/ConstructNTAContainer.js";
-import GetCitationRecord from "#Utilities/Database/GetCitRecord.js";
 import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 
 // ---------------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ import GetUserInfo from "#Utilities/Roblox/GetUserInfo.js";
 // ----------
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const CitationNum = CmdInteraction.options.getInteger("citation-num", true);
-  const CitationRecord = await GetCitationRecord(CmdInteraction.guildId, CitationNum);
+  const CitationRecord = await GetCitation(CmdInteraction.guildId, CitationNum);
   if (CitationRecord) {
     await CmdInteraction.deferReply({
       flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,

@@ -4,11 +4,8 @@ import { FormatCallsignDesignation } from "#Utilities/Strings/Formatters.js";
 import { ErrorContainer, InfoContainer } from "#Utilities/Classes/ExtraContainers.js";
 import { ServiceUnitTypes, DivisionBeats } from "#Resources/LAPDCallsigns.js";
 import { differenceInMilliseconds, milliseconds } from "date-fns";
+import { CallsignValidationData, GetCallsignValidationData } from "#Utilities/Database/Callsign.js";
 import { SlashCommandSubcommandBuilder, RepliableInteraction, MessageFlags } from "discord.js";
-import {
-  CallsignValidationData,
-  GetCallsignValidationData,
-} from "#Utilities/Database/CallsignData.js";
 
 import CallsignsEventLogger from "#Utilities/Classes/CallsignsEventLogger.js";
 import GetGuildSettings from "#Utilities/Database/GetGuildSettings.js";
