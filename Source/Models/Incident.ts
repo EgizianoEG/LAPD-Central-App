@@ -23,7 +23,7 @@ const IncidentReportSchema = new Schema<IncidentPlainDoc, IncidentModelType>({
     type: Number,
     required: true,
     min: 1_000_000,
-    max: 9_999_999,
+    max: 99_999_999,
   },
 
   type: {
