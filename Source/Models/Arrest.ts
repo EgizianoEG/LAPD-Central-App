@@ -11,7 +11,7 @@ const ArrestSchema = new Schema<ArrestPlainDoc, ArrestModelType>({
     type: Number,
     required: true,
     min: 100,
-    max: 9_999_999,
+    max: 99_999_999,
   },
 
   guild: {
