@@ -57,7 +57,7 @@ const CitationSchema = new Schema<CitationPlainDoc, CitationModelType>({
     type: Number,
     required: true,
     min: 0,
-    max: 99_99999,
+    max: 99_999_999,
   },
 
   guild: {

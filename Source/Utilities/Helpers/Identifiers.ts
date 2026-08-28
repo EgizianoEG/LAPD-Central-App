@@ -2,7 +2,7 @@ import type { AllocatedSequence, SequenceRecordType } from "../Database/Allocate
 
 export const SequenceWidths: Record<SequenceRecordType, number> = {
   arrest: 6,
-  citation: 5,
+  citation: 6,
   incident: 5,
 };
 
