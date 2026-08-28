@@ -38,6 +38,7 @@ import {
   DashFormatIdentifier,
   FormatSortRDInputNames,
   FormatDutyActivitiesLogSignature,
+  EscapeMarkdown,
 } from "#Utilities/Strings/Formatters.js";
 
 import { Types } from "mongoose";
@@ -405,14 +406,20 @@ async function InitializeIncidentData(
   const ReporterRobloxInfo = await GetUserInfo(ReportingOfficer.RobloxUserId);
   const Sequence = await AllocateSequenceNumber(CmdInteract.guild.id, "incident");
 
-  const IncidentNotes = InputNotes ? await FilterUserInput(InputNotes, UTIFOpts) : null;
+  const IncidentNotes = InputNotes
+    ? EscapeMarkdown(await FilterUserInput(InputNotes, UTIFOpts))
+    : null;
+
   const IncidentLoc = await FilterUserInput(CmdProvidedDetails.location, UTIFOpts);
-  const IncidentDesc = await FilterUserInput(
-    ModalSubmission.fields
-      .getTextInputValue("incident-desc")
-      .replaceAll(/[^\S\r\n]+/g, " ")
-      .replaceAll(/\n{3,}/g, "\n\n"),
-    UTIFOpts
+  const IncidentDesc = EscapeMarkdown(
+    await FilterUserInput(
+      ModalSubmission.fields
+        .getTextInputValue("incident-desc")
+        .replaceAll(/[^\S\r\n]+/g, " ")
+        .replaceAll(/\n{3,}/g, "\n\n"),
+      UTIFOpts
+    ),
+    false
   );
 
   const UniqueSuspects = new Set<string>(
