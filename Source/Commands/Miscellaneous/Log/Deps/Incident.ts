@@ -521,7 +521,7 @@ async function OnReportConfirmation(
 
   const REDescription = Dedent(`
     The incident report has been successfully submitted and logged.
-    - Incident Number: ${inlineCode(DashFormatIdentifier(ReportData.num, "incident"))}
+    - Incident Number: ${inlineCode(DashFormatIdentifier(IncidentReport.num, "incident"))}
     - Logged Report: ${ReportSentMessage?.url ?? "N/A"} 
   `);
 
