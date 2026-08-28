@@ -57,7 +57,14 @@ export async function GetIncidentAutocompleteEntries(
         num: "$num",
         reported_on: "$reported_on",
         autocomplete_label: {
-          $concat: ["INC-", "$num", " - ", "$type", " – Reported on ", "$reported_on"],
+          $concat: [
+            "INC-",
+            { $toString: "$num" },
+            " - ",
+            "$type",
+            " – Reported on ",
+            "$reported_on",
+          ],
         },
       },
     },
