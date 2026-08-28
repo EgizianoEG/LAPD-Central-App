@@ -46,3 +46,21 @@ export function ParseIdentifier(Formatted: string | number): AllocatedSequence {
     sequence: +Normalized.slice(2),
   };
 }
+
+/**
+ * Formats an allocated year and sequence into a string with a hyphen separator.
+ * @param Allocated The allocated year and sequence.
+ * @param RecordType The record type used to determine sequence width.
+ * @returns A string in the format `YY-XXXXX`, where `YY` is the two-digit year and `XXXXX` is the zero-padded sequence number.
+ */
+export function DashFormatIdentifier(
+  Allocated: AllocatedSequence | string | number,
+  RecordType: SequenceRecordType
+): string {
+  const Width = SequenceWidths[RecordType];
+  if (typeof Allocated === "string" || typeof Allocated === "number") {
+    Allocated = ParseIdentifier(Allocated);
+  }
+
+  return `${Allocated.year.toString().padStart(2, "0")}-${Allocated.sequence.toString().padStart(Width, "0")}`;
+}
