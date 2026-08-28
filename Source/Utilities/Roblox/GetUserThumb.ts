@@ -4,6 +4,7 @@ import GetPlaceholderImgURL from "#Utilities/Helpers/GetPlaceholderImg.js";
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Axios from "axios";
 
+const FileLabel = "Utilities:Roblox:GetUserThumbnail";
 const DefaultRetryCount = 2;
 const DefaultRetryDelay = 500;
 const EndpointMapping = {
@@ -139,7 +140,7 @@ export default async function GetUserThumbnail<
       return Response.data.data;
     } catch (Err) {
       AppLogger.error({
-        label: "Utilities:Roblox:GetUserThumbnail",
+        label: FileLabel,
         message: "Failed to fetch user thumbnail(s);",
         stack: (Err as Error).stack,
         details: {
@@ -182,6 +183,15 @@ export default async function GetUserThumbnail<
     if (Thumb?.state === "Completed") {
       return Thumb.imageUrl;
     } else {
+      AppLogger.warn({
+        label: FileLabel,
+        message: `Failed to retrieve thumbnail for user ${UserId}; returning fallback placeholder.`,
+        error:
+          Thumb?.state === "Pending"
+            ? "Thumbnail request still pending."
+            : "Thumbnail request failed.",
+      });
+
       return GetFallbackThumbnail(IsManCharacter, Size);
     }
   });
