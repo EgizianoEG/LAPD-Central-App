@@ -1,6 +1,5 @@
 import { Schema, model } from "mongoose";
 import { GuildProfiles } from "#Typings/Utilities/Database.js";
-import ShiftsDataSchema from "./Schemas/ShiftsData.js";
 
 const ProfileSchema = new Schema<
   GuildProfiles.ProfileDocument,
@@ -52,24 +51,6 @@ const ProfileSchema = new Schema<
     index: true,
     default: null,
     required: false,
-  },
-
-  activity_notices: {
-    required: true,
-    default: [],
-    type: [
-      {
-        type: String,
-        ref: "ActivityNotice",
-      },
-    ],
-  },
-
-  shifts: {
-    _id: false,
-    default: {},
-    required: true,
-    type: ShiftsDataSchema,
   },
 });
 

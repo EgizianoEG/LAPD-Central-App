@@ -764,35 +764,10 @@ export namespace GuildProfiles {
     };
 
     /**
-     * A list of activity notice records associated with the user.
-     */
-    activity_notices: string[];
-
-    /**
      * The date and time when the user most recently left the guild.
      * If the user has not left and still a member of it, this will be `null`.
      */
     left_at: Date | null;
-
-    /**
-     * Data related to the user's shifts, including total durations, average periods, and logs.
-     */
-    shifts: {
-      /**
-       * The total durations of the user's shifts, categorized by different time periods.
-       */
-      total_durations: TotalDurationsData;
-
-      /**
-       * The average durations of the user's shifts, categorized by different time periods.
-       */
-      average_periods: TotalDurationsData;
-
-      /**
-       * A list of logs associated with the user's shifts.
-       */
-      logs: string[];
-    };
   }
 }
 
