@@ -465,6 +465,12 @@ export async function FilterUserInput<T extends string | readonly string[]>(
             "Failed to apply auto-moderation rule '%s' for guild '%s'. Errors: %i; errno codes: [%s]; failed patterns (%i/%i): %s; max input length: %i; last error stack:",
           label: FileLabel,
           stack: ForLoopOutput.last_error?.stack,
+
+          error_codes: ForLoopOutput.errno_codes,
+          error_count: ForLoopOutput.error_count,
+          error_patterns: ForLoopOutput.failed_patterns,
+          max_input_length: ForLoopOutput.max_input_length,
+
           splat: [
             Rule.id,
             Options.guild_instance.id,
@@ -533,10 +539,12 @@ function SanitizeAutomodRuleKeywords(Keywords: readonly string[], Type: "Allowed
   Keywords = Keywords.filter((Word) => Boolean(Word) && Linkify.test(Word) === false);
   return Keywords.map((Keyword) => {
     if (!(Keyword.startsWith("*") || Keyword.endsWith("*")))
-      return Type === "Allowed" ? `^\\b${Keyword}\\b$` : `\\b${Keyword}\\b`;
+      return Type === "Allowed" ? String.raw`^\b${Keyword}\b$` : String.raw`\b${Keyword}\b`;
 
     return Keyword.replaceAll(/^\*?([^*\n]+)\*?$/gi, (Match, Capture) => {
-      return Match.startsWith("*") ? `\\b[^\\n\\s]*${Capture}\\b` : `\\b${Capture}[^\\n\\s]*\\b`;
+      return Match.startsWith("*")
+        ? String.raw`\b[^\n\s]*${Capture}\b`
+        : String.raw`\b${Capture}[^\n\s]*\b`;
     });
   });
 }
