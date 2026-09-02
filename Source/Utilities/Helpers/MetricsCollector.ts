@@ -70,7 +70,6 @@ export interface CacheMemoryReport {
  * @returns
  */
 function GetSysDetails<Readable extends boolean = false>(HR: Readable): MData<Readable>["system"] {
-  if (globalThis.gc) globalThis.gc();
   if (HR) {
     return {
       type: OS.type(),
