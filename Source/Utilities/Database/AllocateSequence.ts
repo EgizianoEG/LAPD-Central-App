@@ -26,7 +26,7 @@ export default async function AllocateSequenceNumber(
     const Incremented = await GuildModel.findOneAndUpdate(
       { _id: GuildId, [`${CounterPath}.year`]: CurrentYear },
       { $inc: { [`${CounterPath}.value`]: 1 } },
-      { new: true, projection: { _id: 0, [CounterPath]: 1 } }
+      { returnDocument: "after", projection: { _id: 0, [CounterPath]: 1 } }
     ).lean();
 
     if (Incremented) {
@@ -42,7 +42,7 @@ export default async function AllocateSequenceNumber(
           [`${CounterPath}.value`]: GenerateInitialSequenceNumber(RecordType),
         },
       },
-      { new: true, projection: { _id: 0, [CounterPath]: 1 } }
+      { returnDocument: "after", projection: { _id: 0, [CounterPath]: 1 } }
     ).lean();
 
     if (RolledOver) {
