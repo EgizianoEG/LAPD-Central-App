@@ -36,7 +36,7 @@ const CommandObject = {
     .addIntegerOption((Option) =>
       Option.setName("booking-num")
         .setDescription("The booking number of the arrest.")
-        .setMaxValue(999999)
+        .setMaxValue(99_999_999)
         .setMinValue(100)
         .setRequired(true)
         .setAutocomplete(true)
