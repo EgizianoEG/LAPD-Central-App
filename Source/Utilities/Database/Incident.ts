@@ -54,7 +54,7 @@ export async function GetIncidentAutocompleteEntries(
     },
     {
       $project: {
-        num: "$num",
+        num: { $toString: "$num" },
         reported_on: "$reported_on",
         autocomplete_label: {
           $concat: [
