@@ -28,8 +28,9 @@ export function ComposeIdentifier(
  * between the year and sequence portions.
  *
  * @param Formatted The identifier to parse, such as `24-00001` or `2400001`.
- * @returns The year and sequence represented by the identifier.
- * @throws If the identifier is not seven or eight digits after the optional hyphen is removed.
+ * @returns The year and sequence represented by the identifier,
+ *          or `NaN` for the year if the identifier is not in a valid format
+ *          (might be in an old format without the year prefix).
  */
 export function ParseIdentifier(Formatted: string | number): AllocatedSequence {
   if (typeof Formatted === "number") {
@@ -38,7 +39,10 @@ export function ParseIdentifier(Formatted: string | number): AllocatedSequence {
 
   const Normalized = Formatted.replace("-", "");
   if (!/^\d{7,8}$/.test(Normalized)) {
-    throw new Error(`Invalid identifier: ${Formatted}`);
+    return {
+      year: Number.NaN,
+      sequence: Number(Normalized),
+    };
   }
 
   return {
@@ -51,15 +55,21 @@ export function ParseIdentifier(Formatted: string | number): AllocatedSequence {
  * Formats an allocated year and sequence into a string with a hyphen separator.
  * @param Allocated The allocated year and sequence.
  * @param RecordType The record type used to determine sequence width.
+ * @param [YearOfIssuance] Optional year of issuance (2 digits) to override the allocated year; shall be only used for old identifiers without year prefix.
  * @returns A string in the format `YY-XXXXX`, where `YY` is the two-digit year and `XXXXX` is the zero-padded sequence number.
  */
 export function DashFormatIdentifier(
   Allocated: AllocatedSequence | string | number,
-  RecordType: SequenceRecordType
+  RecordType: SequenceRecordType,
+  YearOfIssuance?: number
 ): string {
   const Width = SequenceWidths[RecordType];
   if (typeof Allocated === "string" || typeof Allocated === "number") {
     Allocated = ParseIdentifier(Allocated);
+  }
+
+  if (Number.isNaN(Allocated.year) && YearOfIssuance !== undefined) {
+    Allocated.year = YearOfIssuance;
   }
 
   return `${Allocated.year.toString().padStart(2, "0")}-${Allocated.sequence.toString().padStart(Width, "0")}`;

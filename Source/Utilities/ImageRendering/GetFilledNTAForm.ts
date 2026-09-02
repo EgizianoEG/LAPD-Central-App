@@ -201,6 +201,15 @@ export async function RenderFilledNTAForm<AsURL extends boolean | undefined = un
   // -------------------------------
   // NTA/Citation number in the format of YY NNNNN
   // where YY is the last two digits of the year of issuance and NNNNN is the citation number from the database padded with leading zeros.
+  if (typeof CitData.issued_on !== "object" || !(CitData.issued_on instanceof Date)) {
+    throw new TypeError(
+      "Invalid issued_on date in citation data. Expected a Date object; received: " +
+        typeof CitData.issued_on +
+        " - " +
+        CitData.issued_on
+    );
+  }
+
   const YIssuanceSuffix = CitData.issued_on.getFullYear().toString().slice(-2);
   const PaddedCitSequence =
     CitData.issued_on < DB_CIT_NUM_MIGRATION_DATE

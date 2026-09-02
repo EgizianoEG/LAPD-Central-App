@@ -22,7 +22,12 @@ export default function ConstructNTAContainer(
     | string,
   CitationImgURL: string
 ) {
-  const NTAFullNumber = DashFormatIdentifier(CitationData.num, "citation");
+  const NTAFullNumber = DashFormatIdentifier(
+    CitationData.num,
+    "citation",
+    CitationData.issued_on.getFullYear() % 100
+  );
+
   const CitationDescription = Dedent(`
     **Citation issued by:** ${userMention(CitationData.citing_officer.discord_id)}
     **Issued on:** ${time(CitationData.issued_on, "f")}
