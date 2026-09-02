@@ -75,7 +75,7 @@ export async function GetArrest(
   Identifier: number | string | Types.ObjectId
 ): Promise<GuildArrests.ArrestRecord | null> {
   const IsValidObjectId = !!Types.ObjectId.isValid(Identifier.toString());
-  const SearchField = IsValidObjectId ? "_id" : "num";
+  const SearchField = IsValidObjectId ? "_id" : "booking_num";
 
   return ArrestModel.findOne({
     guild: GuildId,
