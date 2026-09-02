@@ -17,7 +17,10 @@ export async function GetIncident(
   const IsValidObjectId = !!Types.ObjectId.isValid(Identifier.toString());
   const SearchField = IsValidObjectId ? "_id" : "num";
 
-  return IncidentModel.findOne({ guild: GuildId, [SearchField]: Identifier }).lean(true);
+  return IncidentModel.findOne({
+    guild: GuildId,
+    [SearchField]: IsValidObjectId ? Identifier : Number(Identifier),
+  }).lean(true);
 }
 
 /**
@@ -54,7 +57,7 @@ export async function GetIncidentAutocompleteEntries(
     },
     {
       $project: {
-        num: { $toString: "$num" },
+        num: "$num",
         reported_on: "$reported_on",
         autocomplete_label: {
           $concat: [

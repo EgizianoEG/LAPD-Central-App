@@ -8,17 +8,8 @@ import GetIncidentReportEmbeds from "#Utilities/Reports/GetIncidentReportEmbeds.
 // Functions:
 // ----------
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
-  const IncidentNum = CmdInteraction.options.getString("incident-num", true);
-  const IncNumIsValid = IsFormattedIncidentNumber(IncidentNum);
-  const IncidentRecord = IncNumIsValid
-    ? await GetIncident(CmdInteraction.guildId, IncidentNum)
-    : null;
-
-  if (!IncNumIsValid) {
-    return new ErrorEmbed()
-      .useErrTemplate("InvalidIncidentNum")
-      .replyToInteract(CmdInteraction, true);
-  }
+  const IncidentNum = CmdInteraction.options.getInteger("incident-num", true);
+  const IncidentRecord = await GetIncident(CmdInteraction.guildId, IncidentNum);
 
   if (IncidentRecord) {
     await CmdInteraction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -45,11 +36,11 @@ const CommandObject = {
   data: new SlashCommandSubcommandBuilder()
     .setName("incident")
     .setDescription("Get information about a logged incident.")
-    .addStringOption((Option) =>
+    .addIntegerOption((Option) =>
       Option.setName("incident-num")
         .setDescription("The incident number to get information about.")
-        .setMinLength(7)
-        .setMaxLength(9)
+        .setMinValue(2_500_000)
+        .setMaxValue(99_999_999)
         .setRequired(true)
         .setAutocomplete(true)
     ),

@@ -81,14 +81,14 @@ export function IsValidUserPermsObj(Obj: any): boolean {
 
 /**
  * Validates whether a given string is a valid incident number.
- * A valid incident number follows the format: `YY-NNNNN` where:
+ * A valid incident number follows the format: `YY-NNNNN[N]]` where:
  * - `YY` is the last two digits of the year (01-99).
  * - `NNNNN` is a sequence number that can be 5 digits long.
  * @param Num - The incident number string to validate.
  * @returns `true` if the string is a valid incident number, otherwise `false`.
  */
 export function IsFormattedIncidentNumber(Num: string): boolean {
-  return /^\d{2}-\d{5}$/.test(Num);
+  return /^\d{2}-\d{5,6}$/.test(Num);
 }
 
 /**
