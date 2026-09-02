@@ -1,7 +1,11 @@
 import { connections as MongooseConnection, STATES as DBStates } from "mongoose";
+import { CacheMemoryUsage, CalculateCacheMemoryUsage } from "./CacheMemUsageEstimate.js";
 import { ReadableDuration } from "#Utilities/Strings/Formatters.js";
 import { OSMetrics } from "#Typings/Utilities/Generic.js";
-import { Client } from "discord.js";
+import { Client, Collection } from "discord.js";
+
+import * as Caches from "#Utilities/Helpers/Cache.js";
+import TTLCache from "@isaacs/ttlcache";
 
 import AppLogger from "#Utilities/Classes/AppLogger.js";
 import Convert from "convert-units";
@@ -11,9 +15,15 @@ import OS from "node:os";
 // -----------------------------------------------------------------------------
 // Types, Interfaces, & Constants:
 // -------------------------------
-type MData<HR extends boolean = false> = OSMetrics.OSMetricsData<HR>;
 const DiscordPingTimeout = 4000;
 const DatabasePingTimeout = 5000;
+const FileLabel = "MetricsCollector.ts";
+
+type MData<HR extends boolean = false> = OSMetrics.OSMetricsData<HR>;
+type SupportedCache = TTLCache<any, any> | Map<any, any> | Collection<any, any>;
+interface CacheMemoryReportEntry extends CacheMemoryUsage {
+  name: string;
+}
 
 export const AppResponse = {
   /* Indicates whether the application is currently rate-limited by Discord API or Cloudflare. */
@@ -30,6 +40,24 @@ export interface HealthMetrics {
   discord: {
     latency: number | null;
     healthy: boolean;
+  };
+}
+
+export interface CacheMemoryReport {
+  generated_at: string;
+  process_memory_snapshot: {
+    rss: number;
+    heapUsed: number;
+    heapTotal: number;
+    external: number;
+  };
+  custom_caches: CacheMemoryReportEntry[];
+  discord_caches: CacheMemoryReportEntry[];
+  totals: {
+    custom_caches_bytes: number;
+    discord_caches_bytes: number;
+    tracked_bytes: number;
+    tracked_percentage_of_heap_used: number;
   };
 }
 
@@ -97,6 +125,29 @@ function GetMemoryDetails<Readable extends boolean = false>(
   return MemoryDetails as MData<Readable>["memory"];
 }
 
+function IsSupportedCache(V: unknown): V is SupportedCache {
+  return V instanceof TTLCache || V instanceof Map || V instanceof Collection;
+}
+
+/**
+ * Wraps several caches as a single virtual, read-only cache for measurement
+ * purposes ONLY — never materializes a merged copy of the underlying data,
+ * unlike Collection#concat, which would duplicate every entry in memory just
+ * to profile memory usage (self-defeating for exactly what we're diagnosing).
+ */
+function VirtualAggregateCache(collections: SupportedCache[]): {
+  size: number;
+  entries(): IterableIterator<[any, any]>;
+} {
+  const size = collections.reduce((sum, c) => sum + c.size, 0);
+  return {
+    size,
+    *entries() {
+      for (const c of collections) yield* (c as any).entries();
+    },
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Main Functions:
 // ---------------
@@ -151,7 +202,7 @@ export async function GetDatabaseLatency(): Promise<number | null> {
   } catch (Err: any) {
     AppLogger.warn({
       message: "Database ping check failed.",
-      label: "MetricsCollector.ts",
+      label: FileLabel,
       stack: Err?.stack,
       error: Err.message ?? String(Err),
     });
@@ -185,7 +236,7 @@ export async function GetDiscordAPILatency(DiscordApp: Client): Promise<number |
     return Date.now() - Start;
   } catch (Err: any) {
     AppLogger.warn({
-      label: "MetricsCollector.ts",
+      label: FileLabel,
       message: "Discord health check failed.",
       stack: Err?.stack,
       error: Err.message ?? String(Err),
@@ -224,6 +275,78 @@ export async function CollectHealthMetrics(DiscordApp: Client): Promise<HealthMe
     discord: {
       latency: DiscordApiLatency,
       healthy: DiscordApiLatency !== null && DiscordApiLatency >= 0 && DiscordApiLatency < 2500,
+    },
+  };
+}
+
+export function CollectCacheMemoryMetrics(DiscordApp: Client): CacheMemoryReport {
+  const MemSnapshot = Process.memoryUsage();
+  const CustomCacheMetrics: CacheMemoryReportEntry[] = [];
+  const DiscordCacheMetrics: CacheMemoryReportEntry[] = [];
+
+  const SafeMeasure = (
+    Name: string,
+    Instance: SupportedCache | ReturnType<typeof VirtualAggregateCache>,
+    Target: CacheMemoryReportEntry[]
+  ) => {
+    try {
+      const Usage = CalculateCacheMemoryUsage(Instance as any, {
+        relative_to: "heapUsed",
+        process_memory_snapshot: MemSnapshot,
+      });
+
+      Target.push({ name: Name, ...Usage });
+    } catch (Err: any) {
+      AppLogger.warn({
+        label: FileLabel,
+        message: `Failed to compute memory usage for cache "${Name}".`,
+        stack: Err?.stack,
+        error: Err.message ?? String(Err),
+      });
+    }
+  };
+
+  for (const [CacheName, CacheInstance] of Object.entries(Caches)) {
+    if (IsSupportedCache(CacheInstance)) {
+      SafeMeasure(CacheName, CacheInstance, CustomCacheMetrics);
+    } else if (CacheInstance && typeof CacheInstance === "object") {
+      for (const [SubCacheName, SubCacheInstance] of Object.entries(CacheInstance)) {
+        if (IsSupportedCache(SubCacheInstance)) {
+          SafeMeasure(`${CacheName}.${SubCacheName}`, SubCacheInstance, CustomCacheMetrics);
+        }
+      }
+    }
+  }
+
+  SafeMeasure("users", DiscordApp.users.cache, DiscordCacheMetrics);
+  SafeMeasure("guilds", DiscordApp.guilds.cache, DiscordCacheMetrics);
+
+  const TextChannelMessageCaches = DiscordApp.channels.cache
+    .filter((c) => c.isTextBased())
+    .map((c: any) => c.messages.cache as Collection<any, any>);
+  SafeMeasure("messages", VirtualAggregateCache(TextChannelMessageCaches), DiscordCacheMetrics);
+
+  const GuildMemberCaches = DiscordApp.guilds.cache.map((g) => g.members.cache);
+  SafeMeasure("guildMembers", VirtualAggregateCache(GuildMemberCaches), DiscordCacheMetrics);
+
+  const CustomBytes = CustomCacheMetrics.reduce((s, c) => s + c.bytes, 0);
+  const DiscordBytes = DiscordCacheMetrics.reduce((s, c) => s + c.bytes, 0);
+
+  return {
+    generated_at: new Date().toISOString(),
+    process_memory_snapshot: {
+      rss: MemSnapshot.rss,
+      heapUsed: MemSnapshot.heapUsed,
+      heapTotal: MemSnapshot.heapTotal,
+      external: MemSnapshot.external,
+    },
+    custom_caches: CustomCacheMetrics,
+    discord_caches: DiscordCacheMetrics,
+    totals: {
+      custom_caches_bytes: CustomBytes,
+      discord_caches_bytes: DiscordBytes,
+      tracked_bytes: CustomBytes + DiscordBytes,
+      tracked_percentage_of_heap_used: ((CustomBytes + DiscordBytes) / MemSnapshot.heapUsed) * 100,
     },
   };
 }

@@ -8,6 +8,7 @@ import {
   GetDatabaseLatency,
   GetOSMetrics,
   AppResponse,
+  CollectCacheMemoryMetrics,
 } from "#Utilities/Helpers/MetricsCollector.js";
 
 import Express, { Request, Response, NextFunction } from "express";
@@ -70,7 +71,14 @@ export default function ExpressServerHandler(App: Client) {
   });
 
   ExpressApp.get("/", HandleRootRequest);
-  ExpressApp.get("/metrics", (Req, Res) => HandleMetricsRequest(Req, Res, App));
+  ExpressApp.get("/metrics", (Req, Res) => {
+    if (Req.query["memory-detailed"] === "true") {
+      return HandleMetricsRequest(Req, Res, App, true);
+    }
+
+    return HandleMetricsRequest(Req, Res, App);
+  });
+
   ExpressApp.get("/health", (Req, Res) => HandleHealthRequest(Req, Res, App));
   ExpressApp.get("/health/discord", (Req, Res) => HandleDiscordHealthRequest(Req, Res, App));
   ExpressApp.get("/health/database", HandleDatabaseHealthRequest);
@@ -98,9 +106,25 @@ export default function ExpressServerHandler(App: Client) {
 // -------------------------------------------------------------------------------------------
 // Route Handlers:
 // ---------------
-async function HandleMetricsRequest(_: Request, Res: Response, App: Client) {
+async function HandleMetricsRequest(
+  _: Request,
+  Res: Response,
+  App: Client,
+  DetailedMemory = false
+) {
   const HealthMetrics = await CollectHealthMetrics(App);
   const OSMetrics = await GetOSMetrics(true);
+
+  if (DetailedMemory) {
+    const MemoryMetricsExtended = {
+      ...OSMetrics.memory,
+      caches: CollectCacheMemoryMetrics(App),
+    } as typeof OSMetrics.memory & {
+      caches: ReturnType<typeof CollectCacheMemoryMetrics>;
+    };
+
+    OSMetrics.memory = MemoryMetricsExtended;
+  }
 
   Res.status(HealthMetrics.status === "healthy" ? 200 : 503).end(
     JSON.stringify(
