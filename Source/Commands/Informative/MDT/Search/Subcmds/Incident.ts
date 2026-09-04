@@ -1,5 +1,4 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from "discord.js";
-import { IsFormattedIncidentNumber } from "#Utilities/Helpers/Validators.js";
 import { GetIncident } from "#Utilities/Database/Incident.js";
 import { ErrorEmbed } from "#Utilities/Classes/ExtraEmbeds.js";
 import GetIncidentReportEmbeds from "#Utilities/Reports/GetIncidentReportEmbeds.js";
