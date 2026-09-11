@@ -211,7 +211,7 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
           "Shift type(s) to report on, comma separated. If unspecified, the report includes all shift types."
         )
         .setMinLength(3)
-        .setMaxLength(54)
+        .setMaxLength(64)
         .setRequired(false)
         .setAutocomplete(true)
     )
