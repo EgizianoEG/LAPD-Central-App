@@ -29,9 +29,13 @@ import GetValidTargetShiftTypes from "#Utilities/Helpers/GetTargetShiftType.js";
 async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
   const [ValidShiftTypes, TargetShiftTypes] = await GetValidTargetShiftTypes(CmdInteraction, false);
   const InputQuotaDuration = CmdInteraction.options.getString("time-requirement", false);
-  const EphemeralResponse = CmdInteraction.options.getBoolean("private", false) ?? false;
   const InputShiftType = CmdInteraction.options.getString("shift-type", false);
+
   const IMNicknames = CmdInteraction.options.getBoolean("include-nicknames", false);
+  const EphemeralResponse = CmdInteraction.options.getBoolean("private", false) ?? false;
+  const HighlightOnLeave = CmdInteraction.options.getBoolean("highlight-on-leave", false) ?? false;
+  const HighlightBelowQuota =
+    CmdInteraction.options.getBoolean("highlight-below-quota", false) ?? false;
   const AllMembersIncluded =
     CmdInteraction.options.getBoolean("include-all-members", false) ?? false;
 
@@ -133,6 +137,8 @@ async function Callback(CmdInteraction: SlashCommandInteraction<"cached">) {
     quota_duration: QuotaDur || ServerDefaultQuota,
     include_non_staff: AllMembersIncluded,
     include_member_nicknames: !!IMNicknames,
+    highlight_on_leave: HighlightOnLeave,
+    highlight_below_quota: HighlightBelowQuota,
   });
 
   const ShowReportButton = new ActionRowBuilder<ButtonBuilder>().setComponents(
@@ -184,7 +190,7 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
   callback: Callback,
   data: new SlashCommandSubcommandBuilder()
     .setName("report")
-    .setDescription("Creates a report detailing officers' activities over a specific time period.")
+    .setDescription("Creates a report detailing members' activities over a specific time period.")
     .addStringOption((Option) =>
       Option.setName("since")
         .setDescription(
@@ -241,6 +247,18 @@ const CommandObject: SlashCommandObject<SlashCommandSubcommandBuilder> = {
       Option.setName("include-all-members")
         .setDescription(
           "Include members without staff roles if they have recorded shift time in the selected period."
+        )
+        .setRequired(false)
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("highlight-on-leave")
+        .setDescription("Highlight personnel with an active leave of absence in green.")
+        .setRequired(false)
+    )
+    .addBooleanOption((Option) =>
+      Option.setName("highlight-below-quota")
+        .setDescription(
+          "Highlight personnel who have not met the report's shift-time requirement in red."
         )
         .setRequired(false)
     ),

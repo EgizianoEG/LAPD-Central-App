@@ -28,6 +28,12 @@ interface GetActivityReportDataOpts {
   /** Whether or not to include member nicknames in the activity report data. Defaults to `false`. */
   include_member_nicknames?: boolean;
 
+  /** Whether the generated activity report should highlight members with an active leave of absence. */
+  highlight_on_leave?: boolean;
+
+  /** Whether the generated activity report should highlight members who have not met the configured quota. */
+  highlight_below_quota?: boolean;
+
   /**
    * Whether or not to include non-staff members in the activity report data if and only if they got any shift time recorded.
    * This will take into account members with staff/management roles as well as members without those roles but have recorded shift time (e.g., retired staff).

@@ -50,17 +50,24 @@ export default async function CreateActivityReport(
     spreadsheetId: Copy.data.id!,
     requestBody: {
       requests: [
+        // Set the spreadsheet title:
+        {
+          updateSpreadsheetProperties: {
+            fields: "title",
+            properties: {
+              title: SpreadsheetTitle,
+            },
+          },
+        },
+
         // Sheet 1: Detailed Report
-        // 1. Set the guild name:
+        // 1.1. Set the guild name:
         {
           updateCells: {
             fields: "userEnteredValue",
             range: {
               sheetId: RecordsSheetId,
-              startRowIndex: 1, // Refers to row 2
-              endRowIndex: 2, // Up to row 3
-              startColumnIndex: 2, // Column 'C'
-              endColumnIndex: 3, // Up to column 'D'
+              ...CreateGridRange("C", 2),
             },
             rows: [
               {
@@ -76,7 +83,7 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 1.5. Set name column width if necessary depending on whether or not to include member nicknames:
+        // 1.2. Set name column width if necessary; dependent on the include member nicknames option:
         {
           updateDimensionProperties: {
             fields: "pixelSize",
@@ -92,7 +99,7 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 2. Add necessary rows to insert data properly:
+        // 1.3. Add minimal necessary rows to insert report rows:
         {
           insertDimension: {
             inheritFromBefore: true,
@@ -105,11 +112,11 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 3. Set the data for the report, including any notes on cells:
+        // 1.4. Set the data for the report, including any notes on cells:
         {
           updateCells: {
-            rows: ReportData.records,
             fields: "userEnteredValue,note",
+            rows: ReportData.records,
             start: {
               sheetId: RecordsSheetId,
               rowIndex: 10,
@@ -118,16 +125,13 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 4. Set the quota field:
+        // 1.5. Set the quota field:
         {
           updateCells: {
             fields: "userEnteredValue",
             range: {
               sheetId: RecordsSheetId,
-              startRowIndex: 7, // Refers to row 8
-              endRowIndex: 8, // Up to row 9
-              startColumnIndex: 12, // Column 'L'
-              endColumnIndex: 13, // Up to column 'M'
+              ...CreateGridRange("L", 8),
             },
             rows: [
               {
@@ -143,7 +147,40 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 5. Set the first sheet title:
+        // 1.6. Optional highlighting:
+        {
+          updateCells: {
+            fields: "userEnteredValue",
+            range: {
+              sheetId: RecordsSheetId,
+              ...CreateGridRange("N", 2, 4, 1),
+            },
+            rows: [
+              {
+                values: [
+                  {
+                    userEnteredValue: {
+                      stringValue: Opts.highlight_on_leave ? "Yes" : "No",
+                    },
+                  },
+                ],
+              },
+              {},
+              {
+                values: [
+                  {
+                    userEnteredValue: {
+                      stringValue: Opts.highlight_below_quota ? "Yes" : "No",
+                    },
+                  },
+                ],
+              },
+              {},
+            ],
+          },
+        },
+
+        // 1.7. Set the first sheet's title:
         {
           updateSheetProperties: {
             fields: "title",
@@ -154,27 +191,14 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 6. Set the spreadsheet title:
-        {
-          updateSpreadsheetProperties: {
-            fields: "title",
-            properties: {
-              title: SpreadsheetTitle,
-            },
-          },
-        },
-
         // Sheet 2: Statistics
-        // 1. Set the total time field:
+        // 2.1. Set the total time field:
         {
           updateCells: {
             fields: "userEnteredValue",
             range: {
               sheetId: StatisticsSheetId,
-              startRowIndex: 3, // Refers to row 4
-              endRowIndex: 5, // Up to row 6
-              startColumnIndex: 2, // Column 'C'
-              endColumnIndex: 5, // Up to column 'F'
+              ...CreateGridRange("C", 4),
             },
             rows: [
               {
@@ -190,16 +214,13 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 2. Set the total shifts field:
+        // 2.2. Set the total shifts field:
         {
           updateCells: {
             fields: "userEnteredValue",
             range: {
               sheetId: StatisticsSheetId,
-              startRowIndex: 3, // Refers to row 4
-              endRowIndex: 5, // Refers to up to row 6
-              startColumnIndex: 1, // Refers to column B
-              endColumnIndex: 2, // Up to column C
+              ...CreateGridRange("B", 4),
             },
             rows: [
               {
@@ -215,16 +236,13 @@ export default async function CreateActivityReport(
           },
         },
 
-        // 3. Set the average time field:
+        // 2.3. Set the average time field:
         {
           updateCells: {
             fields: "userEnteredValue",
             range: {
               sheetId: StatisticsSheetId,
-              startRowIndex: 6, // Refers to row 7
-              endRowIndex: 7, // Refers to up to row 8
-              startColumnIndex: 3, // Refers to column D
-              endColumnIndex: 6, // Up to column G
+              ...CreateGridRange("D", 7),
             },
             rows: [
               {
@@ -243,7 +261,6 @@ export default async function CreateActivityReport(
     },
   });
 
-  // Set the permission for public access.
   await DriveAPI.permissions.create({
     fileId: Copy.data.id!,
     requestBody: {
@@ -283,4 +300,69 @@ function GetFirstSheetName(EndDate: Date, StartDate?: Date | null): string {
   const FPortion = format(StartDate, `MMMM do${IsDifferentYear ? ", yyyy" : ""}`);
   const SPortion = format(EndDate, "MMMM do 'at' p O");
   return `Report: ${FPortion} — ${SPortion}`;
+}
+
+/**
+ * Converts a spreadsheet column name or 1-indexed column number to a
+ * zero-based Google Sheets column index. String columns are case-insensitive.
+ *
+ * Numeric columns:
+ * - `1` = column A
+ * - `26` = column Z
+ * - `27` = column AA
+ *
+ * @param Column - The spreadsheet column name or 1-indexed column number.
+ * @returns The zero-based column index for Google Sheets.
+ */
+function GetColumnIndex(Column: number | string): number {
+  if (typeof Column === "number") {
+    if (!Number.isInteger(Column) || Column < 1) {
+      throw new RangeError("Column numbers must be positive integers.");
+    }
+
+    return Column - 1;
+  }
+
+  const NormalizedColumn = Column.trim().toUpperCase();
+  if (!/^[A-Z]+$/.test(NormalizedColumn)) {
+    throw new RangeError(`Invalid spreadsheet column name: "${Column}".`);
+  }
+
+  let ColumnIndex = 0;
+  for (const Character of NormalizedColumn) {
+    ColumnIndex = ColumnIndex * 26 + Character.charCodeAt(0) - 64;
+  }
+
+  return ColumnIndex - 1;
+}
+
+/**
+ * Creates a Google Sheets grid range.
+ *
+ * @param Column - The 1-indexed starting (inclusive) column number or spreadsheet column name.
+ * @param Row - The 1-indexed starting (inclusive) row number.
+ * @param RowCount - The number of rows to include in the range. Defaults to `1`.
+ * @param ColumnCount - The number of columns to include in the range. Defaults to `1`.
+ * @returns An object representing the grid range for Google Sheets.
+ */
+function CreateGridRange(Column: number | string, Row: number, RowCount = 1, ColumnCount = 1) {
+  if (!Number.isInteger(Row) || Row < 1) {
+    throw new RangeError("Row numbers must be positive integers.");
+  }
+
+  if (!Number.isInteger(RowCount) || RowCount < 1) {
+    throw new RangeError("Row counts must be positive integers.");
+  }
+
+  if (!Number.isInteger(ColumnCount) || ColumnCount < 1) {
+    throw new RangeError("Column counts must be positive integers.");
+  }
+
+  const StartColumnIndex = GetColumnIndex(Column);
+  return {
+    startRowIndex: Row - 1,
+    endRowIndex: Row - 1 + RowCount,
+    startColumnIndex: StartColumnIndex,
+    endColumnIndex: StartColumnIndex + ColumnCount,
+  };
 }
